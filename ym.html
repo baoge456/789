@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>域名监控</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 20px auto;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .header-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #3498db;
+            color: #fff;
+        }
+        .header-container h1 {
+            margin-bottom: 10px;
+        }
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap;
+            table-layout: auto;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .edit-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .edit-button-cancel {
+            background-color: #e74c3c;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .edit-button-save {
+            background-color: #3498db;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .status-dot.normal {
+            background-color: #2ecc71;
+        }
+        .status-dot.expired {
+            background-color: #e74c3c;
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 0;
+        }
+        .remaining-days-button {
+            background-color: #7A288A;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .remaining-days {
+            text-align: center;
+        }
+        /* 针对中等屏幕的样式 */
+        @media (min-width: 600px) {
+            .header-container {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .header-container h1 {
+                margin-bottom: 0;
+            }
+        }
+        /* 针对大屏幕的样式 */
+        @media (min-width: 992px) {
+            .container {
+                width: 80%;
+            }
+            th, td {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-container">
+            <h1>域名监控</h1>
+            <div>
+                <button class="edit-button" onclick="showAddForm()">添加域名</button>
+                <button class="edit-button" onclick="exportDomains()">导出列表</button>
+                <button class="edit-button" onclick="importDomains()">导入列表</button>
+                <button class="edit-button" onclick="clearDomains()">清空列表</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <table id="domain-table">
+                <thead>
+                    <tr>
+                        <th>状态</th>
+                        <th>域名</th>
+                        <th>注册商</th>
+                        <th>注册时间</th>
+                        <th>过期时间</th>
+                        <th class="remaining-days"><button class="remaining-days-button" onclick="sortDomains('remainingDays')">剩余天数</button></th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="domain-body">
+                    <!-- 动态添加行 -->
+                </tbody>
+            </table>
+        </div>
+        <div id="add-form" class="modal" style="display:none;">
+            <h2>添加域名信息</h2>
+            <form id="add-domain-form">
+                <label for="domain">域名:</label>
+                <input type="text" id="domain" name="domain"><br><br>
+                <label for="system">注册商:</label>
+                <input type="text" id="system" name="system"><br><br>
+                <label for="systemURL">注册商网址:</label>
+                <input type="url" id="systemURL" name="systemURL"><br><br>
+                <label for="registrationDate">注册时间:</label>
+                <input type="text" id="registrationDate" name="registrationDate" oninput="formatDate(this)"><br><br>
+                <label for="expirationDate">过期时间:</label>
+                <input type="text" id="expirationDate" name="expirationDate" oninput="formatDate(this)"><br><br>
+                <button class="edit-button-cancel" type="button" onclick="cancelAdd()">取消</button>
+                <button class="edit-button-save" type="button" onclick="addDomain()">保存</button>
+            </form>
+        </div>
+        <div id="edit-modal" class="modal" style="display:none;">
+            <h2>编辑域名信息</h2>
+            <form id="edit-domain-form">
+                <label for="editDomain">域名:</label>
+                <input type="text" id="editDomain" name="editDomain"><br><br>
+                <label for="editSystem">注册商:</label>
+                <input type="text" id="editSystem" name="editSystem"><br><br>
+                <label for="editSystemURL">注册商网址:</label>
+                <input type="url" id="editSystemURL" name="editSystemURL"><br><br>
+                <label for="editRegistrationDate">注册时间:</label>
+                <input type="text" id="editRegistrationDate" name="editRegistrationDate" oninput="formatDate(this)"><br><br>
+                <label for="editExpirationDate">过期时间:</label>
+                <input type="text" id="editExpirationDate" name="editExpirationDate" oninput="formatDate(this)"><br><br>
+                <button class="edit-button-cancel" type="button" onclick="cancelEdit()">取消</button>
+                <button class="edit-button-save" type="button" onclick="saveEdit()">保存</button>
+            </form>
+        </div>
+        <div id="modal-overlay" class="modal-overlay" style="display:none;"></div>
+        <input type="file" id="import-file" style="display:none;" accept=".json" onchange="handleImportFile(this)">
+    </div>
+
+    <script>
+        let domains = JSON.parse(localStorage.getItem('domains')) || [
+            // 示例数据
+            { domain: 'example.com', system: 'Example System', systemURL: 'https://example.com', registrationDate: '2022-01-01', expirationDate: '2024-01-01' },
+        ];
+        let currentEditIndex = null;
+
+        function showAddForm() {
+            document.getElementById('add-form').style.display = 'block';
+            document.getElementById('modal-overlay').style.display = 'block';
+        }
+
+        function addDomain() {
+            const domain = document.getElementById('domain').value;
+            const system = document.getElementById('system').value;
+            const systemURL = document.getElementById('systemURL').value;
+            const registrationDate = document.getElementById('registrationDate').value;
+            const expirationDate = document.getElementById('expirationDate').value;
+
+            domains.push({
+                domain: domain,
+                system: system,
+                systemURL: systemURL,
+                registrationDate: registrationDate,
+                expirationDate: expirationDate,
+            });
+
+            saveDomains();
+            updateTable();
+            document.getElementById('add-form').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('add-domain-form').reset();
+        }
+
+        function cancelAdd() {
+            document.getElementById('add-form').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('add-domain-form').reset();
+        }
+
+        function updateTable() {
+            const tableBody = document.getElementById('domain-body');
+            tableBody.innerHTML = '';
+
+            domains.forEach((domainInfo, index) => {
+                const row = document.createElement('tr');
+                const statusCell = document.createElement('td');
+                const domainCell = document.createElement('td');
+                const systemCell = document.createElement('td');
+                const registrationDateCell = document.createElement('td');
+                const expirationDateCell = document.createElement('td');
+                const remainingDaysCell = document.createElement('td');
+                const actionCell = document.createElement('td');
+
+                const expirationDate = new Date(domainInfo.expirationDate);
+                const today = new Date();
+                const daysRemaining = Math.ceil((expirationDate - today) / (1000 * 60 * 60 * 24));
+
+                const statusDot = document.createElement('span');
+                statusDot.className = 'status-dot';
+                if (daysRemaining > 0) {
+                    statusDot.className += ' normal';
+                } else {
+                    statusDot.className += ' expired';
+                }
+                statusCell.appendChild(statusDot);
+
+                domainCell.textContent = domainInfo.domain;
+
+                const systemLink = document.createElement('a');
+                systemLink.textContent = domainInfo.system;
+                systemLink.href = domainInfo.systemURL;
+                systemLink.target = '_blank';
+                systemCell.appendChild(systemLink);
+
+                registrationDateCell.textContent = domainInfo.registrationDate;
+                expirationDateCell.textContent = domainInfo.expirationDate;
+                remainingDaysCell.textContent = daysRemaining > 0 ? daysRemaining + ' 天' : '已过期';
+                remainingDaysCell.className = 'remaining-days'; // 居中显示
+
+                const editButton = document.createElement('button');
+                editButton.textContent = '编辑';
+                editButton.className = 'edit-button';
+                editButton.onclick = () => {
+                    currentEditIndex = index;
+                    document.getElementById('editDomain').value = domainInfo.domain;
+                    document.getElementById('editSystem').value = domainInfo.system;
+                    document.getElementById('editSystemURL').value = domainInfo.systemURL;
+                    document.getElementById('editRegistrationDate').value = domainInfo.registrationDate;
+                    document.getElementById('editExpirationDate').value = domainInfo.expirationDate;
+
+                    document.getElementById('edit-modal').style.display = 'block';
+                    document.getElementById('modal-overlay').style.display = 'block';
+                };
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = '删除';
+                deleteButton.className = 'edit-button';
+                deleteButton.onclick = () => {
+                    domains.splice(index, 1);
+                    saveDomains();
+                    updateTable();
+                };
+
+                actionCell.appendChild(editButton);
+                actionCell.appendChild(deleteButton);
+
+                row.appendChild(statusCell);
+                row.appendChild(domainCell);
+                row.appendChild(systemCell);
+                row.appendChild(registrationDateCell);
+                row.appendChild(expirationDateCell);
+                row.appendChild(remainingDaysCell);
+                row.appendChild(actionCell);
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        function saveDomains() {
+            localStorage.setItem('domains', JSON.stringify(domains));
+        }
+
+        function formatDate(input) {
+            const value = input.value;
+            if (value.length === 4) {
+                input.value += '-';
+            } else if (value.length === 7) {
+                input.value += '-';
+            }
+        }
+
+        function saveEdit() {
+            if (currentEditIndex !== null) {
+                domains[currentEditIndex].domain = document.getElementById('editDomain').value;
+                domains[currentEditIndex].system = document.getElementById('editSystem').value;
+                domains[currentEditIndex].systemURL = document.getElementById('editSystemURL').value;
+                domains[currentEditIndex].registrationDate = document.getElementById('editRegistrationDate').value;
+                domains[currentEditIndex].expirationDate = document.getElementById('editExpirationDate').value;
+
+                saveDomains();
+                updateTable();
+                document.getElementById('edit-modal').style.display = 'none';
+                document.getElementById('modal-overlay').style.display = 'none';
+                currentEditIndex = null;
+            }
+        }
+
+        function cancelEdit() {
+            document.getElementById('edit-modal').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+            currentEditIndex = null;
+        }
+
+        function sortDomains(key) {
+            domains.sort((a, b) => {
+                const aExpirationDate = new Date(a.expirationDate);
+                const bExpirationDate = new Date(b.expirationDate);
+                const today = new Date();
+                const aDaysRemaining = Math.ceil((aExpirationDate - today) / (1000 * 60 * 60 * 24));
+                const bDaysRemaining = Math.ceil((bExpirationDate - today) / (1000 * 60 * 60 * 24));
+
+                return aDaysRemaining - bDaysRemaining;
+            });
+
+            updateTable();
+        }
+
+        function exportDomains() {
+            const jsonStr = JSON.stringify(domains);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'domains.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importDomains() {
+            const importFileInput = document.getElementById('import-file');
+            importFileInput.click();
+        }
+
+        function handleImportFile(input) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    domains = JSON.parse(reader.result);
+                    saveDomains();
+                    updateTable();
+                } catch (error) {
+                    alert('导入的文件格式不正确');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearDomains() {
+            domains = [];
+            saveDomains();
+            updateTable();
+        }
+
+        // 初始化表格
+        updateTable();
+    </script>
+</body>
+</html>
