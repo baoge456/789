@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝哥博客</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        /* 增加背景墙纸 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-image: url('https://img.baoge.us.kg/v2/prSV8j8.jpeg');
+            /* 更换为你自己的背景图片 */
+            background-size: cover;
+            background-attachment: fixed;
+            line-height: 1.6;
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            margin-top: 20px;
+            /* 保证内容不被固定元素遮挡 */
+            padding: 20px;
+            text-align: center;
+            /* 居中显示博客名称 */
+        }
+
+        .container {
+            max-width: 800px;
+            /* 根据需要调整最大宽度 */
+            margin: 0 auto;
+            /* 居中显示 */
+            padding: 20px;
+            background-color: #f9f9f9;
+            /* 添加背景色以区分内容 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            /* 添加阴影 */
+            position: relative;
+            /* 添加相对定位 */
+        }
+
+        /* Content wrapper with light yellow background */
+        .content-wrapper {
+            /* background-color: #ffffe0; */
+            /* 淡黄色背景 */
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            position: relative;
+            /* Required for absolute positioning of the back button */
+        }
+
+        /* Style for article titles in a grid */
+        #article-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            /* Distribute titles evenly */
+        }
+
+        /* Article Card Styling */
+        .article-card {
+            width: 30%;
+            /* Adjust as needed for desired card width */
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            background-color: #fff;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .article-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .article-card img {
+            width: 100%;
+            height: 200px;
+            /* Fixed height for images */
+            object-fit: cover;
+            /* Cover the area, cropping if necessary */
+        }
+
+        .article-card h2 {
+            padding: 15px;
+            margin: 0;
+            font-size: 1.2em;
+            text-align: center;
+            color: #333;
+        }
+
+        .article {
+            display: none;
+        }
+
+        .article .date {
+            font-style: italic;
+            color: #888;
+        }
+
+        .article .content {
+            margin-top: 10px;
+            flex: 1;
+            margin-left: 15px;
+        }
+
+        .article img {
+            max-width: 300px;
+            height: auto;
+            margin-right: 15px;
+            display: block;
+        }
+
+        .article.expanded {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .article.expanded img {
+            max-width: 100%;
+            margin-bottom: 10px;
+            margin-right: 0;
+        }
+
+        .article.expanded .content {
+            display: block;
+        }
+
+        /* 后台管理样式 */
+        #admin-panel {
+            margin-top: 20px;
+            padding: 10px;
+        }
+
+        #admin-panel h2 {
+            margin-top: 0;
+        }
+
+        #admin-panel button {
+            background-color: #5c6bc0;
+            /* indigo 300 */
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+
+        #admin-panel button:hover {
+            background-color: #3f51b5;
+            /* indigo 500 */
+        }
+
+        /* 钥匙图标按钮 */
+        #admin-key {
+            background-color: #5c6bc0;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        #admin-key::before {
+            content: "\f084";
+            /* 使用FontAwesome的钥匙图标 */
+            font-family: 'FontAwesome';
+            font-size: 16px;
+        }
+
+        #change-password-panel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        #change-password-panel label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #change-password-panel input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        #change-password-panel button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #change-password-panel button:hover {
+            background-color: #3e8e41;
+        }
+
+        /* 返回图标 */
+        #admin-return {
+            font-size: 20px;
+            color: #5c6bc0;
+            cursor: pointer;
+        }
+
+        #back-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            color: #333;
+            cursor: pointer;
+            display: none;
+            /* Initially hidden */
+        }
+
+        #admin-panel {
+            display: none;
+            /* Hidden by default */
+        }
+
+        .show-admin #article-list,
+        .show-admin #back-button,
+        .show-admin h1,
+        .show-admin #admin-icon {
+            display: none !important;
+        }
+
+        .show-admin #admin-panel {
+            display: block;
+            /* Make visible when body has .show-admin class */
+        }
+
+        /* Admin Panel Return Button */
+        #admin-return {
+            font-size: 20px;
+            color: #5c6bc0;
+            cursor: pointer;
+            /* space between the return icon and the key icon */
+        }
+
+        /* key icon and admin-return in the same line */
+        .admin-tools {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            align-items: center;
+            /* Vertically align the items */
+        }
+
+        /* Style for article cards without images */
+        .article-card.no-image img {
+            display: none;
+            /* Hide image if there is no image URL */
+        }
+
+        .article-card.no-image h2 {
+            padding: 20px 15px;
+            /* Adjust padding when no image is present */
+        }
+
+        /* 密码输入框样式 */
+        #password-prompt {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+        }
+
+        #password-prompt input {
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+
+        #password-prompt button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* 添加文章表单样式 */
+        #add-article-form {
+            display: none;
+            margin-top: 10px;
+        }
+
+        /* 文章管理样式 */
+        #article-management-list {
+            display: none;
+            margin-top: 10px;
+        }
+
+        #article-management-list li {
+            margin-bottom: 5px;
+        }
+
+        /* 文章标题显示样式 */
+        #article-title-display {
+            font-style: normal;
+            /* Remove italic style */
+            font-size: 0.8em;
+            /* Adjust font size as needed */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-content">
+        <div class="container">
+            <div class="content-wrapper">
+                <h1>宝哥博客 <span id="article-title-display"></span></h1>
+                <div class="admin-tools">
+                    <span id="admin-icon" onclick="showPasswordPrompt()">≡</span>
+                </div>
+                <i id="back-button" class="fa fa-arrow-left" onclick="showAllArticles()" aria-hidden="true"></i>
+                <div id="article-list">
+                    <!-- 文章标题将在此处动态生成 -->
+                </div>
+            </div>
+
+            <!-- 密码输入框 -->
+            <div id="password-prompt">
+                <h2>请输入管理员密码</h2>
+                <input type="password" id="admin-password" onkeydown="handlePasswordEnter(event)" />
+                <button onclick="checkPassword()">确认</button>
+            </div>
+
+            <div id="admin-panel">
+                <div class="admin-tools">
+                    <i id="admin-return" class="fa fa-arrow-left" onclick="toggleAdminPanel()" aria-hidden="true"></i>
+                    <button id="admin-key" onclick="openChangePasswordPanel()"> </button>
+                </div>
+                <h2>管理面板</h2>
+                <button onclick="toggleAddArticleForm()">添加文章</button>
+                <button onclick="toggleArticleManagement()">管理文章</button>
+
+                <div id="add-article-form">
+                    <label for="new-article-title">文章标题:</label><br>
+                    <input type="text" id="new-article-title" name="new-article-title"><br>
+
+                    <label for="new-article-image">图片链接:</label><br>
+                    <input type="url" id="new-article-image" name="new-article-image"><br>
+
+                    <label for="new-article-content">文章内容:</label><br>
+                    <textarea id="new-article-content" name="new-article-content"></textarea><br><br>
+                    <button onclick="addArticle()">添加</button>
+                </div>
+
+                <ul id="article-management-list">
+                    <!-- 文章管理列表在此生成 -->
+                </ul>
+            </div>
+
+            <!-- Change Password Panel -->
+            <div id="change-password-panel">
+                <h2>修改管理员密码</h2>
+                <label for="old-password">旧密码:</label>
+                <input type="password" id="old-password">
+                <label for="new-password">新密码:</label>
+                <input type="password" id="new-password">
+                <label for="confirm-password">确认新密码:</label>
+                <input type="password" id="confirm-password">
+                <button onclick="changePassword()">确认修改</button>
+                <button onclick="closeChangePasswordPanel()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let articles = JSON.parse(localStorage.getItem('articles')) || [];
+        let adminPassword = 'admin'; // 将此处设置为新的管理员密码
+        let adminPanelVisible = false; // 管理面板可见性
+        let currentArticleIndex = null; // Track the currently open article
+        const articleListDiv = document.getElementById('article-list');
+        const adminPanelDiv = document.getElementById('admin-panel');
+        const articleManagementList = document.getElementById('article-management-list');
+        const changePasswordPanel = document.getElementById('change-password-panel');
+        const backButton = document.getElementById('back-button');
+        const body = document.querySelector('body');
+        const adminReturn = document.getElementById('admin-return');
+        const passwordPrompt = document.getElementById('password-prompt');
+        const adminIcon = document.getElementById('admin-icon');
+        const addArticleForm = document.getElementById('add-article-form');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const articleTitleDisplay = document.getElementById('article-title-display');
+
+        // 渲染文章列表
+        function renderArticles() {
+            articleListDiv.innerHTML = '';
+            articles.forEach((article, index) => {
+                const articleCard = document.createElement('div');
+                articleCard.classList.add('article-card');
+
+                // Add 'no-image' class if there is no image
+                if (!article.image) {
+                    articleCard.classList.add('no-image');
+                }
+
+                const img = document.createElement('img');
+                img.src = article.image || 'https://via.placeholder.com/400x200'; // Default image
+                img.alt = article.title;
+                articleCard.appendChild(img);
+
+                const h2 = document.createElement('h2');
+                let titleText = article.title.replace(/<<(\d+)>>/g, '-$1'); // 应用替换
+                h2.innerHTML = `<a href="#" onclick="toggleContent(${index})">${titleText}</a>`;
+                articleCard.appendChild(h2);
+
+                articleListDiv.appendChild(articleCard);
+
+                const articleDiv = document.createElement('div');
+                articleDiv.classList.add('article');
+                articleDiv.innerHTML = `
+                    <div class="date">2025年3月10日</div>
+                    <div class="content">${article.content}</div>
+                `;
+                articleListDiv.appendChild(articleDiv);
+
+                articleDiv.style.display = 'none';
+            });
+        }
+
+        // 渲染后台管理文章列表
+        function renderAdminArticleList() {
+            articleManagementList.innerHTML = '';
+            articles.forEach((article, index) => {
+                const li = document.createElement('li');
+                let titleText = article.title.replace(/<<(\d+)>>/g, '-$1'); // 应用替换
+                li.innerHTML = `
+                    ${titleText}
+                    <button onclick="editArticle(${index})">编辑</button>
+                    <button onclick="deleteArticle(${index})">删除</button>
+                `;
+                articleManagementList.appendChild(li);
+            });
+        }
+
+        // 切换文章内容显示
+        function toggleContent(index) {
+            const articleDivs = document.querySelectorAll('.article');
+            const articleCards = document.querySelectorAll('.article-card');
+
+            // Hide all articles and show all cards
+            articleDivs.forEach(div => div.style.display = 'none');
+            articleCards.forEach(card => card.style.display = 'none'); // Hide all article cards initially
+            backButton.style.display = 'block'; // Show the back button
+
+            // Expand the selected article and hide its card
+            articleDivs[index].style.display = 'flex';
+
+            // Update the article title display
+            let titleText = articles[index].title.replace(/<<(\d+)>>/g, '-$1'); // 应用替换
+            articleTitleDisplay.textContent = `~ ${titleText}`;
+        }
+
+        // 返回显示所有文章标题
+        function showAllArticles() {
+            const articleDivs = document.querySelectorAll('.article');
+            const articleCards = document.querySelectorAll('.article-card');
+
+            articleDivs.forEach(div => div.style.display = 'none'); // Hide all articles
+            articleCards.forEach(card => card.style.display = 'block'); // Show all cards
+            backButton.style.display = 'none'; // Hide the back button
+            articleTitleDisplay.textContent = ''; // Clear article title display
+        }
+
+        // 检查密码
+        function checkPassword() {
+            const enteredPassword = adminPasswordInput.value;
+            if (enteredPassword === adminPassword) {
+                body.classList.add('show-admin');
+                passwordPrompt.style.display = 'none';
+                adminPanelVisible = true;
+            } else {
+                alert('密码错误，请重试。');
+            }
+            adminPasswordInput.value = ''; // Clear the password input
+        }
+
+        // 显示密码输入框
+        function showPasswordPrompt() {
+            passwordPrompt.style.display = 'block';
+        }
+
+        // 添加文章
+        function addArticle() {
+            const title = document.getElementById('new-article-title').value;
+            const image = document.getElementById('new-article-image').value;
+            const content = document.getElementById('new-article-content').value;
+
+            if (title && content) {
+                articles.push({
+                    title: title,
+                    image: image,
+                    content: content
+                });
+                localStorage.setItem('articles', JSON.stringify(articles));
+                renderArticles();
+                renderAdminArticleList();
+                document.getElementById('new-article-title').value = '';
+                document.getElementById('new-article-image').value = '';
+                document.getElementById('new-article-content').value = '';
+                toggleAddArticleForm(); // 添加成功后关闭表单
+            } else {
+                alert('标题和内容不能为空');
+            }
+        }
+
+        // 编辑文章
+        function editArticle(index) {
+            const article = articles[index];
+            const newTitle = prompt('编辑文章标题', article.title);
+            const newImage = prompt('编辑图片链接', article.image);
+            const newContent = prompt('编辑文章内容', article.content);
+
+            if (newTitle !== null && newContent !== null) {
+                articles[index].title = newTitle;
+                articles[index].image = newImage;
+                articles[index].content = newContent;
+
+                localStorage.setItem('articles', JSON.stringify(articles));
+                renderArticles();
+                renderAdminArticleList();
+            }
+        }
+
+        // 删除文章
+        function deleteArticle(index) {
+            if (confirm('确定要删除这篇文章吗？')) {
+                articles.splice(index, 1);
+                localStorage.setItem('articles', JSON.stringify(articles));
+                renderArticles();
+                renderAdminArticleList();
+            }
+        }
+
+        // 切换添加文章表单显示
+        function toggleAddArticleForm() {
+            addArticleForm.style.display = addArticleForm.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 切换管理文章列表显示
+        function toggleArticleManagement() {
+            articleManagementList.style.display = articleManagementList.style.display === 'none' ? 'block' : 'none';
+            renderAdminArticleList(); // 每次显示时重新渲染列表，确保最新
+        }
+
+        // 切换管理面板的可见性
+        function toggleAdminPanel() {
+            body.classList.remove('show-admin');
+            adminPanelVisible = false;
+            showAllArticles();
+        }
+
+        // 打开修改密码面板
+        function openChangePasswordPanel() {
+            changePasswordPanel.style.display = 'block';
+        }
+
+        // 关闭修改密码面板
+        function closeChangePasswordPanel() {
+            changePasswordPanel.style.display = 'none';
+        }
+
+        // 修改密码
+        function changePassword() {
+            const oldPassword = document.getElementById('old-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            if (oldPassword !== adminPassword) {
+                alert('旧密码不正确。');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alert('新密码和确认密码不一致。');
+                return;
+            }
+
+            adminPassword = newPassword; // 更新管理员密码
+            localStorage.setItem('adminPassword', adminPassword); // 保存到 localStorage
+
+            alert('密码已成功修改。');
+            closeChangePasswordPanel();
+        }
+
+        // 页面加载时渲染文章列表
+        renderArticles();
+
+        // 页面加载时，从 localStorage 中获取密码
+        const storedPassword = localStorage.getItem('adminPassword');
+        if (storedPassword) {
+            adminPassword = storedPassword;
+        }
+
+        // 处理密码输入框回车事件
+        function handlePasswordEnter(event) {
+            if (event.key === "Enter") {
+                checkPassword();
+            }
+        }
+    </script>
+</body>
+
+</html>
