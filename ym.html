@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>域名监控</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,14 +25,34 @@
         }
         .header-container {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between; /* 标题和菜单两端对齐 */
             align-items: center;
             padding: 20px;
             background-color: #3498db;
             color: #fff;
         }
         .header-container h1 {
-            margin-bottom: 10px;
+            margin-bottom: 0; /* 移除标题的下边距 */
+        }
+        .menu-container {
+            position: relative;
+        }
+        #menu-toggle {
+            background-color: transparent;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            /* 移除绝对定位 */
+            padding: 10px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            width: 100%;
+            padding-top: 10px;
         }
         .table-container {
             width: 100%;
@@ -146,8 +167,8 @@
         /* 针对中等屏幕的样式 */
         @media (min-width: 600px) {
             .header-container {
-                flex-direction: row;
-                justify-content: space-between;
+                flex-direction: row; /* 横向排列 */
+                justify-content: space-between; /* 标题和菜单两端对齐 */
                 align-items: center;
             }
             .header-container h1 {
@@ -163,18 +184,24 @@
                 padding: 16px;
             }
         }
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header-container">
             <h1>域名监控</h1>
-            <div>
-                <button class="edit-button" onclick="showAddForm()">添加域名</button>
-                <button class="edit-button" onclick="exportDomains()">导出列表</button>
-                <button class="edit-button" onclick="importDomains()">导入列表</button>
-                <button class="edit-button" onclick="clearDomains()">清空列表</button>
+            <div class="menu-container">
+                <button id="menu-toggle"><i class="fas fa-bars"></i></button>
             </div>
+        </div>
+        <div class="button-group">
+            <button class="edit-button hidden" id="add-domain-button" onclick="showAddForm()">添加域名</button>
+            <button class="edit-button hidden" id="export-button" onclick="exportDomains()">导出列表</button>
+            <button class="edit-button hidden" id="import-button" onclick="importDomains()">导入列表</button>
+            <button class="edit-button hidden" id="clear-button" onclick="clearDomains()">清空列表</button>
         </div>
         <div class="table-container">
             <table id="domain-table">
@@ -190,7 +217,6 @@
                     </tr>
                 </thead>
                 <tbody id="domain-body">
-                    <!-- 动态添加行 -->
                 </tbody>
             </table>
         </div>
@@ -231,13 +257,38 @@
         <div id="modal-overlay" class="modal-overlay" style="display:none;"></div>
         <input type="file" id="import-file" style="display:none;" accept=".json" onchange="handleImportFile(this)">
     </div>
-
     <script>
         let domains = JSON.parse(localStorage.getItem('domains')) || [
-            // 示例数据
             { domain: 'example.com', system: 'Example System', systemURL: 'https://example.com', registrationDate: '2022-01-01', expirationDate: '2024-01-01' },
         ];
         let currentEditIndex = null;
+        let isMenuOpen = false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTable();
+
+            const menuToggle = document.getElementById('menu-toggle');
+            const addDomainButton = document.getElementById('add-domain-button');
+            const exportButton = document.getElementById('export-button');
+            const importButton = document.getElementById('import-button');
+            const clearButton = document.getElementById('clear-button');
+
+            menuToggle.addEventListener('click', function() {
+                isMenuOpen = !isMenuOpen;
+
+                if (isMenuOpen) {
+                    addDomainButton.classList.remove('hidden');
+                    exportButton.classList.remove('hidden');
+                    importButton.classList.remove('hidden');
+                    clearButton.classList.remove('hidden');
+                } else {
+                    addDomainButton.classList.add('hidden');
+                    exportButton.classList.add('hidden');
+                    importButton.classList.add('hidden');
+                    clearButton.classList.add('hidden');
+                }
+            });
+        });
 
         function showAddForm() {
             document.getElementById('add-form').style.display = 'block';
@@ -310,7 +361,7 @@
                 registrationDateCell.textContent = domainInfo.registrationDate;
                 expirationDateCell.textContent = domainInfo.expirationDate;
                 remainingDaysCell.textContent = daysRemaining > 0 ? daysRemaining + ' 天' : '已过期';
-                remainingDaysCell.className = 'remaining-days'; // 居中显示
+                remainingDaysCell.className = 'remaining-days';
 
                 const editButton = document.createElement('button');
                 editButton.textContent = '编辑';
@@ -394,51 +445,62 @@
                 const aDaysRemaining = Math.ceil((aExpirationDate - today) / (1000 * 60 * 60 * 24));
                 const bDaysRemaining = Math.ceil((bExpirationDate - today) / (1000 * 60 * 60 * 24));
 
-                return aDaysRemaining - bDaysRemaining;
+                if (key === 'remainingDays') {
+                    return aDaysRemaining - bDaysRemaining;
+                } else {
+                    return a.domain.localeCompare(b.domain);
+                }
             });
-
             updateTable();
         }
 
         function exportDomains() {
-            const jsonStr = JSON.stringify(domains);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const jsonString = JSON.stringify(domains, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'domains.json';
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
 
         function importDomains() {
-            const importFileInput = document.getElementById('import-file');
-            importFileInput.click();
+            document.getElementById('import-file').click();
         }
 
         function handleImportFile(input) {
             const file = input.files[0];
             const reader = new FileReader();
-            reader.onload = () => {
+
+            reader.onload = function(event) {
                 try {
-                    domains = JSON.parse(reader.result);
+                    domains = JSON.parse(event.target.result);
                     saveDomains();
                     updateTable();
+                    alert('导入成功！');
                 } catch (error) {
-                    alert('导入的文件格式不正确');
+                    alert('导入失败：JSON 格式不正确。');
                 }
             };
+
+            reader.onerror = function() {
+                alert('导入失败：无法读取文件。');
+            };
+
             reader.readAsText(file);
         }
 
         function clearDomains() {
-            domains = [];
-            saveDomains();
-            updateTable();
+            if (confirm("确定要清空所有域名吗？此操作不可撤销。")) {
+                domains = [];
+                saveDomains();
+                updateTable();
+            }
         }
-
-        // 初始化表格
-        updateTable();
     </script>
+    <script src="https://kit.fontawesome.com/594ca9c4cd.js" crossorigin="anonymous"></script>
 </body>
 </html>
