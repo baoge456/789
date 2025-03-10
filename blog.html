@@ -66,11 +66,10 @@
             /* Allow title to take center space */
             text-align: center;
             /* Center the title */
-            margin: 0 20px;
-            /* Add margin to title */
+            margin: 0;
         }
 
-        /* Adjust the admin icon position */
+        #back-button,
         #admin-icon {
             color: #4b3d3d;
             /* Darker color for contrast */
@@ -88,24 +87,7 @@
             /* Purple border */
         }
 
-        #back-button {
-            color: #4b3d3d;
-            /* Darker color for contrast */
-            cursor: pointer;
-            transition: color 0.3s;
-            background-color: #ffffff;
-            /* White background for buttons */
-            border-radius: 50%;
-            /* Circular shape */
-            padding: 10px;
-            /* Padding for better click area */
-            margin: 0 10px;
-            /* Margin for spacing */
-            border: 2px solid purple;
-            /* Purple border */
-            display: none;
-        }
-
+        #back-button:hover,
         #admin-icon:hover {
             color: #3f51b5;
             /* Change color on hover */
@@ -282,6 +264,14 @@
             cursor: pointer;
         }
 
+        #back-button {
+            font-size: 20px;
+            color: #4b3d3d;
+            /* Darker color for contrast */
+            cursor: pointer;
+            display: none;
+        }
+
         #admin-panel {
             display: none;
         }
@@ -379,7 +369,13 @@
         /* 文章标题显示样式 */
         #article-title-display {
             font-style: normal;
-            font-size: 0.8em;
+            font-size: 1.2em; /* 增大文章标题字体 */
+            margin: 0;
+            /* 清除默认边距 */
+            padding: 0;
+            /* 清除默认内边距 */
+            line-height: 1.2;
+            /* 调整行高，使标题更紧凑 */
         }
 
         /* 强制滚动条显示在最外侧 */
@@ -398,6 +394,17 @@
         body::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* 确保密码输入框不超出面板 */
+        #password-prompt {
+            box-sizing: border-box;
+            max-width: 90%;
+            /* 限制最大宽度 */
+            padding: 20px;
+            /* 保持内边距 */
+            word-wrap: break-word;
+            /* 允许长单词换行 */
+        }
     </style>
 </head>
 
@@ -407,7 +414,8 @@
             <div class="content-wrapper">
                 <div class="fixed-header">
                     <div id="back-button" class="fa fa-arrow-left" onclick="showAllArticles()" aria-hidden="true"></div>
-                    <h1>宝哥博客 <span id="article-title-display"></span></h1>
+                    <h1 id="main-title">宝哥博客</h1>
+                    <h1 id="article-title" style="display: none;"></h1>
                     <span id="admin-icon" onclick="togglePasswordPrompt()">≡</span>
                 </div>
                 <div id="article-list">
@@ -479,7 +487,6 @@
             <input type="file" id="import-file" style="display:none;" accept=".json">
         </div>
     </div>
-
     <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script>
@@ -499,12 +506,17 @@
         const adminIcon = document.getElementById('admin-icon');
         const addArticleForm = document.getElementById('add-article-form');
         const adminPasswordInput = document.getElementById('admin-password');
-        const articleTitleDisplay = document.getElementById('article-title-display');
+        const mainTitle = document.getElementById('main-title');
+        const articleTitle = document.getElementById('article-title');
         const editArticleForm = document.getElementById('edit-article-form');
 
         // 渲染文章列表
         function renderArticles() {
             articleListDiv.innerHTML = '';
+            // 显示“宝哥博客”标题
+            mainTitle.style.display = 'block';
+            articleTitle.style.display = 'none';
+
             articles.forEach((article, index) => {
                 const articleCard = document.createElement('div');
                 articleCard.classList.add('article-card');
@@ -568,8 +580,14 @@
                     </div>
                 </div>
             `;
+
             backButton.style.display = 'block';
-            articleTitleDisplay.textContent = article.title;
+
+            // 隐藏“宝哥博客”标题，显示文章标题
+            mainTitle.style.display = 'none';
+            articleTitle.style.display = 'block';
+            articleTitle.textContent = article.title;
+            document.title = article.title;
         }
 
         // 修改后的保存文章函数
@@ -596,7 +614,10 @@
         function showAllArticles() {
             renderArticles();
             backButton.style.display = 'none';
-            articleTitleDisplay.textContent = '';
+            document.title = "宝哥博客";
+            // 在返回文章列表时，显示“宝哥博客”标题
+            mainTitle.style.display = 'block';
+            articleTitle.style.display = 'none';
         }
 
         // 修改密码输入框的显示与隐藏
@@ -625,6 +646,9 @@
                 adminPanelVisible = true;
                 body.classList.add('show-admin');
                 passwordPrompt.style.display = 'none';
+
+                // 移除密码输入框的焦点
+                adminPasswordInput.blur();
             } else {
                 alert('密码错误，请重试。');
             }
