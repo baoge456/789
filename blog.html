@@ -152,6 +152,12 @@
             /* Preserve whitespace and format */
             padding-right: 20px;
             /* Add padding to avoid overlap with scrollbar */
+            word-break: break-all; /* 强制换行 */
+        }
+
+        /* 修改链接样式，防止超出面板 */
+        .article .content a {
+            word-break: break-all;
         }
 
         .article img {
@@ -324,6 +330,9 @@
             border: 1px solid #ccc;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1001;
+            box-sizing: border-box;
+            max-width: 90%; /* 确保密码框不超出面板 */
+            word-wrap: break-word;
         }
 
         #password-prompt input {
@@ -369,7 +378,8 @@
         /* 文章标题显示样式 */
         #article-title-display {
             font-style: normal;
-            font-size: 1.2em; /* 增大文章标题字体 */
+            font-size: 1.2em;
+            /* 调整文章标题字体大小 */
             margin: 0;
             /* 清除默认边距 */
             padding: 0;
@@ -395,15 +405,8 @@
             background: #555;
         }
 
-        /* 确保密码输入框不超出面板 */
-        #password-prompt {
-            box-sizing: border-box;
-            max-width: 90%;
-            /* 限制最大宽度 */
-            padding: 20px;
-            /* 保持内边距 */
-            word-wrap: break-word;
-            /* 允许长单词换行 */
+        .article.expanded .content {
+            font-size: 1em; /* 设置文章内容的字体大小 */
         }
     </style>
 </head>
@@ -544,6 +547,16 @@
                 articleCard.appendChild(h2);
 
                 articleListDiv.appendChild(articleCard);
+
+                const articleDiv = document.createElement('div');
+                articleDiv.classList.add('article');
+                articleDiv.innerHTML = `
+                    <h2>${article.title}</h2>
+                    <p class="date">创建时间：${new Date(article.createdAt).toLocaleString()}  <span>修改时间：${new Date(article.updatedAt).toLocaleString()}</span></p>
+                    ${article.image ? `<img src="${article.image}" alt="${article.title}">` : ''}
+                    <div class="content">${article.content}</div>
+                `;
+                articleListDiv.appendChild(articleDiv);
             });
         }
 
@@ -587,6 +600,8 @@
             mainTitle.style.display = 'none';
             articleTitle.style.display = 'block';
             articleTitle.textContent = article.title;
+
+            // 动态设置标题为文章标题
             document.title = article.title;
         }
 
@@ -614,10 +629,10 @@
         function showAllArticles() {
             renderArticles();
             backButton.style.display = 'none';
-            document.title = "宝哥博客";
             // 在返回文章列表时，显示“宝哥博客”标题
             mainTitle.style.display = 'block';
             articleTitle.style.display = 'none';
+            document.title = "宝哥博客";
         }
 
         // 修改密码输入框的显示与隐藏
