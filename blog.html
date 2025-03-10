@@ -34,6 +34,8 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             position: relative;
             border-radius: 10px;
+            overflow: hidden;
+            /* 防止内容超出容器 */
         }
 
         /* Content wrapper */
@@ -43,6 +45,7 @@
             border-radius: 5px;
             position: relative;
             background-color: #d8c4b8;
+            /* Light brown color */
         }
 
         /* Title and buttons fixed at the top */
@@ -53,42 +56,59 @@
             z-index: 10;
             display: flex;
             justify-content: space-between;
+            /* Space between buttons */
             align-items: center;
             padding: 10px 0;
         }
 
         .fixed-header h1 {
             flex-grow: 1;
+            /* Allow title to take center space */
             text-align: center;
+            /* Center the title */
             margin: 0 20px;
+            /* Add margin to title */
         }
 
         /* Adjust the admin icon position */
         #admin-icon {
             color: #4b3d3d;
+            /* Darker color for contrast */
             cursor: pointer;
             transition: color 0.3s;
             background-color: #ffffff;
+            /* White background for buttons */
             border-radius: 50%;
+            /* Circular shape */
             padding: 10px;
+            /* Padding for better click area */
             margin: 0 10px;
+            /* Margin for spacing */
             border: 2px solid purple;
+            /* Purple border */
         }
 
         #back-button {
             color: #4b3d3d;
+            /* Darker color for contrast */
             cursor: pointer;
             transition: color 0.3s;
             background-color: #ffffff;
+            /* White background for buttons */
             border-radius: 50%;
+            /* Circular shape */
             padding: 10px;
+            /* Padding for better click area */
             margin: 0 10px;
+            /* Margin for spacing */
             border: 2px solid purple;
+            /* Purple border */
             display: none;
         }
 
         #admin-icon:hover {
             color: #3f51b5;
+            /* Change color on hover */
         }
 
         /* Style for article titles in a grid */
@@ -117,7 +137,6 @@
             width: 100%;
             height: 200px;
             object-fit: cover;
-            margin-bottom: 10px; /* Add margin to separate from title */
             cursor: pointer;
         }
 
@@ -144,9 +163,13 @@
             flex: 1;
             margin-left: 15px;
             overflow-y: auto;
+            /* Enable vertical scroll */
             max-height: 70vh;
+            /* Limit height to viewport size */
             white-space: pre-wrap;
-            padding-right: 10px; /* Add padding for the scrollbar */
+            /* Preserve whitespace and format */
+            padding-right: 20px;
+            /* Add padding to avoid overlap with scrollbar */
         }
 
         .article img {
@@ -160,6 +183,7 @@
             display: flex;
             flex-direction: column;
             max-height: 80vh;
+            /* Max height for expanded view */
         }
 
         .article.expanded img {
@@ -171,6 +195,7 @@
         .article.expanded .content {
             display: block;
             overflow-y: auto;
+            /* Allow scrolling in expanded view */
         }
 
         /* 后台管理样式 */
@@ -253,6 +278,7 @@
         #admin-return {
             font-size: 20px;
             color: #4b3d3d;
+            /* Darker color for contrast */
             cursor: pointer;
         }
 
@@ -275,6 +301,7 @@
         #admin-return {
             font-size: 20px;
             color: #4b3d3d;
+            /* Darker color for contrast */
             cursor: pointer;
         }
 
@@ -283,6 +310,7 @@
             display: flex;
             align-items: center;
             justify-content: flex-end;
+            /* Align to the right */
         }
 
         /* Style for article cards without images */
@@ -352,6 +380,23 @@
         #article-title-display {
             font-style: normal;
             font-size: 0.8em;
+        }
+
+        /* 强制滚动条显示在最外侧 */
+        body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: #888;
+        }
+
+        body::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     </style>
 </head>
@@ -442,7 +487,7 @@
         let adminPassword = 'admin';
         let adminPanelVisible = false;
         let currentArticleIndex = null;
-        let passwordPromptVisible = false; // 控制密码输入框的显示
+        let passwordPromptVisible = false;
         const articleListDiv = document.getElementById('article-list');
         const adminPanelDiv = document.getElementById('admin-panel');
         const articleManagementList = document.getElementById('article-management-list');
@@ -497,7 +542,7 @@
                 content: document.getElementById('new-article-content').value,
                 image: document.getElementById('new-article-image').value || '',
                 createdAt: new Date().toISOString(),
-                updatedAt: null // Set to null for no updates
+                updatedAt: null // 初始化为null
             };
             articles.push(newArticle);
             saveArticles();
@@ -534,7 +579,8 @@
                 title: document.getElementById('edit-article-title').value,
                 content: document.getElementById('edit-article-content').value,
                 image: document.getElementById('edit-article-image').value,
-                updatedAt: new Date().toISOString() // Set updated time
+                createdAt: articles[currentArticleIndex].createdAt, // 保留原创建时间
+                updatedAt: new Date().toISOString() // 更新修改时间
             };
             saveArticles();
             toggleContent(currentArticleIndex);
@@ -558,7 +604,7 @@
             passwordPromptVisible = !passwordPromptVisible;
             passwordPrompt.style.display = passwordPromptVisible ? 'block' : 'none';
 
-           // 密码输入框显示时，设置焦点并清空内容
+            // 密码输入框显示时，设置焦点并清空内容
             if (passwordPromptVisible) {
                 adminPasswordInput.focus();
                 adminPasswordInput.value = '';
@@ -706,11 +752,10 @@
                         try {
                             const importedArticles = JSON.parse(e.target.result);
                             if (Array.isArray(importedArticles)) {
-                                const now = new Date().toISOString();
                                 articles = importedArticles.map(article => ({
                                     ...article,
-                                    createdAt: now,
-                                    updatedAt: now
+                                    createdAt: new Date().toISOString(), // 使用当前时间
+                                    updatedAt: null // 初始化为null
                                 }));
                                 saveArticles();
                                 renderArticles();
