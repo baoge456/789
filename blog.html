@@ -42,7 +42,7 @@
             margin-bottom: 20px;
             border-radius: 5px;
             position: relative;
-            background-color: #d8c4b8; /* Light brown color */
+            background-color: #d8c4b8;
         }
 
         /* Title and buttons fixed at the top */
@@ -52,32 +52,43 @@
             background-color: #f9f9f9;
             z-index: 10;
             display: flex;
-            justify-content: space-between; /* Space between buttons */
+            justify-content: space-between;
             align-items: center;
             padding: 10px 0;
         }
 
         .fixed-header h1 {
-            flex-grow: 1; /* Allow title to take center space */
-            text-align: center; /* Center the title */
-            margin: 0;
+            flex-grow: 1;
+            text-align: center;
+            margin: 0 20px;
         }
 
-        #back-button,
+        /* Adjust the admin icon position */
         #admin-icon {
-            color: #4b3d3d; /* Darker color for contrast */
+            color: #4b3d3d;
             cursor: pointer;
             transition: color 0.3s;
-            background-color: #ffffff; /* White background for buttons */
-            border-radius: 50%; /* Circular shape */
-            padding: 10px; /* Padding for better click area */
-            margin: 0 10px; /* Margin for spacing */
-            border: 2px solid purple; /* Purple border */
+            background-color: #ffffff;
+            border-radius: 50%;
+            padding: 10px;
+            margin: 0 10px;
+            border: 2px solid purple;
         }
 
-        #back-button:hover,
+        #back-button {
+            color: #4b3d3d;
+            cursor: pointer;
+            transition: color 0.3s;
+            background-color: #ffffff;
+            border-radius: 50%;
+            padding: 10px;
+            margin: 0 10px;
+            border: 2px solid purple;
+            display: none;
+        }
+
         #admin-icon:hover {
-            color: #3f51b5; /* Change color on hover */
+            color: #3f51b5;
         }
 
         /* Style for article titles in a grid */
@@ -106,6 +117,7 @@
             width: 100%;
             height: 200px;
             object-fit: cover;
+            margin-bottom: 10px; /* Add margin to separate from title */
             cursor: pointer;
         }
 
@@ -131,9 +143,10 @@
             margin-top: 10px;
             flex: 1;
             margin-left: 15px;
-            overflow-y: auto; /* Enable vertical scroll */
-            max-height: 70vh; /* Limit height to viewport size */
-            white-space: pre-wrap; /* Preserve whitespace and format */
+            overflow-y: auto;
+            max-height: 70vh;
+            white-space: pre-wrap;
+            padding-right: 10px; /* Add padding for the scrollbar */
         }
 
         .article img {
@@ -146,7 +159,7 @@
         .article.expanded {
             display: flex;
             flex-direction: column;
-            max-height: 80vh; /* Max height for expanded view */
+            max-height: 80vh;
         }
 
         .article.expanded img {
@@ -157,7 +170,7 @@
 
         .article.expanded .content {
             display: block;
-            overflow-y: auto; /* Allow scrolling in expanded view */
+            overflow-y: auto;
         }
 
         /* 后台管理样式 */
@@ -239,15 +252,8 @@
         /* 返回图标 */
         #admin-return {
             font-size: 20px;
-            color: #4b3d3d; /* Darker color for contrast */
+            color: #4b3d3d;
             cursor: pointer;
-        }
-
-        #back-button {
-            font-size: 20px;
-            color: #4b3d3d; /* Darker color for contrast */
-            cursor: pointer;
-            display: none;
         }
 
         #admin-panel {
@@ -268,7 +274,7 @@
         /* Admin Panel Return Button */
         #admin-return {
             font-size: 20px;
-            color: #4b3d3d; /* Darker color for contrast */
+            color: #4b3d3d;
             cursor: pointer;
         }
 
@@ -276,7 +282,7 @@
         .admin-tools {
             display: flex;
             align-items: center;
-            justify-content: flex-end; /* Align to the right */
+            justify-content: flex-end;
         }
 
         /* Style for article cards without images */
@@ -357,7 +363,7 @@
                 <div class="fixed-header">
                     <div id="back-button" class="fa fa-arrow-left" onclick="showAllArticles()" aria-hidden="true"></div>
                     <h1>宝哥博客 <span id="article-title-display"></span></h1>
-                    <span id="admin-icon" onclick="showPasswordPrompt()">≡</span>
+                    <span id="admin-icon" onclick="togglePasswordPrompt()">≡</span>
                 </div>
                 <div id="article-list">
                     <!-- 文章标题将在此处动态生成 -->
@@ -436,6 +442,7 @@
         let adminPassword = 'admin';
         let adminPanelVisible = false;
         let currentArticleIndex = null;
+        let passwordPromptVisible = false; // 控制密码输入框的显示
         const articleListDiv = document.getElementById('article-list');
         const adminPanelDiv = document.getElementById('admin-panel');
         const articleManagementList = document.getElementById('article-management-list');
@@ -480,111 +487,255 @@
                 articleCard.appendChild(h2);
 
                 articleListDiv.appendChild(articleCard);
-
-                const articleDiv = document.createElement('div');
-                articleDiv.classList.add('article');
-                articleDiv.innerHTML = `
-                    <div class="date">2025年3月10日</div>
-                    <div class="content">${linkify(article.content)}</div>
-                `;
-                articleListDiv.appendChild(articleDiv);
-
-                articleDiv.style.display = 'none';
             });
         }
 
-        // Convert URLs in text to clickable links
-        function linkify(text) {
-            const urlPattern = /(https?:\/\/[^\s]+)/g;
-            return text.replace(urlPattern, '<a href="$1" target="_blank">$1</a>');
+        // 修改后的文章处理函数
+        function addArticle() {
+            const newArticle = {
+                title: document.getElementById('new-article-title').value,
+                content: document.getElementById('new-article-content').value,
+                image: document.getElementById('new-article-image').value || '',
+                createdAt: new Date().toISOString(),
+                updatedAt: null // Set to null for no updates
+            };
+            articles.push(newArticle);
+            saveArticles();
+            renderArticles();
+            toggleAddArticleForm();
         }
 
-        // 渲染后台管理文章列表
-        function renderAdminArticleList() {
-            articleManagementList.innerHTML = '';
-            articles.forEach((article, index) => {
-                const li = document.createElement('li');
-                li.classList.add('ui-sortable-handle');
-                li.dataset.index = index;
-
-                let titleText = article.title.replace(/<<(\d+)>>/g, '-$1');
-                li.innerHTML = `
-                    <span style="cursor: move;">${titleText}</span>
-                    <button onclick="openEditArticleForm(${index})">编辑</button>
-                    <button onclick="deleteArticle(${index})">删除</button>
-                `;
-                articleManagementList.appendChild(li);
-            });
-        }
-
+        // 修改后的文章显示函数
         function toggleContent(index) {
-            const articleDivs = document.querySelectorAll('.article');
-            const articleCards = document.querySelectorAll('.article-card');
+            currentArticleIndex = index;
+            const article = articles[index];
+            const createdAt = new Date(article.createdAt).toLocaleString();
+            const updatedAt = article.updatedAt ? new Date(article.updatedAt).toLocaleString() : '未作修改';
 
-            articleDivs.forEach(div => div.style.display = 'none');
-            articleCards.forEach(card => card.style.display = 'none');
+            // Convert URLs to clickable links
+            const contentWithLinks = article.content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+
+            articleListDiv.innerHTML = `
+                <div class="article expanded">
+                    <div class="content">
+                        <p>创建时间：${createdAt}  修改时间：${updatedAt}</p>
+                        ${contentWithLinks}
+                    </div>
+                </div>
+            `;
             backButton.style.display = 'block';
-
-            articleDivs[index].style.display = 'flex';
-
-            let titleText = articles[index].title.replace(/<<(\d+)>>/g, '-$1');
-            articleTitleDisplay.textContent = `~ ${titleText}`;
+            articleTitleDisplay.textContent = article.title;
         }
 
-        function showAllArticles() {
-            const articleDivs = document.querySelectorAll('.article');
-            const articleCards = document.querySelectorAll('.article-card');
+        // 修改后的保存文章函数
+        function saveArticle() {
+            articles[currentArticleIndex] = {
+                ...articles[currentArticleIndex],
+                title: document.getElementById('edit-article-title').value,
+                content: document.getElementById('edit-article-content').value,
+                image: document.getElementById('edit-article-image').value,
+                updatedAt: new Date().toISOString() // Set updated time
+            };
+            saveArticles();
+            toggleContent(currentArticleIndex);
+            cancelEdit();
+        }
 
-            articleDivs.forEach(div => div.style.display = 'none');
-            articleCards.forEach(card => card.style.display = 'block');
+        // 保存文章到 localStorage
+        function saveArticles() {
+            localStorage.setItem('articles', JSON.stringify(articles));
+        }
+
+        // 显示所有文章标题
+        function showAllArticles() {
+            renderArticles();
             backButton.style.display = 'none';
             articleTitleDisplay.textContent = '';
         }
 
-        function showPasswordPrompt() {
-            passwordPrompt.style.display = 'block';
-            adminPasswordInput.focus();
+        // 修改密码输入框的显示与隐藏
+        function togglePasswordPrompt() {
+            passwordPromptVisible = !passwordPromptVisible;
+            passwordPrompt.style.display = passwordPromptVisible ? 'block' : 'none';
+
+           // 密码输入框显示时，设置焦点并清空内容
+            if (passwordPromptVisible) {
+                adminPasswordInput.focus();
+                adminPasswordInput.value = '';
+            }
         }
 
+        // 处理密码输入回车事件
         function handlePasswordEnter(event) {
             if (event.key === 'Enter') {
                 checkPassword();
             }
         }
 
+        // 检查密码
         function checkPassword() {
-            const password = document.getElementById('admin-password').value;
+            let password = document.getElementById('admin-password').value;
             if (password === adminPassword) {
-                body.classList.add('show-admin');
                 adminPanelVisible = true;
-               passwordPrompt.style.display = 'none';
+                body.classList.add('show-admin');
+                passwordPrompt.style.display = 'none';
             } else {
                 alert('密码错误，请重试。');
             }
-            document.getElementById('admin-password').value = '';
         }
 
+        // 切换管理面板显示
         function toggleAdminPanel() {
-            body.classList.remove('show-admin');
-            adminPanelVisible = false;
-            showAllArticles();
+            adminPanelVisible = !adminPanelVisible;
+            if (adminPanelVisible) {
+                adminPanelDiv.style.display = 'block';
+            } else {
+                adminPanelDiv.style.display = 'none';
+            }
+            body.classList.toggle('show-admin');
         }
 
-        function openChangePasswordPanel() {
-            changePasswordPanel.style.display = 'block';
+        // 切换添加文章表单
+        function toggleAddArticleForm() {
+            if (addArticleForm.style.display === 'none') {
+                addArticleForm.style.display = 'block';
+            } else {
+                addArticleForm.style.display = 'none';
+            }
         }
 
-        function closeChangePasswordPanel() {
-            changePasswordPanel.style.display = 'none';
+        // 切换文章管理
+        function toggleArticleManagement() {
+            if (articleManagementList.style.display === 'none') {
+                articleManagementList.style.display = 'block';
+                renderArticleManagementList();
+            } else {
+                articleManagementList.style.display = 'none';
+            }
         }
 
+        // 渲染文章管理列表
+        function renderArticleManagementList() {
+            articleManagementList.innerHTML = '';
+            articles.forEach((article, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${article.title}</span>
+                    <button onclick="editArticle(${index})">编辑</button>
+                    <button onclick="deleteArticle(${index})">删除</button>`;
+                articleManagementList.appendChild(li);
+            });
+
+            // 实现拖拽排序
+            $(function () {
+                $("#article-management-list").sortable({
+                    update: function (event, ui) {
+                        updateArticleOrder();
+                    }
+                });
+                $("#article-management-list").disableSelection();
+            });
+        }
+
+        // 更新文章顺序
+        function updateArticleOrder() {
+            let newOrder = [];
+            $('#article-management-list li').each(function () {
+                let title = $(this).find('span').text();
+                let article = articles.find(a => a.title === title);
+                if (article) {
+                    newOrder.push(article);
+                }
+            });
+            articles = newOrder;
+            saveArticles();
+            renderArticleManagementList();
+            renderArticles();
+        }
+
+        // 编辑文章
+        function editArticle(index) {
+            currentArticleIndex = index;
+            const article = articles[index];
+            document.getElementById('edit-article-title').value = article.title;
+            document.getElementById('edit-article-image').value = article.image || '';
+            document.getElementById('edit-article-content').value = article.content;
+            editArticleForm.style.display = 'block';
+        }
+
+        // 删除文章
+        function deleteArticle(index) {
+            if (confirm('确定要删除这篇文章吗？')) {
+                articles.splice(index, 1);
+                saveArticles();
+                renderArticleManagementList();
+                renderArticles();
+            }
+        }
+
+        // 取消编辑
+        function cancelEdit() {
+            editArticleForm.style.display = 'none';
+        }
+
+        // 导出文章
+        function exportArticles() {
+            const jsonString = JSON.stringify(articles);
+            const blob = new Blob([jsonString], {
+                type: 'application/json'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'articles.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 导入文章
+        function importArticles() {
+            const importFile = document.getElementById('import-file');
+            importFile.click();
+
+            importFile.addEventListener('change', () => {
+                const file = importFile.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        try {
+                            const importedArticles = JSON.parse(e.target.result);
+                            if (Array.isArray(importedArticles)) {
+                                const now = new Date().toISOString();
+                                articles = importedArticles.map(article => ({
+                                    ...article,
+                                    createdAt: now,
+                                    updatedAt: now
+                                }));
+                                saveArticles();
+                                renderArticles();
+                                renderArticleManagementList();
+                                alert('文章导入成功！');
+                            } else {
+                                alert('文件内容格式不正确。');
+                            }
+                        } catch (error) {
+                            alert('导入文件失败，请检查文件格式。');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        // 修改密码
         function changePassword() {
             const oldPassword = document.getElementById('old-password').value;
             const newPassword = document.getElementById('new-password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
 
             if (oldPassword !== adminPassword) {
-                alert('旧密码不正确。');
+                alert('旧密码错误。');
                 return;
             }
 
@@ -594,165 +745,21 @@
             }
 
             adminPassword = newPassword;
-            alert('密码已成功修改！');
+            alert('密码修改成功！');
             closeChangePasswordPanel();
         }
 
-        function toggleAddArticleForm() {
-            addArticleForm.style.display = addArticleForm.style.display === 'none' ? 'block' : 'none';
+        // 打开修改密码面板
+        function openChangePasswordPanel() {
+            changePasswordPanel.style.display = 'block';
         }
 
-        function addArticle() {
-            const newArticleTitle = document.getElementById('new-article-title').value;
-            const newArticleImage = document.getElementById('new-article-image').value;
-            const newArticleContent = document.getElementById('new-article-content').value;
-
-            const newArticle = {
-                title: newArticleTitle,
-                image: newArticleImage,
-                content: newArticleContent,
-                date: new Date().toLocaleDateString()
-            };
-
-            articles.push(newArticle);
-            localStorage.setItem('articles', JSON.stringify(articles));
-
-            renderArticles();
-            renderAdminArticleList();
-
-            // 清空表单
-            document.getElementById('new-article-title').value = '';
-            document.getElementById('new-article-image').value = '';
-            document.getElementById('new-article-content').value = '';
-
-            // 隐藏表单
-            toggleAddArticleForm();
+        // 关闭修改密码面板
+        function closeChangePasswordPanel() {
+            changePasswordPanel.style.display = 'none';
         }
 
-        let sortableInitialized = false;
-
-        function toggleArticleManagement() {
-            articleManagementList.style.display = articleManagementList.style.display === 'none' ? 'block' : 'none';
-            renderAdminArticleList();
-
-            if (!sortableInitialized) {
-                $("#article-management-list").sortable({
-                    handle: "span",
-                    update: function (event, ui) {
-                        let newArticles = [];
-                        $("#article-management-list li").each(function () {
-                            let index = $(this).data('index');
-                            newArticles.push(articles[index]);
-                        });
-                        articles = newArticles;
-                        localStorage.setItem('articles', JSON.stringify(articles));
-                        renderAdminArticleList();
-                    }
-                });
-                sortableInitialized = true;
-            }
-        }
-
-        function openEditArticleForm(index) {
-            currentArticleIndex = index;
-
-            document.getElementById('edit-article-title').value = articles[index].title;
-            document.getElementById('edit-article-image').value = articles[index].image;
-            document.getElementById('edit-article-content').value = articles[index].content;
-
-            editArticleForm.style.display = 'block';
-        }
-
-        function saveArticle() {
-            if (currentArticleIndex === null) {
-                alert('未选择要编辑的文章。');
-                return;
-            }
-
-            const editArticleTitle = document.getElementById('edit-article-title').value;
-            const editArticleImage = document.getElementById('edit-article-image').value;
-            const editArticleContent = document.getElementById('edit-article-content').value;
-
-            articles[currentArticleIndex].title = editArticleTitle;
-            articles[currentArticleIndex].image = editArticleImage;
-            articles[currentArticleIndex].content = editArticleContent;
-
-            localStorage.setItem('articles', JSON.stringify(articles));
-
-            renderArticles();
-            renderAdminArticleList();
-
-            editArticleForm.style.display = 'none';
-
-            currentArticleIndex = null;
-        }
-
-        function cancelEdit() {
-            editArticleForm.style.display = 'none';
-            currentArticleIndex = null;
-        }
-
-        function deleteArticle(index) {
-            if (confirm('确定要删除这篇文章吗？')) {
-                articles.splice(index, 1);
-                localStorage.setItem('articles', JSON.stringify(articles));
-                renderArticles();
-                renderAdminArticleList();
-            }
-        }
-
-        function exportArticles() {
-            const dataStr = JSON.stringify(articles);
-            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
-            const exportFileDefaultName = 'articles.json';
-
-            let linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
-        }
-
-        function importArticles() {
-            const importFile = document.getElementById('import-file');
-            importFile.click();
-
-            importFile.addEventListener('change', function () {
-                const file = importFile.files[0];
-                const reader = new FileReader();
-
-                reader.onload = function (e) {
-                    try {
-                        const importedArticles = JSON.parse(e.target.result);
-                        if (Array.isArray(importedArticles)) {
-                            let newArticles = [];
-                            importedArticles.forEach(importedArticle => {
-                                const articleExists = articles.some(existingArticle =>
-                                    existingArticle.title === importedArticle.title
-                                );
-                                if (!articleExists) {
-                                    newArticles.push(importedArticle);
-                                }
-                            });
-
-                            articles = articles.concat(newArticles);
-                            localStorage.setItem('articles', JSON.stringify(articles));
-                            renderArticles();
-                            renderAdminArticleList();
-                            alert(`成功导入 ${newArticles.length} 篇文章！`);
-                        } else {
-                            alert('导入的文件格式不正确，请选择包含文章数据的 JSON 文件。');
-                        }
-                    } catch (error) {
-                        alert('解析 JSON 文件时出错：' + error);
-                    }
-                }
-
-                reader.readAsText(file);
-            });
-        }
-
-        // 页面加载时渲染文章列表
+        // 初始渲染文章列表
         renderArticles();
     </script>
 </body>
