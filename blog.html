@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>宝哥博客</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
         /* 增加背景墙纸 */
         body {
@@ -50,8 +51,7 @@
             /* 淡黄色背景 */
             padding: 20px;
             margin-bottom: 20px;
-            border-radius: 10px;
-            /* 添加圆角 */
+            border-radius: 5px;
             position: relative;
             /* Required for absolute positioning of the back button */
         }
@@ -86,7 +86,8 @@
             /* Fixed height for images */
             object-fit: cover;
             /* Cover the area, cropping if necessary */
-            cursor: pointer; /* 添加鼠标悬停样式 */
+            cursor: pointer;
+            /* 添加鼠标悬停样式 */
         }
 
         .article-card h2 {
@@ -95,14 +96,11 @@
             font-size: 1.2em;
             text-align: center;
             color: #333;
+            cursor: move; /* 长按拖动 */
         }
 
         .article {
             display: none;
-            border-radius: 10px;
-            /* 添加圆角 */
-            padding: 10px;
-            /* 增加内边距，使内容不紧贴圆角 */
         }
 
         .article .date {
@@ -322,6 +320,17 @@
 
         #article-management-list li {
             margin-bottom: 5px;
+            cursor: grab;
+        }
+
+        #article-management-list li span {
+             cursor: move; /* 长按拖动 */
+        }
+
+        /* 编辑文章表单样式 */
+        #edit-article-form {
+            display: none;
+            margin-top: 10px;
         }
 
         /* 文章标题显示样式 */
@@ -382,6 +391,21 @@
                 <ul id="article-management-list">
                     <!-- 文章管理列表在此生成 -->
                 </ul>
+
+                <!-- 编辑文章表单 -->
+                <div id="edit-article-form">
+                    <h2>编辑文章</h2>
+                    <label for="edit-article-title">文章标题:</label><br>
+                    <input type="text" id="edit-article-title" name="edit-article-title"><br>
+
+                    <label for="edit-article-image">图片链接:</label><br>
+                    <input type="url" id="edit-article-image" name="edit-article-image"><br>
+
+                    <label for="edit-article-content">文章内容:</label><br>
+                    <textarea id="edit-article-content" name="edit-article-content"></textarea><br><br>
+                    <button onclick="saveArticle()">保存</button>
+                    <button onclick="cancelEdit()">取消</button>
+                </div>
             </div>
 
             <!-- Change Password Panel -->
@@ -401,6 +425,8 @@
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script>
         let articles = JSON.parse(localStorage.getItem('articles')) || [];
         let adminPassword = 'admin'; // 将此处设置为新的管理员密码
@@ -418,6 +444,7 @@
         const addArticleForm = document.getElementById('add-article-form');
         const adminPasswordInput = document.getElementById('admin-password');
         const articleTitleDisplay = document.getElementById('article-title-display');
+        const editArticleForm = document.getElementById('edit-article-form'); // 编辑文章表单
 
         // 渲染文章列表
         function renderArticles() {
@@ -469,10 +496,13 @@
             articleManagementList.innerHTML = '';
             articles.forEach((article, index) => {
                 const li = document.createElement('li');
+                li.classList.add('ui-sortable-handle');
+                li.dataset.index = index;
+
                 let titleText = article.title.replace(/<<(\d+)>>/g, '-$1'); // 应用替换
                 li.innerHTML = `
-                    ${titleText}
-                    <button onclick="editArticle(${index})">编辑</button>
+                    <span style="cursor: move;">${titleText}</span>
+                    <button onclick="openEditArticleForm(${index})">编辑</button>
                     <button onclick="deleteArticle(${index})">删除</button>
                 `;
                 articleManagementList.appendChild(li);
@@ -605,16 +635,82 @@
             toggleAddArticleForm();
         }
 
+        let sortableInitialized = false;
+
         // 切换文章管理列表的显示
         function toggleArticleManagement() {
             articleManagementList.style.display = articleManagementList.style.display === 'none' ? 'block' : 'none';
             renderAdminArticleList();
+
+            if (!sortableInitialized) {
+                 $("#article-management-list").sortable({
+                    handle: "span",
+                    update: function(event, ui) {
+                        let newArticles = [];
+                        $("#article-management-list li").each(function() {
+                            let index = $(this).data('index');
+                            newArticles.push(articles[index]);
+                        });
+                        articles = newArticles;
+                        localStorage.setItem('articles', JSON.stringify(articles));
+                        renderAdminArticleList();
+                    }
+                });
+                sortableInitialized = true;
+            }
         }
 
-        // 编辑文章
-        function editArticle(index) {
-            // 在这里添加编辑文章的逻辑
-            alert(`编辑文章 ${index}`);
+        // 打开编辑文章表单
+        function openEditArticleForm(index) {
+            currentArticleIndex = index; // 保存当前编辑的文章索引
+
+            // 将文章信息填充到编辑表单中
+            document.getElementById('edit-article-title').value = articles[index].title;
+            document.getElementById('edit-article-image').value = articles[index].image;
+            document.getElementById('edit-article-content').value = articles[index].content;
+
+            // 显示编辑表单
+            editArticleForm.style.display = 'block';
+        }
+
+        // 保存文章
+        function saveArticle() {
+            if (currentArticleIndex === null) {
+                alert('未选择要编辑的文章。');
+                return;
+            }
+
+            // 获取编辑表单中的文章信息
+            const editArticleTitle = document.getElementById('edit-article-title').value;
+            const editArticleImage = document.getElementById('edit-article-image').value;
+            const editArticleContent = document.getElementById('edit-article-content').value;
+
+            // 更新文章
+            articles[currentArticleIndex].title = editArticleTitle;
+            articles[currentArticleIndex].image = editArticleImage;
+            articles[currentArticleIndex].content = editArticleContent;
+
+            // 更新 localStorage
+            localStorage.setItem('articles', JSON.stringify(articles));
+
+            // 重新渲染文章列表
+            renderArticles();
+            renderAdminArticleList();
+
+            // 隐藏编辑表单
+            editArticleForm.style.display = 'none';
+
+            // 清空当前编辑的文章索引
+            currentArticleIndex = null;
+        }
+
+        // 取消编辑
+        function cancelEdit() {
+            // 隐藏编辑表单
+            editArticleForm.style.display = 'none';
+
+            // 清空当前编辑的文章索引
+            currentArticleIndex = null;
         }
 
         // 删除文章
@@ -653,11 +749,23 @@
                     try {
                         const importedArticles = JSON.parse(e.target.result);
                         if (Array.isArray(importedArticles)) {
-                            articles = importedArticles; // 替换现有文章
+                            let newArticles = [];
+                            importedArticles.forEach(importedArticle => {
+                                // 检查文章是否已存在
+                                const articleExists = articles.some(existingArticle =>
+                                    existingArticle.title === importedArticle.title
+                                );
+                                if (!articleExists) {
+                                    newArticles.push(importedArticle);
+                                }
+                            });
+
+                            // 将新文章添加到现有文章
+                            articles = articles.concat(newArticles);
                             localStorage.setItem('articles', JSON.stringify(articles));
                             renderArticles();
                             renderAdminArticleList();
-                            alert('文章导入成功！');
+                            alert(`成功导入 ${newArticles.length} 篇文章！`);
                         } else {
                             alert('导入的文件格式不正确，请选择包含文章数据的 JSON 文件。');
                         }
