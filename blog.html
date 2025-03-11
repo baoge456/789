@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
-        /* 增加背景墙纸 */
+        /* 基础样式 */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -17,9 +17,10 @@
             background-size: cover;
             background-attachment: fixed;
             line-height: 1.6;
+            overflow-x: hidden;
+            /* 避免横向滚动条 */
         }
 
-        /* 主内容区域 */
         .main-content {
             margin-top: 20px;
             padding: 20px;
@@ -27,28 +28,31 @@
         }
 
         .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+            max-width: 100%;
+            /* 宽度设置为100% */
+            margin: 0;
+            /* 清除margin */
+            padding: 10px;
+            /* 缩小padding */
             background-color: #f9f9f9;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             position: relative;
-            border-radius: 10px;
+            border-radius: 0;
+            /* 清除圆角 */
             overflow: hidden;
-            /* 防止内容超出容器 */
         }
 
-        /* Content wrapper */
         .content-wrapper {
-            padding: 20px;
+            padding: 10px;
+            /* 缩小padding */
             margin-bottom: 20px;
+            /* 调整 margin-bottom */
             border-radius: 5px;
             position: relative;
             background-color: #d8c4b8;
-            /* Light brown color */
         }
 
-        /* Title and buttons fixed at the top */
+        /* 固定头部 */
         .fixed-header {
             position: sticky;
             top: 0;
@@ -56,81 +60,99 @@
             z-index: 10;
             display: flex;
             justify-content: space-between;
-            /* Space between buttons */
             align-items: center;
-            padding: 10px 0;
+            padding: 5px 0;
+            /* 缩小padding */
         }
 
         .fixed-header h1 {
             flex-grow: 1;
-            /* Allow title to take center space */
             text-align: center;
-            /* Center the title */
             margin: 0;
+            font-size: 1.2em;
+            /* 缩小字体 */
         }
 
         #back-button,
         #admin-icon {
             color: #4b3d3d;
-            /* Darker color for contrast */
             cursor: pointer;
             transition: color 0.3s;
             background-color: #ffffff;
-            /* White background for buttons */
             border-radius: 50%;
-            /* Circular shape */
-            padding: 10px;
-            /* Padding for better click area */
-            margin: 0 10px;
-            /* Margin for spacing */
+            padding: 8px;
+            /* 缩小padding */
+            margin: 0 5px;
+            /* 缩小margin */
             border: 2px solid purple;
-            /* Purple border */
         }
 
         #back-button:hover,
         #admin-icon:hover {
             color: #3f51b5;
-            /* Change color on hover */
         }
 
-        /* Style for article titles in a grid */
+        /* 文章列表样式 */
         #article-list {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-around;
+            justify-content: flex-start;
+            /* 左对齐 */
         }
 
-        /* Article Card Styling */
+        /* 文章卡片样式 */
         .article-card {
-            width: 30%;
-            margin-bottom: 20px;
-            border-radius: 8px;
+            width: 48%;
+            /* 调整宽度，一行显示两个 */
+            margin: 1%;
+            /* 调整margin */
+            margin-bottom: 10px;
+            border-radius: 12px;
+            /* 增大圆角 */
             overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             background-color: #fff;
             transition: transform 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
         }
 
         .article-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
         }
 
-        .article-card img {
-            width: 100%;
-            height: 200px;
+        .article-card .article-image {
+            width: 60px;
+            /* 固定宽度 */
+            height: 60px;
+            /* 固定高度 */
+            border-radius: 50%;
+            /* 圆形 */
             object-fit: cover;
+            margin-right: 10px;
             cursor: pointer;
         }
 
         .article-card h2 {
-            padding: 15px;
+            padding: 10px;
             margin: 0;
-            font-size: 1.2em;
-            text-align: center;
+            font-size: 1em;
+            text-align: left;
             color: #333;
-            cursor: move;
+            cursor: pointer;
+            flex: 1;
+            /* 占据剩余空间 */
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
 
+        /* 隐藏卡片上的发布日期 */
+        .article-card .date {
+            display: none;
+        }
+
+        /* 文章内容样式 */
         .article {
             display: none;
         }
@@ -145,26 +167,32 @@
             flex: 1;
             margin-left: 15px;
             overflow-y: auto;
-            /* Enable vertical scroll */
-            max-height: 70vh;
-            /* Limit height to viewport size */
+            max-height: 60vh;
+            /* 调整文章内容最大高度 */
             white-space: pre-wrap;
-            /* Preserve whitespace and format */
             padding-right: 20px;
-            /* Add padding to avoid overlap with scrollbar */
             word-break: break-all;
-            /* 强制换行 */
+            /* 链接处理：强制断词 */
         }
 
-        /* 修改链接样式，防止超出面板 */
         .article .content a {
             word-break: break-all;
+            /* 链接处理：强制断词 */
+            color: #007bff;
+            /* 链接颜色 */
+            text-decoration: underline;
+            /* 显示下划线 */
+        }
+
+        .article .content a:hover {
+            text-decoration: underline;
+            /* 鼠标悬停时显示下划线 */
         }
 
         .article img {
-            max-width: 300px;
+            max-width: 100%;
             height: auto;
-            margin-right: 15px;
+            margin-bottom: 10px;
             display: block;
         }
 
@@ -172,19 +200,11 @@
             display: flex;
             flex-direction: column;
             max-height: 80vh;
-            /* Max height for expanded view */
-        }
-
-        .article.expanded img {
-            max-width: 100%;
-            margin-bottom: 10px;
-            margin-right: 0;
         }
 
         .article.expanded .content {
             display: block;
             overflow-y: auto;
-            /* Allow scrolling in expanded view */
         }
 
         /* 后台管理样式 */
@@ -267,14 +287,12 @@
         #admin-return {
             font-size: 20px;
             color: #4b3d3d;
-            /* Darker color for contrast */
             cursor: pointer;
         }
 
         #back-button {
             font-size: 20px;
             color: #4b3d3d;
-            /* Darker color for contrast */
             cursor: pointer;
             display: none;
         }
@@ -298,7 +316,6 @@
         #admin-return {
             font-size: 20px;
             color: #4b3d3d;
-            /* Darker color for contrast */
             cursor: pointer;
         }
 
@@ -307,16 +324,15 @@
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            /* Align to the right */
         }
 
         /* Style for article cards without images */
-        .article-card.no-image img {
+        .article-card.no-image .article-image {
             display: none;
         }
 
         .article-card.no-image h2 {
-            padding: 20px 15px;
+            padding: 15px 10px;
         }
 
         /* 密码输入框样式 */
@@ -333,7 +349,6 @@
             z-index: 1001;
             box-sizing: border-box;
             max-width: 90%;
-            /* 确保密码框不超出面板 */
             word-wrap: break-word;
         }
 
@@ -348,6 +363,10 @@
             padding: 10px 15px;
             border: none;
             cursor: pointer;
+        }
+
+        #password-prompt button:hover {
+            background-color: #3e8e41;
         }
 
         /* 添加文章表单样式 */
@@ -378,19 +397,15 @@
         }
 
         /* 文章标题显示样式 */
-        /* 在这里修改文章名称的字体大小 */
         #article-title {
             font-style: normal;
-            font-size: 1.1em; /* 比文章内容略大即可 */
+            font-size: 1.1em;
             margin: 0;
-            /* 清除默认边距 */
             padding: 0;
-            /* 清除默认内边距 */
             line-height: 1.2;
-            /* 调整行高，使标题更紧凑 */
         }
 
-        /* 强制滚动条显示在最外侧 */
+        /* 滚动条样式 */
         body::-webkit-scrollbar {
             width: 8px;
         }
@@ -407,9 +422,29 @@
             background: #555;
         }
 
+        /* 保持滚动条在屏幕右侧 */
+        html {
+            overflow-y: scroll;
+            /* 确保页面始终显示垂直滚动条 */
+        }
+
+        body {
+            margin-right: 0;
+            /* 确保内容不因滚动条遮挡 */
+        }
+
+        /* 调整文章内容字体大小 */
         .article.expanded .content {
             font-size: 1em;
-            /* 设置文章内容的字体大小 */
+        }
+
+        /* 响应式布局 */
+        @media (max-width: 600px) {
+            .article-card {
+                width: 100%;
+                /* 调整宽度，一行显示一个 */
+                margin: 0 0 10px 0;
+            }
         }
     </style>
 </head>
@@ -453,7 +488,6 @@
 
                     <label for="new-article-image">图片链接:</label><br>
                     <input type="url" id="new-article-image" name="new-article-image"><br>
-
                     <label for="new-article-content">文章内容:</label><br>
                     <textarea id="new-article-content" name="new-article-content" rows="5"></textarea><br>
                     <button onclick="addArticle()">添加</button>
@@ -470,7 +504,6 @@
 
                     <label for="edit-article-image">图片链接:</label><br>
                     <input type="url" id="edit-article-image" name="edit-article-image"><br>
-
                     <label for="edit-article-content">文章内容:</label><br>
                     <textarea id="edit-article-content" name="edit-article-content" rows="5"></textarea><br>
                     <button onclick="saveArticle()">保存</button>
@@ -511,18 +544,26 @@
         const passwordPrompt = document.getElementById('password-prompt');
         const adminIcon = document.getElementById('admin-icon');
         const addArticleForm = document.getElementById('add-article-form');
-        const adminPasswordInput = document.getElementById('admin-password');
-        const mainTitle = document.getElementById('main-title');
-        const articleTitle = document.getElementById('article-title');
-        const editArticleForm = document.getElementById('edit-article-form');
 
-        // 渲染文章列表
-        function renderArticles() {
+        // Function to show password prompt and focus the input
+        function togglePasswordPrompt() {
+            passwordPrompt.style.display = passwordPrompt.style.display === 'none' ? 'block' : 'none';
+            if (passwordPrompt.style.display === 'block') {
+                document.getElementById('admin-password').focus();
+            } else {
+                document.getElementById('admin-password').value = '';
+            }
+        }
+
+        // Function to get the latest date
+        function getLatestDate(article) {
+            let dates = [article.createdDate, article.editedDate, article.importedDate].filter(Boolean);
+            return new Date(Math.max(...dates.map(date => new Date(date))));
+        }
+
+        // Function to display articles
+        function displayArticles() {
             articleListDiv.innerHTML = '';
-            // 显示“宝哥博客”标题
-            mainTitle.style.display = 'block';
-            articleTitle.style.display = 'none';
-
             articles.forEach((article, index) => {
                 const articleCard = document.createElement('div');
                 articleCard.classList.add('article-card');
@@ -531,328 +572,297 @@
                     articleCard.classList.add('no-image');
                 }
 
-                const img = document.createElement('img');
-                img.src = article.image || 'https://via.placeholder.com/400x200';
-                img.alt = article.title;
-
-                const imgLink = document.createElement('a');
-                imgLink.href = '#';
-                imgLink.onclick = function (event) {
-                    event.preventDefault();
-                    toggleContent(index);
-                };
-                imgLink.appendChild(img);
-                articleCard.appendChild(imgLink);
-
-                const h2 = document.createElement('h2');
-                let titleText = article.title.replace(/<<(\d+)>>/g, '-$1');
-                h2.innerHTML = `<a href="#" onclick="toggleContent(${index})">${titleText}</a>`;
-                articleCard.appendChild(h2);
-
-                articleListDiv.appendChild(articleCard);
-
-                const articleDiv = document.createElement('div');
-                articleDiv.classList.add('article');
-                articleDiv.innerHTML = `
-                    <h2>${article.title}</h2>
-                    <p class="date">创建时间：${new Date(article.createdAt).toLocaleString()}  <span>修改时间：${new Date(article.updatedAt).toLocaleString()}</span></p>
-                    ${article.image ? `<img src="${article.image}" alt="${article.title}">` : ''}
-                    <div class="content">${article.content}</div>
+                articleCard.innerHTML = `
+                    ${article.image ? `<img src="${article.image}" alt="Article Image" class="article-image" onclick="showArticle(${index})">` : ''}
+                    <h2 onclick="showArticle(${index})">${article.title}</h2>
                 `;
-                articleListDiv.appendChild(articleDiv);
+                articleListDiv.appendChild(articleCard);
             });
         }
 
-        // 修改后的文章处理函数
-        function addArticle() {
-            const newArticle = {
-                title: document.getElementById('new-article-title').value,
-                content: document.getElementById('new-article-content').value,
-                image: document.getElementById('new-article-image').value || '',
-                createdAt: new Date().toISOString(),
-                updatedAt: null
-                // 初始化为null
-            };
-            articles.push(newArticle);
-            saveArticles();
-            renderArticles();
-            toggleAddArticleForm();
-        }
+        // Function to show a specific article
+function showArticle(index) {
+    currentArticleIndex = index;
+    const article = articles[index];
+    const latestDate = getLatestDate(article);
 
-        // 修改后的文章显示函数
-        function toggleContent(index) {
-            currentArticleIndex = index;
-            const article = articles[index];
-            const createdAt = new Date(article.createdAt).toLocaleString();
-            const updatedAt = article.updatedAt ? new Date(article.updatedAt).toLocaleString() : '未作修改';
+    const contentWithLinks = article.content.replace(
+        /(https?:\/\/[^\s]+)/g, 
+        '<a href="$1" target="_blank">$1</a>'
+    );
 
-            // Convert URLs to clickable links
-            const contentWithLinks = article.content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+    const articleDiv = document.createElement('div');
+    articleDiv.classList.add('article', 'expanded');
+    articleDiv.innerHTML = `
+        <p class="date">发布日期: ${latestDate.toLocaleDateString()}</p>
+        <div class="content">${contentWithLinks}</div>
+    `;
 
-            articleListDiv.innerHTML = `
-                <div class="article expanded">
-                    <div class="content">
-                        <p>创建时间：${createdAt}  修改时间：${updatedAt}</p>
-                        ${contentWithLinks}
-                    </div>
-                </div>
-            `;
+    // Replace the article list with the selected article
+    articleListDiv.innerHTML = '';
+    articleListDiv.appendChild(articleDiv);
 
-            backButton.style.display = 'block';
+    // Show the back button
+    backButton.style.display = 'block';
+    document.getElementById('main-title').style.display = 'none';
+    document.getElementById('article-title').style.display = 'block';
+    document.getElementById('article-title').innerText = article.title;
+    adminIcon.style.display = 'none';
+}
 
-            // 隐藏“宝哥博客”标题，显示文章标题
-            mainTitle.style.display = 'none';
-            articleTitle.style.display = 'block';
-            articleTitle.textContent = article.title;
+// Function to show all articles
+function showAllArticles() {
+    displayArticles(); // Redisplay the articles
+    backButton.style.display = 'none';
+    document.getElementById('main-title').style.display = 'block';
+    document.getElementById('article-title').style.display = 'none';
+    adminIcon.style.display = 'block';
 
-            // 动态设置标题为文章标题
-            document.title = article.title;
-        }
+    // Remove the expanded article if it exists
+    const expandedArticle = document.querySelector('.article.expanded');
+    if (expandedArticle) {
+        expandedArticle.remove();
+    }
+}
 
-        // 修改后的保存文章函数
-        function saveArticle() {
-            articles[currentArticleIndex] = {
-                ...articles[currentArticleIndex],
-                title: document.getElementById('edit-article-title').value,
-                content: document.getElementById('edit-article-content').value,
-                image: document.getElementById('edit-article-image').value,
-                createdAt: articles[currentArticleIndex].createdAt,
-                // 保留原创建时间
-                updatedAt: new Date().toISOString()
-                // 更新修改时间
-            };
-            saveArticles();
-            toggleContent(currentArticleIndex);
-            cancelEdit();
-        }
+// Function to check password
+function checkPassword() {
+    const password = document.getElementById('admin-password').value;
+    if (password === adminPassword) {
+        adminPanelVisible = true;
+        updateUI();
+        togglePasswordPrompt();
+    } else {
+        alert('密码错误，请重试。');
+    }
+    document.getElementById('admin-password').value = '';
+}
 
-        // 保存文章到 localStorage
-        function saveArticles() {
-            localStorage.setItem('articles', JSON.stringify(articles));
-        }
+// Function to handle password enter key press
+function handlePasswordEnter(event) {
+    if (event.key === 'Enter') {
+        checkPassword();
+    }
+}
 
-        // 显示所有文章标题
-        function showAllArticles() {
-            renderArticles();
-            backButton.style.display = 'none';
-            // 在返回文章列表时，显示“宝哥博客”标题
-            mainTitle.style.display = 'block';
-            articleTitle.style.display = 'none';
-            document.title = "宝哥博客";
-        }
+// Function to toggle the admin panel
+function toggleAdminPanel() {
+    adminPanelVisible = !adminPanelVisible;
+    updateUI();
+}
 
-        // 修改密码输入框的显示与隐藏
-        function togglePasswordPrompt() {
-            passwordPromptVisible = !passwordPromptVisible;
-            passwordPrompt.style.display = passwordPromptVisible ? 'block' : 'none';
+// Function to update the UI based on the admin panel state
+function updateUI() {
+    if (adminPanelVisible) {
+        body.classList.add('show-admin');
+    } else {
+        body.classList.remove('show-admin');
+    }
+}
 
-            // 密码输入框显示时，设置焦点并清空内容
-            if (passwordPromptVisible) {
-                adminPasswordInput.focus();
-                adminPasswordInput.value = '';
-            }
-        }
+// Function to toggle the add article form
+function toggleAddArticleForm() {
+    addArticleForm.style.display = addArticleForm.style.display === 'none' ? 'block' : 'none';
+}
 
-        // 处理密码输入回车事件
-        function handlePasswordEnter(event) {
-            if (event.key === 'Enter') {
-                checkPassword();
-            }
-        }
+// Function to add a new article
+function addArticle() {
+    const title = document.getElementById('new-article-title').value;
+    const image = document.getElementById('new-article-image').value;
+    const content = document.getElementById('new-article-content').value;
 
-        // 检查密码
-        function checkPassword() {
-            let password = document.getElementById('admin-password').value;
-            if (password === adminPassword) {
-                adminPanelVisible = true;
-                body.classList.add('show-admin');
-                passwordPrompt.style.display = 'none';
+    // Get current date
+    const now = new Date().toISOString(); // Current date in ISO format
 
-                // 移除密码输入框的焦点
-                adminPasswordInput.blur();
-            } else {
-                alert('密码错误，请重试。');
-            }
-        }
+    const newArticle = {
+        title: title,
+        image: image,
+        content: content,
+        createdDate: now,
+        editedDate: null,
+        importedDate: null
+    };
 
-        // 切换管理面板显示
-        function toggleAdminPanel() {
-            adminPanelVisible = !adminPanelVisible;
-            if (adminPanelVisible) {
-                adminPanelDiv.style.display = 'block';
-            } else {
-                adminPanelDiv.style.display = 'none';
-            }
-            body.classList.toggle('show-admin');
-        }
+    articles.push(newArticle);
+    localStorage.setItem('articles', JSON.stringify(articles));
+    displayArticles();
+    toggleAddArticleForm();
+}
 
-        // 切换添加文章表单
-        function toggleAddArticleForm() {
-            if (addArticleForm.style.display === 'none') {
-                addArticleForm.style.display = 'block';
-            } else {
-                addArticleForm.style.display = 'none';
-            }
-        }
+// Function to toggle article management list
+function toggleArticleManagement() {
+    const articleManagementList = document.getElementById('article-management-list');
+    articleManagementList.style.display = articleManagementList.style.display === 'none' ? 'block' : 'none';
+    if (articleManagementList.style.display === 'block') {
+        populateArticleManagementList();
+    }
+}
 
-        // 切换文章管理
-        function toggleArticleManagement() {
-            if (articleManagementList.style.display === 'none') {
-                articleManagementList.style.display = 'block';
-                renderArticleManagementList();
-            } else {
-                articleManagementList.style.display = 'none';
-            }
-        }
+// Function to populate article management list
+function populateArticleManagementList() {
+    articleManagementList.innerHTML = '';
+    articles.forEach((article, index) => {
+        const listItem = document.createElement('li');
+        listItem.innerHTML = `
+            <span>${article.title}</span>
+            <button onclick="editArticle(${index})">编辑</button>
+            <button onclick="deleteArticle(${index})">删除</button>
+        `;
+        articleManagementList.appendChild(listItem);
+    });
+}
 
-        // 渲染文章管理列表
-        function renderArticleManagementList() {
-            articleManagementList.innerHTML = '';
-            articles.forEach((article, index) => {
-                const li = document.createElement('li');
-                li.innerHTML = `<span>${article.title}</span>
-                    <button onclick="editArticle(${index})">编辑</button>
-                    <button onclick="deleteArticle(${index})">删除</button>`;
-                articleManagementList.appendChild(li);
-            });
+// Function to edit an article
+function editArticle(index) {
+    currentArticleIndex = index;
+    const article = articles[index];
+    document.getElementById('edit-article-title').value = article.title;
+    document.getElementById('edit-article-image').value = article.image;
+    document.getElementById('edit-article-content').value = article.content;
+    toggleEditArticleForm();
+}
 
-            // 实现拖拽排序
-            $(function () {
-                $("#article-management-list").sortable({
-                    update: function (event, ui) {
-                        updateArticleOrder();
-                    }
-                });
-                $("#article-management-list").disableSelection();
-            });
-        }
+// Function to delete an article
+function deleteArticle(index) {
+    if (confirm('确定要删除这篇文章吗？')) {
+        articles.splice(index, 1);
+        localStorage.setItem('articles', JSON.stringify(articles));
+        displayArticles();
+        populateArticleManagementList();
+    }
+}
 
-        // 更新文章顺序
-        function updateArticleOrder() {
-            let newOrder = [];
-            $('#article-management-list li').each(function () {
-                let title = $(this).find('span').text();
-                let article = articles.find(a => a.title === title);
-                if (article) {
-                    newOrder.push(article);
-                }
-            });
-            articles = newOrder;
-            saveArticles();
-            renderArticleManagementList();
-            renderArticles();
-        }
+// Function to toggle edit article form
+function toggleEditArticleForm() {
+    const editArticleForm = document.getElementById('edit-article-form');
+    editArticleForm.style.display = editArticleForm.style.display === 'none' ? 'block' : 'none';
+}
 
-        // 编辑文章
-        function editArticle(index) {
-            currentArticleIndex = index;
-            const article = articles[index];
-            document.getElementById('edit-article-title').value = article.title;
-            document.getElementById('edit-article-image').value = article.image || '';
-            document.getElementById('edit-article-content').value = article.content;
-            editArticleForm.style.display = 'block';
-        }
+// Function to save edited article
+function saveArticle() {
+    if (currentArticleIndex !== null) {
+        const title = document.getElementById('edit-article-title').value;
+        const image = document.getElementById('edit-article-image').value;
+        const content = document.getElementById('edit-article-content').value;
 
-        // 删除文章
-        function deleteArticle(index) {
-            if (confirm('确定要删除这篇文章吗？')) {
-                articles.splice(index, 1);
-                saveArticles();
-                renderArticleManagementList();
-                renderArticles();
-            }
-        }
+        //Get current date
+        const now = new Date().toISOString(); // Current date in ISO format
 
-        // 取消编辑
-        function cancelEdit() {
-            editArticleForm.style.display = 'none';
-        }
+        articles[currentArticleIndex] = {
+            ...articles[currentArticleIndex],
+            title: title,
+            image: image,
+            content: content,
+            editedDate: now // Update edited date
+        };
 
-        // 导出文章
-        function exportArticles() {
-            const jsonString = JSON.stringify(articles);
-            const blob = new Blob([jsonString], {
-                type: 'application/json'
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'articles.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
+        localStorage.setItem('articles', JSON.stringify(articles));
+        displayArticles();
+        toggleEditArticleForm();
+        populateArticleManagementList();
+    }
+}
 
-        // 导入文章
-        function importArticles() {
-            const importFile = document.getElementById('import-file');
-            importFile.click();
+// Function to cancel edit
+function cancelEdit() {
+    toggleEditArticleForm();
+}
 
-            importFile.addEventListener('change', () => {
-                const file = importFile.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        try {
-                            const importedArticles = JSON.parse(e.target.result);
-                            if (Array.isArray(importedArticles)) {
-                                articles = importedArticles.map(article => ({
-                                    ...article,
-                                    createdAt: new Date().toISOString(),
-                                    updatedAt: null
-                                    // 初始化为null
-                                }));
-                                saveArticles();
-                                renderArticles();
-                                renderArticleManagementList();
-                                alert('文章导入成功！');
-                            } else {
-                                alert('文件内容格式不正确。');
-                            }
-                        } catch (error) {
-                            alert('导入文件失败，请检查文件格式。');
+// Function to export articles
+function exportArticles() {
+    const json = JSON.stringify(articles);
+    const blob = new Blob([json], {
+        type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'articles.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Function to import articles
+function importArticles() {
+    const importFile = document.getElementById('import-file');
+    importFile.click();
+
+    importFile.addEventListener('change', function() {
+        const file = importFile.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedArticles = JSON.parse(e.target.result);
+                    if (Array.isArray(importedArticles)) {
+                        const now = new Date().toISOString();
+                        const existingTitles = articles.map(a => a.title);
+                        
+                        const articlesWithImportDate = importedArticles
+                            .filter(article => !existingTitles.includes(article.title)) // 过滤重复标题
+                            .map(article => ({
+                                ...article,
+                                importedDate: now
+                            }));
+
+                        if (articlesWithImportDate.length === 0) {
+                            alert('没有可导入的新文章（可能重复）');
+                            return;
                         }
-                    };
-                    reader.readAsText(file);
+
+                        articles = articles.concat(articlesWithImportDate);
+                        localStorage.setItem('articles', JSON.stringify(articles));
+                        displayArticles();
+                        alert(`成功导入 ${articlesWithImportDate.length} 篇文章`);
+                    }
+                } catch (error) {
+                    console.error('导入错误:', error);
+                    alert('文件格式错误');
                 }
-            });
+            };
+            reader.readAsText(file);
         }
+        importFile.value = ''; // Clear the input after importing
+    });
+}
 
-        // 修改密码
-        function changePassword() {
-            const oldPassword = document.getElementById('old-password').value;
-            const newPassword = document.getElementById('new-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
+// Function to open change password panel
+function openChangePasswordPanel() {
+    changePasswordPanel.style.display = 'block';
+}
 
-            if (oldPassword !== adminPassword) {
-                alert('旧密码错误。');
-                return;
-            }
+// Function to close change password panel
+function closeChangePasswordPanel() {
+    changePasswordPanel.style.display = 'none';
+}
 
-            if (newPassword !== confirmPassword) {
-                alert('新密码和确认密码不一致。');
-                return;
-            }
+// Function to change password
+function changePassword() {
+    const oldPassword = document.getElementById('old-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
 
-            adminPassword = newPassword;
-            alert('密码修改成功！');
-            closeChangePasswordPanel();
-        }
+    if (oldPassword !== adminPassword) {
+        alert('旧密码错误。');
+        return;
+    }
 
-        // 打开修改密码面板
-        function openChangePasswordPanel() {
-            changePasswordPanel.style.display = 'block';
-        }
+    if (newPassword !== confirmPassword) {
+        alert('新密码和确认密码不匹配。');
+        return;
+    }
 
-        // 关闭修改密码面板
-        function closeChangePasswordPanel() {
-            changePasswordPanel.style.display = 'none';
-        }
+    adminPassword = newPassword;
+    alert('密码已成功更改。');
+    closeChangePasswordPanel();
+}
 
-        // 初始渲染文章列表
-        renderArticles();
+// Initial display of articles
+displayArticles();
     </script>
 </body>
 
 </html>
+
