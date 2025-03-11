@@ -107,7 +107,8 @@
             margin: 1%;
             /* 调整margin */
             margin-bottom: 10px;
-            border-radius: 5px;
+            border-radius: 12px;
+            /* 增大圆角 */
             overflow: hidden;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             background-color: #fff;
@@ -146,6 +147,11 @@
             text-overflow: ellipsis;
         }
 
+        /* 隐藏卡片上的发布日期 */
+        .article-card .date {
+            display: none;
+        }
+
         /* 文章内容样式 */
         .article {
             display: none;
@@ -174,8 +180,8 @@
             /* 链接处理：强制断词 */
             color: #007bff;
             /* 链接颜色 */
-            text-decoration: none;
-            /* 移除下划线 */
+            text-decoration: underline;
+            /* 显示下划线 */
         }
 
         .article .content a:hover {
@@ -359,6 +365,10 @@
             cursor: pointer;
         }
 
+        #password-prompt button:hover {
+            background-color: #3e8e41;
+        }
+
         /* 添加文章表单样式 */
         #add-article-form {
             display: none;
@@ -447,7 +457,7 @@
                     <div id="back-button" class="fa fa-arrow-left" onclick="showAllArticles()" aria-hidden="true"></div>
                     <h1 id="main-title">宝哥博客</h1>
                     <h1 id="article-title" style="display: none;"></h1>
-                    <span id="admin-icon" onclick="showPasswordPrompt()">≡</span>
+                    <span id="admin-icon" onclick="togglePasswordPrompt()">≡</span>
                 </div>
                 <div id="article-list">
                     <!-- 文章标题将在此处动态生成 -->
@@ -536,9 +546,13 @@
         const addArticleForm = document.getElementById('add-article-form');
 
         // Function to show password prompt and focus the input
-        function showPasswordPrompt() {
-            passwordPrompt.style.display = 'block';
-            document.getElementById('admin-password').focus();
+        function togglePasswordPrompt() {
+            passwordPrompt.style.display = passwordPrompt.style.display === 'none' ? 'block' : 'none';
+            if (passwordPrompt.style.display === 'block') {
+                document.getElementById('admin-password').focus();
+            } else {
+                document.getElementById('admin-password').value = '';
+            }
         }
 
         // Function to get the latest date
@@ -551,7 +565,6 @@
         function displayArticles() {
             articleListDiv.innerHTML = '';
             articles.forEach((article, index) => {
-                const latestDate = getLatestDate(article);
                 const articleCard = document.createElement('div');
                 articleCard.classList.add('article-card');
 
@@ -562,296 +575,294 @@
                 articleCard.innerHTML = `
                     ${article.image ? `<img src="${article.image}" alt="Article Image" class="article-image" onclick="showArticle(${index})">` : ''}
                     <h2 onclick="showArticle(${index})">${article.title}</h2>
-                    <span class="date">发布日期: ${latestDate.toLocaleDateString()}</span>
                 `;
                 articleListDiv.appendChild(articleCard);
             });
         }
 
         // Function to show a specific article
-        function showArticle(index) {
-            currentArticleIndex = index;
-            const article = articles[index];
-            const articleDiv = document.createElement('div');
-            articleDiv.classList.add('article', 'expanded');
+function showArticle(index) {
+    currentArticleIndex = index;
+    const article = articles[index];
+    const latestDate = getLatestDate(article);
 
-            const latestDate = getLatestDate(article);
+    const contentWithLinks = article.content.replace(
+        /(https?:\/\/[^\s]+)/g, 
+        '<a href="$1" target="_blank">$1</a>'
+    );
 
-            articleDiv.innerHTML = `
-                <p class="date">发布日期: ${latestDate.toLocaleDateString()}</p>
-                <div class="content">${article.content}</div>
-            `;
+    const articleDiv = document.createElement('div');
+    articleDiv.classList.add('article', 'expanded');
+    articleDiv.innerHTML = `
+        <p class="date">发布日期: ${latestDate.toLocaleDateString()}</p>
+        <div class="content">${contentWithLinks}</div>
+    `;
 
-            // Replace the article list with the selected article
-            articleListDiv.innerHTML = '';
-            articleListDiv.appendChild(articleDiv);
+    // Replace the article list with the selected article
+    articleListDiv.innerHTML = '';
+    articleListDiv.appendChild(articleDiv);
 
-            // Show the back button
-            backButton.style.display = 'block';
-            document.getElementById('main-title').style.display = 'none';
-            document.getElementById('article-title').style.display = 'block';
-            document.getElementById('article-title').innerText = article.title;
-            adminIcon.style.display = 'none';
+    // Show the back button
+    backButton.style.display = 'block';
+    document.getElementById('main-title').style.display = 'none';
+    document.getElementById('article-title').style.display = 'block';
+    document.getElementById('article-title').innerText = article.title;
+    adminIcon.style.display = 'none';
+}
 
-        }
+// Function to show all articles
+function showAllArticles() {
+    displayArticles(); // Redisplay the articles
+    backButton.style.display = 'none';
+    document.getElementById('main-title').style.display = 'block';
+    document.getElementById('article-title').style.display = 'none';
+    adminIcon.style.display = 'block';
 
-        // Function to show all articles
-        function showAllArticles() {
-            displayArticles(); // Redisplay the articles
-            backButton.style.display = 'none';
-            document.getElementById('main-title').style.display = 'block';
-            document.getElementById('article-title').style.display = 'none';
-            adminIcon.style.display = 'block';
+    // Remove the expanded article if it exists
+    const expandedArticle = document.querySelector('.article.expanded');
+    if (expandedArticle) {
+        expandedArticle.remove();
+    }
+}
 
-            // Remove the expanded article if it exists
-            const expandedArticle = document.querySelector('.article.expanded');
-            if (expandedArticle) {
-                expandedArticle.remove();
-            }
-        }
+// Function to check password
+function checkPassword() {
+    const password = document.getElementById('admin-password').value;
+    if (password === adminPassword) {
+        adminPanelVisible = true;
+        updateUI();
+        togglePasswordPrompt();
+    } else {
+        alert('密码错误，请重试。');
+    }
+    document.getElementById('admin-password').value = '';
+}
 
-        // Function to check password
-        function checkPassword() {
-            const password = document.getElementById('admin-password').value;
-            if (password === adminPassword) {
-                adminPanelVisible = true;
-                updateUI();
-                togglePasswordPrompt();
-            } else {
-                alert('密码错误，请重试。');
-            }
-            document.getElementById('admin-password').value = '';
-        }
+// Function to handle password enter key press
+function handlePasswordEnter(event) {
+    if (event.key === 'Enter') {
+        checkPassword();
+    }
+}
 
-        // Function to handle password enter key press
-        function handlePasswordEnter(event) {
-            if (event.key === 'Enter') {
-                checkPassword();
-            }
-        }
+// Function to toggle the admin panel
+function toggleAdminPanel() {
+    adminPanelVisible = !adminPanelVisible;
+    updateUI();
+}
 
-        // Function to toggle the admin panel
-        function toggleAdminPanel() {
-            adminPanelVisible = !adminPanelVisible;
-            updateUI();
-        }
+// Function to update the UI based on the admin panel state
+function updateUI() {
+    if (adminPanelVisible) {
+        body.classList.add('show-admin');
+    } else {
+        body.classList.remove('show-admin');
+    }
+}
 
-        // Function to update the UI based on the admin panel state
-        function updateUI() {
-            if (adminPanelVisible) {
-                body.classList.add('show-admin');
-            } else {
-                body.classList.remove('show-admin');
-            }
-        }
+// Function to toggle the add article form
+function toggleAddArticleForm() {
+    addArticleForm.style.display = addArticleForm.style.display === 'none' ? 'block' : 'none';
+}
 
-        // Function to toggle the add article form
-        function toggleAddArticleForm() {
-            addArticleForm.style.display = addArticleForm.style.display === 'none' ? 'block' : 'none';
-        }
+// Function to add a new article
+function addArticle() {
+    const title = document.getElementById('new-article-title').value;
+    const image = document.getElementById('new-article-image').value;
+    const content = document.getElementById('new-article-content').value;
 
-        // Function to add a new article
-        function addArticle() {
-            const title = document.getElementById('new-article-title').value;
-            const image = document.getElementById('new-article-image').value;
-            const content = document.getElementById('new-article-content').value;
+    // Get current date
+    const now = new Date().toISOString(); // Current date in ISO format
 
-            // Get current date
-            const now = new Date().toISOString(); // Current date in ISO format
+    const newArticle = {
+        title: title,
+        image: image,
+        content: content,
+        createdDate: now,
+        editedDate: null,
+        importedDate: null
+    };
 
-            const newArticle = {
-                title: title,
-                image: image,
-                content: content,
-                createdDate: now,
-                editedDate: null,
-                importedDate: null
-            };
+    articles.push(newArticle);
+    localStorage.setItem('articles', JSON.stringify(articles));
+    displayArticles();
+    toggleAddArticleForm();
+}
 
-            articles.push(newArticle);
-            localStorage.setItem('articles', JSON.stringify(articles));
-            displayArticles();
-            toggleAddArticleForm();
-        }
+// Function to toggle article management list
+function toggleArticleManagement() {
+    const articleManagementList = document.getElementById('article-management-list');
+    articleManagementList.style.display = articleManagementList.style.display === 'none' ? 'block' : 'none';
+    if (articleManagementList.style.display === 'block') {
+        populateArticleManagementList();
+    }
+}
 
-        // Function to toggle article management list
-        function toggleArticleManagement() {
-            const articleManagementList = document.getElementById('article-management-list');
-            articleManagementList.style.display = articleManagementList.style.display === 'none' ? 'block' : 'none';
-            if (articleManagementList.style.display === 'block') {
-                populateArticleManagementList();
-            }
-        }
+// Function to populate article management list
+function populateArticleManagementList() {
+    articleManagementList.innerHTML = '';
+    articles.forEach((article, index) => {
+        const listItem = document.createElement('li');
+        listItem.innerHTML = `
+            <span>${article.title}</span>
+            <button onclick="editArticle(${index})">编辑</button>
+            <button onclick="deleteArticle(${index})">删除</button>
+        `;
+        articleManagementList.appendChild(listItem);
+    });
+}
 
-        // Function to populate article management list
-        function populateArticleManagementList() {
-            articleManagementList.innerHTML = '';
-            articles.forEach((article, index) => {
-                const listItem = document.createElement('li');
-                listItem.innerHTML = `
-                    <span>${article.title}</span>
-                    <button onclick="editArticle(${index})">编辑</button>
-                    <button onclick="deleteArticle(${index})">删除</button>
-                `;
-                articleManagementList.appendChild(listItem);
-            });
-        }
+// Function to edit an article
+function editArticle(index) {
+    currentArticleIndex = index;
+    const article = articles[index];
+    document.getElementById('edit-article-title').value = article.title;
+    document.getElementById('edit-article-image').value = article.image;
+    document.getElementById('edit-article-content').value = article.content;
+    toggleEditArticleForm();
+}
 
-        // Function to edit an article
-        function editArticle(index) {
-            currentArticleIndex = index;
-            const article = articles[index];
-            document.getElementById('edit-article-title').value = article.title;
-            document.getElementById('edit-article-image').value = article.image;
-            document.getElementById('edit-article-content').value = article.content;
-            toggleEditArticleForm();
-        }
-
-        // Function to delete an article
-        function deleteArticle(index) {
-            if (confirm('确定要删除这篇文章吗？')) {
-                articles.splice(index, 1);
-                localStorage.setItem('articles', JSON.stringify(articles));
-                displayArticles();
-                populateArticleManagementList();
-            }
-        }
-
-        // Function to toggle edit article form
-        function toggleEditArticleForm() {
-            const editArticleForm = document.getElementById('edit-article-form');
-            editArticleForm.style.display = editArticleForm.style.display === 'none' ? 'block' : 'none';
-        }
-
-        // Function to save edited article
-        function saveArticle() {
-            if (currentArticleIndex !== null) {
-                const title = document.getElementById('edit-article-title').value;
-                const image = document.getElementById('edit-article-image').value;
-                const content = document.getElementById('edit-article-content').value;
-
-                //Get current date
-                const now = new Date().toISOString(); // Current date in ISO format
-
-                articles[currentArticleIndex] = {
-                    ...articles[currentArticleIndex],
-                    title: title,
-                    image: image,
-                    content: content,
-                    editedDate: now // Update edited date
-                };
-
-                localStorage.setItem('articles', JSON.stringify(articles));
-                displayArticles();
-                toggleEditArticleForm();
-                populateArticleManagementList();
-            }
-        }
-
-        // Function to cancel edit
-        function cancelEdit() {
-            toggleEditArticleForm();
-        }
-
-        // Function to export articles
-        function exportArticles() {
-            const json = JSON.stringify(articles);
-            const blob = new Blob([json], {
-                type: 'application/json'
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'articles.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        // Function to import articles
-        function importArticles() {
-            const importFile = document.getElementById('import-file');
-            importFile.click();
-
-            importFile.addEventListener('change', function() {
-                const file = importFile.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        try {
-                            const importedArticles = JSON.parse(e.target.result);
-                            if (Array.isArray(importedArticles)) {
-
-                                //Get current date
-                                const now = new Date().toISOString(); // Current date in ISO format
-
-                                // Assign importedDate to each imported article
-                                const articlesWithImportDate = importedArticles.map(article => ({
-                                    ...article,
-                                    importedDate: now
-                                }));
-
-                                articles = articles.concat(articlesWithImportDate);
-                                localStorage.setItem('articles', JSON.stringify(articles));
-                                displayArticles();
-                                alert('文章已成功导入！');
-                            } else {
-                                alert('导入的文件格式不正确。请导入一个包含文章的JSON数组。');
-                            }
-                        } catch (error) {
-                            console.error('导入文件时出错:', error);
-                            alert('导入文件时出错。请检查文件内容是否为有效的JSON格式。');
-                        }
-                    };
-                    reader.readAsText(file);
-                }
-                importFile.value = ''; // Clear the input after importing
-            });
-        }
-
-        // Function to open change password panel
-        function openChangePasswordPanel() {
-            changePasswordPanel.style.display = 'block';
-        }
-
-        // Function to close change password panel
-        function closeChangePasswordPanel() {
-            changePasswordPanel.style.display = 'none';
-        }
-
-        // Function to change password
-        function changePassword() {
-            const oldPassword = document.getElementById('old-password').value;
-            const newPassword = document.getElementById('new-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-
-            if (oldPassword !== adminPassword) {
-                alert('旧密码错误。');
-                return;
-            }
-
-            if (newPassword !== confirmPassword) {
-                alert('新密码和确认密码不匹配。');
-                return;
-            }
-
-            adminPassword = newPassword;
-            alert('密码已成功更改。');
-            closeChangePasswordPanel();
-        }
-
-        // Function to toggle password prompt
-        function togglePasswordPrompt() {
-            passwordPrompt.style.display = passwordPrompt.style.display === 'none' ? 'block' : 'none';
-            if (passwordPrompt.style.display === 'block') {
-                document.getElementById('admin-password').focus(); // Focus input when visible
-            }
-        }
-
-        // Initial display of articles
+// Function to delete an article
+function deleteArticle(index) {
+    if (confirm('确定要删除这篇文章吗？')) {
+        articles.splice(index, 1);
+        localStorage.setItem('articles', JSON.stringify(articles));
         displayArticles();
+        populateArticleManagementList();
+    }
+}
+
+// Function to toggle edit article form
+function toggleEditArticleForm() {
+    const editArticleForm = document.getElementById('edit-article-form');
+    editArticleForm.style.display = editArticleForm.style.display === 'none' ? 'block' : 'none';
+}
+
+// Function to save edited article
+function saveArticle() {
+    if (currentArticleIndex !== null) {
+        const title = document.getElementById('edit-article-title').value;
+        const image = document.getElementById('edit-article-image').value;
+        const content = document.getElementById('edit-article-content').value;
+
+        //Get current date
+        const now = new Date().toISOString(); // Current date in ISO format
+
+        articles[currentArticleIndex] = {
+            ...articles[currentArticleIndex],
+            title: title,
+            image: image,
+            content: content,
+            editedDate: now // Update edited date
+        };
+
+        localStorage.setItem('articles', JSON.stringify(articles));
+        displayArticles();
+        toggleEditArticleForm();
+        populateArticleManagementList();
+    }
+}
+
+// Function to cancel edit
+function cancelEdit() {
+    toggleEditArticleForm();
+}
+
+// Function to export articles
+function exportArticles() {
+    const json = JSON.stringify(articles);
+    const blob = new Blob([json], {
+        type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'articles.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Function to import articles
+function importArticles() {
+    const importFile = document.getElementById('import-file');
+    importFile.click();
+
+    importFile.addEventListener('change', function() {
+        const file = importFile.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedArticles = JSON.parse(e.target.result);
+                    if (Array.isArray(importedArticles)) {
+                        const now = new Date().toISOString();
+                        const existingTitles = articles.map(a => a.title);
+                        
+                        const articlesWithImportDate = importedArticles
+                            .filter(article => !existingTitles.includes(article.title)) // 过滤重复标题
+                            .map(article => ({
+                                ...article,
+                                importedDate: now
+                            }));
+
+                        if (articlesWithImportDate.length === 0) {
+                            alert('没有可导入的新文章（可能重复）');
+                            return;
+                        }
+
+                        articles = articles.concat(articlesWithImportDate);
+                        localStorage.setItem('articles', JSON.stringify(articles));
+                        displayArticles();
+                        alert(`成功导入 ${articlesWithImportDate.length} 篇文章`);
+                    }
+                } catch (error) {
+                    console.error('导入错误:', error);
+                    alert('文件格式错误');
+                }
+            };
+            reader.readAsText(file);
+        }
+        importFile.value = ''; // Clear the input after importing
+    });
+}
+
+// Function to open change password panel
+function openChangePasswordPanel() {
+    changePasswordPanel.style.display = 'block';
+}
+
+// Function to close change password panel
+function closeChangePasswordPanel() {
+    changePasswordPanel.style.display = 'none';
+}
+
+// Function to change password
+function changePassword() {
+    const oldPassword = document.getElementById('old-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+
+    if (oldPassword !== adminPassword) {
+        alert('旧密码错误。');
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        alert('新密码和确认密码不匹配。');
+        return;
+    }
+
+    adminPassword = newPassword;
+    alert('密码已成功更改。');
+    closeChangePasswordPanel();
+}
+
+// Initial display of articles
+displayArticles();
     </script>
 </body>
 
 </html>
+
