@@ -392,6 +392,39 @@
                 margin: 0 0 10px 0;
             }
         }
+
+        /* 光标闪烁样式 */
+        .blinking-cursor {
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* 密码输入框初始状态 */
+        #password-prompt {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+            box-sizing: border-box;
+            max-width: 90%;
+            word-wrap: break-word;
+        }
+
+        /* 密码输入框显示状态 */
+        #password-prompt.show {
+            display: block;
+        }
     </style>
 </head>
 
@@ -428,7 +461,7 @@
                 <button onclick="toggleArticleManagement()">管理文章</button>
                 <button onclick="exportArticles()">导出文章</button>
                 <button onclick="importArticles()">导入文章</button>
-                                <div id="add-article-form">
+                <div id="add-article-form">
                     <label for="new-article-title">文章标题:</label><br>
                     <input type="text" id="new-article-title" name="new-article-title"><br>
                     <label for="new-article-image">图片链接:</label><br>
@@ -467,7 +500,6 @@
                 <button onclick="changePassword()">确认修改</button>
                 <button onclick="closeChangePasswordPanel()">取消</button>
             </div>
-
             <input type="file" id="import-file" style="display:none;" accept=".json">
         </div>
     </div>
@@ -489,6 +521,7 @@
         const body = document.querySelector('body');
         const adminReturn = document.getElementById('admin-return');
         const importFile = document.getElementById('import-file');
+        const passwordPrompt = document.getElementById('password-prompt');
 
         // 存储文章之前状态的副本
         let memoryArticles = JSON.parse(localStorage.getItem('articles')) || JSON.parse(JSON.stringify(articles));
@@ -496,13 +529,13 @@
             "id": "1",
             "title": "示例文章 1",
             "image": "https://via.placeholder.com/60",
-            "content": "这是示例文章 1 的内容。",
+            "content": "这是示例文章 1 的内容。 链接: https://www.example.com",
             "date": new Date().toISOString()
         }, {
             "id": "2",
             "title": "示例文章 2",
             "image": "https://via.placeholder.com/60",
-            "content": "这是示例文章 2 的内容。",
+            "content": "这是示例文章 2 的内容. 链接: http://www.test.com",
             "date": new Date().toISOString()
         }];
 
@@ -523,177 +556,178 @@
         } else {
             articles = JSON.parse(localStorage.getItem('articles'));
         }
-        localStorage.setItem('articles', JSON.stringify(articles)); // 确保 articles 始终存储
 
         // 初始化文章列表
-        renderArticleList();
-
-        /* ------- Date Formatting Function ------- */
-        function formatDate(dateString) {
-            try {
-                const date = new Date(dateString);
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            } catch (error) {
-                console.error("Error formatting date:", dateString, error);
-                return 'Date not available';
-            }
-        }
-
-        /* ------- Function to render article list ------- */
-        function renderArticleList() {
+        function initializeArticleList() {
             articleListDiv.innerHTML = '';
             articles.forEach((article, index) => {
                 const articleCard = document.createElement('div');
                 articleCard.classList.add('article-card');
-
-                const articleImage = document.createElement('img');
-                articleImage.src = article.image;
-                articleImage.alt = article.title;
-                articleImage.classList.add('article-image');
-                articleImage.onclick = () => showArticle(index);
-
-                const articleTitle = document.createElement('h2');
-                articleTitle.textContent = article.title;
-                articleTitle.onclick = () => showArticle(index);
-
-                articleCard.appendChild(articleImage);
-                articleCard.appendChild(articleTitle);
-
+                articleCard.innerHTML = `
+                    <img src="${article.image}" alt="${article.title}" class="article-image" onclick="showArticle(${index})">
+                    <h2 onclick="showArticle(${index})">${article.title}</h2>
+                    <span class="date">${new Date(article.date).toLocaleDateString()}</span>
+                `;
                 articleListDiv.appendChild(articleCard);
-
-                // 创建文章内容区域，但默认隐藏
-                createArticleContent(article, index);
             });
         }
 
-        /* ------- Function to create article content ------- */
-        function createArticleContent(article, index) {
-            const articleDiv = document.createElement('div');
-            articleDiv.classList.add('article');
-            articleDiv.id = `article-${index}`;
-
-            // 添加文章标题
-            const titleDiv = document.createElement('div');
-            titleDiv.classList.add('article-title');
-            titleDiv.textContent = article.title;
-            articleDiv.appendChild(titleDiv);
-
-            // 添加日期显示
-            const dateDiv = document.createElement('div');
-            dateDiv.classList.add('date');
-            dateDiv.textContent = `发布日期: ${article.date ? formatDate(article.date) : 'Date not available'}`;
-            articleDiv.appendChild(dateDiv);
-
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('content');
-
-            // 自动将链接转换为可点击模式
-            const linkedContent = article.content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
-            contentDiv.innerHTML = linkedContent;
-
-            articleDiv.appendChild(contentDiv);
-            articleListDiv.parentNode.appendChild(articleDiv);
-        }
-
-        /* ------- Function to show a specific article ------- */
-        function showArticle(index) {
-            // 隐藏所有文章列表和标题
-            document.getElementById('article-list').style.display = 'none';
-            document.getElementById('main-title').style.display = 'none';
-            document.getElementById('admin-icon').style.display = 'none';
-
-            // 显示返回按钮
-            backButton.style.display = 'block';
-
-            // 显示选定的文章内容
-            const articleDiv = document.getElementById(`article-${index}`);
-            articleDiv.style.display = 'flex';
-            articleDiv.classList.add('expanded');
-
-            // 滚动到文章顶部
-            articleDiv.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
+        // 初始化文章管理列表
+        function initializeArticleManagementList() {
+            articleManagementList.innerHTML = '';
+            articles.forEach((article, index) => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <span>${article.title}</span>
+                    <button onclick="editArticle(${index})">编辑</button>
+                    <button onclick="deleteArticle(${index})">删除</button>
+                `;
+                listItem.setAttribute('data-index', index);
+                articleManagementList.appendChild(listItem);
             });
         }
 
-        /* ------- Function to show all articles ------- */
-        function showAllArticles() {
-            // 显示文章列表和主标题
-            document.getElementById('article-list').style.display = 'flex';
-            document.getElementById('main-title').style.display = 'block';
-            document.getElementById('admin-icon').style.display = 'inline';
-
-            // 隐藏返回按钮
-            backButton.style.display = 'none';
-
-            // 隐藏所有文章内容
-            const articles = document.querySelectorAll('.article');
-            articles.forEach(article => {
-                article.style.display = 'none';
-                article.classList.remove('expanded');
+        // 初始化拖拽排序
+        $(function() {
+            $("#article-management-list").sortable({
+                update: function(event, ui) {
+                    const newOrder = $(this).sortable('toArray', {
+                        attribute: 'data-index'
+                    });
+                    const reorderedArticles = newOrder.map(index => articles[index]);
+                    articles = reorderedArticles;
+                    localStorage.setItem('articles', JSON.stringify(articles));
+                    initializeArticleManagementList();
+                    initializeArticleList();
+                }
             });
-        }
+            $("#article-management-list").disableSelection();
+        });
 
-        /* ------- Function to toggle password prompt ------- */
+        /* ------- Admin Panel Functions ------- */
         function togglePasswordPrompt() {
-            passwordPromptVisible = !passwordPromptVisible;
-            document.getElementById('password-prompt').style.display = passwordPromptVisible ? 'block' : 'none';
+            passwordPrompt.classList.toggle('show');
+            passwordPromptVisible = passwordPrompt.classList.contains('show');
+
+            const passwordInput = document.getElementById('admin-password');
+            if (passwordPromptVisible) {
+                passwordInput.focus();
+                passwordInput.classList.add('blinking-cursor');
+            } else {
+                passwordInput.classList.remove('blinking-cursor');
+            }
         }
 
-        /* ------- Function to handle password enter key ------- */
         function handlePasswordEnter(event) {
             if (event.key === 'Enter') {
                 checkPassword();
             }
         }
 
-        /* ------- Function to check admin password ------- */
+        // 检查密码
         function checkPassword() {
-            const password = document.getElementById('admin-password').value;
-            if (password === adminPassword) {
-                document.getElementById('password-prompt').style.display = 'none';
-                adminPanelVisible = true;
+            var enteredPassword = document.getElementById('admin-password').value;
+            if (enteredPassword === adminPassword) {
+                passwordPrompt.classList.remove('show');
+                document.getElementById('admin-panel').style.display = 'block';
                 body.classList.add('show-admin');
-                updateAdminView(); // 调用更新管理视图的函数
+                initializeArticleManagementList();
             } else {
                 alert('密码错误，请重试。');
             }
         }
 
-        /* ------- Function to toggle admin panel ------- */
+        // 显示/隐藏管理面板
         function toggleAdminPanel() {
             adminPanelVisible = !adminPanelVisible;
-            updateAdminView(); // 调用更新管理视图的函数
+            document.getElementById('admin-panel').style.display = adminPanelVisible ? 'block' : 'none';
+            body.classList.toggle('show-admin', adminPanelVisible);
         }
 
-        /* ------- Function to update admin view ------- */
-        function updateAdminView() {
-            if (adminPanelVisible) {
-                body.classList.add('show-admin');
-                adminPanelDiv.style.display = 'block';
-                articleListDiv.style.display = 'none';
-                document.getElementById('main-title').style.display = 'none';
-                document.getElementById('admin-icon').style.display = 'none';
-            } else {
-                body.classList.remove('show-admin');
-                adminPanelDiv.style.display = 'none';
-                articleListDiv.style.display = 'flex';
-                document.getElementById('main-title').style.display = 'block';
-                document.getElementById('admin-icon').style.display = 'inline';
+        // 修改密码
+        function changePassword() {
+            var oldPassword = document.getElementById('old-password').value;
+            var newPassword = document.getElementById('new-password').value;
+            var confirmPassword = document.getElementById('confirm-password').value;
+
+            if (oldPassword !== adminPassword) {
+                alert('旧密码不正确。');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alert('新密码和确认密码不匹配。');
+                return;
+            }
+
+            adminPassword = newPassword;
+            alert('密码已成功更改！');
+            closeChangePasswordPanel();
+        }
+
+        function openChangePasswordPanel() {
+            changePasswordPanel.style.display = "block";
+        }
+
+        function closeChangePasswordPanel() {
+            changePasswordPanel.style.display = "none";
+        }
+
+        /* ------- Article Functions ------- */
+        // 显示文章
+        function showArticle(index) {
+            currentArticleIndex = index;
+            const article = articles[index];
+            const articleListDiv = document.getElementById('article-list');
+            const mainTitle = document.getElementById('main-title');
+            const articleTitle = document.getElementById('article-title');
+            const backButton = document.getElementById('back-button');
+            const adminIcon = document.getElementById('admin-icon');
+            const articleContentDiv = document.createElement('div');
+
+            articleListDiv.style.display = 'none';
+            mainTitle.style.display = 'none';
+            articleTitle.style.display = 'block';
+            backButton.style.display = 'block';
+            adminIcon.style.display = 'none';
+            articleTitle.textContent = article.title;
+
+            articleContentDiv.classList.add('article', 'expanded');
+
+            // 自动将链接转换为可点击的链接
+            let contentWithLinks = convertLinks(article.content);
+
+            articleContentDiv.innerHTML = `
+                <div class="date">${new Date(article.date).toLocaleDateString()}</div>
+                <div class="content">${contentWithLinks}</div>
+            `;
+
+            const contentWrapper = document.querySelector('.content-wrapper');
+            contentWrapper.appendChild(articleContentDiv);
+        }
+
+        // 返回文章列表
+        function showAllArticles() {
+            const articleListDiv = document.getElementById('article-list');
+            const mainTitle = document.getElementById('main-title');
+            const articleTitle = document.getElementById('article-title');
+            const backButton = document.getElementById('back-button');
+            const adminIcon = document.getElementById('admin-icon');
+            const articleContentDiv = document.querySelector('.article.expanded');
+
+            articleListDiv.style.display = 'flex';
+            mainTitle.style.display = 'block';
+            articleTitle.style.display = 'none';
+            backButton.style.display = 'none';
+            adminIcon.style.display = 'inline-block';
+
+            if (articleContentDiv) {
+                articleContentDiv.remove();
             }
         }
 
-        /* ------- Function to toggle add article form ------- */
-        function toggleAddArticleForm() {
-            const form = document.getElementById('add-article-form');
-            form.style.display = form.style.display === 'none' ? 'block' : 'none';
-        }
-
-        /* ------- Function to add a new article ------- */
+        /* ------- Add, Edit, Delete Articles ------- */
+        // 添加文章
         function addArticle() {
             const newTitle = document.getElementById('new-article-title').value;
             const newImage = document.getElementById('new-article-image').value;
@@ -709,105 +743,73 @@
 
             articles.push(newArticle);
             localStorage.setItem('articles', JSON.stringify(articles));
-            renderArticleList();
             toggleAddArticleForm();
+            initializeArticleList();
+            initializeArticleManagementList();
         }
 
-        /* ------- Function to toggle article management ------- */
-        function toggleArticleManagement() {
-            const list = document.getElementById('article-management-list');
-            const isVisible = list.style.display === 'block';
-            list.style.display = isVisible ? 'none' : 'block';
-
-            if (!isVisible) {
-                renderArticleManagementList();
-                $(function() {
-                    $("#article-management-list").sortable({
-                        update: function(event, ui) {
-                            updateArticleOrder();
-                        }
-                    });
-                });
-            }
-        }
-
-        /* ------- Function to render article management list ------- */
-        function renderArticleManagementList() {
-            articleManagementList.innerHTML = '';
-            articles.forEach((article, index) => {
-                const listItem = document.createElement('li');
-                listItem.innerHTML = `
-                    <span>${article.title}</span>
-                    <button onclick="startEditArticle(${index})">编辑</button>
-                    <button onclick="deleteArticle(${index})">删除</button>
-                `;
-                listItem.dataset.index = index;
-                articleManagementList.appendChild(listItem);
-            });
-        }
-
-        /* ------- Function to update article order ------- */
-        function updateArticleOrder() {
-            const listItems = Array.from(articleManagementList.children);
-            const newOrder = listItems.map(item => parseInt(item.dataset.index));
-
-            const reorderedArticles = newOrder.map(index => articles[index]);
-            articles = reorderedArticles;
-
-            localStorage.setItem('articles', JSON.stringify(articles));
-            renderArticleList();
-            renderArticleManagementList();
-        }
-
-        /* ------- Function to start editing an article ------- */
-        function startEditArticle(index) {
+        // 编辑文章
+        function editArticle(index) {
             currentArticleIndex = index;
             const article = articles[index];
-
             document.getElementById('edit-article-title').value = article.title;
             document.getElementById('edit-article-image').value = article.image;
             document.getElementById('edit-article-content').value = article.content;
             document.getElementById('edit-article-form').style.display = 'block';
-
+            document.getElementById('add-article-form').style.display = 'none';
         }
 
-        /* ------- Function to save an edited article ------- */
+        // 保存文章
         function saveArticle() {
             if (currentArticleIndex === null) return;
 
             articles[currentArticleIndex].title = document.getElementById('edit-article-title').value;
             articles[currentArticleIndex].image = document.getElementById('edit-article-image').value;
             articles[currentArticleIndex].content = document.getElementById('edit-article-content').value;
-             articles[currentArticleIndex].date = new Date().toISOString();
 
             localStorage.setItem('articles', JSON.stringify(articles));
-            renderArticleList();
-            renderArticleManagementList();
             document.getElementById('edit-article-form').style.display = 'none';
-            currentArticleIndex = null;
+            initializeArticleList();
+            initializeArticleManagementList();
         }
 
-        /* ------- Function to cancel editing ------- */
-        function cancelEdit() {
-            document.getElementById('edit-article-form').style.display = 'none';
-            currentArticleIndex = null;
-        }
-
-        /* ------- Function to delete an article ------- */
+        // 删除文章
         function deleteArticle(index) {
             if (confirm('确定要删除这篇文章吗？')) {
                 articles.splice(index, 1);
                 localStorage.setItem('articles', JSON.stringify(articles));
-                renderArticleList();
-                renderArticleManagementList();
+                initializeArticleList();
+                initializeArticleManagementList();
             }
         }
 
-        /* ------- Function to export articles ------- */
+        // 取消编辑
+        function cancelEdit() {
+            document.getElementById('edit-article-form').style.display = 'none';
+        }
+
+        /* ------- Show/Hide Add Article Form and Article Management List ------- */
+        // 显示/隐藏添加文章表单
+        function toggleAddArticleForm() {
+            const addArticleForm = document.getElementById('add-article-form');
+            addArticleForm.style.display = addArticleForm.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('edit-article-form').style.display = 'none';
+        }
+
+        // 显示/隐藏文章管理列表
+        function toggleArticleManagement() {
+            const articleManagementList = document.getElementById('article-management-list');
+            articleManagementList.style.display = articleManagementList.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('add-article-form').style.display = 'none';
+            document.getElementById('edit-article-form').style.display = 'none';
+        }
+
+        /* ------- Export and Import Articles ------- */
+        // 导出文章
         function exportArticles() {
-            const json = JSON.stringify(articles);
-            const blob = new Blob([json], {
-                type: 'application/json'
+            const jsonStr = JSON.stringify(articles);
+            const blob = new Blob([jsonStr], {
+                type: "application/json"
             });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -816,76 +818,42 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
-        /* ------- Function to import articles ------- */
+        // 导入文章
         function importArticles() {
             importFile.click();
+
+            importFile.onchange = function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            articles = JSON.parse(e.target.result);
+                            localStorage.setItem('articles', JSON.stringify(articles));
+                            initializeArticleList();
+                            initializeArticleManagementList();
+                        } catch (error) {
+                            alert('文件读取错误: ' + error);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
         }
 
-        importFile.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        articles = JSON.parse(e.target.result);
-                        // Update each article with the current timestamp
-                        articles.forEach(article => {
-                            article.date = new Date().toISOString();
-                        });
-                        localStorage.setItem('articles', JSON.stringify(articles));
-                        renderArticleList();
-                        renderArticleManagementList();
-                        alert('文章已成功导入！');
-                    } catch (error) {
-                        alert('导入文件失败，请检查文件格式是否正确。');
-                    }
-                };
-                reader.readAsText(file);
-            }
-        });
+        // 确保在页面加载时初始化文章列表
+        document.addEventListener('DOMContentLoaded', initializeArticleList);
 
-        /* ------- Function to open change password panel ------- */
-        function openChangePasswordPanel() {
-            changePasswordPanel.style.display = 'block';
-        }
-
-        /* ------- Function to close changePasswordPanel ------- */
-        function closeChangePasswordPanel() {
-            changePasswordPanel.style.display = 'none';
-        }
-
-        /* ------- Function to change admin password ------- */
-        function changePassword() {
-            const oldPassword = document.getElementById('old-password').value;
-            const newPassword = document.getElementById('new-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-
-            if (oldPassword !== adminPassword) {
-                alert('旧密码不正确。');
-                return;
-            }
-
-            if (newPassword !== confirmPassword) {
-                alert('新密码和确认密码不一致。');
-                return;
-            }
-
-            adminPassword = newPassword;
-            alert('密码已成功修改！');
-            closeChangePasswordPanel();
-        }
-
-        /* ------- Function to restore memory ------- */
-        function restoreMemory() {
-            if (confirm('确定要恢复到之前的状态吗？')) {
-                articles = JSON.parse(JSON.stringify(memoryArticles));
-                localStorage.setItem('articles', JSON.stringify(articles));
-                renderArticleList();
-                renderArticleManagementList();
-                alert('已成功恢复到之前的状态！');
-            }
+        // 链接转换函数
+        function convertLinks(content) {
+            // 正则表达式匹配链接
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return content.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank">' + url + '</a>';
+            });
         }
     </script>
 </body>
