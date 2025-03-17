@@ -134,6 +134,7 @@
             border-bottom: 1px solid var(--accent-color);
             color: var(--accent-color);
             position: relative;
+            cursor: pointer;
         }
 
         .category-title::after {
@@ -204,28 +205,23 @@
 
         /* 修改为统一的ID */
         .category-section {
-            display: block;
-            /* 默认状态展开全部分组 */
+            display: block; /* 默认显示所有分组内容 */
         }
 
         .category-section.hidden {
-            display: none;
-            /* 隐藏 */
+            display: none; /* 用于隐藏分组 */
         }
 
         /* Style for the popup menu */
         .popup-menu {
             position: absolute;
             top: 100%;
-            /* Position below the logo */
             left: 0;
             background-color: var(--secondary-bg);
-            /* Match header background */
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             padding: 10px;
             display: none;
-            /* Initially hidden */
         }
 
         .popup-menu a {
@@ -245,6 +241,26 @@
         .logo:active .popup-menu {
             display: block;
         }
+
+        #toggleCategories {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 3px;
+            transition: background-color 0.3s ease;
+        }
+
+        #toggleCategories:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .hidden-title .category-title {
+            display: none; /* 隐藏分组标题 */
+        }
+
 
         @media (max-width: 1024px) {
             nav {
@@ -338,7 +354,7 @@
         <div class="logo">
             <span>简约导航</span>
             <div class="popup-menu">
-                <a href="#" id="exportBookmarks">导出书签</a>
+                <a href="#" id="exportBookmarks"></a>
                 <a href="#" id="importBookmarks">导入书签</a>
                 <a href="#" id="clearBookmarks">清空书签</a>
             </div>
@@ -346,6 +362,7 @@
         <button class="menu-toggle">
             <i class="fas fa-bars"></i>
         </button>
+        <button id="toggleCategories"></button>
     </header>
     <nav>
         <ul id="nav-links">
@@ -408,6 +425,14 @@
                 </a>
             </div>
         </section>
+
+        <!-- Third-party bookmarks will be added here -->
+        <section id="无分组书签" class="category-section">
+            <h2 class="category-title">无分组书签</h2>
+            <div class="link-grid">
+                <!-- Bookmarks will be dynamically added here -->
+            </div>
+        </section>
     </main>
 
     <script>
@@ -421,8 +446,8 @@
             const exportBookmarksBtn = document.getElementById("exportBookmarks");
             const importBookmarksBtn = document.getElementById("importBookmarks");
             const clearBookmarksBtn = document.getElementById("clearBookmarks");
+            const toggleCategoriesBtn = document.getElementById("toggleCategories");
             let longPressTimer;
-
             // 内置分组
             const defaultCategories = ["AI搜索", "社交", "工具"];
 
@@ -495,206 +520,302 @@
                 }
             });
 
-            // -------------------- Bookmarks Functionality --------------------
-            const BOOKMARKS_STORAGE_KEY = "thirdPartyBookmarks"; // Changed key
-            let thirdPartyBookmarks = JSON.parse(localStorage.getItem(BOOKMARKS_STORAGE_KEY)) || {};
+                        // --------------- Export Bookmarks Function --------------------
+            function exportBookmarks() {
+                let bookmarks = [];
 
-            // Helper function to check if a category is a default category
-            function isDefaultCategory(category) {
-                return defaultCategories.includes(category);
-            }
+                categorySections.forEach(section => {
+                    if (!defaultCategories.includes(section.id)) {
+                        const category = section.id;
+                        const linkCards = section.querySelectorAll('.link-card');
 
-            function renderBookmarks() {
-                // Render third-party bookmarks
-                for (const category in thirdPartyBookmarks) {
-                    const linkGrid = document.getElementById(category)?.querySelector(".link-grid");
-                    if (linkGrid) {
-                        linkGrid.innerHTML = "";
-                        thirdPartyBookmarks[category].forEach(bookmark => {
-                            const linkCard = createLinkCard(bookmark);
-                            linkGrid.appendChild(linkCard);
+                        linkCards.forEach(card => {
+                            bookmarks.push({
+                                category: category,
+                                title: card.querySelector('h3').innerText,
+                                url: card.href,
+                                img: card.querySelector('img').src
+                            });
                         });
                     }
-                }
-            }
-
-            function createLinkCard(bookmark) {
-                const linkCard = document.createElement("a");
-                linkCard.classList.add("link-card");
-                linkCard.href = bookmark.url;
-                linkCard.target = "_blank";
-
-                const img = document.createElement("img");
-                img.src = bookmark.icon || "https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png";
-                img.alt = bookmark.name;
-
-                const h3 = document.createElement("h3");
-                h3.textContent = bookmark.name;
-
-                linkCard.appendChild(img);
-                linkCard.appendChild(h3);
-
-                return linkCard;
-            }
-
-            function downloadBookmarks() {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(thirdPartyBookmarks));
-                const downloadAnchorNode = document.createElement('a');
-                downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", "bookmarks.json");
-                document.body.appendChild(downloadAnchorNode);
-                downloadAnchorNode.click();
-                downloadAnchorNode.remove();
-            }
-
-            function importBookmarks() {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
-
-                input.addEventListener('change', function (event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
-
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        try {
-                            const importedBookmarks = JSON.parse(e.target.result);
-                            mergeBookmarks(importedBookmarks);
-                            renderBookmarks();
-                            updateNavLinks();
-                            saveBookmarks();
-                            alert('导入书签成功！');
-                        } catch (error) {
-                            alert('导入书签失败：' + error);
-                        }
-                    };
-                    reader.readAsText(file);
-                });
-                input.click();
-            }
-
-            function mergeBookmarks(importedBookmarks) {
-                for (const category in importedBookmarks) {
-                    if (!thirdPartyBookmarks[category]) {
-                        thirdPartyBookmarks[category] = [];
-                        createCategorySection(category);
-                    }
-
-                    importedBookmarks[category].forEach(newBookmark => {
-                        const existingIndex = thirdPartyBookmarks[category].findIndex(
-                            existingBookmark =>
-                            existingBookmark.name === newBookmark.name && existingBookmark.url === newBookmark.url
-                        );
-                        if (existingIndex === -1) {
-                            thirdPartyBookmarks[category].push(newBookmark);
-                        }
-                    });
-                }
-            }
-
-            function clearBookmarks() {
-                if (confirm("确定要清空所有第三方书签吗？")) {
-                    thirdPartyBookmarks = {};
-                    localStorage.removeItem(BOOKMARKS_STORAGE_KEY);
-                    // Remove the category sections from the DOM
-                    for (let i = categorySections.length - 1; i >= 0; i--) {
-                        const section = categorySections[i];
-                        if (!defaultCategories.includes(section.id)) {
-                            section.remove();
-                        }
-                    }
-                    categorySections = document.querySelectorAll(".category-section");
-                    renderBookmarks();
-                    updateNavLinks();
-                }
-            }
-
-            // -------------------- Helper Functions --------------------
-            function createCategorySection(category) {
-                const newSection = document.createElement('section');
-                newSection.id = category;
-                newSection.classList.add('category-section');
-
-                const title = document.createElement('h2');
-                title.classList.add('category-title');
-                title.textContent = category;
-
-                const linkGrid = document.createElement('div');
-                linkGrid.classList.add('link-grid');
-
-                newSection.appendChild(title);
-                newSection.appendChild(linkGrid);
-
-                document.getElementById('main-content').appendChild(newSection);
-                categorySections = document.querySelectorAll(".category-section"); // 更新 categorySections
-            }
-
-            function updateNavLinks() {
-                const navLinksList = document.getElementById('nav-links');
-                navLinksList.innerHTML = ''; // Clear existing links
-
-                // Add default categories
-                defaultCategories.forEach(category => {
-                    const listItem = document.createElement('li');
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    link.dataset.category = category;
-                    link.textContent = category;
-                    listItem.appendChild(link);
-                    navLinksList.appendChild(listItem);
                 });
 
-                // Add third-party categories
-                for (const category in thirdPartyBookmarks) {
-                    const listItem = document.createElement('li');
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    link.dataset.category = category;
-                    link.textContent = category;
-                    listItem.appendChild(link);
-                    navLinksList.appendChild(listItem);
-                }
-                attachNavLinkListeners(); // Reattach event listeners
+                const jsonString = JSON.stringify(bookmarks, null, 2);
+                const blob = new Blob([jsonString], {
+                    type: 'application/json'
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'bookmarks.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             }
 
-            // -------------------- Event Listeners for Buttons --------------------
-            exportBookmarksBtn.addEventListener("click", function (e) {
-                e.preventDefault();
-                downloadBookmarks();
-            });
-
+            // -------------------- Import Bookmarks --------------------
             importBookmarksBtn.addEventListener("click", function (e) {
                 e.preventDefault();
-                importBookmarks();
+                importBookmarks(); // 调用导入书签函数
             });
 
+            // -------------------- Clear Bookmarks Function --------------------
             clearBookmarksBtn.addEventListener("click", function (e) {
                 e.preventDefault();
-                clearBookmarks();
+                clearBookmarks(); // 调用清除书签函数
             });
 
-            function saveBookmarks() {
-                localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(thirdPartyBookmarks));
+            // -------------------- Import Bookmarks Function --------------------
+            function importBookmarks() {
+                // 创建一个 input 元素，type="file"
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json'; // 限制只接受 JSON 文件
+
+                // 添加一个 onchange 事件监听器
+                fileInput.onchange = function (event) {
+                    const file = event.target.files[0];
+
+                    if (file) {
+                        const reader = new FileReader();
+
+                        reader.onload = function (e) {
+                            try {
+                                const jsonString = e.target.result;
+                                let bookmarks;
+
+                                // 尝试将文件内容解析为 JSON
+                                try {
+                                    bookmarks = JSON.parse(jsonString);
+                                } catch (err) {
+                                    alert("文件格式不正确，导入失败!");
+                                    return;
+                                }
+
+                                // 根据不同的 JSON 结构处理书签
+                                if (Array.isArray(bookmarks)) {
+                                    // 处理不带分组的 JSON 格式
+                                    processBookmarks('无分组书签', bookmarks);
+                                } else if (typeof bookmarks === 'object' && bookmarks !== null) {
+                                    // 处理带分组的 JSON 格式
+                                    for (const category in bookmarks) {
+                                        if (bookmarks.hasOwnProperty(category)) {
+                                            processBookmarks(category, bookmarks[category]);
+                                        }
+                                    }
+                                } else {
+                                    alert("JSON 文件内容格式不正确，导入失败!");
+                                    return;
+                                }
+
+                                // 重新获取 categorySections，确保包含新添加的分组
+                                categorySections = document.querySelectorAll(".category-section");
+
+                                // 保存书签到 localStorage
+                                saveBookmarksToLocalStorage();
+
+                                alert('成功导入书签!');
+                            } catch (error) {
+                                alert('导入书签失败: ' + error);
+                            }
+                        }
+
+                        reader.readAsText(file);
+                    }
+                };
+
+                // 触发文件选择
+                fileInput.click();
             }
 
-            // -------------------- Initialization --------------------
-            (() => {
-                // Load third-party bookmarks from localStorage
-                if (localStorage.getItem(BOOKMARKS_STORAGE_KEY)) {
-                    thirdPartyBookmarks = JSON.parse(localStorage.getItem(BOOKMARKS_STORAGE_KEY));
-                    // Create category sections for the loaded third-party bookmarks
-                    for (const category in thirdPartyBookmarks) {
-                        createCategorySection(category);
-                    }
+            function processBookmarks(category, bookmarks) {
+                // 检查是否定义了书签分组
+                let section = document.getElementById(category);
+                if (!section) {
+                    // 创建书签分组
+                    section = document.createElement('section');
+                    section.id = category;
+                    section.className = 'category-section';
+                    section.innerHTML = `
+                            <h2 class="category-title">${category}</h2>
+                            <div class="link-grid"></div>
+                        `;
+                    document.getElementById('main-content').appendChild(section);
+
+                    // 添加到导航栏
+                    const navLi = document.createElement('li');
+                    navLi.innerHTML = `<a href="#" data-category="${category}">${category}</a>`;
+                    document.getElementById('nav-links').appendChild(navLi);
+
+                    // 重新绑定事件
+                    attachNavLinkListeners();
                 }
+                if (!Array.isArray(bookmarks)) {
+                    alert("JSON 文件内容格式不正确，导入失败!");
+                    return;
+                }
+                // 遍历导入的书签
+                bookmarks.forEach(bookmark => {
+                    const title = bookmark.name;
+                    const url = bookmark.url;
 
-                // Render bookmarks
-                renderBookmarks();
+                    if (!title || !url) {
+                        console.warn("Invalid bookmark format. Skipping.");
+                        return; // Skip this bookmark if it's invalid
+                    }
 
-                // Update navigation links
-                updateNavLinks();
-            })();
+                    // 创建书签卡片
+                    const linkGrid = section.querySelector('.link-grid');
+                    if (linkGrid) {
+                        const linkCard = document.createElement('a');
+                        linkCard.className = 'link-card';
+                        linkCard.href = url;
+                        linkCard.target = '_blank'; // 在新标签页中打开
+                        linkCard.innerHTML = `
+                                <img src="${bookmark.img || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png'}" alt="${title}" />
+                                <h3>${title}</h3>
+                            `;
+                        linkGrid.appendChild(linkCard);
+                    }
+                });
+
+            }
+
+            // -------------------- Clear Bookmarks Function --------------------
+            function clearBookmarks() {
+                if (confirm("确定要清除所有第三方书签吗？")) {
+                    // 获取所有动态添加的分类 section，排除内置分类
+                    const dynamicCategorySections = document.querySelectorAll('.category-section:not(#AI搜索):not(#社交):not(#工具)');
+
+                    // 遍历每个动态添加的 category-section
+                    dynamicCategorySections.forEach(section => {
+                        // 获取 link-grid 元素
+                        const linkGrid = section.querySelector('.link-grid');
+
+                        // 如果 link-grid 存在，则清空它的内容
+                        if (linkGrid) {
+                            linkGrid.innerHTML = ''; // 清空 link-grid 的内容
+                        }
+
+                        // 如果分类是动态添加的，从 DOM 中删除
+                        if (!defaultCategories.includes(section.id)) {
+                            section.remove();
+
+                            // 同时从导航栏中删除
+                            const navLink = document.querySelector(`a[data-category="${section.id}"]`).parentNode;
+                            if (navLink) {
+                                navLink.remove();
+                            }
+                        }
+                    });
+
+                    // 清除 localStorage 中的书签
+                    localStorage.removeItem('bookmarks');
+
+                    alert("所有第三方书签已清除!");
+                }
+            }
+
+            // -------------------- Load Bookmarks from LocalStorage --------------------
+            function loadBookmarksFromLocalStorage() {
+                const bookmarksString = localStorage.getItem('bookmarks');
+                if (bookmarksString) {
+                    const bookmarks = JSON.parse(bookmarksString);
+
+                    // 遍历书签
+                    bookmarks.forEach(bookmark => {
+                        let category = bookmark.category || '无分组书签'; // 使用无分组书签作为默认分类
+                        const title = bookmark.title;
+                        const url = bookmark.url;
+                        const img = bookmark.img;
+
+                        // 查找或创建分类
+                        let section = document.getElementById(category);
+                        if (!section) {
+                            section = document.createElement('section');
+                            section.id = category;
+                            section.className = 'category-section';
+                            section.innerHTML = `
+                                <h2 class="category-title">${category}</h2>
+                                <div class="link-grid"></div>
+                            `;
+                            document.getElementById('main-content').appendChild(section);
+
+                            // 添加到导航栏
+                            const navLi = document.createElement('li');
+                            navLi.innerHTML = `<a href="#" data-category="${category}">${category}</a>`;
+                            document.getElementById('nav-links').appendChild(navLi);
+
+                            // 重新绑定事件
+                            attachNavLinkListeners();
+                        }
+
+                        // 创建书签卡片
+                        const linkGrid = section.querySelector('.link-grid');
+                        if (linkGrid) {
+                            const linkCard = document.createElement('a');
+                            linkCard.className = 'link-card';
+                            linkCard.href = url;
+                            linkCard.target = '_blank'; // 在新标签页中打开
+                            linkCard.innerHTML = `
+                                <img src="${img || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png'}" alt="${title}" />
+                                <h3>${title}</h3>
+                            `;
+                            linkGrid.appendChild(linkCard);
+                        }
+                    });
+
+                    // 重新获取 categorySections，确保包含新添加的分组
+                    categorySections = document.querySelectorAll(".category-section");
+                }
+            }
+
+            // -------------------- Save Bookmarks to LocalStorage --------------------
+            function saveBookmarksToLocalStorage() {
+                let bookmarks = [];
+
+                categorySections.forEach(section => {
+                    if (!defaultCategories.includes(section.id)) {
+                        const category = section.id;
+                        const linkCards = section.querySelectorAll('.link-card');
+
+                        linkCards.forEach(card => {
+                            bookmarks.push({
+                                category: category,
+                                title: card.querySelector('h3').innerText,
+                                url: card.href,
+                                img: card.querySelector('img').src
+                            });
+                        });
+                    }
+                });
+
+                localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+            }
+
+            // -------------------- Toggle Category Titles --------------------
+            let categoryTitlesVisible = false;
+
+            toggleCategoriesBtn.addEventListener('click', function() {
+                categoryTitlesVisible = !categoryTitlesVisible;
+                mainContent.classList.toggle('hidden-title', !categoryTitlesVisible);
+
+                // 更新按钮文本
+                toggleCategoriesBtn.textContent = categoryTitlesVisible ? '隐藏分组' : '显示分组';
+            });
+
+            // -------------------- Initial Load --------------------
+            // 页面加载时，加载 localStorage 中的书签
+            loadBookmarksFromLocalStorage();
+             // 初始状态所有分组内容都显示
+             categorySections.forEach(section => section.classList.remove('hidden'));
+
+             // 将“无分组书签”移动到 main-content 的末尾
+             const noCategorySection = document.getElementById('无分组书签');
+             if (noCategorySection) {
+                 document.getElementById('main-content').appendChild(noCategorySection);
+             }
         });
     </script>
 </body>
