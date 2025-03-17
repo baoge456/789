@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>简约导航</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
         /* CSS样式 */
         :root {
@@ -13,19 +14,25 @@
             --hover-bg: #272727;
             --text-color: #ffffff;
             --accent-color: #ff9000;
-            --card-bg: #f5f5dc; /* 奶白色 */
+            --card-bg: #f5f5dc;
+            /* 奶白色 */
+            --purple-hover: purple;
+            /* Define the purple hover color */
         }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
+
         body {
             font-family: "Roboto", Arial, sans-serif;
             background-color: var(--primary-bg);
             color: var(--text-color);
             line-height: 1.6;
         }
+
         header {
             background-color: var(--secondary-bg);
             padding: 12px 16px;
@@ -38,16 +45,21 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .logo {
             display: flex;
             align-items: center;
             cursor: pointer;
+            position: relative;
+            /* Make position relative for the popup menu */
         }
+
         .logo span {
             font-size: 18px;
             font-weight: bold;
             color: var(--accent-color);
         }
+
         .menu-toggle {
             background: none;
             border: none;
@@ -56,6 +68,7 @@
             cursor: pointer;
             display: none;
         }
+
         nav {
             background-color: var(--secondary-bg);
             width: 240px;
@@ -67,34 +80,52 @@
             transition: transform 0.3s ease-in-out;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
         }
+
         nav ul {
             list-style: none;
             padding: 0;
             margin: 0;
             margin-top: 8px;
         }
+
         nav li {
             margin: 0;
             padding: 0;
         }
+
         nav li a {
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            color: var(--text-color);
+            display: block;
+            /* Make the entire link clickable */
+            padding: 6px 10px;
+            /* Reduced padding */
+            color: black;
+            /* Black font color */
             text-decoration: none;
             transition: all 0.3s ease;
-            border-left: 3px solid transparent;
+            border-radius: 5px;
+            margin: 4px 8px;
+            /* Reduced margin */
+            background-color: var(--card-bg);
+            /* Card background */
+            text-align: center;
+            font-size: 13px;
+            /* Reduced font size */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            /* Add shadow */
         }
+
         nav li a:hover {
-            background-color: var(--hover-bg);
-            border-left: 3px solid var(--accent-color);
+            background-color: var(--purple-hover);
+            color: var(--text-color);
+            /* White text color on hover */
         }
+
         main {
             margin-left: 240px;
             margin-top: 56px;
             padding: 24px;
         }
+
         .category-title {
             font-size: 18px;
             font-weight: 500;
@@ -104,6 +135,7 @@
             color: var(--accent-color);
             position: relative;
         }
+
         .category-title::after {
             content: "";
             position: absolute;
@@ -113,18 +145,20 @@
             height: 3px;
             background-color: var(--accent-color);
         }
+
         .link-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 16px;
             margin-bottom: 32px;
         }
+
         .link-card {
             will-change: transform;
             transform: translateY(0);
-            transition: transform 0.3s ease, background-color 0.3s ease,
-              box-shadow 0.3s ease;
+            transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
             background-color: var(--card-bg);
+            /* 奶白色背景 */
             border-radius: 50%;
             padding: 16px;
             text-align: center;
@@ -140,15 +174,19 @@
             width: 100%;
             height: 100%;
         }
+
         .link-card:hover {
-            background-color: var(--hover-bg);
+            background-color: var(--purple-hover);
+            /* Purple hover */
             transform: translateY(-3px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+
         .link-card:focus {
             outline: 2px solid var(--accent-color);
             outline-offset: 2px;
         }
+
         .link-card img {
             width: 48px;
             height: 48px;
@@ -156,43 +194,91 @@
             border-radius: 50%;
             object-fit: cover;
         }
+
         .link-card h3 {
             font-size: 16px;
             margin-top: 12px;
             color: #000;
+            /* 书签名称字体颜色为黑色 */
         }
+
+        /* 修改为统一的ID */
         .category-section {
             display: block;
+            /* 默认状态展开全部分组 */
         }
+
         .category-section.hidden {
             display: none;
+            /* 隐藏 */
         }
+
+        /* Style for the popup menu */
+        .popup-menu {
+            position: absolute;
+            top: 100%;
+            /* Position below the logo */
+            left: 0;
+            background-color: var(--secondary-bg);
+            /* Match header background */
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            display: none;
+            /* Initially hidden */
+        }
+
+        .popup-menu a {
+            display: block;
+            color: var(--text-color);
+            padding: 8px 12px;
+            text-decoration: none;
+            border-radius: 3px;
+            transition: background-color 0.3s ease;
+        }
+
+        .popup-menu a:hover {
+            background-color: var(--hover-bg);
+        }
+
+        /* Show the popup menu */
+        .logo:active .popup-menu {
+            display: block;
+        }
+
         @media (max-width: 1024px) {
             nav {
                 width: 72px;
             }
+
             main {
                 margin-left: 72px;
             }
         }
+
         @media (max-width: 768px) {
             .menu-toggle {
                 display: block;
             }
+
             nav {
                 transform: translateX(-100%);
                 width: 240px;
             }
+
             nav.active {
                 transform: translateX(0);
             }
+
             main {
                 margin-left: 0;
             }
+
             .link-grid {
                 grid-template-columns: repeat(4, 1fr);
                 gap: 10px;
             }
+
             .link-card {
                 padding: 10px;
                 height: 70px;
@@ -201,8 +287,8 @@
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                border-radius: 50%;
             }
+
             .link-card img {
                 width: 32px;
                 height: 32px;
@@ -211,6 +297,7 @@
                 border-radius: 50%;
                 object-fit: cover;
             }
+
             .link-card h3 {
                 font-size: 0.8rem;
                 margin: 0 auto;
@@ -218,24 +305,25 @@
                 width: 100%;
             }
         }
+
         @media (max-width: 480px) {
             .link-grid {
                 grid-template-columns: repeat(4, 1fr);
                 gap: 8px;
             }
+
             .link-card {
                 padding: 8px;
                 height: 60px;
                 min-height: unset;
-                border-radius: 50%;
             }
+
             .link-card img {
                 width: 24px;
                 height: 24px;
                 margin-bottom: 4px;
-                border-radius: 50%;
-                object-fit: cover;
             }
+
             .link-card h3 {
                 font-size: 0.7rem;
                 margin: 0;
@@ -244,23 +332,29 @@
         }
     </style>
 </head>
+
 <body>
     <header>
         <div class="logo">
             <span>简约导航</span>
+            <div class="popup-menu">
+                <a href="#" id="exportBookmarks">导出书签</a>
+                <a href="#" id="importBookmarks">导入书签</a>
+                <a href="#" id="clearBookmarks">清空书签</a>
+            </div>
         </div>
         <button class="menu-toggle">
             <i class="fas fa-bars"></i>
         </button>
     </header>
     <nav>
-        <ul>
+        <ul id="nav-links">
             <li><a href="#" data-category="AI搜索">AI搜索</a></li>
             <li><a href="#" data-category="社交">社交</a></li>
             <li><a href="#" data-category="工具">工具</a></li>
         </ul>
     </nav>
-    <main>
+    <main id="main-content">
         <section id="AI搜索" class="category-section">
             <h2 class="category-title">AI搜索</h2>
             <div class="link-grid">
@@ -272,9 +366,9 @@
                     <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="Bing" />
                     <h3>必应</h3>
                 </a>
-                <a class="link-card" href="https://www.aidh.cn/">
+                <a class="link-card" href="https://websim.ai/">
                     <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="Websim" />
-                    <h3>AI导航</h3>
+                    <h3>Websim</h3>
                 </a>
             </div>
         </section>
@@ -321,9 +415,45 @@
             const menuToggle = document.querySelector(".menu-toggle");
             const nav = document.querySelector("nav");
             const navLinks = document.querySelectorAll("nav a");
-            const categorySections = document.querySelectorAll(".category-section");
-             const logo = document.querySelector(".logo");
+            const mainContent = document.getElementById("main-content");
+            let categorySections = document.querySelectorAll(".category-section");
+            const logo = document.querySelector(".logo");
+            const exportBookmarksBtn = document.getElementById("exportBookmarks");
+            const importBookmarksBtn = document.getElementById("importBookmarks");
+            const clearBookmarksBtn = document.getElementById("clearBookmarks");
+            let longPressTimer;
 
+            // 内置分组
+            const defaultCategories = ["AI搜索", "社交", "工具"];
+
+            // -------------------- Popup Menu --------------------
+            logo.addEventListener('mousedown', function () {
+                longPressTimer = setTimeout(() => {
+                    logo.classList.add('active');
+                    document.querySelector('.popup-menu').style.display = 'block';
+                }, 500);
+            });
+
+            logo.addEventListener('mouseup', function () {
+                clearTimeout(longPressTimer);
+            });
+
+            logo.addEventListener('mouseleave', function () {
+                clearTimeout(longPressTimer);
+                document.querySelector('.popup-menu').style.display = 'none';
+            });
+
+            logo.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+
+            document.addEventListener('click', function (event) {
+                if (!logo.contains(event.target) && !document.querySelector('.popup-menu').contains(event.target)) {
+                    document.querySelector('.popup-menu').style.display = 'none';
+                }
+            });
+
+            // -------------------- Menu Toggle --------------------
             menuToggle.addEventListener("click", toggleMenu);
 
             function toggleMenu(e) {
@@ -331,48 +461,242 @@
                 nav.classList.toggle("active");
             }
 
-            navLinks.forEach(function (link) {
-                link.addEventListener("click", function (e) {
-                    e.preventDefault();
+            // -------------------- Navigation Links --------------------
+            function attachNavLinkListeners() {
+                const navLinks = document.querySelectorAll("#nav-links li a");
 
-                    const category = this.dataset.category;
+                navLinks.forEach(link => {
+                    link.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        const category = this.dataset.category;
 
-                    // 隐藏所有分组
-                    categorySections.forEach(section => {
-                        section.classList.add("hidden");
+                        // 隐藏所有分组
+                        categorySections.forEach(section => section.classList.add("hidden"));
+
+                        // 显示当前分组
+                        document.getElementById(category).classList.remove("hidden");
+
+                        if (window.innerWidth <= 768) {
+                            nav.classList.remove("active");
+                        }
                     });
-
-                    // 显示当前分组
-                    document.getElementById(category).classList.remove("hidden");
-
-                    // 如果是小屏幕，关闭导航菜单
-                    if (window.innerWidth <= 768) {
-                        nav.classList.remove("active");
-                    }
                 });
-            });
+            }
 
-             // 点击 logo 时显示全部分类
+            attachNavLinkListeners();
+
             logo.addEventListener("click", function (e) {
-                categorySections.forEach(section => {
-                    section.classList.remove("hidden");
-                });
+                categorySections.forEach(section => section.classList.remove("hidden"));
             });
 
-
-            // 窗口大小改变时，关闭导航菜单
             window.addEventListener("resize", function () {
                 if (window.innerWidth > 768) {
                     nav.classList.remove("active");
                 }
             });
 
-             // 默认显示全部分类，移除初始隐藏逻辑
-            categorySections.forEach(section => {
-                    section.classList.remove("hidden");
+            // -------------------- Bookmarks Functionality --------------------
+            const BOOKMARKS_STORAGE_KEY = "thirdPartyBookmarks"; // Changed key
+            let thirdPartyBookmarks = JSON.parse(localStorage.getItem(BOOKMARKS_STORAGE_KEY)) || {};
+
+            // Helper function to check if a category is a default category
+            function isDefaultCategory(category) {
+                return defaultCategories.includes(category);
+            }
+
+            function renderBookmarks() {
+                // Render third-party bookmarks
+                for (const category in thirdPartyBookmarks) {
+                    const linkGrid = document.getElementById(category)?.querySelector(".link-grid");
+                    if (linkGrid) {
+                        linkGrid.innerHTML = "";
+                        thirdPartyBookmarks[category].forEach(bookmark => {
+                            const linkCard = createLinkCard(bookmark);
+                            linkGrid.appendChild(linkCard);
+                        });
+                    }
+                }
+            }
+
+            function createLinkCard(bookmark) {
+                const linkCard = document.createElement("a");
+                linkCard.classList.add("link-card");
+                linkCard.href = bookmark.url;
+                linkCard.target = "_blank";
+
+                const img = document.createElement("img");
+                img.src = bookmark.icon || "https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png";
+                img.alt = bookmark.name;
+
+                const h3 = document.createElement("h3");
+                h3.textContent = bookmark.name;
+
+                linkCard.appendChild(img);
+                linkCard.appendChild(h3);
+
+                return linkCard;
+            }
+
+            function downloadBookmarks() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(thirdPartyBookmarks));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "bookmarks.json");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            }
+
+            function importBookmarks() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+
+                input.addEventListener('change', function (event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        try {
+                            const importedBookmarks = JSON.parse(e.target.result);
+                            mergeBookmarks(importedBookmarks);
+                            renderBookmarks();
+                            updateNavLinks();
+                            saveBookmarks();
+                            alert('导入书签成功！');
+                        } catch (error) {
+                            alert('导入书签失败：' + error);
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+                input.click();
+            }
+
+            function mergeBookmarks(importedBookmarks) {
+                for (const category in importedBookmarks) {
+                    if (!thirdPartyBookmarks[category]) {
+                        thirdPartyBookmarks[category] = [];
+                        createCategorySection(category);
+                    }
+
+                    importedBookmarks[category].forEach(newBookmark => {
+                        const existingIndex = thirdPartyBookmarks[category].findIndex(
+                            existingBookmark =>
+                            existingBookmark.name === newBookmark.name && existingBookmark.url === newBookmark.url
+                        );
+                        if (existingIndex === -1) {
+                            thirdPartyBookmarks[category].push(newBookmark);
+                        }
+                    });
+                }
+            }
+
+            function clearBookmarks() {
+                if (confirm("确定要清空所有第三方书签吗？")) {
+                    thirdPartyBookmarks = {};
+                    localStorage.removeItem(BOOKMARKS_STORAGE_KEY);
+                    // Remove the category sections from the DOM
+                    for (let i = categorySections.length - 1; i >= 0; i--) {
+                        const section = categorySections[i];
+                        if (!defaultCategories.includes(section.id)) {
+                            section.remove();
+                        }
+                    }
+                    categorySections = document.querySelectorAll(".category-section");
+                    renderBookmarks();
+                    updateNavLinks();
+                }
+            }
+
+            // -------------------- Helper Functions --------------------
+            function createCategorySection(category) {
+                const newSection = document.createElement('section');
+                newSection.id = category;
+                newSection.classList.add('category-section');
+
+                const title = document.createElement('h2');
+                title.classList.add('category-title');
+                title.textContent = category;
+
+                const linkGrid = document.createElement('div');
+                linkGrid.classList.add('link-grid');
+
+                newSection.appendChild(title);
+                newSection.appendChild(linkGrid);
+
+                document.getElementById('main-content').appendChild(newSection);
+                categorySections = document.querySelectorAll(".category-section"); // 更新 categorySections
+            }
+
+            function updateNavLinks() {
+                const navLinksList = document.getElementById('nav-links');
+                navLinksList.innerHTML = ''; // Clear existing links
+
+                // Add default categories
+                defaultCategories.forEach(category => {
+                    const listItem = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.dataset.category = category;
+                    link.textContent = category;
+                    listItem.appendChild(link);
+                    navLinksList.appendChild(listItem);
                 });
 
+                // Add third-party categories
+                for (const category in thirdPartyBookmarks) {
+                    const listItem = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.dataset.category = category;
+                    link.textContent = category;
+                    listItem.appendChild(link);
+                    navLinksList.appendChild(listItem);
+                }
+                attachNavLinkListeners(); // Reattach event listeners
+            }
+
+            // -------------------- Event Listeners for Buttons --------------------
+            exportBookmarksBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                downloadBookmarks();
+            });
+
+            importBookmarksBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                importBookmarks();
+            });
+
+            clearBookmarksBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                clearBookmarks();
+            });
+
+            function saveBookmarks() {
+                localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(thirdPartyBookmarks));
+            }
+
+            // -------------------- Initialization --------------------
+            (() => {
+                // Load third-party bookmarks from localStorage
+                if (localStorage.getItem(BOOKMARKS_STORAGE_KEY)) {
+                    thirdPartyBookmarks = JSON.parse(localStorage.getItem(BOOKMARKS_STORAGE_KEY));
+                    // Create category sections for the loaded third-party bookmarks
+                    for (const category in thirdPartyBookmarks) {
+                        createCategorySection(category);
+                    }
+                }
+
+                // Render bookmarks
+                renderBookmarks();
+
+                // Update navigation links
+                updateNavLinks();
+            })();
         });
     </script>
 </body>
+
 </html>
