@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>json-html</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 15px; margin: 5px; }
+        textarea { width: 100%; height: 200px; margin-bottom: 20px; }
+        
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: yellow;
+            border-radius: 25px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .thumbnail {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            background: rgba(0,0,0,0.5);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .modal-content {
+            background: yellow;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>json-html</h1>
+    <textarea id="jsonInput" placeholder="在此处粘贴 JSON 数据,支持宝哥书签类及书签管理类页面导出的json文件，例如：sunpanel/书签导航/书签管理系统/单书签自动排序/含分组书签自动排序/链接检测面板,目的是将各种书签类页面统一整合成易于部署的html网页"></textarea>
+    <button onclick="importJson()">导入 JSON</button>
+    <button onclick="exportHtml()">导出 HTML</button>
+    
+    <div id="bookmarkContainer"></div>
+    
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>编辑书签</h3>
+            <label>名称：<input type="text" id="editName"></label>
+            <label>缩略图：<input type="url" id="editThumbnail"></label>
+            <label>链接：<input type="url" id="editUrl"></label>
+            <label>背景色：<input type="color" id="editBackgroundColor"></label>
+            <button onclick="saveChanges()">保存</button>
+        </div>
+    </div>
+
+    <script>
+        let currentData;
+        let pressTimer;
+        let currentCard;
+        const cards = [];
+
+        function importJson() {
+            const jsonInput = document.getElementById('jsonInput').value;
+            try {
+                const jsonData = JSON.parse(jsonInput);
+
+                if (Array.isArray(jsonData)) {
+                  // 格式3: 数组
+                  currentData = {
+                    "icons": [
+                      {
+                        "title": "未分类",
+                        "children": jsonData.map(item => ({
+                          "title": item.name,
+                          "url": item.url,
+                          "thumbnail": item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png',
+                          "backgroundColor": item.backgroundColor || 'yellow'
+                        }))
+                      }
+                    ]
+                  };
+                } else if (jsonData.icons) {
+                    // 原始格式
+                    currentData = jsonData;
+                } else {
+                    // 新的扁平格式，转换为原始格式
+                    currentData = {
+                        icons: Object.entries(jsonData).map(([title, children]) => ({
+                            title: title,
+                            children: children.map(item => ({
+                                title: item.name,
+                                url: item.url,
+                                thumbnail: item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png', // 默认缩略图
+                                backgroundColor: item.backgroundColor || 'yellow' // 默认背景色
+                            }))
+                        }))
+                    };
+                }
+                localStorage.setItem('bookmarkData', JSON.stringify(currentData));
+                renderBookmarks();
+            } catch (e) {
+                alert('无效的 JSON 数据');
+                console.error(e); // 在控制台输出错误信息，方便调试
+            }
+        }
+
+        function renderBookmarks() {
+            const bookmarkContainer = document.getElementById('bookmarkContainer');
+            bookmarkContainer.innerHTML = '';
+            bookmarkContainer.className = 'container';
+
+            currentData.icons.forEach((group, groupIndex) => {
+                const groupSection = document.createElement('section');
+                const groupTitle = document.createElement('h2');
+                groupTitle.textContent = group.title;
+                groupSection.appendChild(groupTitle);
+
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'container';
+
+                group.children.forEach((item, itemIndex) => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.groupIndex = groupIndex;
+                    card.dataset.itemIndex = itemIndex;
+                    card.dataset.title = item.title;
+                    card.dataset.thumbnail = item.thumbnail;
+                    card.dataset.url = item.url;
+                    card.dataset.backgroundColor = item.backgroundColor || 'yellow';
+                    card.style.backgroundColor = item.backgroundColor || 'yellow';
+
+                    const thumbnail = document.createElement('img');
+                    thumbnail.className = 'thumbnail';
+                    thumbnail.src = item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png';
+                    card.appendChild(thumbnail);
+
+                    const link = document.createElement('a');
+                    link.href = item.url;
+                    link.target = '_blank';
+                    link.textContent = item.title;
+                    card.appendChild(link);
+
+                    cardContainer.appendChild(card);
+                    cards.push(card);
+
+                    card.addEventListener('touchstart', e => {
+                        currentCard = card;
+                        pressTimer = setTimeout(() => {
+                            showEditModal(card.dataset);
+                        }, 1000);
+                    });
+                    
+                    card.addEventListener('touchend', () => {
+                        clearTimeout(pressTimer);
+                    });
+                });
+
+                groupSection.appendChild(cardContainer);
+                bookmarkContainer.appendChild(groupSection);
+            });
+        }
+
+        function showEditModal(data) {
+            const modal = document.getElementById('editModal');
+            modal.querySelector('#editName').value = data.title;
+            modal.querySelector('#editThumbnail').value = data.thumbnail;
+            modal.querySelector('#editUrl').value = data.url;
+            modal.querySelector('#editBackgroundColor').value = data.backgroundColor;
+            modal.style.display = 'block';
+        }
+
+        function saveChanges() {
+            const modal = document.getElementById('editModal');
+            const newTitle = modal.querySelector('#editName').value;
+            const newThumbnail = modal.querySelector('#editThumbnail').value;
+            const newUrl = modal.querySelector('#editUrl').value;
+            const newBackgroundColor = modal.querySelector('#editBackgroundColor').value;
+
+            // 获取当前编辑的card的索引
+            const groupIndex = parseInt(currentCard.dataset.groupIndex);
+            const itemIndex = parseInt(currentCard.dataset.itemIndex);
+
+            // 更新数据
+            currentData.icons[groupIndex].children[itemIndex] = {
+                title: newTitle,
+                thumbnail: newThumbnail,
+                url: newUrl,
+                backgroundColor: newBackgroundColor
+            };
+
+            // 更新card的显示
+            currentCard.dataset.title = newTitle;
+            currentCard.dataset.thumbnail = newThumbnail;
+            currentCard.dataset.url = newUrl;
+            currentCard.dataset.backgroundColor = newBackgroundColor;
+            currentCard.style.backgroundColor = newBackgroundColor;
+            currentCard.querySelector('img').src = newThumbnail;
+            currentCard.querySelector('a').href = newUrl;
+            currentCard.querySelector('a').textContent = newTitle;
+
+            localStorage.setItem('bookmarkData', JSON.stringify(currentData));
+            modal.style.display = 'none';
+        }
+
+        document.querySelector('.close').addEventListener('click', () => {
+            document.getElementById('editModal').style.display = 'none';
+        });
+
+        window.addEventListener('load', () => {
+            const savedData = localStorage.getItem('bookmarkData');
+            if (savedData) {
+                try {
+                    currentData = JSON.parse(savedData);
+                    renderBookmarks();
+                } catch (e) {
+                    alert('localStorage中的JSON数据无效，请重新导入');
+                }
+            }
+        });
+
+        function exportHtml() {
+            const bookmarkContainer = document.getElementById('bookmarkContainer');
+            if (bookmarkContainer.innerHTML === '') {
+                alert('请先导入 JSON 数据');
+                return;
+            }
+
+            let htmlContent = `
+            <html>
+            <head>
+                <title>书签导航</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .container {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                        gap: 20px;
+                        padding: 20px;
+                        max-width: 1200px;
+                        margin: 0 auto;
+                    }
+                    .card {
+                        border-radius: 25px;
+                        padding: 20px;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        transition: transform 0.3s;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        position: relative;
+                    }
+                    .card:hover {
+                        transform: translateY(-5px);
+                    }
+                    .thumbnail {
+                        width: 80px;
+                        height: 80px;
+                        border-radius: 50%;
+                        object-fit: cover;
+                        margin-bottom: 15px;
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>我的书签</h1>`;
+
+            // 遍历每个分组和书签项来构建HTML
+            currentData.icons.forEach(group => {
+                htmlContent += `<h2>${group.title}</h2><div class="container">`;
+                group.children.forEach(item => {
+                    htmlContent += `
+                    <div class="card" style="background-color: ${item.backgroundColor || 'yellow'};">
+                        <img class="thumbnail" src="${item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png'}" alt="Thumbnail">
+                        <a href="${item.url}" target="_blank">${item.title}</a>
+                    </div>`;
+                });
+                htmlContent += `</div>`;
+            });
+
+            htmlContent += `
+            </body>
+            </html>`;
+
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'sunpanel.html';
+            link.click();
+            alert('HTML 文件已导出');
+        }
+    </script>
+</body>
+</html>
