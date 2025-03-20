@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书签排序</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        #bookmarkContainer {
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 400px;
+            margin: auto;
+        }
+        .group {
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            transition: background-color 0.3s;
+        }
+        .group h2 {
+            margin: 0;
+            cursor: move;
+            color: #00796b;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        li {
+            margin: 5px 0;
+            cursor: move;
+            padding: 5px;
+            border-radius: 3px;
+            transition: background-color 0.3s;
+        }
+        .drag-over {
+            background-color: #e0f7fa;
+        }
+        .bookmark-over {
+            background-color: #b2ebf2;
+        }
+        .button-container {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #00796b;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #005b4f;
+        }
+        #fileInput {
+            display: none;
+        }
+
+        .custom-file-upload {
+            /* Copied from button */
+            padding: 8px 12px;
+            border: none; /* Remove the border */
+            border-radius: 5px;
+            background-color: #00796b; /* Match button color */
+            color: white; /* Match button color */
+            cursor: pointer;
+            transition: background-color 0.3s; /* Add transition */
+            margin-top: 10px; /* Keep the margin */
+            display: inline-block; /* Keep display inline */
+            /* End copy */
+        }
+
+        #historyContainer {
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        #historyList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #historyList li {
+            margin: 5px 0;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-buttons {
+            display: none; /* Initially hidden */
+            flex-direction: column;
+            margin-left: 10px;
+        }
+        .history-buttons button {
+            margin-top: 5px;
+            padding: 5px 8px;
+        }
+    </style>
+</head>
+<body>
+<div id="bookmarkContainer">
+    <h1 style="text-align: center;">分组书签自由排序</h1>
+    <div class="button-container">
+        <label for="fileInput" class="custom-file-upload">本地导入</label>
+        <input type="file" id="fileInput" accept=".json">
+        <button id="exportButton" style="display: none;">导出文件</button>
+        <button id="historyButton">历史文件</button>
+    </div>
+
+    <div id="historyContainer">
+        <ul id="historyList"></ul>
+    </div>
+
+    <div id="bookmarksArea"></div>
+</div>
+
+<script>
+    let bookmarks = {};
+    let draggedBookmark = null;
+    let currentFilename = null;
+    let history = JSON.parse(localStorage.getItem('bookmarkHistory') || '[]');
+
+    function formatTimestamp() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hour = String(now.getHours()).padStart(2, '0');
+        const minute = String(now.getMinutes()).padStart(2, '0');
+        return `${year}${month}${day}${hour}${minute}`;
+    }
+
+    function saveHistory() {
+        localStorage.setItem('bookmarkHistory', JSON.stringify(history));
+    }
+
+    function renderHistory() {
+        const historyList = document.getElementById('historyList');
+        historyList.innerHTML = '';
+
+        history.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.textContent = item.name;
+
+            const historyButtons = document.createElement('div');
+            historyButtons.className = 'history-buttons';
+
+            const importButton = document.createElement('button');
+            importButton.textContent = '导入';
+            importButton.addEventListener('click', () => {
+                loadBookmarks(item.data, item.name);
+            });
+            historyButtons.appendChild(importButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '删除';
+            deleteButton.addEventListener('click', () => {
+                history.splice(index, 1);
+                saveHistory();
+                renderHistory();
+            });
+            historyButtons.appendChild(deleteButton);
+
+            li.appendChild(historyButtons);
+
+            li.addEventListener('click', (event) => {
+                // Prevent the import/delete buttons click from closing the list
+                if (event.target !== importButton && event.target !== deleteButton) {
+                    // Close any open history buttons
+                    document.querySelectorAll('.history-buttons').forEach(buttons => {
+                        if (buttons !== historyButtons) {
+                            buttons.style.display = 'none';
+                        }
+                    });
+                    historyButtons.style.display = historyButtons.style.display === 'flex' ? 'none' : 'flex';
+                }
+            });
+
+            historyList.appendChild(li);
+        });
+    }
+
+    renderHistory();
+
+    document.getElementById("fileInput").addEventListener("change", () => {
+        const fileInput = document.getElementById("fileInput");
+        if (fileInput.files.length === 0) {
+            alert("请先选择一个文件！");
+            return;
+        }
+        const file = fileInput.files[0];
+        let filename = file.name.replace(/\.json$/, '');
+
+        // Correctly extract the base filename
+        if (filename.match(/_\d{12}$/)) {
+            currentFilename = filename.replace(/_\d{12}$/, '');
+        } else {
+            currentFilename = filename;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const jsonData = JSON.parse(event.target.result);
+                // 尝试解析为新的格式
+                if (jsonData.appName === "Sun-Panel-Config" && jsonData.version === 1) {
+                    bookmarks = convertSunPanelConfig(jsonData);
+                } else {
+                    // 否则，尝试解析为旧的格式
+                    bookmarks = jsonData;
+                }
+
+                renderBookmarks();
+                document.getElementById("exportButton").style.display = "block";
+            } catch (error) {
+                alert("文件格式不正确，请确保是有效的 JSON 文件。");
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // 新增函数：转换 Sun-Panel-Config 格式为旧格式
+    function convertSunPanelConfig(data) {
+        const newBookmarks = {};
+        data.icons.forEach(group => {
+            const groupName = group.title;
+            newBookmarks[groupName] = [];
+            group.children.forEach(child => {
+                newBookmarks[groupName].push({ name: child.title, url: child.url });
+            });
+        });
+        return newBookmarks;
+    }
+
+    function loadBookmarks(data, filename) {
+        try {
+            const jsonData = JSON.parse(data);
+             // 尝试解析为新的格式
+            if (jsonData.appName === "Sun-Panel-Config" && jsonData.version === 1) {
+                bookmarks = convertSunPanelConfig(jsonData);
+            } else {
+                // 否则，尝试解析为旧的格式
+                bookmarks = jsonData;
+            }
+            renderBookmarks();
+            document.getElementById("exportButton").style.display = "block";
+
+            // Correctly extract the base filename from history
+             let baseFilename = filename.replace(/\.json$/, '');
+             if (baseFilename.match(/_\d{12}$/)) {
+                 currentFilename = baseFilename.replace(/_\d{12}$/, '');
+             } else {
+                 currentFilename = baseFilename;
+             }
+
+        } catch (error) {
+            alert("Error loading bookmarks: " + error);
+        }
+    }
+
+    function renderBookmarks() {
+        const bookmarksArea = document.getElementById("bookmarksArea");
+        bookmarksArea.innerHTML = '';
+        for (const group in bookmarks) {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'group';
+
+            const groupTitle = document.createElement('h2');
+            groupTitle.textContent = group;
+            groupTitle.setAttribute('draggable', 'true');
+            groupTitle.addEventListener('dragstart', handleGroupDragStart);
+            groupTitle.addEventListener('dragover', handleGroupDragOver);
+            groupTitle.addEventListener('drop', handleGroupDrop);
+            groupTitle.addEventListener('dragleave', handleDragLeave);
+
+            groupDiv.appendChild(groupTitle);
+
+            const ul = document.createElement('ul');
+            ul.setAttribute('droppable', 'true');
+            ul.addEventListener('dragover', handleBookmarkDragOver);
+            ul.addEventListener('drop', handleBookmarkDrop);
+            ul.addEventListener('dragleave', handleDragLeave);
+
+            bookmarks[group].forEach((bookmark, index) => {
+                const li = document.createElement('li');
+                li.textContent = bookmark.name;
+                li.setAttribute('draggable', 'true');
+                li.setAttribute('data-group', group);
+                li.setAttribute('data-index', index);
+                li.addEventListener('dragstart', handleBookmarkDragStart);
+                li.addEventListener('dragover', handleBookmarkDragOver);
+                li.addEventListener('drop', handleBookmarkDrop);
+                li.addEventListener('dragleave', handleDragLeave);
+                ul.appendChild(li);
+            });
+            groupDiv.appendChild(ul);
+            bookmarksArea.appendChild(groupDiv);
+        }
+    }
+
+    function handleGroupDragStart(e) {
+        e.dataTransfer.setData('text/group', e.target.textContent);
+    }
+
+    function handleGroupDragOver(e) {
+        e.preventDefault();
+        e.target.closest('.group').style.backgroundColor = '#e0f7fa';
+    }
+
+    function handleGroupDrop(e) {
+        e.preventDefault();
+        const draggedGroup = e.dataTransfer.getData('text/group');
+        const targetGroup = e.target.closest('.group').querySelector('h2').textContent;
+
+        if (draggedGroup !== targetGroup) {
+            const groupKeys = Object.keys(bookmarks);
+            const draggedIndex = groupKeys.indexOf(draggedGroup);
+            const targetIndex = groupKeys.indexOf(targetGroup);
+
+            const [movedGroup] = groupKeys.splice(draggedIndex, 1);
+            groupKeys.splice(targetIndex, 0, movedGroup);
+
+            const newBookmarks = {};
+            groupKeys.forEach(key => {
+                newBookmarks[key] = bookmarks[key];
+            });
+            bookmarks = newBookmarks;
+
+            renderBookmarks();
+        }
+        e.target.closest('.group').style.backgroundColor = '';
+    }
+
+    function handleBookmarkDragStart(e) {
+        const group = e.target.dataset.group;
+        const index = e.target.dataset.index;
+        draggedBookmark = {
+            group: group,
+            index: index,
+            bookmark: bookmarks[group][index]
+        };
+        e.dataTransfer.setData('text/plain', JSON.stringify(draggedBookmark));
+    }
+
+    function handleBookmarkDragOver(e) {
+        e.preventDefault();
+        const target = e.target.closest('li');
+        if (target) {
+            target.classList.add('bookmark-over');
+        }
+    }
+
+    function handleBookmarkDrop(e) {
+        e.preventDefault();
+        const targetGroup = e.target.closest('.group').querySelector('h2').textContent;
+        const targetIndex = Array.from(e.target.closest('ul').children).indexOf(e.target.closest('li'));
+
+        if (targetGroup === draggedBookmark.group) {
+            bookmarks[draggedBookmark.group].splice(draggedBookmark.index, 1);
+            bookmarks[draggedBookmark.group].splice(targetIndex + (targetIndex === bookmarks[draggedBookmark.group].length ? 0 : 1), 0, draggedBookmark.bookmark);
+        } else {
+            bookmarks[targetGroup].splice(targetIndex + (targetIndex === bookmarks[targetGroup].length ? 0 : 1), 0, draggedBookmark.bookmark);
+            bookmarks[draggedBookmark.group].splice(draggedBookmark.index, 1);
+        }
+        renderBookmarks();
+
+        const allBookmarks = e.target.closest('ul').querySelectorAll('li');
+        allBookmarks.forEach(bookmark => bookmark.classList.remove('bookmark-over'));
+        draggedBookmark = null;
+    }
+
+    function handleDragLeave(e) {
+        e.target.closest('.group').style.backgroundColor = '';
+        const target = e.target.closest('li');
+        if (target) {
+            target.classList.remove('bookmark-over');
+        }
+    }
+
+    document.getElementById("exportButton").addEventListener("click", () => {
+        const json = JSON.stringify(bookmarks, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const timestamp = formatTimestamp();
+        const filename = `${currentFilename}_${timestamp}.json`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        // Save to history
+        history.push({ name: filename, data: json });
+        saveHistory();
+        renderHistory();
+    });
+
+    document.getElementById("historyButton").addEventListener("click", () => {
+        const historyContainer = document.getElementById('historyContainer');
+        historyContainer.style.display = historyContainer.style.display === 'none' ? 'block' : 'none';
+    });
+</script>
+</body>
+</html>
