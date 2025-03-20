@@ -27,8 +27,8 @@
             font-size: 1.5em;
             margin-bottom: 10px;
             text-align: left;
-            padding-left: 10px; /* 增加一些左侧内边距 */
-            border-left: 5px solid #4CAF50; /* 添加一个左侧边框，使其更突出 */
+            padding-left: 10px;
+            border-left: 5px solid #4CAF50;
         }
 
         .container {
@@ -39,8 +39,7 @@
         }
 
         .card {
-            background: yellow;
-            border-radius: 50px/25px; /* 椭圆 */
+            border-radius: 50px/25px;
             padding: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             transition: transform 0.3s;
@@ -133,7 +132,9 @@
         let pressTimer;
         let currentCard;
         const cards = [];
-    
+        // 移除淡灰色，添加更鲜明的颜色
+        const defaultColors = ['#FFC107', '#2196F3', '#4CAF50', '#9C27B0', '#FF5722', '#00BCD4', '#E91E63', '#673AB7', '#3F51B5', '#009688'];
+
       // 页面加载时清空 localStorage 并重置页面
       window.onload = function() {
           localStorage.removeItem('bookmarkData');
@@ -160,7 +161,7 @@
                           "title": item.name,
                           "url": item.url,
                           "thumbnail": item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png',
-                          "backgroundColor": item.backgroundColor || 'yellow'
+                          "backgroundColor": item.backgroundColor
                         }))
                       }
                     ]
@@ -176,8 +177,8 @@
                             children: children.map(item => ({
                                 title: item.name,
                                 url: item.url,
-                                thumbnail: item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png', // 默认缩略图
-                                backgroundColor: item.backgroundColor || 'yellow' // 默认背景色
+                                thumbnail: item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png',
+                                backgroundColor: item.backgroundColor
                             }))
                         }))
                     };
@@ -186,20 +187,19 @@
                 renderBookmarks();
             } catch (e) {
                 alert('无效的 JSON 数据');
-                console.error(e); // 在控制台输出错误信息，方便调试
+                console.error(e);
             }
         }
 
         function renderBookmarks() {
             const bookmarkContainer = document.getElementById('bookmarkContainer');
-            // 清空容器，但保留 "我的书签" 标题
             bookmarkContainer.innerHTML = '<h1>我的书签</h1>';
 
             if (!currentData || !currentData.icons) {
                 return;
             }
 
-            currentData.icons.forEach(group => {
+            currentData.icons.forEach((group, groupIndex) => {
                 const groupSection = document.createElement('div');
                 groupSection.className = 'group-section';
 
@@ -211,10 +211,14 @@
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'container';
 
+                // 确定当前分组的颜色
+                const groupColor = defaultColors[groupIndex % defaultColors.length];
+
                 group.children.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'card';
-                    card.style.backgroundColor = item.backgroundColor || 'yellow';
+                    // 如果书签没有定义颜色，则使用分组颜色，否则使用书签自己的颜色
+                    card.style.backgroundColor = item.backgroundColor || groupColor;
 
                     const thumbnail = document.createElement('img');
                     thumbnail.className = 'thumbnail';
@@ -252,7 +256,7 @@
             const newBackgroundColor = modal.querySelector('#editBackgroundColor').value;
 
             modal.style.display = 'none';
-          renderBookmarks();
+            renderBookmarks();
         }
     
       // 重置页面函数
@@ -310,7 +314,6 @@
                     }
 
                     .card {
-                        background: yellow;
                         border-radius: 50px/25px;
                         padding: 10px;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -346,14 +349,16 @@
                     <h1>我的书签</h1>`;
 
             // 遍历每个分组和书签项来构建HTML
-            currentData.icons.forEach(group => {
+            currentData.icons.forEach((group, groupIndex) => {
+                const groupColor = defaultColors[groupIndex % defaultColors.length];
                 htmlContent += `
                     <div class="group-section">
                         <h2 class="group-title">${group.title}</h2>
                         <div class="container">`;
                 group.children.forEach(item => {
+                    const backgroundColor = item.backgroundColor || groupColor;
                     htmlContent += `
-                            <div class="card" style="background-color: ${item.backgroundColor || 'yellow'};">
+                            <div class="card" style="background-color: ${backgroundColor};">
                                 <img class="thumbnail" src="${item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png'}" alt="Thumbnail">
                                 <a href="${item.url}" target="_blank">${item.title}</a>
                             </div>`;
