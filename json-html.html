@@ -1,13 +1,26 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>json-html</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        button { padding: 10px 15px; margin: 5px; }
-        textarea { width: 100%; height: 200px; margin-bottom: 20px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 20px;
+        }
 
         #bookmarkContainer {
             max-width: 1200px;
@@ -33,20 +46,22 @@
 
         .container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Adjust minmax for smaller screens */
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            /* Adjust minmax for smaller screens */
             gap: 10px;
             padding: 10px;
         }
 
         .card {
             border-radius: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s;
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 10px; /* Add padding inside the card */
+            padding: 10px;
+            /* Add padding inside the card */
         }
 
         .card:hover {
@@ -63,7 +78,8 @@
 
         .card a {
             text-decoration: none;
-            font-size: 1.1em; /* Increased font size */
+            font-size: 1.1em;
+            /* Increased font size */
             word-break: break-all;
             text-align: center;
             /* Dynamic text color */
@@ -71,14 +87,15 @@
 
         /* Function to determine if a color is light or dark */
         .card a {
-            color: var(--text-color); /* Use CSS variable for text color */
+            color: var(--text-color);
+            /* Use CSS variable for text color */
         }
 
         .modal {
             display: none;
             position: fixed;
             z-index: 1000;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             top: 0;
             left: 0;
             width: 100%;
@@ -111,9 +128,11 @@
         }
     </style>
 </head>
+
 <body>
     <h1>json-html</h1>
-    <textarea id="jsonInput" placeholder="在此处粘贴 JSON 数据,支持宝哥书签类及书签整理类页面导出的json文件，例如：sunpanel/书签导航/书签管理系统/单书签自动排序/含分组书签自动排序/链接检测面板,目的是将各种书签类页面统一整合成易于部署的html网页"></textarea>
+    <textarea id="jsonInput"
+        placeholder="在此处粘贴 JSON 数据,支持宝哥书签类及书签整理类页面导出的json文件，例如：sunpanel/书签导航/书签管理系统/单书签自动排序/含分组书签自动排序/链接检测面板,目的是将各种书签类页面统一整合成易于部署的html网页"></textarea>
     <button onclick="importJson()">自动转换</button>
     <button onclick="exportHtml()">导出 HTML</button>
 
@@ -140,6 +159,20 @@
         const cards = [];
         const defaultColors = ['#FFC107', '#2196F3', '#4CAF50', '#9C27B0', '#FF5722', '#00BCD4', '#E91E63', '#673AB7', '#3F51B5', '#009688'];
 
+        // 缩略图链接数组 - 在这里添加或更换链接
+        const thumbnailLinks = [
+            "https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png",
+            "https://s3.bmp.ovh/imgs/2025/03/12/6701e8265b270a63.jpeg",
+            "https://s3.bmp.ovh/imgs/2025/03/18/aef7b7fc61d0738b.png",
+            "https://s3.bmp.ovh/imgs/2025/03/12/86490ad28b87f7e3.png",
+            "https://s3.bmp.ovh/imgs/2025/03/12/f7dc5f482df9c47f.jpg",
+            "https://s3.bmp.ovh/imgs/2025/03/18/6e726f63dc4889fe.png",
+            "https://img.baoge.wang/v2/8b6x5dd.jpeg",
+            "https://img.baoge.wang/v2/p54NEQ2.jpeg",
+            "https://img.baoge.wang/v2/qVMo3A9.jpeg",
+            "https://s3.bmp.ovh/imgs/2025/03/16/7f393fadfc192e1a.png"
+        ];
+
         // Function to determine if a color is light or dark
         function isColorDark(hexColor) {
             const r = parseInt(hexColor.slice(1, 3), 16);
@@ -150,13 +183,13 @@
         }
 
         // 页面加载时清空 localStorage 并重置页面
-        window.onload = function() {
+        window.onload = function () {
             localStorage.removeItem('bookmarkData');
             resetPage();
         };
 
         // 页面刷新时清空 localStorage 并重置页面
-        window.onbeforeunload = function() {
+        window.onbeforeunload = function () {
             localStorage.removeItem('bookmarkData');
         };
 
@@ -174,7 +207,8 @@
                                 "children": jsonData.map(item => ({
                                     "title": item.name,
                                     "url": item.url,
-                                    "thumbnail": item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png',
+                                    "thumbnail": item.thumbnail,
+                                    // 移除默认链接
                                     "backgroundColor": item.backgroundColor
                                 }))
                             }
@@ -189,10 +223,11 @@
                         icons: Object.entries(jsonData).map(([title, children]) => ({
                             title: title,
                             children: children.map(item => ({
-                                title: item.name,
-                                url: item.url,
-                                thumbnail: item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png',
-                                backgroundColor: item.backgroundColor
+                                "title": item.name,
+                                "url": item.url,
+                                "thumbnail": item.thumbnail,
+                                // 移除默认链接
+                                "backgroundColor": item.backgroundColor
                             }))
                         }))
                     };
@@ -227,6 +262,9 @@
 
                 // 确定当前分组的颜色
                 const groupColor = defaultColors[groupIndex % defaultColors.length];
+                // 确定当前分组的缩略图链接
+                const thumbnailIndex = groupIndex % thumbnailLinks.length;
+                const groupThumbnail = thumbnailLinks[thumbnailIndex];
 
                 group.children.forEach(item => {
                     const card = document.createElement('div');
@@ -242,7 +280,8 @@
 
                     const thumbnail = document.createElement('img');
                     thumbnail.className = 'thumbnail';
-                    thumbnail.src = item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png';
+                    thumbnail.src = item.thumbnail || groupThumbnail;
+                    // 使用分组缩略图链接
                     card.appendChild(thumbnail);
 
                     const link = document.createElement('a');
@@ -281,9 +320,12 @@
 
         // 重置页面函数
         function resetPage() {
-            document.getElementById('jsonInput').value = ''; // 清空文本区域
-            currentData = null; // 清空数据
-            renderBookmarks(); // 重新渲染书签
+            document.getElementById('jsonInput').value = '';
+            // 清空文本区域
+            currentData = null;
+            // 清空数据
+            renderBookmarks();
+            // 重新渲染书签
         }
 
         document.querySelector('.close').addEventListener('click', () => {
@@ -299,12 +341,16 @@
 
             let htmlContent = `
             <html>
+
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
                 <title>书签导航</title>
                 <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 20px;
+                    }
 
                     #bookmarkContainer {
                         max-width: 1200px;
@@ -330,20 +376,22 @@
 
                     .container {
                         display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Adjust minmax for smaller screens */
+                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                        /* Adjust minmax for smaller screens */
                         gap: 10px;
                         padding: 10px;
                     }
 
                     .card {
                         border-radius: 15px;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                         transition: transform 0.3s;
                         position: relative;
                         display: flex;
                         flex-direction: column;
                         align-items: center;
-                        padding: 10px; /* Add padding inside the card */
+                        padding: 10px;
+                        /* Add padding inside the card */
                     }
 
                     .card:hover {
@@ -358,9 +406,10 @@
                         margin-bottom: 5px;
                     }
 
-                   .card a {
+                    .card a {
                         text-decoration: none;
-                        font-size: 1.1em; /* Increased font size */
+                        font-size: 1.1em;
+                        /* Increased font size */
                         word-break: break-all;
                         text-align: center;
                         /* Dynamic text color */
@@ -368,10 +417,12 @@
 
                     /* Function to determine if a color is light or dark */
                     .card a {
-                        color: var(--text-color); /* Use CSS variable for text color */
+                        color: var(--text-color);
+                        /* Use CSS variable for text color */
                     }
                 </style>
             </head>
+
             <body>
                 <div id="bookmarkContainer">
                     <h1>我的书签</h1>`;
@@ -379,17 +430,19 @@
             // 遍历每个分组和书签项来构建HTML
             currentData.icons.forEach((group, groupIndex) => {
                 const groupColor = defaultColors[groupIndex % defaultColors.length];
+                const thumbnailIndex = groupIndex % thumbnailLinks.length;
+                const groupThumbnail = thumbnailLinks[thumbnailIndex];
                 htmlContent += `
                     <div class="group-section">
                         <h2 class="group-title">${group.title}</h2>
                         <div class="container">`;
                 group.children.forEach(item => {
                     const backgroundColor = item.backgroundColor || groupColor;
-                       const isDark = isColorDark(backgroundColor);
+                    const isDark = isColorDark(backgroundColor);
                     const textColor = isDark ? '#fff' : '#000';
                     htmlContent += `
                         <div class="card" style="background-color: ${backgroundColor};">
-                            <img class="thumbnail" src="${item.thumbnail || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png'}" alt="Thumbnail">
+                            <img class="thumbnail" src="${item.thumbnail || groupThumbnail}" alt="Thumbnail">
                             <a href="${item.url}" target="_blank" style="color: ${textColor}">${item.title}</a>
                         </div>`;
                 });
@@ -401,6 +454,7 @@
             htmlContent += `
                 </div>
             </body>
+
             </html>`;
 
             const blob = new Blob([htmlContent], { type: 'text/html' });
@@ -412,4 +466,5 @@
         }
     </script>
 </body>
+
 </html>
