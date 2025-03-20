@@ -9,88 +9,92 @@
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            background-color: #f0f0f0; /* Added a light gray background for the body */
+        }
+
+        .panel {
+            max-width: 800px; /* Reduced max width */
+            margin: 20px auto; /* Centered the panel */
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            text-align: center; /* Center align the content inside the panel */
         }
 
         button {
             padding: 10px 15px;
             margin: 5px;
+            background-color: #3498db; /* Blue button color */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+        }
+
+        button:hover {
+            background-color: #2980b9; /* Darker blue on hover */
         }
 
         textarea {
             width: 100%;
-            height: 200px;
-            margin-bottom: 20px;
+            height: 150px; /* Reduced height */
+            margin-bottom: 15px; /* Reduced margin */
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            box-sizing: border-box;
         }
 
-        #bookmarkContainer {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        #bookmarkContainer h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .group-section {
-            margin-bottom: 20px;
-        }
-
-        .group-title {
-            font-size: 1.5em;
-            margin-bottom: 10px;
-            text-align: left;
-            padding-left: 10px;
-            border-left: 5px solid #4CAF50;
+        #jsonExampleContent {
+            margin-bottom: 15px;
         }
 
         .container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            /* Adjust minmax for smaller screens */
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Smaller card size */
             gap: 10px;
             padding: 10px;
+            max-width: 100%; /* Container takes full panel width */
+            margin: 10px auto; /* Keep centered */
         }
 
         .card {
-            border-radius: 15px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-color: #f9f9f9; /* Softer background for the cards */
+            border-radius: 8px; /* Smaller corner radius */
+            padding: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s;
-            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 10px;
-            /* Add padding inside the card */
+            position: relative;
+            text-align: center; /* Align text in cards */
         }
 
         .card:hover {
             transform: translateY(-3px);
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.2); /* More noticeable hover effect */
         }
 
         .thumbnail {
-            width: 50px;
+            width: 50px; /* Smaller thumbnail */
             height: 50px;
             border-radius: 50%;
             object-fit: cover;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
 
         .card a {
             text-decoration: none;
-            font-size: 1.1em;
-            /* Increased font size */
-            word-break: break-all;
-            text-align: center;
-            /* Dynamic text color */
+            color: #333;
+            font-size: 0.9em; /* Smaller font size */
+            word-break: break-word;
+            text-align: center; /* Re-emphasize text alignment */
         }
 
-        /* Function to determine if a color is light or dark */
-        .card a {
-            color: var(--text-color);
-            /* Use CSS variable for text color */
-        }
-
+        /* Modal Styles - unchanged */
         .modal {
             display: none;
             position: fixed;
@@ -120,35 +124,42 @@
             cursor: pointer;
         }
 
+        /* Responsive Card Size - unchanged */
         @media (max-width: 768px) {
             .container {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Adjust for smaller screens */
                 gap: 8px;
+                padding: 8px;
             }
         }
     </style>
 </head>
 
 <body>
-    <h1>json-html</h1>
-    <textarea id="jsonInput"
-        placeholder="在此处粘贴 JSON 数据,支持宝哥书签类及书签整理类页面导出的json文件，例如：sunpanel/书签导航/书签管理系统/单书签自动排序/含分组书签自动排序/链接检测面板,目的是将各种书签类页面统一整合成易于部署的html网页"></textarea>
-    <button onclick="importJson()">自动转换</button>
-    <button onclick="exportHtml()">导出 HTML</button>
+    <div class="panel">
+        <h1>json-html</h1>
+        <button id="showExampleJson">显示示例 JSON 格式</button>
+        <div id="jsonExampleContent" style="display:none;">
+            <p>点击以下链接查看示例 JSON 格式：</p>
+            <a href="https://file.baoge.wang/%E4%B9%A6%E7%AD%BE%E9%A1%B5%E9%9D%A2%E7%94%9F%E6%88%90%E8%84%9A%E6%9C%AC%E6%94%AF%E6%8C%81%E7%9A%84%E4%B8%89%E7%A7%8D%E7%A4%BA%E4%BE%8B%20JSON%20%E6%96%87%E4%BB%B6.txt" target="_blank">示例 JSON</a>
+        </div>
+        <textarea id="jsonInput"
+            placeholder="在此处粘贴 JSON 数据,支持宝哥书签类及书签整理类页面导出的json文件，例如：sunpanel/书签导航/书签管理系统/单书签自动排序/含分组书签自动排序/链接检测面板,目的是将各种书签类页面统一整合成易于部署的html网页"></textarea>
+        <button onclick="importJson()">自动转换</button>
+        <button onclick="exportHtml()">导出 HTML</button>
 
-    <div id="bookmarkContainer">
-        <h1>我的书签</h1>
-    </div>
+        <div id="bookmarkContainer"></div>
 
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>编辑书签</h3>
-            <label>名称：<input type="text" id="editName"></label>
-            <label>缩略图：<input type="url" id="editThumbnail"></label>
-            <label>链接：<input type="url" id="editUrl"></label>
-            <label>背景色：<input type="color" id="editBackgroundColor"></label>
-            <button onclick="saveChanges()">保存</button>
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>编辑书签</h3>
+                <label>名称：<input type="text" id="editName"></label>
+                <label>缩略图：<input type="url" id="editThumbnail"></label>
+                <label>链接：<input type="url" id="editUrl"></label>
+                <label>背景色：<input type="color" id="editBackgroundColor"></label>
+                <button onclick="saveChanges()">保存</button>
+            </div>
         </div>
     </div>
 
@@ -166,10 +177,10 @@
             "https://s3.bmp.ovh/imgs/2025/03/18/aef7b7fc61d0738b.png",
             "https://s3.bmp.ovh/imgs/2025/03/12/86490ad28b87f7e3.png",
             "https://s3.bmp.ovh/imgs/2025/03/12/f7dc5f482df9c47f.jpg",
-            "https://s3.bmp.ovh/imgs/2025/03/18/6e726f63dc4889fe.png",
-            "https://img.baoge.wang/v2/8b6x5dd.jpeg",
-            "https://img.baoge.wang/v2/p54NEQ2.jpeg",
-            "https://img.baoge.wang/v2/qVMo3A9.jpeg",
+            "https://s3.bmp.ovh/imgs/2025/03/12/19ce72a42876f8b2.jpg",
+            "https://s3.bmp.ovh/imgs/2025/03/13/33a4d0d68f920aa3.jpg",
+            "https://s3.bmp.ovh/imgs/2025/03/13/6db1a8b21eb9d1c7.jpg",
+            "https://s3.bmp.ovh/imgs/2025/03/18/6cf485cbe020d924.png",
             "https://s3.bmp.ovh/imgs/2025/03/16/7f393fadfc192e1a.png"
         ];
 
@@ -242,7 +253,8 @@
 
         function renderBookmarks() {
             const bookmarkContainer = document.getElementById('bookmarkContainer');
-            bookmarkContainer.innerHTML = '<h1>我的书签</h1>';
+            bookmarkContainer.innerHTML = ''; // Clear existing content
+            bookmarkContainer.className = 'container'; // Set the class for layout
 
             if (!currentData || !currentData.icons) {
                 return;
@@ -314,6 +326,28 @@
             const newUrl = modal.querySelector('#editUrl').value;
             const newBackgroundColor = modal.querySelector('#editBackgroundColor').value;
 
+            // 获取当前编辑的card的索引
+            // const groupIndex = parseInt(currentCard.dataset.groupIndex);
+            // const itemIndex = parseInt(currentCard.dataset.itemIndex);
+
+            // 更新数据
+            // currentData.icons[groupIndex].children[itemIndex] = {
+            //     title: newTitle,
+            //     thumbnail: newThumbnail,
+            //     url: newUrl,
+            //     backgroundColor: newBackgroundColor
+            // };
+
+            // 更新card的显示
+            // currentCard.dataset.title = newTitle;
+            // currentCard.dataset.thumbnail = newThumbnail;
+            // currentCard.dataset.url = newUrl;
+            // currentCard.dataset.backgroundColor = newBackgroundColor;
+            // currentCard.style.backgroundColor = newBackgroundColor;
+            // currentCard.querySelector('img').src = newThumbnail;
+            // currentCard.querySelector('a').href = newUrl;
+            // currentCard.querySelector('a').textContent = newTitle;
+
             modal.style.display = 'none';
             renderBookmarks();
         }
@@ -330,6 +364,10 @@
 
         document.querySelector('.close').addEventListener('click', () => {
             document.getElementById('editModal').style.display = 'none';
+        });
+
+        document.getElementById('showExampleJson').addEventListener('click', function () {
+            document.getElementById('jsonExampleContent').style.display = 'block';
         });
 
         function exportHtml() {
@@ -350,81 +388,134 @@
                     body {
                         font-family: Arial, sans-serif;
                         margin: 20px;
+                        background-color: #f0f0f0; /* Added a light gray background for the body */
                     }
 
-                    #bookmarkContainer {
-                        max-width: 1200px;
-                        margin: 0 auto;
+                    .panel {
+                        max-width: 800px; /* Reduced max width */
+                        margin: 20px auto; /* Centered the panel */
+                        padding: 20px;
+                        background-color: #fff;
+                        border-radius: 10px;
+                        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                        text-align: center; /* Center align the content inside the panel */
                     }
 
-                    #bookmarkContainer h1 {
-                        text-align: center;
-                        margin-bottom: 20px;
+                    button {
+                        padding: 10px 15px;
+                        margin: 5px;
+                        background-color: #3498db; /* Blue button color */
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        transition: background-color 0.3s ease; /* Smooth transition for hover effect */
                     }
 
-                    .group-section {
-                        margin-bottom: 20px;
+                    button:hover {
+                        background-color: #2980b9; /* Darker blue on hover */
                     }
 
-                    .group-title {
-                        font-size: 1.5em;
-                        margin-bottom: 10px;
-                        text-align: left;
-                        padding-left: 10px;
-                        border-left: 5px solid #4CAF50;
+                    textarea {
+                        width: 100%;
+                        height: 150px; /* Reduced height */
+                        margin-bottom: 15px; /* Reduced margin */
+                        border-radius: 5px;
+                        border: 1px solid #ccc;
+                        padding: 10px;
+                        box-sizing: border-box;
+                    }
+
+                    #jsonExampleContent {
+                        margin-bottom: 15px;
                     }
 
                     .container {
                         display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-                        /* Adjust minmax for smaller screens */
+                        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Smaller card size */
                         gap: 10px;
                         padding: 10px;
+                        max-width: 100%; /* Container takes full panel width */
+                        margin: 10px auto; /* Keep centered */
                     }
 
                     .card {
-                        border-radius: 15px;
-                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        background-color: #f9f9f9; /* Softer background for the cards */
+                        border-radius: 8px; /* Smaller corner radius */
+                        padding: 10px;
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
                         transition: transform 0.3s;
-                        position: relative;
                         display: flex;
                         flex-direction: column;
                         align-items: center;
-                        padding: 10px;
-                        /* Add padding inside the card */
+                        position: relative;
+                        text-align: center; /* Align text in cards */
                     }
 
                     .card:hover {
                         transform: translateY(-3px);
+                        box-shadow: 0 3px 7px rgba(0, 0, 0, 0.2); /* More noticeable hover effect */
                     }
 
                     .thumbnail {
-                        width: 50px;
+                        width: 50px; /* Smaller thumbnail */
                         height: 50px;
                         border-radius: 50%;
                         object-fit: cover;
-                        margin-bottom: 5px;
+                        margin-bottom: 10px;
                     }
 
                     .card a {
                         text-decoration: none;
-                        font-size: 1.1em;
-                        /* Increased font size */
-                        word-break: break-all;
-                        text-align: center;
-                        /* Dynamic text color */
+                        color: #333;
+                        font-size: 0.9em; /* Smaller font size */
+                        word-break: break-word;
+                        text-align: center; /* Re-emphasize text alignment */
                     }
 
-                    /* Function to determine if a color is light or dark */
-                    .card a {
-                        color: var(--text-color);
-                        /* Use CSS variable for text color */
+                    /* Modal Styles - unchanged */
+                    .modal {
+                        display: none;
+                        position: fixed;
+                        z-index: 1000;
+                        background: rgba(0, 0, 0, 0.5);
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                    }
+
+                    .modal-content {
+                        background: white;
+                        padding: 20px;
+                        border-radius: 10px;
+                        width: 90%;
+                        max-width: 500px;
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                    }
+
+                    .close {
+                        float: right;
+                        font-size: 24px;
+                        cursor: pointer;
+                    }
+
+                    /* Responsive Card Size - unchanged */
+                    @media (max-width: 768px) {
+                        .container {
+                            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Adjust for smaller screens */
+                            gap: 8px;
+                            padding: 8px;
+                        }
                     }
                 </style>
             </head>
 
             <body>
-                <div id="bookmarkContainer">
+                <div class="panel">
                     <h1>我的书签</h1>`;
 
             // 遍历每个分组和书签项来构建HTML
