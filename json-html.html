@@ -82,7 +82,7 @@
 <body>
     <h1>json-html</h1>
     <textarea id="jsonInput" placeholder="在此处粘贴 JSON 数据,支持宝哥书签类及书签管理类页面导出的json文件，例如：sunpanel/书签导航/书签管理系统/单书签自动排序/含分组书签自动排序/链接检测面板,目的是将各种书签类页面统一整合成易于部署的html网页"></textarea>
-    <button onclick="importJson()">导入 JSON</button>
+    <button onclick="importJson()">自动转换</button>
     <button onclick="exportHtml()">导出 HTML</button>
     
     <div id="bookmarkContainer"></div>
@@ -104,6 +104,17 @@
         let pressTimer;
         let currentCard;
         const cards = [];
+    
+      // 页面加载时清空 localStorage 并重置页面
+      window.onload = function() {
+          localStorage.removeItem('bookmarkData');
+          resetPage();
+      };
+    
+      // 页面刷新时清空 localStorage 并重置页面
+      window.onbeforeunload = function() {
+          localStorage.removeItem('bookmarkData');
+      };
 
         function importJson() {
             const jsonInput = document.getElementById('jsonInput').value;
@@ -142,7 +153,7 @@
                         }))
                     };
                 }
-                localStorage.setItem('bookmarkData', JSON.stringify(currentData));
+                
                 renderBookmarks();
             } catch (e) {
                 alert('无效的 JSON 数据');
@@ -155,6 +166,11 @@
             bookmarkContainer.innerHTML = '';
             bookmarkContainer.className = 'container';
 
+            if (!currentData || !currentData.icons) {
+                // 如果 currentData 为空或没有 icons 属性，则不渲染任何内容
+                return;
+            }
+          
             currentData.icons.forEach((group, groupIndex) => {
                 const groupSection = document.createElement('section');
                 const groupTitle = document.createElement('h2');
@@ -244,26 +260,21 @@
             currentCard.querySelector('a').href = newUrl;
             currentCard.querySelector('a').textContent = newTitle;
 
-            localStorage.setItem('bookmarkData', JSON.stringify(currentData));
             modal.style.display = 'none';
+          renderBookmarks();
         }
+    
+      // 重置页面函数
+      function resetPage() {
+          document.getElementById('jsonInput').value = ''; // 清空文本区域
+          currentData = null; // 清空数据
+          renderBookmarks(); // 重新渲染书签
+      }
 
         document.querySelector('.close').addEventListener('click', () => {
             document.getElementById('editModal').style.display = 'none';
         });
-
-        window.addEventListener('load', () => {
-            const savedData = localStorage.getItem('bookmarkData');
-            if (savedData) {
-                try {
-                    currentData = JSON.parse(savedData);
-                    renderBookmarks();
-                } catch (e) {
-                    alert('localStorage中的JSON数据无效，请重新导入');
-                }
-            }
-        });
-
+    
         function exportHtml() {
             const bookmarkContainer = document.getElementById('bookmarkContainer');
             if (bookmarkContainer.innerHTML === '') {
@@ -308,7 +319,7 @@
                 </style>
             </head>
             <body>
-                <h1>我的书签</h1>`;
+                <h1>Sun panel</h1>`;
 
             // 遍历每个分组和书签项来构建HTML
             currentData.icons.forEach(group => {
