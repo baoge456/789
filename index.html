@@ -2,15 +2,14 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>D-File</title>
     <script src="https://cdn.bootcdn.net/ajax/libs/axios/1.1.3/axios.min.js"></script>
     <script src="https://unpkg.com/js-base64"></script>
     <link rel="shortcut icon" type="image/x-icon"
         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAMxJREFUOE+t06FuAkEQxvH/FxpegUoeovXUoOobJLapRDaw2T1b21qwoNGUB8BW45jwDmQJENIj3F2vd0wyZjL7m2QmK2qGar7nCLSGsadIF2hfgOLTvGZFQ47A/Xt0iFFG45jI5Kp+x9acfg71v4Dc4YKHTdDqDHSAQ2ZFzKkvLdH3LyDegGYqixcsvHkt0sDiXxcRz+Y1rw7AiwVN6wB9CxpXB8SreX1VByIDS/RRBxhaonACXGyzYwo8lrzEmgZP5rS+zWcqOTWzbQ96PEURUT++WAAAAABJRU5ErkJggg==" />
     <style>
-        /* 样式部分，保持不变 */
         * {
             margin: 0;
             padding: 0;
@@ -83,89 +82,22 @@
         }
 
         .file_list li:before {
-            content: "其他";
-            background: #1b1b1b;
-            color: #fff;
-            min-width: 40px;
-            padding: 0 10px;
-            line-height: 26px;
-            height: 26px;
-            font-size: 13px;
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
             margin-right: 8px;
-            text-align: center;
-            border-radius: 3px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            vertical-align: middle;
         }
 
         .file_list li.dir:before {
-            content: "文件夹";
-            background: #ff9000;
-            color: #000;
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAPlJREFUOE+V080KwiAQBuAvEThHsHkErsEO0doO8RDoI9hCMjxMd4XhE1tvZGNxTc18RERERERExG9Y7LwPEgH0mCAdwDpZFoE2vG6o9QH6AHQJ+R5kQugC0wCdAZwF6BzgrsO0H3gLwOaBrAC+M0eYAc6LzC3S+R0kREREF98F6gVmArx4FVAW+CuAfYMdAP6G1Q1wUqAt0B+ghEKvgLQB18GmdF/qY0REREREZF/GJ+QW1nFv4kAAAAASUVORK5CYII=');
         }
 
-        .file_list li.img:before {
-            content: "图片";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li.video:before {
-            content: "视频";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li.music:before {
-            content: "音频";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li.code:before {
-            content: "代码";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li.zip:before {
-            content: "压缩包";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li.doc:before {
-            content: "Word";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li.xls:before {
-            content: "Excel";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li.ppt:before {
-            content: "PPT";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li.pdf:before {
-            content: "PDF";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li.txt:before {
-            content: "文本";
-            background: #ff9000;
-            color: #000;
-        }
-
-        .file_list li img {
-            margin-right: 6px;
-            display: inline-block;
-            vertical-align: middle;
+        .file_list li:not(.dir):before {
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAP1JREFUOE+V070KwkAQBuAvETjHsHkErsEO0doO8RDoI9hCMjxMd4XhE1tvZGNxTc18RERERERExG9Y7LwPEgH0mCAdwDpZFoE2vG6o9QH6AHQJ+R5kQugC0wCdAZwF6BzgrsO0H3gLwOaBrAC+M0eYAc6LzC3S+R0kREREF98F6gVmArx4FVAW+CuAfYMdAP6G1Q1wUqAt0B+ghEKvgLQB18GmdF/qY0REREREZF/GJ+QW1nFv4kAAAAASUVORK5CYII=');
         }
 
         .file_list li a {
@@ -567,8 +499,8 @@
                 加载中...
             </ul>
         </div>
+        <div id="loading" class="hide">处理中...</div>
     </div>
-    <div id="loading" class="hide">处理中...</div>
 
     <script>
         window.baseRepo = localStorage.getItem("GIT_REPO") || "dhjz/file";
@@ -697,59 +629,44 @@
                 </div>`;
                 return;
             }
+
+            // 分离文件夹和文件
+            const directories = fileList.filter(item => item.type === "dir");
+            const files = fileList.filter(item => item.type === "file");
+
+            // 渲染文件夹
             let html = "";
-            fileList.forEach((item) => {
+            directories.forEach(item => {
                 if (searchKey && !item.name.includes(searchKey)) {
                     return;
                 }
-                let className = item.type === "dir" ? "dir" : getFileClass(item.name);
                 html += `
-            <li class="${className}">
-              <a href="${item.type === 'dir' ? 'javascript:void(0);' : item.download_url}" ${item.type === 'dir' ? `onclick="openDir('${item.name}')"` : 'target="_blank"'}>
-                ${item.type === 'file' ? `<img src="${getFileIcon(item.name)}" class="file-img" />` : ''}
-                ${item.name}
-              </a>
-              <span class="size">${formatSize(item.size)}</span>
-              <i class="del" onclick="delFile('${item.name}')">删除</i>
-            </li>
-          `;
+                    <li class="dir">
+                        <a href="javascript:void(0);" onclick="openDir('${item.name}')">
+                            ${item.name}
+                        </a>
+                        <i class="del" onclick="delFile('${item.name}', true)">删除</i>
+                    </li>
+                `;
             });
+
+            // 渲染文件
+            files.forEach(item => {
+                if (searchKey && !item.name.includes(searchKey)) {
+                    return;
+                }
+                html += `
+                    <li>
+                        <a href="${item.download_url}" target="_blank">
+                            ${item.name}
+                        </a>
+                        <span class="size">${formatSize(item.size)}</span>
+                        <i class="del" onclick="delFile('${item.name}', false)">删除</i>
+                    </li>
+                `;
+            });
+
             file_list.innerHTML = html;
-        }
-
-        function getFileClass(filename) {
-            const ext = filename.split(".").pop().toLowerCase();
-            const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp"];
-            const videoExts = ["mp4", "mkv", "avi", "mov"];
-            const musicExts = ["mp3", "flac", "wav", "aac"];
-            const codeExts = ["html", "css", "js", "php", "py", "java", "c", "cpp"];
-            const zipExts = ["zip", "rar", "7z", "tar", "gz"];
-            const docExts = ["doc", "docx"];
-            const xlsExts = ["xls", "xlsx"];
-            const pptExts = ["ppt", "pptx"];
-            const pdfExts = ["pdf"];
-            const textExts = ["txt"];
-
-            if (imageExts.includes(ext)) return "img";
-            if (videoExts.includes(ext)) return "video";
-            if (musicExts.includes(ext)) return "music";
-            if (codeExts.includes(ext)) return "code";
-            if (zipExts.includes(ext)) return "zip";
-            if (docExts.includes(ext)) return "doc";
-            if (xlsExts.includes(ext)) return "xls";
-            if (pptExts.includes(ext)) return "ppt";
-            if (pdfExts.includes(ext)) return "pdf";
-            if (textExts.includes(ext)) return "txt";
-            return "other";
-        }
-
-        function getFileIcon(filename) {
-            const ext = filename.split(".").pop().toLowerCase();
-            const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp"];
-            if (imageExts.includes(ext)) {
-                return document.getElementById("rootdm").value + dir + "/" + filename;
-            }
-            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAMxJREFUOE+t06FuAkEQxvH/FxpegUoeovXUoOobJLapRDaw2T1b21qwoNGUB8BW45jwDmQJENIj3F2vd0wyZjL7m2QmK2qGar7nCLSGsadIF2hfgOLTvGZFQ47A/Xt0iFFG45jI5Kp+x9acfg71v4Dc4YKHTdDqDHSAQ2ZFzKkvLdH3LyDegGYqixcsvHkt0sDiXxcRz+Y1rw7AiwVN6wB9CxpXB8SreX1VByIDS/RRBxhaonACXGyzYwo8lrzEmgZP5rS+zWcqOTWzbQ96PEURUT++WAAAAABJRU5ErkJggg==';
         }
 
         function formatSize(size) {
@@ -824,17 +741,16 @@
             }
         }
 
-        function delFile(filename) {
-            if (confirm(`确定要删除文件 ${filename} 吗？`)) {
+        function delFile(filename, isDir) {
+            if (confirm(`确定要删除 ${isDir ? '目录' : '文件'} ${filename} 吗？`)) {
                 document.getElementById("loading").classList.remove("hide");
                 const apiUrl = `/repos/${baseRepo}/contents/${dir}/${filename}`;
 
-                // 获取文件的 SHA 值
                 request.get(apiUrl)
                     .then(response => {
                         const sha = response.data.sha;
                         const data = {
-                            message: `Delete file ${filename}`,
+                            message: `Delete ${isDir ? 'directory' : 'file'} ${filename}`,
                             sha: sha,
                             branch: "master",
                         };
@@ -847,8 +763,8 @@
                                 document.getElementById("loading").classList.add("hide");
                             })
                             .catch(err => {
-                                console.error("删除文件失败", err);
-                                alert("删除文件失败，请检查Token和Repo设置，以及网络连接。");
+                                console.error("删除${isDir ? '目录' : '文件'}失败", err);
+                                alert("删除${isDir ? '目录' : '文件'}失败，请检查Token和Repo设置，以及网络连接。");
                                 document.getElementById("loading").classList.add("hide");
                             });
                     })
@@ -860,12 +776,10 @@
             }
         }
 
-
         function triggerFileInput() {
             document.getElementById('file').click();
         }
 
-        // 监听文件选择
         document.getElementById('file').addEventListener('change', function(event) {
             const files = event.target.files;
             if (files && files.length > 0) {
@@ -873,7 +787,6 @@
             }
         });
 
-        // 拖拽上传
         function handleDrop(event) {
             event.preventDefault();
             event.stopPropagation();
@@ -896,7 +809,6 @@
             document.getElementById('drop-zone').classList.remove('dragover');
         }
 
-
         async function uploadFiles(files) {
             if (!baseToken || !baseRepo) {
                 alert("请先设置仓库和token");
@@ -910,14 +822,14 @@
                     const reader = new FileReader();
 
                     reader.onload = async (e) => {
-                        const content = e.target.result.split(',')[1]; // 获取 base64 数据部分
+                        const content = e.target.result.split(',')[1];
                         const filename = file.name;
                         const apiUrl = `/repos/${baseRepo}/contents/${dir}/${filename}`;
                         const data = {
                             message: `Upload file ${filename}`,
                             content: content,
                             branch: "master",
-                            encoding: "base64", // 明确指定编码方式
+                            encoding: "base64",
                         };
 
                         try {
@@ -940,7 +852,7 @@
                         document.getElementById("loading").classList.add("hide");
                     };
 
-                    reader.readAsDataURL(file); // 读取文件为 Data URL
+                    reader.readAsDataURL(file);
                 }
             } catch (error) {
                 console.error("上传过程中发生错误", error);
