@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON文件管理面板</title>
+    <style>
+        body {
+            background-color: #f5f5f5;
+        }
+        .panel {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        .toolbar {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        button {
+            margin-right: 5px;
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3e8e41;
+        }
+        .entry-form {
+            margin-bottom: 15px;
+            display: none;
+        }
+        input {
+            width: 300px;
+            padding: 6px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #fileList {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 15px;
+        }
+        .file-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .form-label {
+            display: inline-block;
+            width: 80px;
+            text-align: right;
+            margin-right: 10px;
+        }
+        h2 {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h2>JSON文件管理面板</h2>
+        
+        <!-- 操作工具栏 -->
+        <div class="toolbar">
+            <button onclick="toggleEntryForm('新建')">新建</button>
+            <button onclick="importFile()">导入</button>
+        </div>
+
+        <!-- 新建/插入条目表单 -->
+        <div class="entry-form" id="entryForm">
+            <h4 id="mode"></h4>
+            <div>
+                <span class="form-label">文件名：</span>
+                <input type="text" id="fileName">
+            </div>
+            <div>
+                <span class="form-label">分组名称：</span>
+                <input type="text" id="groupName">
+            </div>
+            <div>
+                <span class="form-label">书签名称：</span>
+                <input type="text" id="bookmarkName">
+            </div>
+            <div>
+                <span class="form-label">书签URL：</span>
+                <input type="url" id="bookmarkUrl">
+            </div>
+            <button onclick="saveBookmark()">保存条目</button>
+        </div>
+
+        <!-- 文件列表 -->
+        <div id="fileList">
+            <h4>已保存文件列表：</h4>
+            <div id="fileItems"></div>
+        </div>
+
+        <!-- 预览区域 -->
+        <pre id="previewArea"></pre>
+    </div>
+
+<script>
+let currentData = {};
+let files = JSON.parse(localStorage.getItem('jsonFiles')) || [];
+let currentFileIndex = null;
+
+// 初始化文件列表
+function refreshFileList() {
+    const container = document.getElementById('fileItems');
+    container.innerHTML = files.map((file, index) => `
+        <div class="file-item">
+            <span>${file.name}</span>
+            <div>
+                <button onclick="loadFile(${index})">插入</button>
+                <button onclick="previewFile(${index})">预览</button>
+                <button onclick="deleteFile(${index})">删除</button>
+                <button onclick="exportFile(${index})">导出</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 新建/插入条目
+function toggleEntryForm(mode) {
+    const form = document.getElementById('entryForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    document.getElementById('mode').textContent = mode;
+    if (mode === '新建') {
+        currentFileIndex = null;
+        document.getElementById('fileName').value = '';
+        document.getElementById('groupName').value = '';
+        document.getElementById('bookmarkName').value = '';
+        document.getElementById('bookmarkUrl').value = '';
+    }
+}
+
+function saveBookmark() {
+    const fileName = document.getElementById('fileName').value.trim();
+    const group = document.getElementById('groupName').value.trim();
+    const name = document.getElementById('bookmarkName').value.trim();
+    const url = document.getElementById('bookmarkUrl').value.trim();
+
+    if (!group || !name || !url) {
+        alert('请填写所有字段');
+        return;
+    }
+
+    if (!currentData[group]) currentData[group] = [];
+    currentData[group].push({ name, url });
+
+    if (currentFileIndex !== null) {
+        files[currentFileIndex].data = currentData;
+        if (fileName) {
+            files[currentFileIndex].name = fileName;
+        }
+    } else {
+        if (fileName) {
+            files.push({
+                name: fileName,
+                data: currentData,
+                timestamp: new Date().toLocaleString()
+            });
+        } else {
+            alert('请输入文件名');
+            return;
+        }
+    }
+
+    localStorage.setItem('jsonFiles', JSON.stringify(files));
+    currentData = {};  // 重置当前数据
+    refreshFileList();
+    document.getElementById('entryForm').style.display = 'none';
+}
+
+// 文件操作函数
+function deleteFile(index) {
+    files.splice(index, 1);
+    localStorage.setItem('jsonFiles', JSON.stringify(files));
+    refreshFileList();
+}
+
+function loadFile(index) {
+    currentFileIndex = index;
+    currentData = files[index].data;
+    toggleEntryForm('插入');
+    document.getElementById('fileName').value = files[index].name;
+
+    // 预填充表单数据
+    const group = Object.keys(currentData)[0];
+    const bookmark = currentData[group][0];
+    document.getElementById('groupName').value = group;
+    document.getElementById('bookmarkName').value = bookmark.name;
+    document.getElementById('bookmarkUrl').value = bookmark.url;
+}
+
+function previewFile(index) {
+    document.getElementById('previewArea').textContent = 
+        JSON.stringify(files[index].data, null, 2);
+}
+
+function exportFile(index) {
+    const file = files[index];
+    const blob = new Blob([JSON.stringify(file.data)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    a.click();
+}
+
+function importFile() {
+    const fileName = prompt('将导入文件命名为：');
+    if (fileName) {
+        const fileData = prompt('请输入JSON数据（粘贴内容）：');
+        try {
+            const jsonData = JSON.parse(fileData);
+            files.push({
+                name: fileName,
+                data: jsonData,
+                timestamp: new Date().toLocaleString()
+            });
+            localStorage.setItem('jsonFiles', JSON.stringify(files));
+            refreshFileList();
+        } catch (e) {
+            alert('无效的JSON数据');
+        }
+    }
+}
+
+// 初始化加载文件列表
+window.onload = function() {
+    const savedData = localStorage.getItem('jsonFiles');
+    if (savedData) {
+        files = JSON.parse(savedData);
+    }
+    refreshFileList();
+};
+</script>
+</body>
+</html>
