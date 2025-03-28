@@ -54,10 +54,12 @@
             display: flex;
             justify-content: space-between;
         }
-        pre {
+        #previewArea {
             background: #f5f5f5;
             padding: 10px;
             border: 1px solid #ccc;
+            max-height: 500px; /* 设置最大高度 */
+            overflow-y: auto; /* 显示垂直滚动条 */
         }
         .form-label {
             display: inline-block;
@@ -77,6 +79,7 @@
         <!-- 操作工具栏 -->
         <div class="toolbar">
             <button onclick="toggleEntryForm('新建')">新建</button>
+            <input type="file" id="fileInput" style="display: none;" accept=".json">
             <button onclick="importFile()">导入</button>
         </div>
 
@@ -85,11 +88,11 @@
             <h4 id="mode"></h4>
             <div>
                 <span class="form-label">文件名：</span>
-                <input type="text" id="fileName">
+                <input type="text" id="fileName" autocomplete="section-bookmark filename">
             </div>
             <div>
                 <span class="form-label">分组名称：</span>
-                <input type="text" id="groupName">
+                <input type="text" id="groupName" autocomplete="section-bookmark group">
             </div>
             <div>
                 <span class="form-label">书签名称：</span>
@@ -110,12 +113,19 @@
 
         <!-- 预览区域 -->
         <pre id="previewArea"></pre>
+        <button id="copyButton" style="display: none;" onclick="copyPreview()">复制内容</button>
     </div>
 
 <script>
 let currentData = {};
 let files = JSON.parse(localStorage.getItem('jsonFiles')) || [];
 let currentFileIndex = null;
+
+// 从localStorage加载最后插入记录
+let lastInsertData = JSON.parse(localStorage.getItem('lastInsertData')) || {
+  fileName: files[0]?.name || '',
+  groupName: files[0] ? Object.keys(files[0].data)[0] || '' : ''
+};
 
 // 初始化文件列表
 function refreshFileList() {
@@ -181,6 +191,14 @@ function saveBookmark() {
 
     localStorage.setItem('jsonFiles', JSON.stringify(files));
     currentData = {};  // 重置当前数据
+    
+    // 更新最近插入记录
+    lastInsertData = {
+        fileName: fileName,
+        groupName: group
+    };
+    localStorage.setItem('lastInsertData', JSON.stringify(lastInsertData));
+    
     refreshFileList();
     document.getElementById('entryForm').style.display = 'none';
 }
@@ -196,19 +214,23 @@ function loadFile(index) {
     currentFileIndex = index;
     currentData = files[index].data;
     toggleEntryForm('插入');
-    document.getElementById('fileName').value = files[index].name;
-
-    // 预填充表单数据
-    const group = Object.keys(currentData)[0];
-    const bookmark = currentData[group][0];
-    document.getElementById('groupName').value = group;
-    document.getElementById('bookmarkName').value = bookmark.name;
-    document.getElementById('bookmarkUrl').value = bookmark.url;
+    
+    // 始终使用最后插入记录填充
+    document.getElementById('fileName').value = lastInsertData.fileName;
+    document.getElementById('groupName').value = lastInsertData.groupName;
+    document.getElementById('bookmarkName').value = '';
+    document.getElementById('bookmarkUrl').value = '';
 }
 
 function previewFile(index) {
-    document.getElementById('previewArea').textContent = 
-        JSON.stringify(files[index].data, null, 2);
+    const previewArea = document.getElementById('previewArea');
+    if (previewArea.textContent === '') {
+        previewArea.textContent = JSON.stringify(files[index].data, null, 2);
+        document.getElementById('copyButton').style.display = 'block';
+    } else {
+        previewArea.textContent = '';
+        document.getElementById('copyButton').style.display = 'none';
+    }
 }
 
 function exportFile(index) {
@@ -222,13 +244,18 @@ function exportFile(index) {
 }
 
 function importFile() {
-    const fileName = prompt('将导入文件命名为：');
-    if (fileName) {
-        const fileData = prompt('请输入JSON数据（粘贴内容）：');
+    const fileInput = document.getElementById('fileInput');
+    fileInput.click();
+}
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function() {
         try {
-            const jsonData = JSON.parse(fileData);
+            const jsonData = JSON.parse(this.result);
             files.push({
-                name: fileName,
+                name: file.name,
                 data: jsonData,
                 timestamp: new Date().toLocaleString()
             });
@@ -237,7 +264,15 @@ function importFile() {
         } catch (e) {
             alert('无效的JSON数据');
         }
-    }
+    };
+    reader.readAsText(file);
+});
+
+function copyPreview() {
+    navigator.clipboard.writeText(document.getElementById('previewArea').textContent);
+    alert('复制成功');
+    document.getElementById('copyButton').style.display = 'none';
+    document.getElementById('previewArea').textContent = '';
 }
 
 // 初始化加载文件列表
@@ -245,6 +280,12 @@ window.onload = function() {
     const savedData = localStorage.getItem('jsonFiles');
     if (savedData) {
         files = JSON.parse(savedData);
+        if (files.length > 0) {
+            lastInsertData = {
+                fileName: files[0].name,
+                groupName: Object.keys(files[0].data)[0] || ''
+            };
+        }
     }
     refreshFileList();
 };
