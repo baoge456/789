@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的书签</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            margin: 20px;
+            background-color: #f0f0f0;
+            box-sizing: border-box;
+        }
+        .panel {
+            max-width: 90%;
+            width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #c2f2d0;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        #jsonExampleContent {
+            margin-bottom: 15px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            padding: 8px;
+            max-width: 100%;
+            margin: 10px auto;
+        }
+        .group-section {
+            margin-bottom: 20px;
+        }
+        .group-title {
+            position: relative;
+            padding-left: 15px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .group-title::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 5px;
+            height: 20px;
+            background-color: #4CAF50;
+        }
+        .card {
+            border-radius: 20px;
+            padding: 8px 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            position: relative;
+            text-align: left;
+            min-width: 0;
+            box-sizing: border-box;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .thumbnail {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 8px;
+        }
+        .card a {
+            text-decoration: none;
+            font-size: 0.85em;
+            word-break: break-word;
+            text-align: left;
+            color: var(--text-color);
+            box-sizing: border-box;
+            flex-grow: 1;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.5);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                gap: 4px;
+                padding: 4px;
+            }
+            .card {
+                border-radius: 15px;
+                padding: 6px 8px;
+            }
+            .card a {
+                font-size: 0.8em;
+            }
+        }
+        /* 新增编辑和添加模态框的样式 */
+        .edit-modal-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .edit-modal-buttons button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #5cb85c;
+            color: white;
+        }
+        .edit-modal-buttons button.delete {
+            background-color: #d9534f;
+        }
+        .edit-modal-buttons input {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h1>书签导航页自动生成</h1>
+        <div class="button-container">
+            <button id="showExampleJsonBtn">显示示例 JSON 格式</button>
+            <!-- 新增：生成JSON按钮 -->
+            <button onclick="openTool()">书签JSON自动生成</button>
+        </div>
+        <div id="jsonExampleContent" style="display:none;">
+            <p>点击以下链接查看示例 JSON 格式：</p>
+            <a href="https://file.baoge.wang/%E4%B9%A6%E7%AD%BE%E9%A1%B5%E9%9D%A2%E7%94%9F%E6%88%90%E8%84%9A%E6%9C%AC%E6%94%AF%E6%8C%81%E7%9A%84%E4%B8%89%E7%A7%8D%E7%A4%BA%E4%BE%8B%20JSON%20%E6%96%87%E4%BB%B6.txt"
+                target="_blank">示例 JSON</a>
+        </div>
+        <textarea id="jsonInput"
+            placeholder="使用指南：   在此处粘贴 JSON 数据,支持宝哥书签类及书签整理类页面导出的JSON文件，例如：sunpanel/书签导航/书签管理系统/单书签自动排序/含分组书签自动排序/链接检测面板,目的是将各种书签类页面统一整合成易于部署的html网页，点击自动转换后列出的预览页面中，可修改生成页面的背景颜色和书签面板的背景颜色，另外，长按书签可以实现书签的 添加/修改/删除 三个功能，编辑修改后可支持导出新的HTML页面和新的JSON数据，导出密码请联系作者本人获取......"></textarea>
+        <button onclick="importJson()">自动转换</button>
+        <div>
+            <label for="pageBackgroundColor">页面背景颜色：</label>
+            <input type="color" id="pageBackgroundColor" value="#f5f5f5" oninput="updateColors()">
+        </div>
+        <!-- 添加面板背景颜色选择器 -->
+        <div>
+            <label for="panelBackgroundColor">面板背景颜色：</label>
+            <input type="color" id="panelBackgroundColor" value="#c2f2d0" oninput="updateColors()">
+        </div>
+        <button onclick="checkPasswordAndExport()">导出 HTML</button>
+        <button onclick="checkPasswordAndGenerateJson()">导出新JSON</button>
+        <div id="bookmarkContainer"></div>
+        <!-- 编辑书签的模态框 -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>编辑书签</h3>
+                <label>名称：<input type="text" id="editName"></label>
+                <label>链接：<input type="url" id="editUrl"></label>
+                <label>缩略图链接：<input type="url" id="editThumbnail"></label>
+                <div class="edit-modal-buttons">
+                    <button onclick="saveChanges()">保存</button>
+                    <button onclick="deleteBookmark()" class="delete">删除</button>
+                </div>
+            </div>
+        </div>
+        <!-- 添加书签的模态框 -->
+        <div id="addModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>添加书签</h3>
+                <label>名称：<input type="text" id="addName"></label>
+                <label>链接：<input type="url" id="addUrl"></label>
+                <label>缩略图链接：<input type="url" id="addThumbnail"></label>
+                <div class="edit-modal-buttons">
+                    <button onclick="saveNewBookmark()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let currentData; // 当前的书签数据
+        let pressTimer; // 长按计时器
+        let currentCard; // 当前操作的卡片
+        let currentItem; // 当前操作的书签项
+        let currentGroupIndex; // 当前书签项的组索引
+        let currentItemIndex; // 当前书签项的索引
+        const defaultColors = ['#FFC107', '#2196F3', '#4CAF50', '#9C27B0', '#FF5722', '#00BCD4', '#E91E63', '#673AB7', '#3F51B5', '#009688'];
+        const thumbnailLinks = [
+            "https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png",
+            "https://s3.bmp.ovh/imgs/2025/03/12/6701e8265b270a63.jpeg",
+            "https://s3.bmp.ovh/imgs/2025/03/18/aef7b7fc61d0738b.png",
+            "https://s3.bmp.ovh/imgs/2025/03/12/86490ad28b87f7e3.png",
+            "https://s3.bmp.ovh/imgs/2025/03/12/f7dc5f482df9c47f.jpg",
+            "https://s3.bmp.ovh/imgs/2025/03/12/19ce72a42876f8b2.jpg",
+            "https://s3.bmp.ovh/imgs/2025/03/13/33a4d0d68f920aa3.jpg",
+            "https://s3.bmp.ovh/imgs/2025/03/13/6db1a8b21eb9d1c7.jpg",
+            "https://s3.bmp.ovh/imgs/2025/03/18/6cf485cbe020d924.png",
+            "https://s3.bmp.ovh/imgs/2025/03/16/7f393fadfc192e1a.png"
+        ];
+        let thumbnailIndex = 0;
+        let pageBackgroundColor = '#f5f5f5';
+        let panelBackgroundColor = '#c2f2d0';
+        function isColorDark(hexColor) {
+            const r = parseInt(hexColor.slice(1, 3), 16);
+            const g = parseInt(hexColor.slice(3, 5), 16);
+            const b = parseInt(hexColor.slice(5, 7), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance < 0.5;
+        }
+        // 修改了 showExampleJson 函数
+        function showExampleJson() {
+            document.getElementById('jsonExampleContent').style.display = 'block';
+        }
+        function openTool() {
+            window.open('https://file.baoge.wang/%E4%B9%A6%E7%AD%BEjson%E7%BC%96%E5%86%99', '_blank');
+        }
+        window.onload = function () {
+            resetPage();
+            // 使用正确的 id 获取按钮
+            document.getElementById('showExampleJsonBtn').addEventListener('click', showExampleJson);
+        };
+        function importJson() {
+            const jsonInput = document.getElementById('jsonInput').value;
+            try {
+                const jsonData = JSON.parse(jsonInput);
+                if (Array.isArray(jsonData)) {
+                    currentData = {
+                        "icons": [
+                            {
+                                "title": "未分类",
+                                "children": jsonData.map(item => ({
+                                    "title": item.name,
+                                    "url": item.url,
+                                    "thumbnail": item.thumbnail,
+                                    "backgroundColor": item.backgroundColor
+                                }))
+                            }
+                        ]
+                    };
+                } else if (jsonData.icons) {
+                    currentData = jsonData;
+                } else {
+                    currentData = {
+                        icons: Object.entries(jsonData).map(([title, children]) => ({
+                            title: title,
+                            children: children.map(item => ({
+                                "title": item.name,
+                                "url": item.url,
+                                "thumbnail": item.thumbnail,
+                                "backgroundColor": item.backgroundColor
+                            }))
+                        }))
+                    };
+                }
+                renderBookmarks();
+            } catch (e) {
+                alert('无效的 JSON 数据');
+                console.error(e);
+            }
+        }
+        function getFaviconUrl(url) {
+            return 'https://favicon.zhusl.com/ico?url=' + url;
+        }
+        function renderBookmarks() {
+            const bookmarkContainer = document.getElementById('bookmarkContainer');
+            bookmarkContainer.innerHTML = '';
+            bookmarkContainer.className = 'container';
+            if (!currentData || !currentData.icons) {
+                return;
+            }
+            currentData.icons.forEach((group, groupIndex) => {
+                const groupSection = document.createElement('div');
+                groupSection.className = 'group-section';
+                const groupTitle = document.createElement('h2');
+                groupTitle.className = 'group-title';
+                groupTitle.textContent = group.title;
+                groupSection.appendChild(groupTitle);
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'container';
+                group.children.forEach((item, itemIndex) => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    const backgroundColor = item.backgroundColor || defaultColors[groupIndex % defaultColors.length];
+                    card.style.backgroundColor = backgroundColor;
+                    const isDark = isColorDark(backgroundColor);
+                    const textColor = isDark ? '#fff' : '#000';
+                    card.style.setProperty('--text-color', textColor);
+                    const thumbnail = document.createElement('img');
+                    thumbnail.className = 'thumbnail';
+                    thumbnail.src = item.thumbnail || getFaviconUrl(item.url) || thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                    thumbnail.onerror = function () {
+                        thumbnail.src = getFaviconUrl(item.url) || thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                        thumbnailIndex++;
+                    };
+                    card.appendChild(thumbnail);
+                    const link = document.createElement('a');
+                    link.href = item.url;
+                    link.target = '_blank';
+                    link.textContent = item.title;
+                    link.style.color = textColor;
+                    card.appendChild(link);
+                    // 添加长按事件监听器
+                    card.addEventListener('touchstart', function (e) {
+                        pressTimer = setTimeout(function () {
+                            showEditModal(item, groupIndex, itemIndex);
+                            currentItem = item;
+                            currentCard = card;
+                            currentGroupIndex = groupIndex;
+                            currentItemIndex = itemIndex;
+                        }, 500);
+                    });
+                    card.addEventListener('touchend', function () {
+                        clearTimeout(pressTimer);
+                    });
+                    card.addEventListener('mousedown', function (e) {
+                        pressTimer = setTimeout(function () {
+                            showEditModal(item, groupIndex, itemIndex);
+                            currentItem = item;
+                            currentCard = card;
+                            currentGroupIndex = groupIndex;
+                            currentItemIndex = itemIndex;
+                        }, 500);
+                    });
+                    card.addEventListener('mouseup', function () {
+                        clearTimeout(pressTimer);
+                    });
+                    cardContainer.appendChild(card);
+                });
+                groupSection.appendChild(cardContainer);
+                bookmarkContainer.appendChild(groupSection);
+            });
+        }
+        // 显示编辑模态框
+        function showEditModal(data, groupIndex, itemIndex) {
+            const modal = document.getElementById('editModal');
+            modal.querySelector('#editName').value = data.title;
+            modal.querySelector('#editUrl').value = data.url;
+            modal.querySelector('#editThumbnail').value = data.thumbnail;
+            modal.style.display = 'block';
+            currentGroupIndex = groupIndex;
+            currentItemIndex = itemIndex;
+        }
+
+        // 显示编辑模态框
+        function showEditModal(data, groupIndex, itemIndex) {
+            const modal = document.getElementById('editModal');
+            modal.querySelector('#editName').value = data.title;
+            modal.querySelector('#editUrl').value = data.url;
+            modal.querySelector('#editThumbnail').value = data.thumbnail;
+
+            modal.style.display = 'block';
+            currentGroupIndex = groupIndex;
+            currentItemIndex = itemIndex;
+        }
+
+        // 保存更改
+        function saveChanges() {
+            const modal = document.getElementById('editModal');
+            const newTitle = modal.querySelector('#editName').value;
+            const newUrl = modal.querySelector('#editUrl').value;
+            const newThumbnail = modal.querySelector('#editThumbnail').value;
+
+            if (currentCard && currentItem) {
+                currentItem.title = newTitle;
+                currentItem.url = newUrl;
+                currentItem.thumbnail = newThumbnail;
+
+                currentCard.querySelector('a').textContent = newTitle;
+                currentCard.querySelector('a').href = newUrl;
+                currentCard.querySelector('img').src = newThumbnail;
+            }
+
+            modal.style.display = 'none';
+            renderBookmarks();
+            updateColors(); // 更新背景颜色
+        }
+
+       // 添加书签
+        function addBookmark() {
+            const addModal = document.getElementById('addModal');
+            addModal.querySelector('#addName').value = '';
+            addModal.querySelector('#addUrl').value = '';
+
+            document.getElementById('editModal').style.display = 'none';
+            addModal.style.display = 'block';
+        }
+
+        // 保存新书签
+        function saveNewBookmark() {
+            const addModal = document.getElementById('addModal');
+            const newTitle = addModal.querySelector('#addName').value;
+            const newUrl = addModal.querySelector('#addUrl').value;
+
+            const newBookmark = {
+                title: newTitle,
+                url: newUrl,
+                thumbnail: currentItem.thumbnail,
+                backgroundColor: currentItem.backgroundColor
+            };
+
+            // 将新书签插入到当前书签的下一个位置
+            currentData.icons[currentGroupIndex].children.splice(currentItemIndex + 1, 0, newBookmark);
+
+            addModal.style.display = 'none';
+            renderBookmarks();
+            updateColors(); // Update colors after saving changes
+        }
+
+        // 删除书签
+        function deleteBookmark() {
+            currentData.icons[currentGroupIndex].children.splice(currentItemIndex, 1);
+            document.getElementById('editModal').style.display = 'none';
+            renderBookmarks();
+            updateColors(); // Update colors after saving changes
+        }
+
+        // 重置页面
+        function resetPage() {
+            document.getElementById('jsonInput').value = '';
+            currentData = null;
+            renderBookmarks();
+            updateColors();
+        }
+
+        // 更新颜色
+        function updateColors() {
+            pageBackgroundColor = document.getElementById('pageBackgroundColor').value;
+            panelBackgroundColor = document.getElementById('panelBackgroundColor').value;
+            document.body.style.backgroundColor = pageBackgroundColor;
+            document.querySelector('.panel').style.backgroundColor = panelBackgroundColor;
+        }
+
+        // 导出 HTML
+        function exportHtml() {
+            const bookmarkContainer = document.getElementById('bookmarkContainer');
+            const content = `<!DOCTYPE html>
+        <html lang="zh">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width-device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <title>我的书签</title>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+                    margin: 20px;
+                    background-color: ${pageBackgroundColor};
+                    box-sizing: border-box;
+                }
+
+                .panel {
+                    max-width: 90%;
+                    width: 800px;
+                    margin: 20px auto;
+                    padding: 20px;
+                    background-color: ${panelBackgroundColor};
+                    border-radius: 10px;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                    text-align: center;
+                }
+
+                .container {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                    gap: 8px;
+                    padding: 8px;
+                    max-width: 100%;
+                    margin: 10px auto;
+                }
+
+                .group-section {
+                    margin-bottom: 20px;
+                }
+
+                .group-title {
+                    position: relative;
+                    padding-left: 15px;
+                    margin-bottom: 10px;
+                    text-align: left;
+                }
+
+                .group-title::before {
+                    content: "";
+                    position: absolute;
+                    left: 0;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 5px;
+                    height: 20px;
+                    background-color: #4CAF50;
+                }
+
+                .card {
+                    border-radius: 20px;
+                    padding: 8px 12px;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+                    transition: transform 0.2s;
+                    display: flex;
+                    align-items: center;
+                    position: relative;
+                    text-align: left;
+                    min-width: 0;
+                    box-sizing: border-box;
+                    width: 100%;
+                    margin-bottom: 5px;
+                }
+
+                .card:hover {
+                    transform: translateY(-2px);
+                }
+
+                .thumbnail {
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    margin-right: 8px;
+                }
+
+                .card a {
+                    text-decoration: none;
+                    font-size: 0.85em;
+                    word-break: break-word;
+                    text-align: left;
+                    color: var(--text-color);
+                    box-sizing: border-box;
+                    flex-grow: 1;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="panel">
+                <h1>我的书签</h1>
+                <div id="bookmarkContainer">${bookmarkContainer.innerHTML}</div>
+            </div>
+        </body>
+        </html>`;
+
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bookmarks.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 生成 JSON 文件
+        function generateJsonFile() {
+            // 修改后的生成 JSON 文件格式
+            const newJson = {};
+            currentData.icons.forEach(group => {
+                newJson[group.title] = group.children.map(item => ({
+                    name: item.title,
+                    url: item.url
+                }));
+            });
+
+            const jsonString = JSON.stringify(newJson, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bookmarks.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+
+        // 检查密码并导出 HTML
+        function checkPasswordAndExport() {
+            const password = prompt('请输入导出密码：');
+            if (password === 'baoge888') {
+                exportHtml();
+            } else {
+                alert('密码错误，无法导出 HTML。');
+            }
+        }
+
+        // 检查密码并导出 JSON
+        function checkPasswordAndGenerateJson() {
+            const password = prompt('请输入导出密码：');
+            if (password === 'baoge888') {
+                generateJsonFile();
+            } else {
+                alert('密码错误，无法导出 JSON。');
+            }
+        }
+
+        // 关闭模态框
+        document.querySelectorAll('.close').forEach(closeButton => {
+            closeButton.addEventListener('click', function () {
+                // 找到最近的 modal 元素并隐藏它
+                let modal = this.closest('.modal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
+
