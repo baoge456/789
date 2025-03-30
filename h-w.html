@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Workers 转换工具</title>
+    <style>
+        /* 保持原有样式不变 */
+        :root {
+            --primary: #FF9900;
+            --bg: #f5f5f5;
+            --text: #333;
+            --card-bg: #fff;
+            --border: #ddd;
+        }
+        [data-theme="dark"] {
+            --primary: #ffbe5d;
+            --bg: #1a1a1a;
+            --text: #f0f0f0;
+            --card-bg: #2d2d2d;
+            --border: #444;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg);
+            transition: background 0.3s, color 0.3s;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        h1 {
+            color: var(--primary);
+            font-size: 24px;
+        }
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-family: 'Consolas', 'Monaco', monospace;
+            resize: vertical;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button.secondary {
+            background: var(--border);
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            padding: 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .tab {
+            padding: 8px 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom-color: var(--primary);
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cloudflare Workers 转换工具</h1>
+            <button class="theme-toggle" id="themeToggle">切换主题</button>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <span>HTML 输入</span>
+                    <div>
+                        <button id="minifyBtn">压缩 HTML</button>
+                        <button id="clearBtn" class="secondary">清空</button>
+                    </div>
+                </div>
+                <textarea id="htmlInput" placeholder="输入你的 HTML 代码..."></textarea>
+            </div>
+
+            <div class="card">
+                <div class="tabs">
+                    <div class="tab active" data-tab="worker-code">Workers 代码</div>
+                    <div class="tab" data-tab="preview">HTML 预览</div>
+                </div>
+
+                <div id="worker-code" class="tab-content active">
+                    <div class="card-header">
+                        <span>Workers 输出</span>
+                        <button id="copyBtn">复制代码</button>
+                    </div>
+                    <pre id="workerOutput">// Worker 代码将在这里生成...</pre>
+                    <div id="statusMessage" class="status"></div>
+                </div>
+
+                <div id="preview" class="tab-content">
+                    <div class="card-header">HTML 预览</div>
+                    <iframe id="htmlPreview" style="width: 100%; height: 300px; border: 1px solid var(--border); border-radius: 4px;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM 元素引用
+        const elements = {
+            htmlInput: document.getElementById("htmlInput"),
+            workerOutput: document.getElementById("workerOutput"),
+            htmlPreview: document.getElementById("htmlPreview"),
+            statusMessage: document.getElementById("statusMessage"),
+            tabs: document.querySelectorAll(".tab"),
+            tabContents: document.querySelectorAll(".tab-content")
+        };
+
+        // 初始化事件监听
+        function initEventListeners() {
+            document.getElementById("copyBtn").addEventListener("click", copyCode);
+            document.getElementById("clearBtn").addEventListener("click", clearInput);
+            document.getElementById("minifyBtn").addEventListener("click", minifyHTML);
+            document.getElementById("themeToggle").addEventListener("click", toggleTheme);
+
+            elements.tabs.forEach(tab => {
+                tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+            });
+
+            elements.htmlInput.addEventListener("input", debounce(generateCode, 500));
+        }
+
+        // 生成Worker代码（自动触发）
+        function generateCode() {
+            try {
+                let html = elements.htmlInput.value;
+                
+                if (!html.trim()) {
+                    showStatus("请输入HTML代码", "error");
+                    return;
+                }
+
+                // 安全转义
+                html = escapeHtmlForTemplate(html);
+
+                const workerCode = `export default {
+    async fetch(request) {
+        return new Response(\`${html}\`, {
+            headers: {
+                "content-type": "text/html;charset=UTF-8",
+                "x-powered-by": "Cloudflare Workers"
+            }
+        });
+    }
+};`;
+                
+                elements.workerOutput.textContent = workerCode;
+                updatePreview();
+            } catch (e) {
+                showStatus("生成失败: " + e.message, "error");
+                console.error("生成错误:", e);
+            }
+        }
+
+        // HTML模板转义
+        function escapeHtmlForTemplate(html) {
+            return html
+                .replace(/\\/g, "\\\\")
+                .replace(/`/g, "\\`")
+                .replace(/\$/g, "\\$")
+                .replace(/\n/g, "\\n")
+                .replace(/\r/g, "\\r")
+                .replace(/\t/g, "\\t");
+        }
+
+        // 增强版复制功能
+        function copyCode() {
+            const textToCopy = elements.workerOutput.textContent;
+            
+            if (!textToCopy.trim()) {
+                showStatus("没有可复制的代码", "error");
+                return;
+            }
+
+            // 创建临时文本域作为副本
+            const textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = 0;
+            
+            document.body.appendChild(textArea);
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showStatus("代码已成功复制到剪贴板!", "success");
+                } else {
+                    showStatus("复制失败，请手动选择复制", "error");
+                }
+            } catch (err) {
+                showStatus("复制失败: " + err, "error");
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
+        // 切换标签页
+        function switchTab(tabId) {
+            elements.tabContents.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            elements.tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+            
+            if (tabId === 'preview') {
+                updatePreview();
+            }
+        }
+
+        // 更新预览
+        function updatePreview() {
+            try {
+                elements.htmlPreview.srcdoc = elements.htmlInput.value;
+            } catch (e) {
+                console.error("预览更新失败:", e);
+            }
+        }
+
+        // 清空输入
+        function clearInput() {
+            elements.htmlInput.value = '';
+            generateCode();
+        }
+
+        // 压缩HTML
+        function minifyHTML() {
+            let html = elements.htmlInput.value;
+            html = html.replace(/\s+/g, ' ').replace(/<!--.*?-->/g, '');
+            elements.htmlInput.value = html;
+            generateCode();
+        }
+
+        // 切换主题
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // 显示状态消息
+        function showStatus(message, type) {
+            elements.statusMessage.textContent = message;
+            elements.statusMessage.className = `status ${type}`;
+            elements.statusMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                elements.statusMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        // 防抖函数
+        function debounce(func, delay) {
+            let timeoutId;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+            
+            initEventListeners();
+            generateCode();
+        });
+    </script>
+</body>
+</html>
