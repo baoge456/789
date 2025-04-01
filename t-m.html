@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级Markdown转换器</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .editor-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .editor-box {
+            flex: 1;
+            min-width: 300px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            flex: 1;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        #convert-btn {
+            background-color: #3498db;
+        }
+        #convert-btn:hover {
+            background-color: #2980b9;
+        }
+        #copy-btn {
+            background-color: #27ae60;
+        }
+        #copy-btn:hover {
+            background-color: #219653;
+        }
+        #refresh-btn {
+            background-color: #e67e22;
+        }
+        #refresh-btn:hover {
+            background-color: #d35400;
+        }
+        #auto-edit-btn {
+            background-color: #9b59b6;
+        }
+        #auto-edit-btn:hover {
+            background-color: #8e44ad;
+        }
+        #preview-btn {
+            background-color: #34495e;
+        }
+        #preview-btn:hover {
+            background-color: #2c3e50;
+        }
+        .tips {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        .tips h3 {
+            margin-top: 0;
+        }
+        .tips ul {
+            padding-left: 20px;
+        }
+        .controls {
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+        }
+        .control-group label {
+            margin: 0;
+            margin-left: 5px;
+            font-weight: normal;
+        }
+        .control-group input[type="checkbox"] {
+            margin: 0;
+        }
+        .status-bar {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #7f8c8d;
+            text-align: right;
+        }
+        #preview-container {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        #preview-content {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .toggle-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>高级Markdown转换器</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <input type="checkbox" id="auto-headings" checked>
+                <label for="auto-headings">自动识别标题</label>
+            </div>
+            <div class="control-group">
+                <input type="checkbox" id="auto-lists" checked>
+                <label for="auto-lists">自动识别列表</label>
+            </div>
+            <div class="control-group">
+                <input type="checkbox" id="auto-links" checked>
+                <label for="auto-links">自动识别链接</label>
+            </div>
+            <div class="control-group">
+                <input type="checkbox" id="auto-quotes" checked>
+                <label for="auto-quotes">自动识别引用</label>
+            </div>
+            <div class="control-group">
+                <input type="checkbox" id="auto-numbers" checked>
+                <label for="auto-numbers">增强序号识别</label>
+            </div>
+            <div class="control-group">
+                <input type="checkbox" id="auto-paragraphs" checked>
+                <label for="auto-paragraphs">段落层次识别</label>
+            </div>
+            <div class="control-group">
+                <input type="checkbox" id="enhance-bold" checked>
+                <label for="enhance-bold">增强加粗识别</label>
+            </div>
+            <div class="control-group">
+                <input type="checkbox" id="enhance-italic" checked>
+                <label for="enhance-italic">增强斜体识别</label>
+            </div>
+        </div>
+        
+        <div class="editor-container">
+            <div class="editor-box">
+                <label for="input-text">输入纯文本：</label>
+                <textarea id="input-text" placeholder="在这里粘贴或输入纯文本内容..."></textarea>
+                <div class="button-group">
+                    <button id="auto-edit-btn">智能分段</button>
+                    <button id="convert-btn">转换为Markdown</button>
+                    <button id="refresh-btn">刷新</button>
+                </div>
+                <div class="status-bar" id="input-status">就绪</div>
+            </div>
+            
+            <div class="editor-box">
+                <label for="output-md">Markdown格式：</label>
+                <textarea id="output-md" readonly placeholder="转换后的Markdown将显示在这里..."></textarea>
+                <div class="button-group">
+                    <button id="copy-btn">复制Markdown</button>
+                    <button id="preview-btn">预览效果</button>
+                </div>
+                <div class="status-bar" id="output-status">等待转换</div>
+            </div>
+        </div>
+        
+        <div id="preview-container">
+            <div class="toggle-buttons">
+                <button id="close-preview-btn" style="background-color: #e74c3c;">关闭预览</button>
+            </div>
+            <div id="preview-content"></div>
+        </div>
+        
+        <div class="tips">
+            <h3>增强功能说明：</h3>
+            <ul>
+                <li><strong>智能分段</strong>：基于语义分析进行段落划分</li>
+                <li><strong>标题识别</strong>：自动添加#、##、###等标题标记</li>
+                <li><strong>增强格式</strong>：识别加粗、斜体等文本并添加Markdown符号</li>
+                <li><strong>预览功能</strong>：实时查看Markdown渲染效果</li>
+                <li><strong>列表识别</strong>：支持多种列表格式识别</li>
+                <li><strong>引用识别</strong>：自动识别引用文本并添加 > 标记</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const inputTextArea = document.getElementById('input-text');
+        const outputTextArea = document.getElementById('output-md');
+        const convertBtn = document.getElementById('convert-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const autoEditBtn = document.getElementById('auto-edit-btn');
+        const previewBtn = document.getElementById('preview-btn');
+        const closePreviewBtn = document.getElementById('close-preview-btn');
+        const previewContainer = document.getElementById('preview-container');
+        const previewContent = document.getElementById('preview-content');
+        const inputStatus = document.getElementById('input-status');
+        const outputStatus = document.getElementById('output-status');
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定事件
+            convertBtn.addEventListener('click', convertToMarkdown);
+            copyBtn.addEventListener('click', copyToClipboard);
+            refreshBtn.addEventListener('click', refreshContent);
+            autoEditBtn.addEventListener('click', autoEditContent);
+            previewBtn.addEventListener('click', showPreview);
+            closePreviewBtn.addEventListener('click', hidePreview);
+            inputTextArea.addEventListener('input', updateInputStatus);
+            
+            updateInputStatus();
+        });
+
+        // 转换函数
+        function convertToMarkdown() {
+            try {
+                const startTime = performance.now();
+                const inputText = inputTextArea.value;
+                
+                const options = {
+                    autoHeadings: document.getElementById('auto-headings').checked,
+                    autoLists: document.getElementById('auto-lists').checked,
+                    autoLinks: document.getElementById('auto-links').checked,
+                    autoQuotes: document.getElementById('auto-quotes').checked,
+                    autoNumbers: document.getElementById('auto-numbers').checked,
+                    autoParagraphs: document.getElementById('auto-paragraphs').checked,
+                    enhanceBold: document.getElementById('enhance-bold').checked,
+                    enhanceItalic: document.getElementById('enhance-italic').checked
+                };
+                
+                const markdownText = enhancedTextToMarkdown(inputText, options);
+                outputTextArea.value = markdownText;
+                
+                const endTime = performance.now();
+                const timeTaken = (endTime - startTime).toFixed(2);
+                const stats = getTextStats(markdownText);
+                
+                outputStatus.textContent = `转换成功 | ${timeTaken}ms | ${stats.lines}行 | ${stats.words}词 | ${stats.chars}字符`;
+                inputStatus.textContent = `已转换 ${getTextStats(inputText).lines}行内容`;
+            } catch (error) {
+                outputStatus.textContent = `转换错误: ${error.message}`;
+                console.error('转换错误:', error);
+            }
+        }
+        
+        // 增强的Markdown转换
+        function enhancedTextToMarkdown(text, options) {
+            let lines = text.split('\n');
+            let result = [];
+            let inCodeBlock = false;
+            let inQuoteBlock = false;
+            
+            // 预处理：增强格式识别
+            if (options.enhanceBold) {
+                text = enhanceBoldText(text);
+            }
+            if (options.enhanceItalic) {
+                text = enhanceItalicText(text);
+            }
+            
+            lines = text.split('\n');
+            
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trimRight();
+                let nextLine = i < lines.length - 1 ? lines[i+1].trim() : '';
+                let prevLine = i > 0 ? result[result.length-1] : '';
+                
+                // 处理代码块
+                if (line.startsWith('    ') || line.startsWith('\t')) {
+                    if (!inCodeBlock) {
+                        result.push('```');
+                        inCodeBlock = true;
+                    }
+                    result.push(line);
+                    continue;
+                } else if (inCodeBlock) {
+                    result.push('```');
+                    inCodeBlock = false;
+                    continue;
+                }
+                
+                // 跳过空行
+                if (line === '') {
+                    result.push('');
+                    inQuoteBlock = false;
+                    continue;
+                }
+                
+                // 自动识别引用
+                if (options.autoQuotes && detectQuote(line, prevLine, nextLine, inQuoteBlock)) {
+                    if (!inQuoteBlock && prevLine !== '' && !prevLine.startsWith('>')) {
+                        result.push('');
+                    }
+                    line = '> ' + line;
+                    inQuoteBlock = true;
+                    result.push(line);
+                    continue;
+                }
+                inQuoteBlock = false;
+                
+                // 自动识别标题
+                if (options.autoHeadings && (i === 0 || lines[i-1].trim() === '')) {
+                    const headingLevel = detectHeadingLevel(line, nextLine);
+                    if (headingLevel > 0) {
+                        line = '#'.repeat(headingLevel) + ' ' + line;
+                        result.push(line);
+                        continue;
+                    }
+                }
+                
+                // 自动识别列表
+                if (options.autoLists) {
+                    const listInfo = detectList(line, options.autoNumbers);
+                    if (listInfo) {
+                        result.push(line);
+                        continue;
+                    }
+                }
+                
+                // 自动识别链接
+                if (options.autoLinks) {
+                    line = line.replace(/(https?:\/\/[^\s]+)/g, '[链接]($1)');
+                }
+                
+                // 普通段落
+                result.push(line);
+            }
+            
+            // 确保关闭代码块
+            if (inCodeBlock) {
+                result.push('```');
+            }
+            
+            return result.join('\n');
+        }
+        
+        // 增强加粗文本识别
+        function enhanceBoldText(text) {
+            // 识别**加粗**文本
+            text = text.replace(/(\*\*)([^*]+)(\*\*)/g, '**$2**');
+            // 识别__加粗__文本
+            text = text.replace(/(__)([^_]+)(__)/g, '__$2__');
+            // 识别没有标记但应该加粗的文本（如标题、强调词等）
+            text = text.replace(/(^|\s)([A-Z][A-Z0-9]+)(\s|$)/g, '$1**$2**$3');
+            return text;
+        }
+        
+        // 增强斜体文本识别
+        function enhanceItalicText(text) {
+            // 识别*斜体*文本
+            text = text.replace(/(\*)([^*]+)(\*)/g, '*$2*');
+            // 识别_斜体_文本
+            text = text.replace(/(_)([^_]+)(_)/g, '_$2_');
+            // 识别没有标记但应该斜体的文本（如外来语、书名等）
+            text = text.replace(/(^|\s)([a-z][a-z0-9]+)(\s|$)/g, '$1*$2*$3');
+            return text;
+        }
+        
+        // 智能分段函数
+        function autoEditContent() {
+            try {
+                const text = inputTextArea.value;
+                if (!text.trim()) {
+                    inputStatus.textContent = '无内容可编辑';
+                    return;
+                }
+                
+                const editedText = smartParagraphSplit(text);
+                inputTextArea.value = editedText;
+                inputStatus.textContent = '已完成智能分段 | 基于语义分析';
+            } catch (error) {
+                inputStatus.textContent = '自动编辑出错';
+                console.error('自动编辑错误:', error);
+            }
+        }
+        
+        // 显示预览
+        function showPreview() {
+            if (!outputTextArea.value) {
+                outputStatus.textContent = '请先转换内容再预览';
+                return;
+            }
+            
+            try {
+                // 使用简单的Markdown解析器显示预览
+                previewContent.innerHTML = parseMarkdown(outputTextArea.value);
+                previewContainer.style.display = 'block';
+                outputStatus.textContent = '预览已显示';
+            } catch (error) {
+                outputStatus.textContent = '预览生成失败';
+                console.error('预览错误:', error);
+            }
+        }
+        
+        // 隐藏预览
+        function hidePreview() {
+            previewContainer.style.display = 'none';
+            outputStatus.textContent = '预览已关闭';
+        }
+        
+        // 简单的Markdown解析器（用于预览）
+        function parseMarkdown(text) {
+            // 处理标题
+            text = text.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+            text = text.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+            text = text.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+            
+            // 处理加粗和斜体
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            text = text.replace(/__(.*?)__/g, '<strong>$1</strong>');
+            text = text.replace(/_(.*?)_/g, '<em>$1</em>');
+            
+            // 处理列表
+            text = text.replace(/^-\s(.*$)/gm, '<li>$1</li>');
+            text = text.replace(/^\*\s(.*$)/gm, '<li>$1</li>');
+            text = text.replace(/^\d+\.\s(.*$)/gm, '<li>$1</li>');
+            text = text.replace(/<li>.*<\/li>/g, function(match) {
+                return '<ul>' + match + '</ul>';
+            });
+            
+            // 处理引用
+            text = text.replace(/^>\s(.*$)/gm, '<blockquote>$1</blockquote>');
+            
+            // 处理代码块
+            text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            
+            // 处理段落
+            text = text.replace(/^(?!<[a-z])(.*$)/gm, function(match) {
+                if (match.trim() === '') return '';
+                return '<p>' + match + '</p>';
+            });
+            
+            // 处理链接
+            text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+            
+            return text;
+        }
+        
+        // 复制到剪贴板
+        function copyToClipboard() {
+            try {
+                outputTextArea.select();
+                document.execCommand('copy');
+                outputStatus.textContent = 'Markdown已复制到剪贴板！';
+                setTimeout(() => {
+                    outputStatus.textContent = outputTextArea.value ? '内容已准备好' : '等待转换';
+                }, 2000);
+            } catch (error) {
+                outputStatus.textContent = '复制失败';
+                console.error('复制错误:', error);
+            }
+        }
+        
+        // 刷新内容
+        function refreshContent() {
+            inputTextArea.value = '';
+            outputTextArea.value = '';
+            previewContainer.style.display = 'none';
+            inputStatus.textContent = '已清空';
+            outputStatus.textContent = '等待转换';
+        }
+        
+        // 更新输入状态
+        function updateInputStatus() {
+            const stats = getTextStats(inputTextArea.value);
+            inputStatus.textContent = `已输入 ${stats.lines}行 | ${stats.words}词 | ${stats.chars}字符`;
+        }
+        
+        // 获取文本统计信息
+        function getTextStats(text) {
+            const lines = text ? text.split('\n').length : 0;
+            const words = text ? text.trim().split(/\s+/).length : 0;
+            const chars = text ? text.length : 0;
+            return { lines, words, chars };
+        }
+        
+        // ================ 辅助函数 ================
+        
+        // 智能分段核心函数
+        function smartParagraphSplit(text) {
+            // 1. 首先按原段落分割
+            let paragraphs = text.split(/\n\s*\n/);
+            let result = [];
+            
+            paragraphs.forEach(para => {
+                para = para.trim();
+                if (!para) return;
+                
+                // 已经分好段的文本直接保留
+                if (para.includes('\n')) {
+                    result.push(para);
+                    return;
+                }
+                
+                // 分句处理
+                let sentences = para.split(/([。！？?!\.]\s+)/)
+                    .reduce((acc, val, i) => {
+                        if (i % 2 === 0) acc.push(val);
+                        else acc[acc.length-1] += val;
+                        return acc;
+                    }, [])
+                    .filter(s => s.trim().length > 0);
+                
+                let currentPara = [];
+                let charCount = 0;
+                
+                sentences.forEach(sentence => {
+                    const len = sentence.length;
+                    const shouldBreak = /[。！？?!]"?$/.test(sentence) || 
+                                      (charCount > 80 && /[，；,]/.test(sentence.slice(-1)));
+                    
+                    if (shouldBreak && currentPara.length > 0) {
+                        result.push(currentPara.join(''));
+                        currentPara = [];
+                        charCount = 0;
+                    }
+                    
+                    currentPara.push(sentence);
+                    charCount += len;
+                });
+                
+                if (currentPara.length > 0) {
+                    result.push(currentPara.join(''));
+                }
+            });
+            
+            return result.join('\n\n');
+        }
+        
+        // 标题检测
+        function detectHeadingLevel(line, nextLine) {
+            if (/^#{1,6}\s/.test(line)) return 0;
+            
+            const len = line.length;
+            const isShort = len < 60;
+            const isCentered = line.trim().length < len * 0.7;
+            const hasColon = line.includes(':');
+            
+            if (isShort && isCentered && nextLine === '') return 1;
+            if (isShort && hasColon) return 2;
+            if (/^[IVX]+\./.test(line) || /^[A-Z]\./.test(line)) return 3;
+            if (/^\d+[\.\)]/.test(line)) return 4;
+            if (/^[一二三四五六七八九十]、/.test(line)) return 5;
+            
+            return 0;
+        }
+        
+        // 列表检测
+        function detectList(line, enhancedNumbers) {
+            if (/^[\-\*\+]\s/.test(line)) return { type: 'unordered' };
+            if (/^\d+\.\s/.test(line)) return { type: 'ordered' };
+            
+            if (enhancedNumbers) {
+                if (/^[A-Za-z]\.\s/.test(line)) return { type: 'alpha' };
+                if (/^[一二三四五六七八九十]、/.test(line)) return { type: 'chinese' };
+                if (/^[①②③④⑤⑥⑦⑧⑨⑩]\s/.test(line)) return { type: 'circle' };
+            }
+            
+            return null;
+        }
+        
+        // 引用检测
+        function detectQuote(line, prevLine, nextLine, inQuote) {
+            if (line.startsWith('>')) return false;
+            
+            const indicators = ['说：', '表示：', '指出：', '"', "'"];
+            if (indicators.some(i => line.includes(i))) return true;
+            if (inQuote && line.length < 100) return true;
+            if (prevLine.startsWith('>') && line.length < 80) return true;
+            
+            return false;
+        }
+    </script>
+</body>
+</html>
