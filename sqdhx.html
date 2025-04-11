@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>书签导航</title>
+    <link href="https://cdn.jsdelivr.net/npm/semantic-ui-css@2.4.1/semantic.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/sleepwood/cf-worker-dir@0.1.1/style.css" rel="stylesheet">
+    <style>
+        /* General Styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Responsive Design */
+        .container {
+            max-width: 1200px;
+            /* Adjust for larger screens */
+            margin: 0 auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Bookmark Cards */
+        .bookmark-card {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .bookmark-card:hover {
+            background-color: #f9f9f9;
+        }
+
+        .bookmark-options,
+        .group-options {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ccc;
+            display: none;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .bookmark-options button,
+        .group-options button {
+            padding: 5px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .bookmark-options button:hover,
+        .group-options button:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Group Titles */
+        .editable-group-name {
+            cursor: pointer;
+            display: inline-block;
+            font-size: 1.5em;
+            /* Slightly larger */
+            font-weight: bold;
+            padding: 5px 0;
+        }
+
+        .editable-group-name:hover {
+            text-decoration: underline;
+        }
+
+        .ui.basic.segment h4 {
+            position: relative;
+            /* For positioning options */
+        }
+
+        .ui.basic.segment {
+            margin-bottom: 20px;
+            /* Add some spacing between groups */
+        }
+
+        /* Header Options */
+        #header-options {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: none;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ccc;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        #header-options button {
+            padding: 5px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #header-options button:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Button Styling */
+        .ui.button {
+            background-color: #4CAF50;
+            /* Green */
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .ui.button:hover {
+            background-color: #3e8e41;
+        }
+
+        /* Ensure Footer Buttons Stay on One Row */
+        main {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 20px;
+        }
+
+        main button {
+            margin-right: 10px;
+        }
+
+        /* Smaller Screens */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .ui.four.stackable.cards {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                /* Adjust minmax value */
+            }
+
+            .editable-group-name {
+                font-size: 1.2em;
+                /* Smaller font size for smaller screens */
+            }
+        }
+
+        /* Add color to specific modals */
+        #editModal .header,
+        #addModal .header,
+        #groupNameModal .header,
+        #addGroupModal .header {
+            background-color: #3498db;
+            /* Blue */
+            color: white;
+        }
+
+        #bookmarkOptionsModal .header,
+        #groupOptionsModal .header,
+        #titleOptionsModal .header {
+            background-color: #21ba45;
+            /* Green */
+            color: white;
+        }
+
+        /* Add some spacing around input fields */
+        #editModal .field,
+        #addModal .field,
+        #groupNameModal .field,
+        #addGroupModal .field {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <header id="head" class="ui inverted vertical masthead center aligned segment">
+        <div id="header-options">
+            <button id="importButton">导入书签</button>
+            <button id="exportButton">导出书签</button>
+            <button id="clearButton">清空书签</button>
+        </div>
+        <div id="nav" class="ui container">
+            <div class="ui large secondary inverted menu">
+                <div class="item">
+                    <p id="hitokoto">条条大路通罗马</p>
+                </div>
+            </div>
+        </div>
+        <div id="title" class="ui text container">
+            <h1 class="ui inverted header">
+                <div class="content" id="mainTitle">
+                    书签导航
+                    <div class="sub header"></div>
+                </div>
+            </h1>
+            <div class="ui left corner labeled right icon fluid large input">
+                <div class="ui left corner label">
+                    <img id="search-fav" class="left floated avatar ui image" src="https://www.baidu.com/favicon.ico">
+                </div>
+                <input id="searchinput" type="search" placeholder="搜索你想要知道的……" autocomplete="off">
+                <i class="inverted circular search link icon"></i>
+            </div>
+            <div id="sengine" class="ui bottom attached tabular inverted secondary menu">
+                <div class="header item">&nbsp;</div>
+                <a class="active item" data-url="https://www.baidu.com/s?wd=$s">百 度</a>
+                <a class="item" data-url="https://www.google.com/search?q=$s">谷 歌</a>
+                <a class="item" data-url="https://www.bing.com/search?q=$s">必 应</a>
+                <a class="item" data-url="https://www.sogou.com/web?query=$s">搜 狗</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <input type="file" id="importFile" style="display:none;">
+            <div id="bookmarkSections"></div>
+        </div>
+    </main>
+
+    <div id="seller" class="ui basic modal">
+        <h1 class="ui yellow dividing header">
+            <i class="gem outline icon"></i>
+            <div class="content">example.com 正在出售</div>
+        </h1>
+        <div class="content">
+            <div class="ui basic segment">
+                <div class="ui two column stackable center aligned grid">
+                    <div class="ui inverted vertical divider">感兴趣？</div>
+                    <div class="middle aligned row">
+                        <div class="column">
+                            <div class="ui large yellow statistic">
+                                <div class="value">
+                                    <i class="yen sign icon"></i>500
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <h3 class="ui center aligned icon inverted header">
+                                <i class="circular envelope open outline grey inverted icon"></i>
+                            </h3>
+                            <div class="ui relaxed celled large list">
+                                <div class="item">
+                                    <i class="envelope icon"></i>
+                                    <div class="content">info@example.com</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui basic cancel inverted button">
+                <i class="reply icon"></i>返回
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="header">
+            修改书签
+        </div>
+        <div class="content">
+            <form class="ui form">
+                <div class="field">
+                    <label>名称</label>
+                    <input type="text" id="editName" name="name">
+                </div>
+                <div class="field">
+                    <label>URL</label>
+                    <input type="url" id="editURL" name="url">
+                </div>
+            </form>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">
+                取消
+            </div>
+            <div class="ui positive right labeled icon button" id="saveEdit">
+                保存
+                <i class="checkmark icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="addModal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="header">
+            添加书签
+        </div>
+        <div class="content">
+            <form class="ui form">
+                <div class="field">
+                    <label>名称</label>
+                    <input type="text" id="addName" name="name">
+                </div>
+                <div class="field">
+                    <label>URL</label>
+                    <input type="url" id="addURL" name="url">
+                </div>
+            </form>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">
+                取消
+            </div>
+            <div class="ui positive right labeled icon button" id="saveAdd">
+                保存
+                <i class="checkmark icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="groupNameModal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="header">
+            编辑分组名称
+        </div>
+        <div class="content">
+            <form class="ui form">
+                <div class="field">
+                    <label>分组名称</label>
+                    <input type="text" id="groupName" name="groupName">
+                </div>
+            </form>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">
+                取消
+            </div>
+            <div class="ui positive right labeled icon button" id="saveGroupName">
+                保存
+                <i class="checkmark icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="addGroupModal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="header">
+            添加分组
+        </div>
+        <div class="content">
+            <form class="ui form">
+                <div class="field">
+                    <label>分组名称</label>
+                    <input type="text" id="newGroupName" name="newGroupName">
+                </div>
+            </form>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">
+                取消
+            </div>
+            <div class="ui positive right labeled icon button" id="saveNewGroupName">
+                保存
+                <i class="checkmark icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="titleOptionsModal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="header" style="background-color: #21ba45; color: white;">
+            书签导航设置
+        </div>
+        <div class="content" style="text-align: center;">
+            <button class="ui button" id="importModalButton" style="background-color: #3498db;">导入书签</button><br><br>
+            <button class="ui button" id="exportModalButton" style="background-color: #3498db;">导出书签</button><br><br>
+            <button class="ui button" id="clearModalButton" style="background-color: #3498db;">清空书签</button>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">
+                取消
+            </div>
+        </div>
+    </div>
+
+    <div id="bookmarkOptionsModal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="header" style="background-color: #21ba45; color: white;">
+            书签选项
+        </div>
+        <div class="content" style="text-align: center;">
+            <button class="ui button" id="editBookmarkModalButton" style="background-color: #3498db;">修改书签</button><br><br>
+            <button class="ui button" id="deleteBookmarkModalButton" style="background-color: #3498db;">删除书签</button>
+            <br><br>
+            <button class="ui button" id="addBookmarkModalButton" style="background-color: #3498db;">添加书签</button>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">
+                取消
+            </div>
+        </div>
+    </div>
+
+    <div id="groupOptionsModal" class="ui modal">
+        <i class="close icon"></i>
+        <div class="header" style="background-color: #21ba45; color: white;">
+            分组选项
+        </div>
+        <div class="content" style="text-align: center;">
+            <button class="ui button" id="editGroupModalButton" style="background-color: #3498db;">修改名称</button><br><br>
+            <button class="ui button" id="deleteGroupModalButton" style="background-color: #3498db;">删除分组</button><br><br>
+            <button class="ui button" id="addGroupAfterModalButton" style="background-color: #3498db;">添加分组</button>
+        </div>
+        <div class="actions">
+            <div class="ui black deny button">
+                取消
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/semantic-ui-css@2.4.1/semantic.min.js"></script>
+    <script src="https://v1.hitokoto.cn/?encode=js&select=%23hitokoto" defer></script>
+    <script>
+        $(document).ready(function () {
+            let longPressTimer;
+            let selectedBookmark = null;
+            let selectedGroup = null;
+
+            function getBookmarkData() {
+                try {
+                    return JSON.parse(localStorage.getItem('bookmarkData')) || {
+                        "默认分组": [{
+                            name: "",
+                            url: ""
+                        }]
+                    };
+                } catch (e) {
+                    console.error("Error parsing bookmarkData from localStorage", e);
+                    return {
+                        "默认分组": [{
+                            name: "",
+                            url: ""
+                        }]
+                    };
+                }
+            }
+
+            function saveBookmarkData() {
+                localStorage.setItem('bookmarkData', JSON.stringify(bookmarkData));
+            }
+
+            // Load initial data
+            let bookmarkData = getBookmarkData();
+            renderBookmarks();
+
+            //Helper functions
+
+            //Header Options
+            $('#mainTitle').on('mousedown touchstart', function (e) {
+                longPressTimer = setTimeout(function () {
+                    $('#titleOptionsModal').modal('show');
+                }, 500);
+            }).on('mouseup mouseleave touchend touchcancel', function () {
+                clearTimeout(longPressTimer);
+            });
+
+            $('#importModalButton').on('click', function () {
+                $('#importFile').click();
+                $('#titleOptionsModal').modal('hide');
+            });
+
+            $('#exportModalButton').on('click', function () {
+                exportBookmarks();
+                $('#titleOptionsModal').modal('hide');
+            });
+
+            $('#clearModalButton').on('click', function () {
+                clearBookmarks();
+                $('#titleOptionsModal').modal('hide');
+            });
+
+            // Bookmark Options Modal
+            $('#editBookmarkModalButton').on('click', function () {
+                $('#editName').val(selectedBookmark.data('name'));
+                $('#editURL').val(selectedBookmark.data('url'));
+                $('#editModal').modal('show');
+                $('#bookmarkOptionsModal').modal('hide');
+            });
+
+            $('#deleteBookmarkModalButton').on('click', function () {
+                if (confirm("确定要删除书签吗?")) {
+                    deleteBookmark();
+                    $('#bookmarkOptionsModal').modal('hide');
+                }
+            });
+
+            $('#addBookmarkModalButton').on('click', function () {
+                $('#addName').val("");
+                $('#addURL').val("");
+                $('#addModal').modal('show');
+                $('#bookmarkOptionsModal').modal('hide');
+            });
+            // Group Options Modal
+            $('#editGroupModalButton').on('click', function () {
+                $('#groupName').val(selectedGroup.data('group'));
+                $('#groupNameModal').modal('show');
+                $('#groupOptionsModal').modal('hide');
+            });
+
+            $('#addGroupAfterModalButton').on('click', function () {
+                $('#newGroupName').val("");
+                $('#addGroupModal').modal('show');
+                $('#groupOptionsModal').modal('hide');
+            });
+
+            $('#deleteGroupModalButton').on('click', function () {
+                let groupName = selectedGroup.data('group');
+                if (confirm("确定要删除分组 '" + groupName + "' 吗?")) {
+                    deleteGroup();
+                    $('#groupOptionsModal').modal('hide');
+                }
+            });
+
+            function renderBookmarks() {
+                let sectionsHTML = '';
+                for (let groupName in bookmarkData) {
+                    sectionsHTML += createBookmarkSection(groupName, bookmarkData[groupName]);
+                }
+                $('#bookmarkSections').html(sectionsHTML);
+                attachBookmarkEvents();
+                attachGroupEvents();
+            }
+
+            function createBookmarkSection(groupName, bookmarks) {
+                let sectionHTML = `
+                     <div class="ui basic segment" data-group="${groupName}">
+                        <h4 class="ui horizontal divider header">
+                             <span class="editable-group-name">${groupName}</span>
+                            <div class="group-options" style="display:none;">
+                                <button class="edit-group">修改</button>
+                                <button class="delete-group">删除</button>
+                                <button class = "add-group">添加</button>
+                            </div>
+                        </h4>
+                        <div class="ui four stackable cards">`;
+
+                bookmarks.forEach(bookmark => {
+                    sectionHTML += `
+                             <div class="card bookmark-card" data-url="${bookmark.url}" data-name="${bookmark.name}">
+                                <div class="content">
+                                    <img class="left floated avatar ui image" src="https://www.google.com/s2/favicons?sz=64&domain_url=${bookmark.url}">
+                                    <div class="header">${bookmark.name}</div>
+                                    <div class="meta"></div>
+                                </div>
+                                <div class="bookmark-options" style="display:none;">
+                                    <button class="edit-bookmark">修改</button>
+                                    <button class="delete-bookmark">删除</button>
+                                    <button class = "add-bookmark">添加</button>
+                                </div>
+                            </div>`;
+                });
+
+                sectionHTML += `
+                        </div>
+                    </div>`;
+                return sectionHTML;
+            }
+             function attachBookmarkEvents() {
+                 $('.bookmark-card').off('mousedown touchstart mouseup mouseleave touchend touchcancel click');
+                 $('.bookmark-card').on('mousedown touchstart', function (e) {
+                     selectedBookmark = $(this);
+                     longPressTimer = setTimeout(function () {
+                         $('#bookmarkOptionsModal').modal('show');
+                     }, 500);
+                 }).on('mouseup mouseleave touchend touchcancel', function () {
+                     clearTimeout(longPressTimer);
+                 }).on('click', function (e) {
+                     window.open($(this).data('url'), '_blank');
+                 });
+             }
+               function attachGroupEvents() {
+                    $('.ui.basic.segment h4').off('mousedown touchstart mouseup mouseleave touchend touchcancel click');
+                    $('.ui.basic.segment h4').on('mousedown touchstart', function (e) {
+                         selectedGroup = $(this).closest('.ui.basic.segment');
+                         longPressTimer = setTimeout(function () {
+                             $('#groupOptionsModal').modal('show');
+                         }, 500);
+                     }).on('mouseup mouseleave touchend touchcancel', function () {
+                         clearTimeout(longPressTimer);
+                     });
+
+                 }
+            // Save edit bookmark
+            $('#saveEdit').on('click', function () {
+                let newName = $('#editName').val();
+                let newURL = $('#editURL').val();
+
+                selectedBookmark.data('name', newName);
+                selectedBookmark.data('url', newURL);
+                selectedBookmark.find('.header').text(newName);
+                selectedBookmark.find('img').attr('src', 'https://www.google.com/s2/favicons?sz=64&domain_url=' + newURL);
+
+                $('#editModal').modal('hide');
+
+                // Update data
+                let groupName = selectedBookmark.closest('.ui.basic.segment').data('group');
+                let bookmarkIndex = selectedBookmark.index();
+                bookmarkData[groupName][bookmarkIndex].name = newName;
+                bookmarkData[groupName][bookmarkIndex].url = newURL;
+                saveBookmarkData();
+            });
+
+              //add bookmark click
+            $('#saveAdd').on('click', function () {
+                let newName = $('#addName').val();
+                let newURL = $('#addURL').val();
+                 let groupName = selectedBookmark.closest('.ui.basic.segment').data('group');
+                  let newBookmark = {name:newName,url:newURL};
+
+                  let bookmarkIndex = selectedBookmark.index();
+
+                   bookmarkData[groupName].splice(bookmarkIndex + 1, 0, newBookmark);
+                    selectedBookmark = null;
+                 renderBookmarks();
+                 saveBookmarkData();
+                   $('#addModal').modal('hide');
+             });
+              $('#saveNewGroupName').on('click', function () {
+                let newGroupName = $('#newGroupName').val();
+                    selectedGroup = $(this).closest('.ui.basic.segment');
+                    let segment =   $('.ui.basic.segment');
+                     let segmentIndex = segment.index();
+                  bookmarkData[newGroupName] = [{name:"",url:""}];
+
+                   selectedGroup = null;
+                     renderBookmarks();
+                      saveBookmarkData();
+                      $('#addGroupModal').modal('hide');
+              });
+
+            //Save Edit Group
+            $('#saveGroupName').on('click', function () {
+                let newGroupName = $('#groupName').val();
+                let oldGroupName = selectedGroup.data('group');
+
+                bookmarkData[newGroupName] = bookmarkData[oldGroupName];
+                delete bookmarkData[oldGroupName];
+
+                selectedGroup.find('.editable-group-name').text(newGroupName);
+                selectedGroup.data('group', newGroupName);
+
+                renderBookmarks();
+                saveBookmarkData();
+                $('#groupNameModal').modal('hide');
+            });
+                //add group click
+          $('.ui.basic.segment h4').off('click', '.add-group');
+            $('.ui.basic.segment h4').on('click', '.add-group',function (e) {
+                $('#bookmarkOptionsModal').modal('hide');
+             e.stopPropagation();
+                    selectedGroup = $(this).closest('.ui.basic.segment');
+                 $('#addModal').modal('show');
+            });
+
+          function deleteBookmark() {
+                let card = selectedBookmark;
+                let groupName = card.closest('.ui.basic.segment').data('group');
+                let bookmarkIndex = card.index();
+
+                bookmarkData[groupName].splice(bookmarkIndex, 1);
+                 selectedBookmark = null;
+                  card.remove();
+                 renderBookmarks();
+                 saveBookmarkData();
+                $('#bookmarkOptionsModal').modal('hide');
+
+            }
+            function deleteGroup() {
+                let groupName = selectedGroup.data('group');
+                  selectedGroup.remove();
+                  delete bookmarkData[groupName];
+                  selectedGroup = null;
+                   renderBookmarks();
+                   saveBookmarkData();
+                  $('#groupOptionsModal').modal('hide');
+             }
+          function exportBookmarks() {
+                let json = JSON.stringify(bookmarkData, null, 2);
+                let blob = new Blob([json], { type: "application/json" });
+                let url = URL.createObjectURL(blob);
+
+                let a = document.createElement('a');
+                a.href = url;
+                a.download = 'bookmarks.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+          function clearBookmarks() {
+                 bookmarkData = {};
+                 renderBookmarks();
+                  saveBookmarkData();
+            }
+
+            // Import Bookmarks
+            $('#importFile').on('change', function (e) {
+                let file = e.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                let reader = new FileReader();
+                reader.onload = function (e) {
+                    let contents = e.target.result;
+                    try {
+                        bookmarkData = JSON.parse(contents);
+                        renderBookmarks();
+                       saveBookmarkData();
+                    } catch (error) {
+                        alert('导入文件格式不正确');
+                    }
+                };
+                reader.readAsText(file);
+            });
+
+            $('#sengine a').on('click', function (e) {
+                $('#sengine a.active').toggleClass('active');
+                $(e.target).toggleClass('active');
+                $('#search-fav').attr('src', $(e.target).data('url').match(/https{0,1}:\/\/\S+\//)[0] + '/favicon.ico');
+            });
+
+            $('.search').on('click', function (e) {
+                var url = $('#sengine a.active').data('url');
+                url = url.replace(/\$s/, $('#searchinput').val());
+                window.open(url);
+            });
+
+            $("#searchinput").bind("keypress", function () {
+                if (event.keyCode == 13) {
+                    $(".search").click();
+                }
+            });
+
+            $('#menubtn').on('click', function (e) {
+                $('#seller').modal('show');
+            });
+
+             attachBookmarkEvents();
+             attachGroupEvents();
+            renderBookmarks();
+        });
+    </script>
+</body>
+
+</html>
