@@ -272,6 +272,7 @@
         const groupOrderKey = 'groupOrder';
         const defaultGroupName = '默认分组';
         const defaultBookmarkURL = 'https://www.baidu.com/';
+        const longPressDuration = 500;
 
         let titleLongPressTimer;
         let buttonsVisible = false;
@@ -282,19 +283,24 @@
             managementButtons.style.display = buttonsVisible ? 'flex' : 'none';
         };
 
-        document.getElementById('bookmark-title').addEventListener('mousedown', (e) => {
-            if (e.button === 0) {
-                titleLongPressTimer = setTimeout(toggleManagementButtons, 500);
-            }
-        });
+        // Touch and Mouse Event Handling for Bookmark Title
+        let titlePressTimer;
+        const bookmarkTitle = document.getElementById('bookmark-title');
 
-        document.getElementById('bookmark-title').addEventListener('mouseup', () => {
-            clearTimeout(titleLongPressTimer);
-        });
+        function handleTitleStart(event) {
+            titlePressTimer = setTimeout(toggleManagementButtons, longPressDuration);
+        }
 
-        document.getElementById('bookmark-title').addEventListener('mouseleave', () => {
-            clearTimeout(titleLongPressTimer);
-        });
+        function handleTitleEnd() {
+            clearTimeout(titlePressTimer);
+        }
+
+        bookmarkTitle.addEventListener('mousedown', handleTitleStart);
+        bookmarkTitle.addEventListener('mouseup', handleTitleEnd);
+        bookmarkTitle.addEventListener('mouseleave', handleTitleEnd);
+        bookmarkTitle.addEventListener('touchstart', handleTitleStart);
+        bookmarkTitle.addEventListener('touchend', handleTitleEnd);
+        bookmarkTitle.addEventListener('touchcancel', handleTitleEnd);
 
         document.addEventListener('click', (event) => {
             if (!managementButtons.contains(event.target) && event.target.id !== 'bookmark-title') {
@@ -410,31 +416,41 @@
             let buttonsVisible = false;
             let preventClick = false;
 
-            bookmarkDiv.addEventListener('mousedown', function(e) {
-                if (e.button === 0) {
-                    preventClick = false;
-                    longPressTimer = setTimeout(() => {
-                        buttonsVisible = !buttonsVisible;
-                        const buttons = bookmarkDiv.querySelector('.buttons');
-                        if (buttonsVisible) {
-                            showButtons(bookmarkDiv);
-                            bookmarkDiv.classList.add('selected');
-                        } else {
-                            hideButtons(bookmarkDiv);
-                            bookmarkDiv.classList.remove('selected');
-                        }
-                        preventClick = true;
-                    }, 500);
-                }
-            });
+            function showButtons(bookmark) {
+                const buttons = bookmark.querySelector('.buttons');
+                buttons.style.display = 'flex';
+            }
 
-            bookmarkDiv.addEventListener('mouseup', function(e) {
-                clearTimeout(longPressTimer);
-            });
+            function hideButtons(bookmark) {
+                const buttons = bookmark.querySelector('.buttons');
+                buttons.style.display = 'none';
+            }
 
-            bookmarkDiv.addEventListener('mouseleave', function(e) {
+            function handleLongPressStart(event) {
+                preventClick = true;
+                longPressTimer = setTimeout(() => {
+                    buttonsVisible = !buttonsVisible;
+                    const buttons = bookmarkDiv.querySelector('.buttons');
+                    if (buttonsVisible) {
+                        showButtons(bookmarkDiv);
+                        bookmarkDiv.classList.add('selected');
+                    } else {
+                        hideButtons(bookmarkDiv);
+                        bookmarkDiv.classList.remove('selected');
+                    }
+                }, longPressDuration);
+            }
+
+            function handleLongPressEnd() {
                 clearTimeout(longPressTimer);
-            });
+            }
+
+            bookmarkDiv.addEventListener('mousedown', handleLongPressStart);
+            bookmarkDiv.addEventListener('mouseup', handleLongPressEnd);
+            bookmarkDiv.addEventListener('mouseleave', handleLongPressEnd);
+            bookmarkDiv.addEventListener('touchstart', handleLongPressStart);
+            bookmarkDiv.addEventListener('touchend', handleLongPressEnd);
+            bookmarkDiv.addEventListener('touchcancel', handleLongPressEnd);
 
             bookmarkDiv.addEventListener('click', function(e) {
                 if (preventClick) {
@@ -446,16 +462,6 @@
                     window.open(url, '_blank');
                 }
             });
-        }
-
-        function showButtons(bookmark) {
-            const buttons = bookmark.querySelector('.buttons');
-            buttons.style.display = 'flex';
-        }
-
-        function hideButtons(bookmark) {
-            const buttons = bookmark.querySelector('.buttons');
-            buttons.style.display = 'none';
         }
 
         function addGroup() {
@@ -472,35 +478,50 @@
                 return;
             }
 
-            const addGroupDialog = document.getElementById('addGroupDialog');
-            const insertBeforeGroupSelect = document.getElementById('insertBeforeGroup');
-            insertBeforeGroupSelect.innerHTML = `<option value="">放在最上方</option>`;
+            const dialog = document.createElement('dialog');
+            const div = document.createElement('div');
+            div.style.marginBottom = '10px';
+            div.textContent = "选择要放在哪个分组的上方：";
+
+            const select = document.createElement('select');
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '放在最上方';
+            select.appendChild(defaultOption);
 
             groupOrder.forEach(group => {
                 const option = document.createElement('option');
                 option.value = group;
                 option.textContent = group;
-                insertBeforeGroupSelect.appendChild(option);
+                select.appendChild(option);
             });
 
-            addGroupDialog.showModal();
+            div.appendChild(select);
 
-            const confirmAddGroupButton = document.getElementById('confirmAddGroup');
-            confirmAddGroupButton.onclick = () => {
-                const selectedGroup = insertBeforeGroupSelect.value;
-                let insertIndex = 0; // Insert at the beginning by default
+            const btnConfirm = document.createElement('button');
+            btnConfirm.textContent = '确认';
+            btnConfirm.style.marginTop = '10px';
 
-                if (selectedGroup) {
-                    const targetIndex = groupOrder.indexOf(selectedGroup);
-                    if (targetIndex >= 0) {
-                        insertIndex = targetIndex + 1; // Insert after selected group
-                    }
-                }
+            dialog.appendChild(div);
+            dialog.appendChild(btnConfirm);
+            document.body.appendChild(dialog);
+            dialog.showModal();
+
+            btnConfirm.onclick = () => {
+                const selectedGroup = select.value;
 
                 bookmarks[newGroupName] = [{
                     name: "默认书签",
                     url: defaultBookmarkURL
                 }];
+
+                let insertIndex = 0;
+	    if (selectedGroup) {
+                    const targetIndex = groupOrder.indexOf(selectedGroup);
+                    if (targetIndex >= 0) {
+                        insertIndex = targetIndex + 1;
+                    }
+                }
 
                 groupOrder.splice(insertIndex, 0, newGroupName);
 
@@ -512,7 +533,8 @@
                 localStorage.setItem('selectedGroup', newGroupName);
                 loadBookmarks();
 
-                addGroupDialog.close();
+                dialog.close();
+                dialog.remove();
             };
         }
 
@@ -577,7 +599,7 @@
             } = loadData();
 
             if (bookmarks.hasOwnProperty(newGroupName)) {
-                alert("该分组名称已存在！");
+                alert("该分组名称已存在!");
                 return;
             }
 
@@ -757,7 +779,6 @@
                 }
             }
         }
-
 
         // Initialization
         loadGroupSelector();
