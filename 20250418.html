@@ -272,6 +272,10 @@
         const groupOrderKey = 'groupOrder';
         const defaultGroupName = '默认分组';
         const defaultBookmarkURL = 'https://www.baidu.com/';
+        const defaultBookmarks = [{
+            name: '默认书签',
+            url: defaultBookmarkURL
+        }];
 
         let titleLongPressTimer;
         let buttonsVisible = false;
@@ -313,10 +317,7 @@
             if (Object.keys(bookmarks).length === 0 && groupOrder.length === 0) {
                 // Initialize with default group and bookmark
                 bookmarks = {};
-                bookmarks[defaultGroupName] = [{
-                    name: '默认书签',
-                    url: defaultBookmarkURL
-                }];
+                bookmarks[defaultGroupName] = defaultBookmarks;
                 groupOrder = [defaultGroupName];
                 saveData(bookmarks, groupOrder);
             }
@@ -356,10 +357,7 @@
                 localStorage.setItem('selectedGroup', groupOrder[0]);
             } else {
                 // If no groups exist, create the default one
-                bookmarks[defaultGroupName] = [{
-                    name: '默认书签',
-                    url: defaultBookmarkURL
-                }];
+                bookmarks[defaultGroupName] = defaultBookmarks;
                 groupOrder = [defaultGroupName];
                 saveData(bookmarks, groupOrder);
                 groupSelect.innerHTML = `<option value="${defaultGroupName}">${defaultGroupName}</option>`;
@@ -731,7 +729,9 @@
                         }
                     }
 
-                    bookmarks[newGroupName] = []; // 创建新的分组
+                    //copy default bookmarks
+                    bookmarks[newGroupName] = JSON.parse(JSON.stringify(defaultBookmarks)); // 创建新的分组,使用深拷贝
+
                     saveData(bookmarks, newGroupOrder); // 保存数据
                     loadGroupSelector(); // 重新加载分组选择器
                     addGroupDialog.close(); // 关闭对话框
