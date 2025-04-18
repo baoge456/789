@@ -125,7 +125,6 @@
         .bookmark h2 a {
             text-decoration: none;
             color: inherit;
-            pointer-events: none;
         }
 
         .bookmark:hover,
@@ -412,11 +411,30 @@
             let touchStartTime = 0;
 
             // 长按显示编辑按钮（触摸设备）
+            const showButtons = (bookmarkDiv) => {
+                buttonsVisible = true;
+                const buttons = bookmarkDiv.querySelector('.buttons');
+                buttons.style.display = 'flex';
+                bookmarkDiv.classList.add('selected');
+            };
+
+            const hideButtons = (bookmarkDiv) => {
+                buttonsVisible = false;
+                const buttons = bookmarkDiv.querySelector('.buttons');
+                buttons.style.display = 'none';
+                bookmarkDiv.classList.remove('selected');
+            };
+
+            const openBookmarkLink = (bookmarkDiv) => {
+                const url = bookmarkDiv.getAttribute('data-url');
+                window.open(url, '_blank');
+            };
+
             bookmarkDiv.addEventListener('touchstart', function(e) {
                 touchStartTime = Date.now();
                 preventClick = false;
                 longPressTimer = setTimeout(() => {
-                    showBookmarkButtons(bookmarkDiv);
+                    showButtons(bookmarkDiv);
                     preventClick = true;
                 }, 500);
             });
@@ -424,7 +442,6 @@
             bookmarkDiv.addEventListener('touchend', function(e) {
                 clearTimeout(longPressTimer);
                 if (Date.now() - touchStartTime < 500) {
-                    // 短按，打开链接
                     openBookmarkLink(bookmarkDiv);
                 }
             });
@@ -433,12 +450,11 @@
                 clearTimeout(longPressTimer);
             });
 
-            // 鼠标长按显示编辑按钮（桌面设备）
             bookmarkDiv.addEventListener('mousedown', function(e) {
                 if (e.button === 0) {
                     preventClick = false;
                     longPressTimer = setTimeout(() => {
-                        showBookmarkButtons(bookmarkDiv);
+                        showButtons(bookmarkDiv);
                         preventClick = true;
                     }, 500);
                 }
@@ -452,55 +468,21 @@
                 clearTimeout(longPressTimer);
             });
 
-            //点击打开链接
             bookmarkDiv.addEventListener('click', function(e) {
                 if (preventClick) {
                     e.preventDefault();
                     preventClick = false;
+                    hideButtons(bookmarkDiv); // 修复：点击按钮后隐藏按钮
                     return;
                 }
-                openBookmarkLink(bookmarkDiv);
-            });
-
-            //公共方法：显示书签按钮
-            function showBookmarkButtons(bookmarkDiv) {
-                buttonsVisible = true;
-                const buttons = bookmarkDiv.querySelector('.buttons');
-                buttons.style.display = 'flex';
-                bookmarkDiv.classList.add('selected');
-            }
-
-            //公共方法：隐藏书签按钮
-            function hideButtons(bookmarkDiv) {
-                buttonsVisible = false;
-                const buttons = bookmarkDiv.querySelector('.buttons');
-                buttons.style.display = 'none';
-                bookmarkDiv.classList.remove('selected');
-            }
-
-            //公共方法：打开书签链接
-            function openBookmarkLink(bookmarkDiv) {
                 if (!buttonsVisible) {
-                    const url = bookmarkDiv.getAttribute('data-url');
-                    window.open(url, '_blank');
+                    openBookmarkLink(bookmarkDiv);
                 } else {
                     hideButtons(bookmarkDiv);
-                    bookmarkDiv.classList.remove('selected');
-                    buttonsVisible = false;
                 }
-            }
-
+            });
         }
 
-        function showButtons(bookmark) {
-            const buttons = bookmark.querySelector('.buttons');
-            buttons.style.display = 'flex';
-        }
-
-        function hideButtons(bookmark) {
-            const buttons = bookmark.querySelector('.buttons');
-            buttons.style.display = 'none';
-        }
 
         function addBookmarkBelow(event) {
             const bookmarkDiv = event.target.closest('.bookmark');
