@@ -125,6 +125,7 @@
         .bookmark h2 a {
             text-decoration: none;
             color: inherit;
+            pointer-events: none;
         }
 
         .bookmark:hover,
@@ -430,43 +431,32 @@
                 window.open(url, '_blank');
             };
 
-            bookmarkDiv.addEventListener('touchstart', function(e) {
+            //统一mousedown和touchstart处理
+            const startHandler = (e) => {
                 touchStartTime = Date.now();
                 preventClick = false;
                 longPressTimer = setTimeout(() => {
                     showButtons(bookmarkDiv);
                     preventClick = true;
                 }, 500);
-            });
+            };
 
-            bookmarkDiv.addEventListener('touchend', function(e) {
+            //统一mouseup和touchend处理
+            const endHandler = (e) => {
                 clearTimeout(longPressTimer);
                 if (Date.now() - touchStartTime < 500) {
                     openBookmarkLink(bookmarkDiv);
                 }
-            });
+            };
 
-            bookmarkDiv.addEventListener('touchmove', function(e) {
-                clearTimeout(longPressTimer);
-            });
+            bookmarkDiv.addEventListener('touchstart', startHandler);
+            bookmarkDiv.addEventListener('mousedown', startHandler);
 
-            bookmarkDiv.addEventListener('mousedown', function(e) {
-                if (e.button === 0) {
-                    preventClick = false;
-                    longPressTimer = setTimeout(() => {
-                        showButtons(bookmarkDiv);
-                        preventClick = true;
-                    }, 500);
-                }
-            });
+            bookmarkDiv.addEventListener('touchend', endHandler);
+            bookmarkDiv.addEventListener('mouseup', endHandler);
 
-            bookmarkDiv.addEventListener('mouseup', function(e) {
-                clearTimeout(longPressTimer);
-            });
-
-            bookmarkDiv.addEventListener('mouseleave', function(e) {
-                clearTimeout(longPressTimer);
-            });
+            bookmarkDiv.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+            bookmarkDiv.addEventListener('mouseleave', () => clearTimeout(longPressTimer));
 
             bookmarkDiv.addEventListener('click', function(e) {
                 if (preventClick) {
