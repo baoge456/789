@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=yes" />
   <title>书签管理</title>
   <link rel="icon" href="https://s3.bmp.ovh/imgs/2025/04/24/c767656a890464c5.webp" alt="Pi Network Logo" />
   <style>
@@ -178,35 +178,6 @@
       color: #d33;
     }
 
-    /* 书签导航编辑菜单 */
-    #bookmarkToolsMenu {
-      position: fixed;
-      background: white;
-      border: 1px solid #ccc;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      border-radius: 6px;
-      padding: 5px 0;
-      width: 160px;
-      display: none;
-      z-index: 9999;
-      user-select: none;
-    }
-
-    #bookmarkToolsMenu button {
-      width: 100%;
-      padding: 8px 15px;
-      border: none;
-      background: none;
-      text-align: left;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    #bookmarkToolsMenu button:hover {
-      background-color: #f0f0f0;
-    }
-
-
     /* 编辑弹窗 */
     #modalOverlay {
       position: fixed;
@@ -274,25 +245,52 @@
       color: white;
     }
 
-    /* 书签导航样式 */
-    .bookmark-tools {
-      background: #fff;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      padding: 10px 15px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      text-align: center;
-      font-weight: bold;
-      cursor: pointer;
+    /* 导入导出样式 */
+    #importExportMenu {
+      position: fixed;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 6px;
+      padding: 5px 0;
+      width: 160px;
+      display: none;
+      z-index: 9999;
       user-select: none;
+    }
+
+    #importExportMenu button {
+      width: 100%;
+      padding: 8px 15px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #importExportMenu button:hover {
+      background-color: #f0f0f0;
+    }
+
+    #importInput {
+      display: none;
     }
   </style>
 </head>
 
 <body>
 
-  
+  <h1>书签导航</h1>
+
   <section id="groupsContainer"></section>
+
+  <!-- 导入导出菜单 -->
+  <div id="importExportMenu">
+    <button id="exportBtn">导出数据</button>
+    <button id="importBtn">导入数据</button>
+  </div>
+  <input type="file" id="importInput" accept=".json" />
 
   <!-- 书签编辑菜单 -->
   <div id="contextMenu">
@@ -306,13 +304,6 @@
     <button id="addGroupFromMenuBtn">添加分组</button>
     <button id="editGroupBtn">修改分组</button>
     <button id="deleteGroupBtn" class="delete">删除分组</button>
-  </div>
-
-  <!-- 书签导航编辑菜单 -->
-  <div id="bookmarkToolsMenu">
-    <button id="importBookmarkBtn">导入书签</button>
-    <button id="exportBookmarkBtn">导出书签</button>
-    <button id="clearBookmarkBtn">清空书签</button>
   </div>
 
   <!-- 编辑弹窗 -->
@@ -344,11 +335,6 @@
     const editGroupBtn = document.getElementById('editGroupBtn');
     const deleteGroupBtn = document.getElementById('deleteGroupBtn');
 
-    const bookmarkToolsMenu = document.getElementById('bookmarkToolsMenu');
-    const importBookmarkBtn = document.getElementById('importBookmarkBtn');
-    const exportBookmarkBtn = document.getElementById('exportBookmarkBtn');
-    const clearBookmarkBtn = document.getElementById('clearBookmarkBtn');
-
     const modalOverlay = document.getElementById('modalOverlay');
     const modalTitle = document.getElementById('modalTitle');
     const bookmarkTitleInput = document.getElementById('bookmarkTitleInput');
@@ -359,6 +345,12 @@
     const bookmarkFaviconLabel = document.getElementById('bookmarkFaviconLabel');
     const modalCancelBtn = document.getElementById('modalCancelBtn');
     const modalSaveBtn = document.getElementById('modalSaveBtn');
+
+    // 导入导出按钮和菜单
+    const importExportMenu = document.getElementById('importExportMenu');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importInput = document.getElementById('importInput');
 
     let groups = [];
     let currentGroup = null;
@@ -471,14 +463,6 @@
 
     async function render() {
       groupsContainer.innerHTML = '';
-
-      // Add bookmark tools menu
-      const bookmarkToolsDiv = document.createElement('div');
-      bookmarkToolsDiv.className = 'bookmark-tools';
-      bookmarkToolsDiv.textContent = '书签导航';
-      bindLongPressBookmarkTools(bookmarkToolsDiv);
-      groupsContainer.appendChild(bookmarkToolsDiv);
-
       for (const group of groups) {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'group';
@@ -510,8 +494,7 @@
     }
 
     function bindLongPressBookmark(el, group, bookmark) {
-      let startX = 0,
-        startY = 0;
+      let startX = 0, startY = 0;
 
       el.addEventListener('touchstart', e => {
         moved = false;
@@ -666,12 +649,243 @@
       el.addEventListener('contextmenu', e => {
         e.preventDefault();
         currentGroup = group;
-        currentBookmark = null;
-        showGroupContextMenu(e.clientX, e.clientY);
+        currentBookmark = bookmark;
+        showContextMenu(e.clientX, e.clientY);
       });
     }
 
-    function bindLongPressBookmarkTools(el) {
+    function showContextMenu(x, y) {
+      const menu = document.getElementById('contextMenu');
+      menu.style.display = 'block';
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+
+      document.addEventListener('mousedown', function clickOutside(event) {
+        if (!menu.contains(event.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('mousedown', clickOutside);
+        }
+      });
+    }
+
+    function showGroupContextMenu(x, y) {
+      const menu = document.getElementById('groupContextMenu');
+      menu.style.display = 'block';
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+
+      document.addEventListener('mousedown', function clickOutside(event) {
+        if (!menu.contains(event.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('mousedown', clickOutside);
+        }
+      });
+    }
+
+    function showImportExportMenu(x, y) {
+      const menu = document.getElementById('importExportMenu');
+      menu.style.display = 'block';
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+
+      document.addEventListener('mousedown', function clickOutside(event) {
+        if (!menu.contains(event.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('mousedown', clickOutside);
+        }
+      });
+    }
+
+    // 导出JSON数据
+    exportBtn.addEventListener('click', () => {
+      const dataStr = JSON.stringify(groups);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+      const exportFileDefaultName = 'bookmarks.json';
+
+      let linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+    });
+
+    // 导入JSON数据
+    importBtn.addEventListener('click', () => {
+      importInput.click();
+    });
+
+    importInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            groups = JSON.parse(e.target.result);
+            render();
+            alert('导入成功！');
+          } catch (error) {
+            console.error("导入数据失败:", error);
+            alert('导入数据失败，请检查文件格式是否正确。');
+          }
+        }
+        reader.readAsText(file);
+      }
+    });
+
+    // 隐藏所有ContextMenu
+    function hideContextMenus() {
+      contextMenu.style.display = 'none';
+      groupContextMenu.style.display = 'none';
+      importExportMenu.style.display = 'none';
+    }
+
+    // 添加书签
+    addBookmarkBtn.addEventListener('click', () => {
+      hideContextMenus();
+      isEditingBookmark = false;
+      modalTitle.textContent = '添加书签';
+      bookmarkTitleLabel.style.display = 'block';
+      bookmarkTitleInput.style.display = 'block';
+      bookmarkUrlLabel.style.display = 'block';
+      bookmarkUrlInput.style.display = 'block';
+      bookmarkFaviconLabel.style.display = 'block';
+      bookmarkFaviconInput.style.display = 'block';
+      bookmarkTitleInput.value = '';
+      bookmarkUrlInput.value = '';
+      bookmarkFaviconInput.value = '';
+      modalOverlay.style.display = 'flex';
+      currentBookmark = null;
+    });
+
+    // 修改书签
+    editBookmarkBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (currentBookmark) {
+        isEditingBookmark = true;
+        modalTitle.textContent = '修改书签';
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkTitleInput.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'block';
+        bookmarkUrlInput.style.display = 'block';
+        bookmarkFaviconLabel.style.display = 'block';
+        bookmarkFaviconInput.style.display = 'block';
+        bookmarkTitleInput.value = currentBookmark.title;
+        bookmarkUrlInput.value = currentBookmark.url;
+        bookmarkFaviconInput.value = currentBookmark.favicon;
+        modalOverlay.style.display = 'flex';
+      } else {
+        alert('请先长按选择要修改的书签');
+      }
+    });
+
+    // 删除书签
+    deleteBookmarkBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (currentBookmark && currentGroup) {
+        currentGroup.bookmarks = currentGroup.bookmarks.filter(bm => bm.id !== currentBookmark.id);
+        saveData();
+        render();
+        currentBookmark = null;
+        currentGroup = null;
+      } else {
+        alert('请先长按选择要删除的书签');
+      }
+    });
+
+    // 添加分组
+    addGroupFromMenuBtn.addEventListener('click', () => {
+      hideContextMenus();
+      isEditingBookmark = false;
+      modalTitle.textContent = '添加分组';
+      bookmarkTitleLabel.textContent = '分组名称';
+      bookmarkTitleLabel.style.display = 'block';
+      bookmarkTitleInput.style.display = 'block';
+      bookmarkUrlLabel.style.display = 'none';
+      bookmarkUrlInput.style.display = 'none';
+      bookmarkFaviconLabel.style.display = 'none';
+      bookmarkFaviconInput.style.display = 'none';
+      bookmarkTitleInput.value = '';
+      modalOverlay.style.display = 'flex';
+      currentBookmark = null;
+    });
+
+    // 修改分组
+    editGroupBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (currentGroup) {
+        isEditingBookmark = false;
+        modalTitle.textContent = '修改分组';
+        bookmarkTitleLabel.textContent = '分组名称';
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkTitleInput.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'none';
+        bookmarkUrlInput.style.display = 'none';
+        bookmarkFaviconLabel.style.display = 'none';
+        bookmarkFaviconInput.style.display = 'none';
+        bookmarkTitleInput.value = currentGroup.name;
+        modalOverlay.style.display = 'flex';
+      } else {
+        alert('请先长按选择要修改的分组');
+      }
+    });
+
+    // 删除分组
+    deleteGroupBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (currentGroup) {
+        groups = groups.filter(g => g.id !== currentGroup.id);
+        saveData();
+        render();
+        currentGroup = null;
+      } else {
+        alert('请先长按选择要删除的分组');
+      }
+    });
+
+    // 关闭弹窗
+    modalCancelBtn.addEventListener('click', () => {
+      modalOverlay.style.display = 'none';
+    });
+
+    // 保存弹窗
+    modalSaveBtn.addEventListener('click', () => {
+      if (isEditingBookmark) {
+        // 修改书签
+        if (currentBookmark && currentGroup) {
+          currentBookmark.title = bookmarkTitleInput.value;
+          currentBookmark.url = bookmarkUrlInput.value;
+          currentBookmark.favicon = bookmarkFaviconInput.value;
+        }
+      } else {
+        if (bookmarkUrlLabel.style.display === 'none') {
+          // 添加分组
+          const newGroup = {
+            id: generateId(),
+            name: bookmarkTitleInput.value,
+            bookmarks: []
+          };
+          groups.push(newGroup);
+        } else {
+          // 添加书签
+          const newBookmark = {
+            id: generateId(),
+            title: bookmarkTitleInput.value,
+            url: bookmarkUrlInput.value,
+            favicon: bookmarkFaviconInput.value
+          };
+          currentGroup.bookmarks.push(newBookmark);
+        }
+      }
+      modalOverlay.style.display = 'none';
+      saveData();
+      render();
+    });
+
+    // 绑定长按“书签导航”事件
+    const title = document.querySelector('h1');
+    bindLongPressTitle(title);
+
+    function bindLongPressTitle(el) {
       let startX = 0,
         startY = 0;
 
@@ -681,7 +895,7 @@
         startY = e.touches[0].clientY;
         longPressTimer = setTimeout(() => {
           isLongPress = true;
-          showBookmarkToolsMenu(startX, startY);
+          showImportExportMenu(startX, startY);
         }, LONG_PRESS_DURATION);
       }, {
         passive: false
@@ -714,7 +928,7 @@
         startY = e.clientY;
         longPressTimer = setTimeout(() => {
           isLongPress = true;
-          showBookmarkToolsMenu(startX, startY);
+          showImportExportMenu(startX, startY);
         }, LONG_PRESS_DURATION);
       });
 
@@ -739,178 +953,8 @@
 
       el.addEventListener('contextmenu', e => {
         e.preventDefault();
-        showBookmarkToolsMenu(e.clientX, e.clientY);
       });
     }
-
-    function showContextMenu(x, y) {
-      contextMenu.style.display = 'block';
-      contextMenu.style.left = x + 'px';
-      contextMenu.style.top = y + 'px';
-    }
-
-    function showGroupContextMenu(x, y) {
-      groupContextMenu.style.display = 'block';
-      groupContextMenu.style.left = x + 'px';
-      groupContextMenu.style.top = y + 'px';
-    }
-
-    function showBookmarkToolsMenu(x, y) {
-      bookmarkToolsMenu.style.display = 'block';
-      bookmarkToolsMenu.style.left = x + 'px';
-      bookmarkToolsMenu.style.top = y + 'px';
-    }
-
-    function hideContextMenus() {
-      contextMenu.style.display = 'none';
-      groupContextMenu.style.display = 'none';
-      bookmarkToolsMenu.style.display = 'none';
-    }
-
-    // 添加书签
-    addBookmarkBtn.addEventListener('click', () => {
-      hideContextMenus();
-      isEditingBookmark = false;
-      openModal('添加书签', '', '', '');
-    });
-
-    // 修改书签
-    editBookmarkBtn.addEventListener('click', () => {
-      hideContextMenus();
-      if (currentBookmark) {
-        isEditingBookmark = true;
-        openModal('修改书签', currentBookmark.title, currentBookmark.url, currentBookmark.favicon);
-      }
-    });
-
-    // 删除书签
-    deleteBookmarkBtn.addEventListener('click', () => {
-      hideContextMenus();
-      if (currentBookmark && currentGroup) {
-        currentGroup.bookmarks = currentGroup.bookmarks.filter(bm => bm.id !== currentBookmark.id);
-        saveData();
-        render();
-      }
-    });
-
-    // 添加分组
-    addGroupFromMenuBtn.addEventListener('click', () => {
-      hideContextMenus();
-      openModal('添加分组', '', '', '');
-    });
-
-    // 修改分组
-    editGroupBtn.addEventListener('click', () => {
-      hideContextMenus();
-      if (currentGroup) {
-        openModal('修改分组', currentGroup.name, '', '');
-      }
-    });
-
-    // 删除分组
-    deleteGroupBtn.addEventListener('click', () => {
-      hideContextMenus();
-      if (currentGroup) {
-        groups = groups.filter(g => g.id !== currentGroup.id);
-        saveData();
-        render();
-      }
-    });
-
-    // 导入书签
-    importBookmarkBtn.addEventListener('click', () => {
-      hideContextMenus();
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.json';
-      fileInput.addEventListener('change', handleImport);
-      fileInput.click();
-    });
-
-    // 导出书签
-    exportBookmarkBtn.addEventListener('click', () => {
-      hideContextMenus();
-      const dataStr = JSON.stringify(groups);
-      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-      const exportFileDefaultName = 'bookmarks.json';
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
-    });
-
-    // 清空书签
-    clearBookmarkBtn.addEventListener('click', () => {
-      hideContextMenus();
-      if (confirm("确定要清空所有书签吗？")) {
-        groups = [];
-        saveData();
-        render();
-      }
-    });
-
-    // 处理导入
-    function handleImport(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          try {
-            groups = JSON.parse(e.target.result);
-            saveData();
-            render();
-          } catch (error) {
-            alert('导入文件格式不正确');
-          }
-        }
-        reader.readAsText(file);
-      }
-    }
-
-    // 打开弹窗
-    function openModal(title, bookmarkTitle, bookmarkUrl, bookmarkFavicon) {
-      modalTitle.textContent = title;
-      bookmarkTitleInput.value = bookmarkTitle;
-      bookmarkUrlInput.value = bookmarkUrl;
-      bookmarkFaviconInput.value = bookmarkFavicon;
-      modalOverlay.style.display = 'flex';
-    }
-
-    // 关闭弹窗
-    modalCancelBtn.addEventListener('click', () => {
-      modalOverlay.style.display = 'none';
-    });
-
-    // 保存弹窗
-    modalSaveBtn.addEventListener('click', () => {
-      const title = bookmarkTitleInput.value;
-      const url = bookmarkUrlInput.value;
-      const favicon = bookmarkFaviconInput.value;
-
-      if (isEditingBookmark) {
-        // 修改书签
-        currentBookmark.title = title;
-        currentBookmark.url = url;
-        currentBookmark.favicon = favicon;
-      } else {
-        // 添加书签
-        const newBookmark = {
-          id: generateId(),
-          title: title,
-          url: url,
-          favicon: favicon
-        };
-        currentGroup.bookmarks.push(newBookmark);
-      }
-
-      saveData();
-      render();
-      modalOverlay.style.display = 'none';
-    });
-
-    // 点击页面其他位置隐藏菜单
-    document.addEventListener('click', hideContextMenus);
-    document.addEventListener('touchstart', hideContextMenus);
 
     loadData();
   </script>
