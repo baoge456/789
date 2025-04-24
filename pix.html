@@ -26,17 +26,12 @@
       user-select: none;
     }
 
-    img.logo {
-      width: auto;
-      height: 100px;
-      margin-bottom: 20px;
-      object-fit: contain;
-    }
-
     h1 {
       font-size: 1.5rem;
       margin-bottom: 20px;
       text-align: center;
+      user-select: none;
+      cursor: default;
     }
 
     section#groupsContainer {
@@ -64,6 +59,7 @@
       font-size: 1.2em;
       font-weight: bold;
       cursor: pointer;
+      user-select: none;
     }
 
     .bookmark-list {
@@ -273,6 +269,10 @@
       background-color: #f0f0f0;
     }
 
+    #importExportMenu button#clearBtn {
+      color: #d33;
+    }
+
     #importInput {
       display: none;
     }
@@ -285,10 +285,11 @@
 
   <section id="groupsContainer"></section>
 
-  <!-- 导入导出菜单 -->
+  <!-- 导入导出菜单（新增清空数据按钮） -->
   <div id="importExportMenu">
     <button id="exportBtn">导出数据</button>
     <button id="importBtn">导入数据</button>
+    <button id="clearBtn">清空数据</button>
   </div>
   <input type="file" id="importInput" accept=".json" />
 
@@ -346,10 +347,10 @@
     const modalCancelBtn = document.getElementById('modalCancelBtn');
     const modalSaveBtn = document.getElementById('modalSaveBtn');
 
-    // 导入导出按钮和菜单
     const importExportMenu = document.getElementById('importExportMenu');
     const exportBtn = document.getElementById('exportBtn');
     const importBtn = document.getElementById('importBtn');
+    const clearBtn = document.getElementById('clearBtn');
     const importInput = document.getElementById('importInput');
 
     let groups = [];
@@ -377,23 +378,24 @@
 
     function createDefaultBookmarks() {
       return [{
-        id: generateId(),
-        title: '来购酷买',
-        url: 'https://lgkm.net',
-        favicon: ''
-      },
-      {
-        id: generateId(),
-        title: '314159 商城',
-        url: 'https://314159u.com',
-        favicon: ''
-      },
-      {
-        id: generateId(),
-        title: '元气山谷',
-        url: 'https://pipet.me',
-        favicon: ''
-      }];
+          id: generateId(),
+          title: '来购酷买',
+          url: 'https://lgkm.net',
+          favicon: ''
+        },
+        {
+          id: generateId(),
+          title: '314159 商城',
+          url: 'https://314159u.com',
+          favicon: ''
+        },
+        {
+          id: generateId(),
+          title: '元气山谷',
+          url: 'https://pipet.me',
+          favicon: ''
+        }
+      ];
     }
 
     function loadData() {
@@ -401,6 +403,7 @@
       if (data) {
         try {
           groups = JSON.parse(data);
+          if (!Array.isArray(groups)) throw new Error('数据格式不正确');
         } catch (error) {
           console.error("从本地存储加载数据时出错:", error);
           resetToDefault();
@@ -412,7 +415,11 @@
     }
 
     function saveData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+      } catch (error) {
+        console.error("保存数据失败:", error);
+      }
     }
 
     async function getFaviconUrl(url, customFavicon) {
@@ -434,6 +441,7 @@
         }
       });
     }
+
     async function createBookmarkElement(data, group) {
       const div = document.createElement('div');
       div.className = 'bookmark';
@@ -462,35 +470,41 @@
     }
 
     async function render() {
-      groupsContainer.innerHTML = '';
-      for (const group of groups) {
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'group';
+      try {
+        groupsContainer.innerHTML = '';
+        for (const group of groups) {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'group';
 
-        const header = document.createElement('div');
-        header.className = 'group-header';
+          const header = document.createElement('div');
+          header.className = 'group-header';
 
-        const title = document.createElement('div');
-        title.className = 'group-title';
-        title.textContent = group.name;
+          const title = document.createElement('div');
+          title.className = 'group-title';
+          title.textContent = group.name;
 
-        bindLongPressGroup(title, group);
+          bindLongPressGroup(title, group);
 
-        header.appendChild(title);
-        groupDiv.appendChild(header);
+          header.appendChild(title);
+          groupDiv.appendChild(header);
 
-        const bookmarkList = document.createElement('div');
-        bookmarkList.className = 'bookmark-list';
+          const bookmarkList = document.createElement('div');
+          bookmarkList.className = 'bookmark-list';
 
-        for (const bm of group.bookmarks) {
-          bm.favicon = await getFaviconUrl(bm.url, bm.favicon);
-          const bmEl = await createBookmarkElement(bm, group);
-          bookmarkList.appendChild(bmEl);
+          for (const bm of group.bookmarks) {
+            bm.favicon = await getFaviconUrl(bm.url, bm.favicon);
+            const bmEl = await createBookmarkElement(bm, group);
+            bookmarkList.appendChild(bmEl);
+          }
+          groupDiv.appendChild(bookmarkList);
+          groupsContainer.appendChild(groupDiv);
         }
-        groupDiv.appendChild(bookmarkList);
-        groupsContainer.appendChild(groupDiv);
+      } catch (error) {
+        console.error("渲染过程中出错:", error);
+        alert('渲染页面失败，请检查控制台错误信息！');
+      } finally {
+        saveData();
       }
-      saveData();
     }
 
     function bindLongPressBookmark(el, group, bookmark) {
@@ -650,8 +664,8 @@
       el.addEventListener('contextmenu', e => {
         e.preventDefault();
         currentGroup = group;
-        currentBookmark = bookmark;
-        showContextMenu(e.clientX, e.clientY);
+        currentBookmark = null;
+        showGroupContextMenu(e.clientX, e.clientY);
       });
     }
 
@@ -661,12 +675,13 @@
       menu.style.left = x + 'px';
       menu.style.top = y + 'px';
 
-      document.addEventListener('mousedown', function clickOutside(event) {
+      const onClickOutside = (event) => {
         if (!menu.contains(event.target)) {
           menu.style.display = 'none';
-          document.removeEventListener('mousedown', clickOutside);
+          document.removeEventListener('mousedown', onClickOutside);
         }
-      });
+      };
+      document.addEventListener('mousedown', onClickOutside);
     }
 
     function showGroupContextMenu(x, y) {
@@ -675,12 +690,13 @@
       menu.style.left = x + 'px';
       menu.style.top = y + 'px';
 
-      document.addEventListener('mousedown', function clickOutside(event) {
+      const onClickOutside = (event) => {
         if (!menu.contains(event.target)) {
           menu.style.display = 'none';
-          document.removeEventListener('mousedown', clickOutside);
+          document.removeEventListener('mousedown', onClickOutside);
         }
-      });
+      };
+      document.addEventListener('mousedown', onClickOutside);
     }
 
     function showImportExportMenu(x, y) {
@@ -689,37 +705,46 @@
       menu.style.left = x + 'px';
       menu.style.top = y + 'px';
 
-      document.addEventListener('mousedown', function clickOutside(event) {
+      const onClickOutside = (event) => {
         if (!menu.contains(event.target)) {
           menu.style.display = 'none';
-          document.removeEventListener('mousedown', clickOutside);
+          document.removeEventListener('mousedown', onClickOutside);
         }
-      });
+      };
+      document.addEventListener('mousedown', onClickOutside);
     }
 
     // 导出JSON数据
     exportBtn.addEventListener('click', () => {
-      const data = groups.map(group => ({
-        name: group.name,
-        bookmarks: group.bookmarks.map(bookmark => ({
-          title: bookmark.title,
-          url: bookmark.url,
-          favicon: bookmark.favicon
-        }))
-      }));
-      const dataStr = JSON.stringify(data);
-      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+      try {
+        const data = groups.map(group => ({
+          name: group.name,
+          bookmarks: group.bookmarks.map(bookmark => ({
+            title: bookmark.title,
+            url: bookmark.url,
+            favicon: bookmark.favicon
+          }))
+        }));
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
 
-      const exportFileDefaultName = 'bookmarks.json';
+        const exportFileDefaultName = 'bookmarks.json';
 
-      let linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
+        let linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        document.body.appendChild(linkElement);
+        linkElement.click();
+        document.body.removeChild(linkElement);
+      } catch (error) {
+        console.error("导出数据失败:", error);
+        alert('导出数据失败，请检查控制台错误信息！');
+      }
     });
 
     // 导入JSON数据
     importBtn.addEventListener('click', () => {
+      importInput.value = ''; // 重置文件选择，允许重复选择同一文件触发事件
       importInput.click();
     });
 
@@ -730,35 +755,66 @@
         reader.onload = function(e) {
           try {
             const importedData = JSON.parse(e.target.result);
-            // 检查是否为期望的格式
             if (typeof importedData === 'object' && importedData !== null) {
-              for (const groupName in importedData) {
-                if (importedData.hasOwnProperty(groupName)) {
-                  const bookmarks = importedData[groupName];
-                  if (Array.isArray(bookmarks)) {
+              let newGroups = [];
+              // 支持数组格式和对象格式
+              if (Array.isArray(importedData)) {
+                importedData.forEach(groupData => {
+                  if (groupData && typeof groupData === 'object' && groupData.name && Array.isArray(groupData.bookmarks)) {
                     const newGroup = {
                       id: generateId(),
-                      name: groupName,
+                      name: groupData.name,
                       bookmarks: []
                     };
-                    bookmarks.forEach(bookmark => {
-                      if (typeof bookmark === 'object' && bookmark !== null && bookmark.name && bookmark.url) {
+                    groupData.bookmarks.forEach(bookmarkData => {
+                      if (bookmarkData && typeof bookmarkData === 'object' && bookmarkData.title && bookmarkData.url) {
                         newGroup.bookmarks.push({
                           id: generateId(),
-                          title: bookmark.name,
-                          url: bookmark.url,
-                          favicon: bookmark.favicon || '' // 默认 favicon
+                          title: bookmarkData.title,
+                          url: bookmarkData.url,
+                          favicon: bookmarkData.favicon || ''
                         });
                       }
                     });
-                    groups.push(newGroup);
+                    newGroups.push(newGroup);
+                  }
+                });
+              } else {
+                for (const groupName in importedData) {
+                  if (importedData.hasOwnProperty(groupName)) {
+                    const bookmarks = importedData[groupName];
+                    if (Array.isArray(bookmarks)) {
+                      const newGroup = {
+                        id: generateId(),
+                        name: groupName,
+                        bookmarks: []
+                      };
+                      bookmarks.forEach(bookmark => {
+                        if (bookmark && typeof bookmark === 'object' && (bookmark.name || bookmark.title) && bookmark.url) {
+                          newGroup.bookmarks.push({
+                            id: generateId(),
+                            title: bookmark.name || bookmark.title,
+                            url: bookmark.url,
+                            favicon: bookmark.favicon || ''
+                          });
+                        }
+                      });
+                      newGroups.push(newGroup);
+                    }
                   }
                 }
               }
+
+              if (newGroups.length === 0) {
+                alert('导入失败：未检测到有效的书签分组和书签。');
+                return;
+              }
+
+              groups = groups.concat(newGroups);
               render();
               alert('导入成功！');
             } else {
-              alert('导入数据失败，文件格式不正确。');
+              alert('导入数据格式不正确。');
             }
           } catch (error) {
             console.error("导入数据失败:", error);
@@ -769,7 +825,18 @@
       }
     });
 
-    // 隐藏所有ContextMenu
+    // 清空数据按钮事件
+    clearBtn.addEventListener('click', () => {
+      if (confirm('确定要清空所有书签数据并恢复到初始状态吗？此操作不可撤销！')) {
+        hideContextMenus();
+        resetToDefault();
+        saveData();
+        render();
+        alert('书签数据已清空并恢复到初始状态。');
+      }
+    });
+
+    // 隐藏所有菜单
     function hideContextMenus() {
       contextMenu.style.display = 'none';
       groupContextMenu.style.display = 'none';
@@ -819,11 +886,16 @@
     deleteBookmarkBtn.addEventListener('click', () => {
       hideContextMenus();
       if (currentBookmark && currentGroup) {
-        currentGroup.bookmarks = currentGroup.bookmarks.filter(bm => bm.id !== currentBookmark.id);
-        saveData();
-        render();
-        currentBookmark = null;
-        currentGroup = null;
+        try {
+          currentGroup.bookmarks = currentGroup.bookmarks.filter(bm => bm.id !== currentBookmark.id);
+          currentBookmark = null;
+          currentGroup = null;
+          saveData();
+          render();
+        } catch (error) {
+          console.error("删除书签失败:", error);
+          alert('删除书签失败，请查看控制台');
+        }
       } else {
         alert('请先长按选择要删除的书签');
       }
@@ -870,10 +942,21 @@
     deleteGroupBtn.addEventListener('click', () => {
       hideContextMenus();
       if (currentGroup) {
-        groups = groups.filter(g => g.id !== currentGroup.id);
-        saveData();
-        render();
-        currentGroup = null;
+        try {
+          groups = groups.filter(g => g.id !== currentGroup.id);
+          currentGroup = null; // 清理状态，防止访问已删除对象
+
+          // 删除后无分组，恢复默认
+          if (groups.length === 0) {
+            resetToDefault();
+          }
+
+          saveData();
+          render();
+        } catch (error) {
+          console.error("删除分组失败:", error);
+          alert('删除分组失败，请查看控制台');
+        }
       } else {
         alert('请先长按选择要删除的分组');
       }
@@ -887,28 +970,50 @@
     // 保存弹窗
     modalSaveBtn.addEventListener('click', () => {
       if (isEditingBookmark) {
-        // 修改书签
         if (currentBookmark && currentGroup) {
-          currentBookmark.title = bookmarkTitleInput.value;
-          currentBookmark.url = bookmarkUrlInput.value;
-          currentBookmark.favicon = bookmarkFaviconInput.value;
+          const titleVal = bookmarkTitleInput.value.trim();
+          const urlVal = bookmarkUrlInput.value.trim();
+          if (!titleVal || !urlVal) {
+            alert('标题和链接不能为空！');
+            return;
+          }
+          currentBookmark.title = titleVal;
+          currentBookmark.url = urlVal;
+          currentBookmark.favicon = bookmarkFaviconInput.value.trim();
         }
       } else {
         if (bookmarkUrlLabel.style.display === 'none') {
-          // 添加分组
+          const newName = bookmarkTitleInput.value.trim();
+          if (!newName) {
+            alert('分组名称不能为空！');
+            return;
+          }
+          if (groups.some(g => g.name === newName)) {
+            alert('分组名称已存在！');
+            return;
+          }
           const newGroup = {
             id: generateId(),
-            name: bookmarkTitleInput.value,
+            name: newName,
             bookmarks: []
           };
           groups.push(newGroup);
         } else {
-          // 添加书签
+          const titleVal = bookmarkTitleInput.value.trim();
+          const urlVal = bookmarkUrlInput.value.trim();
+          if (!titleVal || !urlVal) {
+            alert('标题和链接不能为空！');
+            return;
+          }
+          if (!currentGroup) {
+            alert('当前分组不存在，无法添加书签');
+            return;
+          }
           const newBookmark = {
             id: generateId(),
-            title: bookmarkTitleInput.value,
-            url: bookmarkUrlInput.value,
-            favicon: bookmarkFaviconInput.value
+            title: titleVal,
+            url: urlVal,
+            favicon: bookmarkFaviconInput.value.trim()
           };
           currentGroup.bookmarks.push(newBookmark);
         }
@@ -918,7 +1023,7 @@
       render();
     });
 
-    // 绑定长按“书签导航”事件
+    // 绑定长按“书签导航”事件，显示导入导出菜单
     const title = document.querySelector('h1');
     bindLongPressTitle(title);
 
