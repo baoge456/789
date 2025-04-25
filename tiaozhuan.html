@@ -3,12 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>跳转选择面板</title>
+<title>跳转浏览器</title>
 <style>
-  /* Reset & base */
-  * {
-    box-sizing: border-box;
-  }
+  /* 省略，保持你原来的样式 */
+  * { box-sizing: border-box; }
   body {
     margin: 0; padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
@@ -51,11 +49,12 @@
     background: #4a90e2;
     color: white;
     border: none;
-    padding: 14px 28px;
-    font-size: 18px;
+    padding: 14px 20px;
+    font-size: 16px;
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    margin-right: 10px;
   }
   button:hover {
     background: #50e3c2;
@@ -64,6 +63,7 @@
     margin-top: 24px;
     word-break: break-all;
     font-size: 16px;
+    text-align: left;
   }
   a.link {
     color: #4a90e2;
@@ -78,12 +78,18 @@
     color: #666;
     margin-top: 16px;
   }
-  /* 跳转面板样式 */
-  .redirect-container p {
-    font-size: 17px;
-    line-height: 1.5;
-    margin-bottom: 16px;
-    color: #444;
+  .copy-btn {
+    background: #50e3c2;
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    color: #fff;
+    vertical-align: middle;
+  }
+  .copy-btn:hover {
+    background: #4ac9b8;
   }
 </style>
 </head>
@@ -95,14 +101,13 @@
 <script>
   (function(){
     const container = document.getElementById('app');
+    let copied = false; // 标记是否已复制跳转链接
 
-    // 从URL参数获取目标链接
     function getQueryParam(name) {
       const params = new URLSearchParams(window.location.search);
       return params.get(name);
     }
 
-    // 验证URL格式
     function isValidUrl(str) {
       try {
         new URL(str);
@@ -112,27 +117,83 @@
       }
     }
 
-    // 生成跳转链接
     function generateRedirectLink(targetUrl) {
       const baseUrl = window.location.origin + window.location.pathname;
       return `${baseUrl}?url=${encodeURIComponent(targetUrl)}`;
     }
 
-    // 渲染输入面板
+    function copyText(text) {
+      // 使用异步 Clipboard API 优先
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+      } else {
+        // 兼容旧版
+        const input = document.createElement('input');
+        input.style.position = 'fixed';
+        input.style.left = '-9999px';
+        input.value = text;
+        document.body.appendChild(input);
+        input.select();
+        input.setSelectionRange(0, input.value.length);
+        let success = false;
+        try {
+          success = document.execCommand('copy');
+        } catch (err) {
+          success = false;
+        }
+        document.body.removeChild(input);
+        return Promise.resolve(success);
+      }
+    }
+
+    // 自定义提示框，5秒后自动消失
+    function showAutoCloseTip(message) {
+      const existing = document.getElementById('autoCloseTip');
+      if (existing) existing.remove();
+
+      const tip = document.createElement('div');
+      tip.id = 'autoCloseTip';
+      tip.style.position = 'fixed';
+      tip.style.top = '20px';
+      tip.style.left = '50%';
+      tip.style.transform = 'translateX(-50%)';
+      tip.style.background = 'rgba(0,0,0,0.75)';
+      tip.style.color = '#fff';
+      tip.style.padding = '12px 24px';
+      tip.style.borderRadius = '6px';
+      tip.style.fontSize = '16px';
+      tip.style.zIndex = '9999';
+      tip.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+      tip.style.userSelect = 'none';
+      tip.textContent = message;
+
+      document.body.appendChild(tip);
+
+      setTimeout(() => {
+        tip.remove();
+      }, 5000);
+    }
+
     function renderInputPanel() {
+      copied = false;
+      container.classList.remove('redirect-container');
       container.innerHTML = `
-        <h1>生成跳转选择链接</h1>
+        <h1>跳转浏览器链接制作</h1>
         <input type="text" id="targetUrl" placeholder="请输入要发送的目标链接，例如：https://example.com" />
-        <button id="generateBtn">生成链接</button>
+        <div>
+          <button id="generateBtn">生成跳转链接</button>
+          <button id="expireBtn" type="button">生成24小时过期链接</button>
+        </div>
         <div class="result" id="result"></div>
         <p class="tip">将生成的链接发送到微信或支付宝，点击后会显示跳转提示，避免直接打开导致不识别或封禁。</p>
       `;
 
       const input = document.getElementById('targetUrl');
-      const btn = document.getElementById('generateBtn');
+      const generateBtn = document.getElementById('generateBtn');
+      const expireBtn = document.getElementById('expireBtn');
       const resultDiv = document.getElementById('result');
 
-      btn.onclick = () => {
+      generateBtn.onclick = () => {
         const val = input.value.trim();
         if (!val) {
           alert('请输入目标链接');
@@ -143,32 +204,99 @@
           return;
         }
         const redirectLink = generateRedirectLink(val);
+
         resultDiv.innerHTML = `
           <p>请将以下链接发送给对方：</p>
-          <a href="${redirectLink}" target="_blank" rel="noopener" class="link">${redirectLink}</a>
-        `;
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap: wrap;">
+            <a href="${redirectLink}" target="_blank" rel="noopener" class="link" id="generatedLink">${redirectLink}</a>
+            <button class="copy-btn" id="copyBtn">复制跳转链接</button>
+                  `;
+
+        copied = false; // 重置复制状态
+
+        const copyBtn = document.getElementById('copyBtn');
+        copyBtn.onclick = () => {
+          copyText(redirectLink).then(success => {
+            if (success) {
+              showAutoCloseTip('跳转链接已成功复制！');
+              copied = true;
+            } else {
+              alert('复制失败，请手动复制链接。');
+              copied = false;
+            }
+          });
+        };
+
+        const copyTargetBtn = document.getElementById('copyTargetBtn');
+        copyTargetBtn.onclick = () => {
+          copyText(val).then(success => {
+            if (success) {
+              showAutoCloseTip('目标链接已成功复制！');
+            } else {
+              alert('复制失败，请手动复制链接。');
+            }
+          });
+        };
+      };
+
+      expireBtn.onclick = () => {
+        if (!copied) {
+          alert('请先生成跳转链接并复制新生成的链接后，再生成24小时过期链接。');
+          return;
+        }
+        const val = input.value.trim();
+        if (!val) {
+          alert('请输入目标链接');
+          return;
+        }
+        if (!isValidUrl(val)) {
+          alert('请输入有效的URL链接');
+          return;
+        }
+        const expireUrl = `https://cp.653827.xyz/`;
+        window.open(expireUrl, '_blank');
       };
     }
 
-    // 渲染跳转提示面板
     function renderRedirectPanel(targetUrl) {
       container.classList.add('redirect-container');
       container.innerHTML = `
-        <h1>请使用浏览器打开链接</h1>
-        <p>请点击下面按钮，用浏览器打开目标链接。</p>
-        <button id="openBtn">用浏览器打开</button>
-        <p>或复制链接到浏览器地址栏：</p>
-        <a href="${targetUrl}" target="_blank" rel="noopener" class="link" id="targetLink">${targetUrl}</a>
+        <h1>请优先使用外部浏览器打开</h1>
+        <p>请点击下面<复制链接>按钮，使用用外部浏览器打开。</p>
+        
+        
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap: wrap; justify-content: center;">
+          <a href="${targetUrl}" target="_blank" rel="noopener" class="link" id="targetLink">${targetUrl}</a>
+          <button class="copy-btn" id="copyTargetBtn">复制链接</button>
+        </div>
+       <button id="openBtn">尽量不要直接打开！！！</button>
       `;
 
       const openBtn = document.getElementById('openBtn');
+      const copyTargetBtn = document.getElementById('copyTargetBtn');
+
       openBtn.onclick = () => {
-        // 尝试用window.open打开新窗口（浏览器打开）
-        window.open(targetUrl, '_blank');
+        // 尝试直接跳转
+        window.location.href = targetUrl;
+
+        // 由于微信内置浏览器限制，可能无法跳出
+        // 可以提示用户手动操作
+        setTimeout(() => {
+          alert('如果页面未跳转，请长按上方链接选择“用浏览器打开”，或点击复制按钮复制链接到浏览器地址栏打开。');
+        }, 1500);
+      };
+
+      copyTargetBtn.onclick = () => {
+        copyText(targetUrl).then(success => {
+          if (success) {
+            showAutoCloseTip('链接已成功复制！');
+          } else {
+            alert('复制失败，请手动复制链接。');
+          }
+        });
       };
     }
 
-    // 主逻辑
     const targetUrl = getQueryParam('url');
     if (targetUrl && isValidUrl(targetUrl)) {
       renderRedirectPanel(targetUrl);
