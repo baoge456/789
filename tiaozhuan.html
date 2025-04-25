@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>跳转选择面板</title>
+<style>
+  /* Reset & base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+      Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    background: linear-gradient(135deg, #4a90e2, #50e3c2);
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .container {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    max-width: 480px;
+    width: 100%;
+    padding: 30px 40px;
+    text-align: center;
+  }
+  h1 {
+    margin-bottom: 24px;
+    color: #222;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 14px 18px;
+    font-size: 16px;
+    border: 2px solid #4a90e2;
+    border-radius: 8px;
+    transition: border-color 0.3s ease;
+  }
+  input[type="text"]:focus {
+    outline: none;
+    border-color: #50e3c2;
+  }
+  button {
+    margin-top: 20px;
+    background: #4a90e2;
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #50e3c2;
+  }
+  .result {
+    margin-top: 24px;
+    word-break: break-all;
+    font-size: 16px;
+  }
+  a.link {
+    color: #4a90e2;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  a.link:hover {
+    text-decoration: underline;
+  }
+  p.tip {
+    font-size: 15px;
+    color: #666;
+    margin-top: 16px;
+  }
+  /* 跳转面板样式 */
+  .redirect-container p {
+    font-size: 17px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    color: #444;
+  }
+</style>
+</head>
+<body>
+  <div class="container" id="app">
+    <!-- 内容由JS控制 -->
+  </div>
+
+<script>
+  (function(){
+    const container = document.getElementById('app');
+
+    // 从URL参数获取目标链接
+    function getQueryParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    // 验证URL格式
+    function isValidUrl(str) {
+      try {
+        new URL(str);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // 生成跳转链接
+    function generateRedirectLink(targetUrl) {
+      const baseUrl = window.location.origin + window.location.pathname;
+      return `${baseUrl}?url=${encodeURIComponent(targetUrl)}`;
+    }
+
+    // 渲染输入面板
+    function renderInputPanel() {
+      container.innerHTML = `
+        <h1>生成跳转选择链接</h1>
+        <input type="text" id="targetUrl" placeholder="请输入要发送的目标链接，例如：https://example.com" />
+        <button id="generateBtn">生成链接</button>
+        <div class="result" id="result"></div>
+        <p class="tip">将生成的链接发送到微信或支付宝，点击后会显示跳转提示，避免直接打开导致不识别或封禁。</p>
+      `;
+
+      const input = document.getElementById('targetUrl');
+      const btn = document.getElementById('generateBtn');
+      const resultDiv = document.getElementById('result');
+
+      btn.onclick = () => {
+        const val = input.value.trim();
+        if (!val) {
+          alert('请输入目标链接');
+          return;
+        }
+        if (!isValidUrl(val)) {
+          alert('请输入有效的URL链接');
+          return;
+        }
+        const redirectLink = generateRedirectLink(val);
+        resultDiv.innerHTML = `
+          <p>请将以下链接发送给对方：</p>
+          <a href="${redirectLink}" target="_blank" rel="noopener" class="link">${redirectLink}</a>
+        `;
+      };
+    }
+
+    // 渲染跳转提示面板
+    function renderRedirectPanel(targetUrl) {
+      container.classList.add('redirect-container');
+      container.innerHTML = `
+        <h1>请使用浏览器打开链接</h1>
+        <p>为了避免微信或支付宝内置浏览器无法正常打开页面，请点击下面按钮，用手机自带浏览器打开目标链接。</p>
+        <button id="openBtn">用浏览器打开</button>
+        <p>或复制链接到浏览器地址栏：</p>
+        <a href="${targetUrl}" target="_blank" rel="noopener" class="link" id="targetLink">${targetUrl}</a>
+      `;
+
+      const openBtn = document.getElementById('openBtn');
+      openBtn.onclick = () => {
+        // 尝试用window.open打开新窗口（浏览器打开）
+        window.open(targetUrl, '_blank');
+      };
+    }
+
+    // 主逻辑
+    const targetUrl = getQueryParam('url');
+    if (targetUrl && isValidUrl(targetUrl)) {
+      renderRedirectPanel(targetUrl);
+    } else {
+      renderInputPanel();
+    }
+  })();
+</script>
+</body>
+</html>
