@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=yes" />
+  <title>书签管理</title>
+  <link rel="icon" href="https://s3.bmp.ovh/imgs/2025/04/24/c767656a890464c5.webp" alt="Pi Network Logo" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      background-color: #f9f9f9;
+      user-select: none;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      text-align: center;
+      user-select: none;
+      cursor: default;
+    }
+
+    section#groupsContainer {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .group {
+      background: #fff;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      padding: 10px 15px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      user-select: none;
+    }
+
+    .group-title {
+      font-size: 1.2em;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .bookmark-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .bookmark {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: background 0.2s;
+      width: calc(50% - 10px);
+      max-width: none;
+      position: relative;
+      user-select: none;
+    }
+
+    .bookmark:hover {
+      background: #e0e0e0;
+    }
+
+    .bookmark img {
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+      border-radius: 4px;
+      background: #eee;
+      flex-shrink: 0;
+    }
+
+    .bookmark a {
+      text-decoration: none;
+      color: inherit;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      user-select: text;
+      -webkit-touch-callout: none;
+    }
+
+    @media (min-width: 768px) {
+      .bookmark {
+        width: calc(33.33% - 10px);
+      }
+    }
+
+    /* 书签编辑菜单 */
+    #contextMenu {
+      position: fixed;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 6px;
+      padding: 5px 0;
+      width: 160px;
+      display: none;
+      z-index: 9999;
+      user-select: none;
+    }
+
+    #contextMenu button {
+      width: 100%;
+      padding: 8px 15px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #contextMenu button:hover {
+      background-color: #f0f0f0;
+    }
+
+    /* 分组编辑菜单 */
+    #groupContextMenu {
+      position: fixed;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 6px;
+      padding: 5px 0;
+      width: 160px;
+      display: none;
+      z-index: 9999;
+      user-select: none;
+    }
+
+    #groupContextMenu button {
+      width: 100%;
+      padding: 8px 15px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #groupContextMenu button:hover {
+      background-color: #f0f0f0;
+    }
+
+    #groupContextMenu button.delete {
+      color: #d33;
+    }
+
+    /* 编辑弹窗 */
+    #modalOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+
+    #modal {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    #modal h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+
+    #modal label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    #modal input[type=text] {
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    #modal .buttons {
+      text-align: right;
+    }
+
+    #modal .buttons button {
+      padding: 6px 15px;
+      margin-left: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #modal .buttons .cancel {
+      background: #ccc;
+      color: #333;
+    }
+
+    #modal .buttons .save {
+      background: #4CAF50;
+      color: white;
+    }
+
+    /* 导入导出样式 */
+    #importExportMenu {
+      position: fixed;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 6px;
+      padding: 5px 0;
+      width: 160px;
+      display: none;
+      z-index: 9999;
+      user-select: none;
+    }
+
+    #importExportMenu button {
+      width: 100%;
+      padding: 8px 15px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #importExportMenu button:hover {
+      background-color: #f0f0f0;
+    }
+
+    #importExportMenu button#clearBtn {
+      color: #d33;
+    }
+
+    #importInput {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>书签导航</h1>
+
+  <section id="groupsContainer"></section>
+
+  <!-- 导入导出菜单（新增清空数据按钮） -->
+  <div id="importExportMenu">
+    <button id="exportBtn">导出数据</button>
+    <button id="importBtn">导入数据</button>
+    <button id="clearBtn">清空数据</button>
+  </div>
+  <input type="file" id="importInput" accept=".json" />
+
+  <!-- 书签编辑菜单 -->
+  <div id="contextMenu">
+    <button id="addBookmarkBtn">添加书签</button>
+    <button id="editBookmarkBtn">修改书签</button>
+    <button id="deleteBookmarkBtn">删除书签</button>
+  </div>
+
+  <!-- 分组编辑菜单 -->
+  <div id="groupContextMenu">
+    <button id="addGroupFromMenuBtn">添加分组</button>
+    <button id="editGroupBtn">修改分组</button>
+    <button id="deleteGroupBtn" class="delete">删除分组</button>
+  </div>
+
+  <!-- 编辑弹窗 -->
+  <div id="modalOverlay">
+    <div id="modal">
+      <h2 id="modalTitle"></h2>
+      <label id="bookmarkTitleLabel" for="bookmarkTitleInput">标题</label>
+      <input type="text" id="bookmarkTitleInput" placeholder="请输入标题" />
+      <label id="bookmarkUrlLabel" for="bookmarkUrlInput">链接</label>
+      <input type="text" id="bookmarkUrlInput" placeholder="请输入链接" style="display:none;" />
+      <label id="bookmarkFaviconLabel" for="bookmarkFaviconInput">缩略图链接（可选）</label>
+      <input type="text" id="bookmarkFaviconInput" placeholder="自定义缩略图链接" style="display:none;" />
+      <div class="buttons">
+        <button class="cancel" id="modalCancelBtn">取消</button>
+        <button class="save" id="modalSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const groupsContainer = document.getElementById('groupsContainer');
+    const contextMenu = document.getElementById('contextMenu');
+    const addBookmarkBtn = document.getElementById('addBookmarkBtn');
+    const editBookmarkBtn = document.getElementById('editBookmarkBtn');
+    const deleteBookmarkBtn = document.getElementById('deleteBookmarkBtn');
+
+    const groupContextMenu = document.getElementById('groupContextMenu');
+    const addGroupFromMenuBtn = document.getElementById('addGroupFromMenuBtn');
+    const editGroupBtn = document.getElementById('editGroupBtn');
+    const deleteGroupBtn = document.getElementById('deleteGroupBtn');
+
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const bookmarkTitleInput = document.getElementById('bookmarkTitleInput');
+    const bookmarkUrlInput = document.getElementById('bookmarkUrlInput');
+    const bookmarkFaviconInput = document.getElementById('bookmarkFaviconInput');
+    const bookmarkTitleLabel = document.getElementById('bookmarkTitleLabel');
+    const bookmarkUrlLabel = document.getElementById('bookmarkUrlLabel');
+    const bookmarkFaviconLabel = document.getElementById('bookmarkFaviconLabel');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const modalSaveBtn = document.getElementById('modalSaveBtn');
+
+    const importExportMenu = document.getElementById('importExportMenu');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const importInput = document.getElementById('importInput');
+
+    let groups = [];
+    let currentGroup = null;
+    let currentBookmark = null;
+    let isEditingBookmark = false;
+    let isEditingGroup = false; // 新增：是否正在编辑分组的标志
+    let currentTargetGroup = null; // 用于存储当前长按的分组
+    let currentTargetBookmark = null; // 用于存储当前长按的书签
+    const STORAGE_KEY = 'pi_groups_data';
+    const LONG_PRESS_DURATION = 600;
+    let longPressTimer = null;
+    let isLongPress = false;
+    let moved = false;
+
+    function generateId() {
+      return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    }
+
+    function resetToDefault() {
+      groups = [{
+        id: generateId(),
+        name: '默认分组',
+        bookmarks: createDefaultBookmarks()
+      }];
+    }
+
+    function createDefaultBookmarks() {
+      return [{
+          id: generateId(),
+          title: '来购酷买',
+          url: 'https://lgkm.net',
+          favicon: ''
+        },
+        {
+          id: generateId(),
+          title: '314159 商城',
+          url: 'https://314159u.com',
+          favicon: ''
+        },
+        {
+          id: generateId(),
+          title: '元气山谷',
+          url: 'https://pipet.me',
+          favicon: ''
+        }
+      ];
+    }
+
+    function loadData() {
+      let data = localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        try {
+          groups = JSON.parse(data);
+          if (!Array.isArray(groups)) throw new Error('数据格式不正确');
+        } catch (error) {
+          console.error("从本地存储加载数据时出错:", error);
+          resetToDefault();
+        }
+      } else {
+        resetToDefault();
+      }
+      render();
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+      } catch (error) {
+        console.error("保存数据失败:", error);
+      }
+    }
+
+    async function getFaviconUrl(url, customFavicon) {
+      return new Promise(resolve => {
+        const defaultFavicon = 'https://via.placeholder.com/40?text=?';
+        if (customFavicon) {
+          resolve(customFavicon.trim());
+          return;
+        }
+        try {
+          const domain = new URL(url).hostname;
+          const cccyunUrl = `https://favicon.cccyun.cc/${url}`;
+          const img = new Image();
+          img.onload = () => resolve(cccyunUrl);
+          img.onerror = () => resolve(`https://www.google.com/s2/favicons?domain=${domain}`);
+          img.src = cccyunUrl;
+        } catch {
+          resolve(defaultFavicon);
+        }
+      });
+    }
+
+    async function createBookmarkElement(data, group) {
+      const div = document.createElement('div');
+      div.className = 'bookmark';
+      div.dataset.bookmarkId = data.id;
+      div.dataset.groupId = group.id;
+
+      const img = document.createElement('img');
+      img.alt = '图标';
+      img.src = data.favicon || 'https://via.placeholder.com/40?text=?';
+      img.onerror = () => {
+        img.src = 'https://via.placeholder.com/40?text=?';
+      };
+
+      const a = document.createElement('a');
+      a.href = data.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = data.title;
+
+      div.appendChild(img);
+      div.appendChild(a);
+
+      bindLongPressBookmark(div, group, data);
+
+      return div;
+    }
+
+    async function render() {
+      try {
+        groupsContainer.innerHTML = '';
+        for (const group of groups) {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'group';
+
+          const header = document.createElement('div');
+          header.className = 'group-header';
+
+          const title = document.createElement('div');
+          title.className = 'group-title';
+          title.textContent = group.name;
+
+          bindLongPressGroup(title, group);
+
+          header.appendChild(title);
+          groupDiv.appendChild(header);
+
+          const bookmarkList = document.createElement('div');
+          bookmarkList.className = 'bookmark-list';
+
+          for (const bm of group.bookmarks) {
+            bm.favicon = await getFaviconUrl(bm.url, bm.favicon);
+            const bmEl = await createBookmarkElement(bm, group);
+            bookmarkList.appendChild(bmEl);
+          }
+          groupDiv.appendChild(bookmarkList);
+          groupsContainer.appendChild(groupDiv);
+        }
+      } catch (error) {
+        console.error("渲染过程中出错:", error);
+        alert('渲染页面失败，请检查控制台错误信息！');
+      } finally {
+        saveData();
+      }
+    }
+
+    function bindLongPressBookmark(el, group, bookmark) {
+      let startX = 0,
+        startY = 0;
+      let longPressTimer;
+      let moved = false;
+
+      const show = (x, y) => {
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = x + 'px';
+        contextMenu.style.top = y + 'px';
+      }
+
+      el.addEventListener('touchstart', e => {
+        moved = false;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true;
+          currentGroup = group;
+          currentBookmark = bookmark;
+          currentTargetBookmark = el;
+          show(startX, startY);
+          e.preventDefault();
+          e.stopPropagation();
+        }, LONG_PRESS_DURATION);
+      }, {
+        passive: false
+      });
+
+      el.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) {
+          moved = true;
+          clearTimeout(longPressTimer);
+        }
+      }, {
+        passive: true
+      });
+
+      el.addEventListener('touchend', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) {
+          e.preventDefault();
+          e.stopPropagation();
+        } else if (!moved) {
+          window.open(bookmark.url, '_blank');
+        }
+        isLongPress = false;
+        moved = false;
+      });
+
+      el.addEventListener('mousedown', e => {
+        if (e.button === 0) {
+          moved = false;
+          startX = e.clientX;
+          startY = e.clientY;
+          longPressTimer = setTimeout(() => {
+            isLongPress = true;
+            currentGroup = group;
+            currentBookmark = bookmark;
+            currentTargetBookmark = el;
+            show(startX, startY);
+            e.preventDefault();
+            e.stopPropagation();
+          }, LONG_PRESS_DURATION);
+        }
+      });
+
+      el.addEventListener('mousemove', e => {
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+        if (dx > 5 || dy > 5) {
+          clearTimeout(longPressTimer);
+          moved = true;
+        }
+      });
+
+      el.addEventListener('mouseup', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) {
+          e.preventDefault();
+          e.stopPropagation();
+        } else if (!moved) {
+          window.open(bookmark.url, '_blank');
+        }
+        isLongPress = false;
+        moved = false;
+      });
+
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        currentGroup = group;
+        currentBookmark = bookmark;
+        currentTargetBookmark = el;
+        show(e.clientX, e.clientY);
+      });
+    }
+
+    function bindLongPressGroup(el, group) {
+      let startX = 0,
+        startY = 0;
+      let longPressTimer;
+      let moved = false;
+
+      const showGroup = (x, y) => {
+        groupContextMenu.style.display = 'block';
+        groupContextMenu.style.left = x + 'px';
+        groupContextMenu.style.top = y + 'px';
+      }
+
+      el.addEventListener('touchstart', e => {
+        moved = false;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true;
+          currentGroup = group;
+          currentTargetGroup = el; // 存储当前长按的分组
+          currentBookmark = null;
+          showGroup(startX, startY);
+          e.preventDefault();
+          e.stopPropagation();
+        }, LONG_PRESS_DURATION);
+      }, {
+        passive: false
+      });
+
+      el.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) {
+          moved = true;
+          clearTimeout(longPressTimer);
+        }
+      }, {
+        passive: true
+      });
+
+      el.addEventListener('touchend', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        isLongPress = false;
+        moved = false;
+      });
+
+      el.addEventListener('mousedown', e => {
+        if (e.button === 0) {
+          moved = false;
+          startX = e.clientX;
+          startY = e.clientY;
+          longPressTimer = setTimeout(() => {
+            isLongPress = true;
+            currentGroup = group;
+            currentTargetGroup = el; // 存储当前长按的分组
+            currentBookmark = null;
+            showGroup(startX, startY);
+            e.preventDefault();
+            e.stopPropagation();
+          }, LONG_PRESS_DURATION);
+        }
+      });
+
+      el.addEventListener('mousemove', e => {
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+        if (dx > 5 || dy > 5) {
+          clearTimeout(longPressTimer);
+          moved = true;
+        }
+      });
+
+      el.addEventListener('mouseup', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        isLongPress = false;
+        moved = false;
+      });
+
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        currentGroup = group;
+        currentTargetGroup = el; // 存储当前长按的分组
+        currentBookmark = null;
+        showGroup(e.clientX, e.clientY);
+      });
+    }
+
+    function showContextMenu(x, y) {
+      contextMenu.style.display = 'block';
+      contextMenu.style.left = x + 'px';
+      contextMenu.style.top = y + 'px';
+    }
+
+    function hideContextMenu() {
+      contextMenu.style.display = 'none';
+    }
+
+    function showGroupContextMenu(x, y) {
+      groupContextMenu.style.display = 'block';
+      groupContextMenu.style.left = x + 'px';
+      groupContextMenu.style.top = y + 'px';
+    }
+
+    function hideGroupContextMenu() {
+      groupContextMenu.style.display = 'none';
+    }
+
+    function showModal() {
+      modalOverlay.style.display = 'flex';
+    }
+
+    function hideModal() {
+      modalOverlay.style.display = 'none';
+    }
+
+    // 添加书签
+    addBookmarkBtn.addEventListener('click', () => {
+      hideContextMenu();
+      isEditingBookmark = false;
+      modalTitle.textContent = '添加书签';
+      bookmarkTitleInput.value = '';
+      bookmarkUrlInput.value = '';
+      bookmarkFaviconInput.value = '';
+      bookmarkUrlInput.style.display = 'block';
+      bookmarkFaviconInput.style.display = 'block';
+      bookmarkTitleLabel.style.display = 'block';
+      bookmarkUrlLabel.style.display = 'block';
+      bookmarkFaviconLabel.style.display = 'block';
+      showModal();
+    });
+
+    // 修改书签
+    editBookmarkBtn.addEventListener('click', () => {
+      hideContextMenu();
+      if (currentBookmark) {
+        isEditingBookmark = true;
+        isEditingGroup = false; // 确保不是在编辑分组
+        modalTitle.textContent = '修改书签';
+        bookmarkTitleInput.value = currentBookmark.title;
+        bookmarkUrlInput.value = currentBookmark.url;
+        bookmarkFaviconInput.value = currentBookmark.favicon || '';
+        bookmarkUrlInput.style.display = 'block';
+        bookmarkFaviconInput.style.display = 'block';
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'block';
+        bookmarkFaviconLabel.style.display = 'block';
+        showModal();
+      }
+    });
+
+    // 删除书签
+    deleteBookmarkBtn.addEventListener('click', () => {
+      hideContextMenu();
+      if (currentGroup && currentBookmark) {
+        currentGroup.bookmarks = currentGroup.bookmarks.filter(bm => bm.id !== currentBookmark.id);
+        render();
+      }
+    });
+
+    // 添加分组
+    addGroupFromMenuBtn.addEventListener('click', () => {
+      groupContextMenu.style.display = 'none';
+      addGroup('新建分组', currentGroup);
+    });
+
+    // 修改分组
+    editGroupBtn.addEventListener('click', () => {
+      groupContextMenu.style.display = 'none';
+      if (currentGroup) {
+        isEditingBookmark = false;
+        isEditingGroup = true; // 标记为正在编辑分组
+        modalTitle.textContent = '修改分组名称';
+        bookmarkTitleInput.value = currentGroup.name;
+        bookmarkUrlInput.style.display = 'none';
+        bookmarkFaviconInput.style.display = 'none';
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'none';
+        bookmarkFaviconLabel.style.display = 'none';
+        showModal();
+      }
+    });
+
+    // 删除分组
+    deleteGroupBtn.addEventListener('click', () => {
+      groupContextMenu.style.display = 'none';
+      if (currentGroup) {
+        groups = groups.filter(group => group.id !== currentGroup.id);
+        render();
+      }
+    });
+
+    // 保存弹窗
+    modalSaveBtn.addEventListener('click', () => {
+      const title = bookmarkTitleInput.value.trim();
+      if (!title) {
+        alert('标题不能为空！');
+        return;
+      }
+
+      if (isEditingBookmark) {
+        // 修改书签
+        if (modalTitle.textContent === '修改书签') {
+          const url = bookmarkUrlInput.value.trim();
+          if (!url) {
+            alert('链接不能为空！');
+            return;
+          }
+          const favicon = bookmarkFaviconInput.value.trim();
+          currentBookmark.title = title;
+          currentBookmark.url = url;
+          currentBookmark.favicon = favicon;
+        }
+      } else if (isEditingGroup) {
+        // 修改分组名称
+        currentGroup.name = title;
+      } else {
+        // 添加书签
+        if (modalTitle.textContent === '添加书签') {
+          const url = bookmarkUrlInput.value.trim();
+          if (!url) {
+            alert('链接不能为空！');
+            return;
+          }
+          const favicon = bookmarkFaviconInput.value.trim();
+          const newBookmark = {
+            id: generateId(),
+            title: title,
+            url: url,
+            favicon: favicon
+          };
+
+          // 插入书签到当前书签后面
+          if (currentTargetBookmark) {
+            const bookmarkIndex = currentGroup.bookmarks.findIndex(bm => bm.id === currentBookmark.id);
+            if (bookmarkIndex !== -1) {
+              currentGroup.bookmarks.splice(bookmarkIndex + 1, 0, newBookmark);
+            } else {
+              currentGroup.bookmarks.push(newBookmark);
+            }
+          } else {
+            currentGroup.bookmarks.push(newBookmark);
+          }
+        }
+        // 添加分组已经在 addGroup 函数中处理
+      }
+      hideModal();
+      render();
+    });
+
+    // 取消弹窗
+    modalCancelBtn.addEventListener('click', () => {
+      hideModal();
+      isEditingGroup = false; // 取消编辑分组状态
+    });
+
+    // 添加分组的逻辑
+    function addGroup(name, currentGroup) {
+      const newGroup = {
+        id: generateId(),
+        name: name || '新建分组',
+        bookmarks: [{
+          id: generateId(),
+          title: '默认书签',
+          url: 'https://www.example.com',
+          favicon: ''
+        }]
+      };
+
+      // 找到当前分组的索引
+      if (currentGroup) {
+        const index = groups.findIndex(group => group.id === currentGroup.id);
+
+        // 如果找到，则将新分组插入到当前分组的后面；否则，添加到数组末尾
+        if (index !== -1) {
+          groups.splice(index + 1, 0, newGroup);
+        } else {
+          groups.push(newGroup);
+        }
+      } else {
+        groups.push(newGroup);
+      }
+      render();
+      saveData();
+    }
+
+    // 导出数据
+    exportBtn.addEventListener('click', () => {
+      const dataStr = JSON.stringify(groups, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+      const exportFileName = 'bookmarks.json';
+
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileName);
+      linkElement.click();
+    });
+
+    // 导入数据
+    importBtn.addEventListener('click', () => {
+      importInput.click();
+    });
+
+    importInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const json = JSON.parse(e.target.result);
+            if (Array.isArray(json)) {
+              groups = json;
+              render();
+              alert('数据导入成功！');
+            } else {
+              alert('导入的文件数据格式不正确，请检查文件内容。');
+            }
+          } catch (error) {
+            console.error('导入数据失败:', error);
+            alert('导入数据失败，请检查文件内容是否为正确的JSON格式。');
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    // 清空数据
+    clearBtn.addEventListener('click', () => {
+      if (confirm('确定要清空所有数据吗？此操作不可逆！')) {
+        resetToDefault();
+        render();
+        saveData();
+        alert('数据已清空，恢复到默认状态。');
+      }
+    });
+
+    // 隐藏所有菜单
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('#contextMenu')) {
+        hideContextMenu();
+      }
+      if (!event.target.closest('#groupContextMenu')) {
+        hideGroupContextMenu();
+      }
+      if (!event.target.closest('#importExportMenu')) {
+        importExportMenu.style.display = 'none';
+      }
+    });
+
+    // 初始化加载数据
+    loadData();
+  </script>
+</body>
+
+</html>
