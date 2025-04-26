@@ -924,25 +924,54 @@ function addGroup(name) {
 }
 
 
-    // 修改分组
-    editGroupBtn.addEventListener('click', () => {
-      hideContextMenus();
-      if (currentGroup) {
-        isEditingBookmark = false;
-        modalTitle.textContent = '修改分组';
-        bookmarkTitleLabel.textContent = '分组名称';
-        bookmarkTitleLabel.style.display = 'block';
-        bookmarkTitleInput.style.display = 'block';
-        bookmarkUrlLabel.style.display = 'none';
-        bookmarkUrlInput.style.display = 'none';
-        bookmarkFaviconLabel.style.display = 'none';
-        bookmarkFaviconInput.style.display = 'none';
-        bookmarkTitleInput.value = currentGroup.name;
-        modalOverlay.style.display = 'flex';
-      } else {
-        alert('请先长按选择要修改的分组');
+    
+   // 修改分组
+editGroupBtn.addEventListener('click', () => {
+  hideContextMenus();
+  if (currentGroup) {
+    isEditingBookmark = false;
+    modalTitle.textContent = '修改分组';
+    bookmarkTitleLabel.textContent = '分组名称';
+    bookmarkTitleLabel.style.display = 'block';
+    bookmarkTitleInput.style.display = 'block';
+    bookmarkUrlLabel.style.display = 'none';
+    bookmarkUrlInput.style.display = 'none';
+    bookmarkFaviconLabel.style.display = 'none';
+    bookmarkFaviconInput.style.display = 'none';
+    bookmarkTitleInput.value = currentGroup.name; // 预填当前分组名称
+    modalOverlay.style.display = 'flex';
+  } else {
+    alert('请先长按选择要修改的分组');
+  }
+});
+
+// 保存弹窗（修改分组）
+modalSaveBtn.addEventListener('click', () => {
+  if (isEditingBookmark) {
+    // 处理书签编辑
+    // ... 现有的书签编辑逻辑 ...
+  } else {
+    if (bookmarkUrlLabel.style.display === 'none') {
+      const newName = bookmarkTitleInput.value.trim();
+      if (!newName) {
+        alert('分组名称不能为空！');
+        return;
       }
-    });
+      if (groups.some(g => g.name === newName && g.id !== currentGroup.id)) {
+        alert('分组名称已存在！');
+        return;
+      }
+      // 更新当前分组名称
+      currentGroup.name = newName;
+    } else {
+      // 处理书签添加
+      // ... 现有的书签添加逻辑 ...
+    }
+  }
+  modalOverlay.style.display = 'none';
+  saveData();
+  render();
+});
 
     // 删除分组
     deleteGroupBtn.addEventListener('click', () => {
