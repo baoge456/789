@@ -442,43 +442,88 @@
       });
     }
 
-  async function createBookmarkElement(data, group) {
-  const div = document.createElement('div');
-  div.className = 'bookmark';
-  div.dataset.bookmarkId = data.id;
-  div.dataset.groupId = group.id;
+    async function createBookmarkElement(data, group) {
+      const div = document.createElement('div');
+      div.className = 'bookmark';
+      div.dataset.bookmarkId = data.id;
+      div.dataset.groupId = group.id;
 
-  const img = document.createElement('img');
-  img.alt = '图标';
-  img.src = data.favicon || 'https://via.placeholder.com/40?text=?';
-  img.onerror = () => {
-    img.src = 'https://via.placeholder.com/40?text=?';
-  };
+      const img = document.createElement('img');
+      img.alt = '图标';
+      img.src = data.favicon || 'https://via.placeholder.com/40?text=?';
+      img.onerror = () => {
+        img.src = 'https://via.placeholder.com/40?text=?';
+      };
 
-  const a = document.createElement('a');
-  a.href = data.url;
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  a.textContent = data.title;
+      const a = document.createElement('a');
+      a.href = data.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = data.title;
 
-  div.appendChild(img);
-  div.appendChild(a);
+      div.appendChild(img);
+      div.appendChild(a);
 
-  // 确保只绑定一次事件
-  bindLongPressBookmark(div, group, data);
-  bindClickBookmark(div, data); // 添加新的点击处理函数
+      // 确保只绑定一次事件
+      bindLongPressBookmark(div, group, data);
+      bindClickBookmark(div, data); // 绑定点击事件
 
-  return div;
-}
-
-// 新增点击事件处理函数
-function bindClickBookmark(el, bookmark) {
-  el.addEventListener('click', (e) => {
-    if (!isLongPress) {
-      window.open(bookmark.url, '_blank');
+      return div;
     }
-  });
-}
+
+    function bindClickBookmark(el, bookmark) {
+      let clickHandled = false; // 标志位
+
+      el.addEventListener('click', (e) => {
+        if (!clickHandled) {
+          clickHandled = true; // 标记为已处理
+          window.open(bookmark.url, '_blank');
+          setTimeout(() => {
+            clickHandled = false; // 重置标志位
+          }, 300); // 防止短时间内重复点击
+        }
+      });
+    }
+
+    function bindLongPressBookmark(el, group, bookmark) {
+      let startX = 0,
+          startY = 0;
+
+      el.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true;
+          currentGroup = group;
+          currentBookmark = bookmark;
+          showContextMenu(startX, startY);
+        }, LONG_PRESS_DURATION);
+      }, { passive: false });
+
+      el.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) {
+          clearTimeout(longPressTimer);
+        }
+      }, { passive: true });
+
+      el.addEventListener('touchend', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        isLongPress = false;
+      });
+
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        currentGroup = group;
+        currentBookmark = bookmark;
+        showContextMenu(e.clientX, e.clientY);
+      });
+    }
 
     async function render() {
       try {
@@ -518,93 +563,9 @@ function bindClickBookmark(el, bookmark) {
       }
     }
 
-    function bindLongPressBookmark(el, group, bookmark) {
-      let startX = 0,
-        startY = 0;
-
-      el.addEventListener('touchstart', e => {
-        moved = false;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        longPressTimer = setTimeout(() => {
-          isLongPress = true;
-          currentGroup = group;
-          currentBookmark = bookmark;
-          showContextMenu(startX, startY);
-        }, LONG_PRESS_DURATION);
-      }, {
-        passive: false
-      });
-
-      el.addEventListener('touchmove', e => {
-        const dx = Math.abs(e.touches[0].clientX - startX);
-        const dy = Math.abs(e.touches[0].clientY - startY);
-        if (dx > 10 || dy > 10) {
-          moved = true;
-          clearTimeout(longPressTimer);
-        }
-      }, {
-        passive: true
-      });
-
-      el.addEventListener('touchend', e => {
-        clearTimeout(longPressTimer);
-        if (isLongPress) {
-          e.preventDefault();
-          e.stopPropagation();
-        } else if (!moved) {
-          window.open(bookmark.url, '_blank');
-        }
-        isLongPress = false;
-        moved = false;
-      });
-
-      el.addEventListener('mousedown', e => {
-        if (e.button === 0) {
-          moved = false;
-          startX = e.clientX;
-          startY = e.clientY;
-          longPressTimer = setTimeout(() => {
-            isLongPress = true;
-            currentGroup = group;
-            currentBookmark = bookmark;
-            showContextMenu(startX, startY);
-          }, LONG_PRESS_DURATION);
-        }
-      });
-
-      el.addEventListener('mousemove', e => {
-        const dx = Math.abs(e.clientX - startX);
-        const dy = Math.abs(e.clientY - startY);
-        if (dx > 5 || dy > 5) {
-          clearTimeout(longPressTimer);
-          moved = true;
-        }
-      });
-
-      el.addEventListener('mouseup', e => {
-        clearTimeout(longPressTimer);
-        if (isLongPress) {
-          e.preventDefault();
-          e.stopPropagation();
-        } else if (!moved) {
-          window.open(bookmark.url, '_blank');
-        }
-        isLongPress = false;
-        moved = false;
-      });
-
-      el.addEventListener('contextmenu', e => {
-        e.preventDefault();
-        currentGroup = group;
-        currentBookmark = bookmark;
-        showContextMenu(e.clientX, e.clientY);
-      });
-    }
-
     function bindLongPressGroup(el, group) {
       let startX = 0,
-        startY = 0;
+          startY = 0;
 
       el.addEventListener('touchstart', e => {
         moved = false;
@@ -616,20 +577,16 @@ function bindClickBookmark(el, bookmark) {
           currentBookmark = null;
           showGroupContextMenu(startX, startY);
         }, LONG_PRESS_DURATION);
-      }, {
-        passive: false
-      });
+      }, { passive: false });
 
-      el.addEventListener('touchmove', e => {
+     el.addEventListener('touchmove', e => {
         const dx = Math.abs(e.touches[0].clientX - startX);
         const dy = Math.abs(e.touches[0].clientY - startY);
         if (dx > 10 || dy > 10) {
           moved = true;
           clearTimeout(longPressTimer);
         }
-      }, {
-        passive: true
-      });
+      }, { passive: true });
 
       el.addEventListener('touchend', e => {
         clearTimeout(longPressTimer);
@@ -914,75 +871,45 @@ function bindClickBookmark(el, bookmark) {
 
     // 添加分组
     addGroupFromMenuBtn.addEventListener('click', () => {
-  groupContextMenu.style.display = 'none';
-  addGroup('新建分组');
-});
+      groupContextMenu.style.display = 'none';
+      addGroup('新建分组');
+    });
 
-function addGroup(name) {
-  const newGroup = {
-    id: generateId(),
-    name: name || '新建分组',
-    bookmarks: [{
-      id: generateId(),
-      title: '默认书签',
-      url: 'https://www.example.com',
-      favicon: ''
-    }]
-  };
-  groups.push(newGroup);
-  render();
-  saveData();
-}
-
-
-    
-   // 修改分组
-editGroupBtn.addEventListener('click', () => {
-  hideContextMenus();
-  if (currentGroup) {
-    isEditingBookmark = false;
-    modalTitle.textContent = '修改分组';
-    bookmarkTitleLabel.textContent = '分组名称';
-    bookmarkTitleLabel.style.display = 'block';
-    bookmarkTitleInput.style.display = 'block';
-    bookmarkUrlLabel.style.display = 'none';
-    bookmarkUrlInput.style.display = 'none';
-    bookmarkFaviconLabel.style.display = 'none';
-    bookmarkFaviconInput.style.display = 'none';
-    bookmarkTitleInput.value = currentGroup.name; // 预填当前分组名称
-    modalOverlay.style.display = 'flex';
-  } else {
-    alert('请先长按选择要修改的分组');
-  }
-});
-
-// 保存弹窗（修改分组）
-modalSaveBtn.addEventListener('click', () => {
-  if (isEditingBookmark) {
-    // 处理书签编辑
-    // ... 现有的书签编辑逻辑 ...
-  } else {
-    if (bookmarkUrlLabel.style.display === 'none') {
-      const newName = bookmarkTitleInput.value.trim();
-      if (!newName) {
-        alert('分组名称不能为空！');
-        return;
-      }
-      if (groups.some(g => g.name === newName && g.id !== currentGroup.id)) {
-        alert('分组名称已存在！');
-        return;
-      }
-      // 更新当前分组名称
-      currentGroup.name = newName;
-    } else {
-      // 处理书签添加
-      // ... 现有的书签添加逻辑 ...
+    function addGroup(name) {
+      const newGroup = {
+        id: generateId(),
+        name: name || '新建分组',
+        bookmarks: [{
+          id: generateId(),
+          title: '默认书签',
+          url: 'https://www.example.com',
+          favicon: ''
+        }]
+      };
+      groups.push(newGroup);
+      render();
+      saveData();
     }
-  }
-  modalOverlay.style.display = 'none';
-  saveData();
-  render();
-});
+
+    // 修改分组
+    editGroupBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (currentGroup) {
+        isEditingBookmark = false;
+        modalTitle.textContent = '修改分组';
+        bookmarkTitleLabel.textContent = '分组名称';
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkTitleInput.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'none';
+        bookmarkUrlInput.style.display = 'none';
+        bookmarkFaviconLabel.style.display = 'none';
+        bookmarkFaviconInput.style.display = 'none';
+        bookmarkTitleInput.value = currentGroup.name;
+        modalOverlay.style.display = 'flex';
+      } else {
+        alert('请先长按选择要修改的分组');
+      }
+    });
 
     // 删除分组
     deleteGroupBtn.addEventListener('click', () => {
@@ -1075,7 +1002,7 @@ modalSaveBtn.addEventListener('click', () => {
 
     function bindLongPressTitle(el) {
       let startX = 0,
-        startY = 0;
+          startY = 0;
 
       el.addEventListener('touchstart', e => {
         moved = false;
@@ -1085,9 +1012,7 @@ modalSaveBtn.addEventListener('click', () => {
           isLongPress = true;
           showImportExportMenu(startX, startY);
         }, LONG_PRESS_DURATION);
-      }, {
-        passive: false
-      });
+      }, { passive: false });
 
       el.addEventListener('touchmove', e => {
         const dx = Math.abs(e.touches[0].clientX - startX);
@@ -1096,9 +1021,7 @@ modalSaveBtn.addEventListener('click', () => {
           moved = true;
           clearTimeout(longPressTimer);
         }
-      }, {
-        passive: true
-      });
+      }, { passive: true });
 
       el.addEventListener('touchend', e => {
         clearTimeout(longPressTimer);
