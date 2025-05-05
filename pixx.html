@@ -202,27 +202,31 @@
   <script>
     // ====== 密码保护开始 ======
     const PAGE_PASSWORD = 'baoge888'; // TODO: 在此处设置访问密码
-    (function passwordProtect() {
+    const VERIFIED_KEY = 'pi_bookmark_verified';
+    if (localStorage.getItem(VERIFIED_KEY) === '1') {
+      document.body.style.display = '';
+    } else {
       let tryCount = 0;
       while (true) {
         const input = prompt('请输入访问密码：');
         if (input === null) {
           document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40vh;">已取消访问</h2>';
-          return;
+          throw new Error('用户取消访问');
         }
         if (input === PAGE_PASSWORD) {
+          localStorage.setItem(VERIFIED_KEY, '1');
           document.body.style.display = '';
           break;
         } else {
           tryCount++;
           if (tryCount >= 3) {
             document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40vh;">密码错误次数过多，禁止访问</h2>';
-            return;
+            throw new Error('密码错误次数过多');
           }
           alert('密码错误，请重试！');
         }
       }
-    })();
+    }
     // ====== 密码保护结束 ======
   </script>
   <h1>书签导航</h1>
