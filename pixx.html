@@ -35,7 +35,6 @@
       width: 100%;
     }
     .group {
-      background: linear-gradient(135deg, #f3e7fa 0%, #e3f0ff 100%);
       border-radius: 14px;
       margin-bottom: 24px;
       padding: 14px 18px 18px 18px;
@@ -200,8 +199,8 @@
 </head>
 <body style="display:none;">
   <script>
-    // ====== 密码保护开始 ======
-    const PAGE_PASSWORD = 'baoge888'; // TODO: 在此处设置访问密码
+    // 密码保护
+    const PAGE_PASSWORD = 'baoge888';
     const VERIFIED_KEY = 'pi_bookmark_verified';
     if (localStorage.getItem(VERIFIED_KEY) === '1') {
       document.body.style.display = '';
@@ -227,7 +226,6 @@
         }
       }
     }
-    // ====== 密码保护结束 ======
   </script>
   <h1>书签导航</h1>
   <section id="groupsContainer"></section>
@@ -267,6 +265,30 @@
     </div>
   </div>
   <script>
+    // 分组背景色数组
+    const GROUP_BG_COLORS = [
+      "linear-gradient(135deg, #f3e7fa 0%, #e3f0ff 100%)",
+      "linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%)",
+      "linear-gradient(135deg, #f9fbe7 0%, #e0f7fa 100%)",
+      "linear-gradient(135deg, #ffe0e9 0%, #fff1eb 100%)",
+      "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)",
+      "linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)",
+      "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+      "linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)",
+      "linear-gradient(135deg, #f6d365 0%, #fda085 100%)",
+      "linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)",
+      "linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)",
+      "linear-gradient(135deg, #fbc2eb 0%, #fbc2eb 100%)",
+      "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+      "linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%)",
+      "linear-gradient(135deg, #f9fbe7 0%, #e0f7fa 100%)",
+      "linear-gradient(135deg, #ffe0e9 0%, #fff1eb 100%)"
+    ];
+    const FAVICON_PATTERNS = [
+      domain => `https://www.google.com/s2/favicons?domain=${domain}`,
+      origin => `https://favicon.cccyun.cc/${origin}`,
+      domain => `https://favicon.im/${domain}`
+    ];
     const groupsContainer = document.getElementById('groupsContainer');
     const contextMenu = document.getElementById('contextMenu');
     const addBookmarkBtn = document.getElementById('addBookmarkBtn');
@@ -303,13 +325,6 @@
     let longPressTimer = null;
     let isLongPress = false;
     let moved = false;
-
-    // 依次切换三种缩略图部署链接
-    const FAVICON_PATTERNS = [
-      domain => `https://www.google.com/s2/favicons?domain=${domain}`,
-      origin => `https://favicon.cccyun.cc/${origin}`,
-      domain => `https://favicon.im/${domain}`
-    ];
 
     function getDomainAndOrigin(url) {
       try {
@@ -432,9 +447,11 @@
     async function render() {
       try {
         groupsContainer.innerHTML = '';
-        for (const group of groups) {
+        for (let i = 0; i < groups.length; i++) {
+          const group = groups[i];
           const groupDiv = document.createElement('div');
           groupDiv.className = 'group';
+          groupDiv.style.background = GROUP_BG_COLORS[i % GROUP_BG_COLORS.length];
           const header = document.createElement('div');
           header.className = 'group-header';
           const title = document.createElement('div');
