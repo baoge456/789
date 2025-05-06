@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=yes" />
+  <title>书签管理</title>
+  <link rel="icon" href="https://s3.bmp.ovh/imgs/2025/04/24/c767656a890464c5.webp" alt="Pi Network Logo" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      background-color: #f9f9f9;
+      user-select: none;
+    }
+    h1 {
+      margin-bottom: 20px;
+      text-align: center;
+      user-select: none;
+      cursor: default;
+    }
+    section#groupsContainer {
+      max-width: 600px;
+      width: 100%;
+    }
+    .group {
+      background: linear-gradient(135deg, #f3e7fa 0%, #e3f0ff 100%);
+      border-radius: 14px;
+      margin-bottom: 24px;
+      padding: 14px 18px 18px 18px;
+      box-shadow: 0 4px 16px rgba(120, 60, 180, 0.10), 0 1.5px 4px rgba(120, 60, 180, 0.06);
+      transition: box-shadow 0.2s, background 0.2s;
+    }
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      user-select: none;
+    }
+    .group-title {
+      font-size: 1.2em;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      color: #7c3aed;
+      letter-spacing: 1px;
+    }
+    .bookmark-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .bookmark {
+      display: flex;
+      align-items: center;
+      padding: 12px 10px 12px 12px;
+      background: linear-gradient(120deg, #f8fafc 60%, #e9e3ff 100%);
+      border: 1.5px solid #e0d7fa;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.07);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      width: calc(50% - 10px);
+      max-width: none;
+      position: relative;
+      user-select: none;
+    }
+    .bookmark:hover {
+      background: linear-gradient(120deg, #a084e8 60%, #8b1db1 100%) !important;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(124, 58, 237, 0.18);
+    }
+    .bookmark:active {
+      background: linear-gradient(120deg, #6c2eb7 60%, #2d0040 100%) !important;
+      color: #fff;
+    }
+    .bookmark img {
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+      border-radius: 4px;
+      background: #eee;
+      flex-shrink: 0;
+    }
+    .bookmark a {
+      text-decoration: none;
+      color: inherit;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      user-select: text;
+      -webkit-touch-callout: none;
+    }
+    @media (min-width: 768px) {
+      .bookmark {
+        width: calc(33.33% - 10px);
+      }
+    }
+    #contextMenu, #groupContextMenu, #importExportMenu {
+      position: fixed;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 6px;
+      padding: 5px 0;
+      width: 160px;
+      display: none;
+      z-index: 9999;
+      user-select: none;
+    }
+    #contextMenu button, #groupContextMenu button, #importExportMenu button {
+      width: 100%;
+      padding: 8px 15px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #contextMenu button:hover, #groupContextMenu button:hover, #importExportMenu button:hover {
+      background-color: #f0f0f0;
+    }
+    #groupContextMenu button.delete, #importExportMenu button#clearBtn {
+      color: #d33;
+    }
+    #modalOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    #modal {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    #modal h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    #modal label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    #modal input[type=text] {
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    #modal .buttons {
+      text-align: right;
+    }
+    #modal .buttons button {
+      padding: 6px 15px;
+      margin-left: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #modal .buttons .cancel {
+      background: #e53935;
+      color: #fff;
+    }
+    #modal .buttons .save {
+      background: #4CAF50;
+      color: white;
+    }
+    #importInput {
+      display: none;
+    }
+  </style>
+</head>
+<body style="display:none;">
+  <script>
+    // ====== 密码保护开始 ======
+    const PAGE_PASSWORD = 'baoge888';
+    const VERIFIED_KEY = 'pi_bookmark_verified';
+    if (localStorage.getItem(VERIFIED_KEY) === '1') {
+      document.body.style.display = '';
+    } else {
+      let tryCount = 0;
+      while (true) {
+        const input = prompt('请输入访问密码：');
+        if (input === null) {
+          document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40vh;">已取消访问</h2>';
+          throw new Error('用户取消访问');
+        }
+        if (input === PAGE_PASSWORD) {
+          localStorage.setItem(VERIFIED_KEY, '1');
+          document.body.style.display = '';
+          break;
+        } else {
+          tryCount++;
+          if (tryCount >= 3) {
+            document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40vh;">密码错误次数过多，禁止访问</h2>';
+            throw new Error('密码错误次数过多');
+          }
+          alert('密码错误，请重试！');
+        }
+      }
+    }
+    // ====== 密码保护结束 ======
+  </script>
+  <h1><img src="https://s3.bmp.ovh/imgs/2025/05/06/d8744e73dcf563f9.png" alt="书签导航" style="height: 60px;"></h1>
+  <section id="groupsContainer"></section>
+  <div id="importExportMenu">
+    <button id="exportBtn">导出数据</button>
+    <button id="importBtn">导入数据</button>
+    <button id="clearBtn">清空数据</button>
+  </div>
+  <input type="file" id="importInput" accept=".json" />
+  <div id="contextMenu">
+    <button id="addBookmarkBtn">添加书签</button>
+    <button id="editBookmarkBtn">修改书签</button>
+    <button id="deleteBookmarkBtn">删除书签</button>
+  </div>
+  <div id="groupContextMenu">
+    <button id="addGroupFromMenuBtn">添加分组</button>
+    <button id="editGroupBtn">修改分组</button>
+    <button id="deleteGroupBtn" class="delete">删除分组</button>
+  </div>
+  <div id="modalOverlay">
+    <div id="modal">
+      <h2 id="modalTitle"></h2>
+      <label id="bookmarkTitleLabel" for="bookmarkTitleInput">标题</label>
+      <input type="text" id="bookmarkTitleInput" placeholder="请输入标题" />
+      <label id="bookmarkUrlLabel" for="bookmarkUrlInput">链接</label>
+      <input type="text" id="bookmarkUrlInput" placeholder="请输入链接" style="display:none;" />
+      <label id="bookmarkFaviconLabel" for="bookmarkFaviconInput">缩略图链接（可选）</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="text" id="bookmarkFaviconInput" placeholder="自定义缩略图链接" style="display:none;" />
+        <button type="button" id="changeFaviconBtn" style="display:none;">更换</button>
+        <img id="currentFaviconPreview" src="" alt="缩略图预览" style="display:none;width:32px;height:32px;border-radius:4px;border:1px solid #eee;background:#fafafa;" />
+      </div>
+      <div class="buttons">
+        <button class="cancel" id="modalCancelBtn">取消</button>
+        <button class="save" id="modalSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+   <script>
+    const groupsContainer = document.getElementById('groupsContainer');
+    const contextMenu = document.getElementById('contextMenu');
+    const addBookmarkBtn = document.getElementById('addBookmarkBtn');
+    const editBookmarkBtn = document.getElementById('editBookmarkBtn');
+    const deleteBookmarkBtn = document.getElementById('deleteBookmarkBtn');
+    const groupContextMenu = document.getElementById('groupContextMenu');
+    const addGroupFromMenuBtn = document.getElementById('addGroupFromMenuBtn');
+    const editGroupBtn = document.getElementById('editGroupBtn');
+    const deleteGroupBtn = document.getElementById('deleteGroupBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const bookmarkTitleInput = document.getElementById('bookmarkTitleInput');
+    const bookmarkUrlInput = document.getElementById('bookmarkUrlInput');
+    const bookmarkFaviconInput = document.getElementById('bookmarkFaviconInput');
+    const bookmarkTitleLabel = document.getElementById('bookmarkTitleLabel');
+    const bookmarkUrlLabel = document.getElementById('bookmarkUrlLabel');
+    const bookmarkFaviconLabel = document.getElementById('bookmarkFaviconLabel');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const modalSaveBtn = document.getElementById('modalSaveBtn');
+    const importExportMenu = document.getElementById('importExportMenu');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const importInput = document.getElementById('importInput');
+    const changeFaviconBtn = document.getElementById('changeFaviconBtn');
+    const currentFaviconPreview = document.getElementById('currentFaviconPreview');
+    let faviconPresetIndex = -1;
+    let groups = [];
+    let currentGroup = null;
+    let currentBookmark = null;
+    let isEditingBookmark = false;
+    const STORAGE_KEY = 'pi_groups_data';
+    const LONG_PRESS_DURATION = 600;
+    let longPressTimer = null;
+    let isLongPress = false;
+    let moved = false;
+
+    // 依次切换三种缩略图部署链接
+    const FAVICON_PATTERNS = [
+      domain => `https://www.google.com/s2/favicons?domain=${domain}`,
+      origin => `https://favicon.cccyun.cc/${origin}`,
+      domain => `https://favicon.im/${domain}`
+    ];
+
+    function getDomainAndOrigin(url) {
+      try {
+        const u = new URL(url);
+        return { domain: u.hostname, origin: u.origin };
+      } catch {
+        return { domain: '', origin: '' };
+      }
+    }
+
+    function updateFaviconPreview() {
+      const url = bookmarkFaviconInput.value.trim();
+      if (url) {
+        currentFaviconPreview.src = url;
+        currentFaviconPreview.style.display = '';
+      } else {
+        currentFaviconPreview.style.display = 'none';
+      }
+    }
+
+    changeFaviconBtn.addEventListener('click', () => {
+      const link = bookmarkUrlInput.value.trim();
+      const { domain, origin } = getDomainAndOrigin(link);
+      faviconPresetIndex = (faviconPresetIndex + 1) % FAVICON_PATTERNS.length;
+      let faviconUrl = '';
+      if (faviconPresetIndex === 0) {
+        faviconUrl = FAVICON_PATTERNS[0](domain);
+      } else if (faviconPresetIndex === 1) {
+        faviconUrl = FAVICON_PATTERNS[1](origin);
+      } else if (faviconPresetIndex === 2) {
+        faviconUrl = FAVICON_PATTERNS[2](domain);
+      }
+      bookmarkFaviconInput.value = faviconUrl;
+      updateFaviconPreview();
+    });
+    bookmarkFaviconInput.addEventListener('input', updateFaviconPreview);
+
+    function generateId() {
+      return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    }
+    function createDefaultBookmarks() {
+      return [
+        { id: generateId(), title: '来购酷买', url: 'https://lgkm.net', favicon: '' },
+        { id: generateId(), title: '314159 商城', url: 'https://314159u.com', favicon: '' },
+        { id: generateId(), title: '元气山谷', url: 'https://pipet.me', favicon: '' }
+      ];
+    }
+    function createDefaultGroup() {
+      return {
+        id: generateId(),
+        name: '默认分组',
+        bookmarks: createDefaultBookmarks()
+      };
+    }
+    function resetToDefault() {
+      groups = [createDefaultGroup()];
+    }
+    function loadData() {
+      let data = localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        try {
+          groups = JSON.parse(data);
+          if (!Array.isArray(groups)) throw new Error('数据格式不正确');
+        } catch (error) {
+          console.error("从本地存储加载数据时出错:", error);
+          resetToDefault();
+        }
+      } else {
+        resetToDefault();
+      }
+      render();
+    }
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+      } catch (error) {
+        console.error("保存数据失败:", error);
+      }
+    }
+    async function getFaviconUrl(url, customFavicon) {
+      return new Promise(resolve => {
+        const defaultFavicon = 'https://via.placeholder.com/40?text=?';
+        if (customFavicon) {
+          resolve(customFavicon.trim());
+          return;
+        }
+        try {
+          const domain = new URL(url).hostname;
+          const cccyunUrl = `https://favicon.cccyun.cc/${url}`;
+          const img = new Image();
+          img.onload = () => resolve(cccyunUrl);
+          img.onerror = () => resolve(`https://www.google.com/s2/favicons?domain=${domain}`);
+          img.src = cccyunUrl;
+        } catch {
+          resolve(defaultFavicon);
+        }
+      });
+    }
+    async function createBookmarkElement(data, group) {
+      const div = document.createElement('div');
+      div.className = 'bookmark';
+      div.dataset.bookmarkId = data.id;
+      div.dataset.groupId = group.id;
+      const img = document.createElement('img');
+      img.alt = '图标';
+      img.src = data.favicon || 'https://via.placeholder.com/40?text=?';
+      img.onerror = () => {
+        img.src = 'https://via.placeholder.com/40?text=?';
+      };
+      const a = document.createElement('a');
+      a.href = data.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = data.title;
+      div.appendChild(img);
+      div.appendChild(a);
+      bindLongPressBookmark(div, group, data);
+      return div;
+    }
+    async function render() {
+      try {
+        groupsContainer.innerHTML = '';
+        for (const group of groups) {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'group';
+          const header = document.createElement('div');
+          header.className = 'group-header';
+          const title = document.createElement('div');
+          title.className = 'group-title';
+          title.textContent = group.name;
+          bindLongPressGroup(title, group);
+          header.appendChild(title);
+          groupDiv.appendChild(header);
+          const bookmarkList = document.createElement('div');
+          bookmarkList.className = 'bookmark-list';
+          for (const bm of group.bookmarks) {
+            bm.favicon = await getFaviconUrl(bm.url, bm.favicon);
+            const bmEl = await createBookmarkElement(bm, group);
+            bookmarkList.appendChild(bmEl);
+          }
+          groupDiv.appendChild(bookmarkList);
+          groupsContainer.appendChild(groupDiv);
+        }
+      } catch (error) {
+        console.error("渲染过程中出错:", error);
+        alert('渲染页面失败，请检查控制台错误信息！');
+      } finally {
+        saveData();
+      }
+    }
+    function bindLongPressBookmark(el, group, bookmark) {
+      let startX = 0, startY = 0, clickHandled = false;
+      const handleClick = (e) => {
+        if (!moved && !isLongPress && !clickHandled) {
+          clickHandled = true;
+          e.preventDefault();
+          e.stopPropagation();
+          window.open(bookmark.url, '_blank');
+          setTimeout(() => { clickHandled = false; }, 100);
+        }
+      };
+      el.addEventListener('touchstart', e => {
+        moved = false; clickHandled = false;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true; currentGroup = group; currentBookmark = bookmark;
+          showContextMenu(startX, startY);
+        }, LONG_PRESS_DURATION);
+      }, { passive: false });
+      el.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) { moved = true; clearTimeout(longPressTimer); }
+      }, { passive: true });
+      el.addEventListener('touchend', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) { e.preventDefault(); e.stopPropagation(); }
+        else { handleClick(e); }
+        isLongPress = false; moved = false;
+      });
+      el.addEventListener('mousedown', e => {
+        if (e.button === 0) {
+          moved = false; clickHandled = false;
+          startX = e.clientX; startY = e.clientY;
+          longPressTimer = setTimeout(() => {
+            isLongPress = true; currentGroup = group; currentBookmark = bookmark;
+            showContextMenu(startX, startY);
+          }, LONG_PRESS_DURATION);
+        }
+      });
+      el.addEventListener('mousemove', e => {
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+        if (dx > 5 || dy > 5) { clearTimeout(longPressTimer); moved = true; }
+      });
+      el.addEventListener('mouseup', e => {
+        if (e.button === 0) {
+          clearTimeout(longPressTimer);
+          if (isLongPress) { e.preventDefault(); e.stopPropagation(); }
+          else { handleClick(e); }
+          isLongPress = false; moved = false;
+        }
+      });
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault(); currentGroup = group; currentBookmark = bookmark;
+        showContextMenu(e.clientX, e.clientY);
+      });
+      const link = el.querySelector('a');
+      if (link) {
+        link.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+      }
+    }
+    function bindLongPressGroup(el, group) {
+      let startX = 0, startY = 0;
+      el.addEventListener('touchstart', e => {
+        moved = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true; currentGroup = group; currentBookmark = null;
+          showGroupContextMenu(startX, startY);
+        }, LONG_PRESS_DURATION);
+      }, { passive: false });
+      el.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) { moved = true; clearTimeout(longPressTimer); }
+      }, { passive: true });
+      el.addEventListener('touchend', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) { e.preventDefault(); e.stopPropagation(); }
+        isLongPress = false; moved = false;
+      });
+      el.addEventListener('mousedown', e => {
+        moved = false; startX = e.clientX; startY = e.clientY;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true; currentGroup = group; currentBookmark = null;
+          showGroupContextMenu(startX, startY);
+        }, LONG_PRESS_DURATION);
+      });
+      el.addEventListener('mousemove', e => {
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+        if (dx > 5 || dy > 5) { clearTimeout(longPressTimer); moved = true; }
+      });
+      el.addEventListener('mouseup', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) { e.preventDefault(); e.stopPropagation(); }
+        isLongPress = false; moved = false;
+      });
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault(); currentGroup = group; currentBookmark = null;
+        showGroupContextMenu(e.clientX, e.clientY);
+      });
+    }
+    function showContextMenu(x, y) {
+      const menu = document.getElementById('contextMenu');
+      menu.style.display = 'block';
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      const onClickOutside = (event) => {
+        if (!menu.contains(event.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('mousedown', onClickOutside);
+        }
+      };
+      document.addEventListener('mousedown', onClickOutside);
+    }
+    function showGroupContextMenu(x, y) {
+      const menu = document.getElementById('groupContextMenu');
+      menu.style.display = 'block';
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      const onClickOutside = (event) => {
+        if (!menu.contains(event.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('mousedown', onClickOutside);
+        }
+      };
+      document.addEventListener('mousedown', onClickOutside);
+    }
+    function showImportExportMenu(x, y) {
+      const menu = document.getElementById('importExportMenu');
+      menu.style.display = 'block';
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      const onClickOutside = (event) => {
+        if (!menu.contains(event.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('mousedown', onClickOutside);
+        }
+      };
+      document.addEventListener('mousedown', onClickOutside);
+    }
+    exportBtn.addEventListener('click', () => {
+      try {
+        const data = groups.map(group => ({
+          name: group.name,
+          bookmarks: group.bookmarks.map(bookmark => ({
+            title: bookmark.title,
+            url: bookmark.url,
+            favicon: bookmark.favicon
+          }))
+        }));
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+        const exportFileDefaultName = 'bookmarks.json';
+        let linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        document.body.appendChild(linkElement);
+        linkElement.click();
+        document.body.removeChild(linkElement);
+      } catch (error) {
+        console.error("导出数据失败:", error);
+        alert('导出数据失败，请检查控制台错误信息！');
+      }
+    });
+    importBtn.addEventListener('click', () => {
+      importInput.value = '';
+      importInput.click();
+    });
+    importInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const importedData = JSON.parse(e.target.result);
+            if (typeof importedData === 'object' && importedData !== null) {
+              let newGroups = [];
+              if (Array.isArray(importedData)) {
+                importedData.forEach(groupData => {
+                  if (groupData && typeof groupData === 'object' && groupData.name && Array.isArray(groupData.bookmarks)) {
+                    const newGroup = {
+                      id: generateId(),
+                      name: groupData.name,
+                      bookmarks: []
+                    };
+                    groupData.bookmarks.forEach(bookmarkData => {
+                      if (bookmarkData && typeof bookmarkData === 'object' && bookmarkData.title && bookmarkData.url) {
+                        newGroup.bookmarks.push({
+                          id: generateId(),
+                          title: bookmarkData.title,
+                          url: bookmarkData.url,
+                          favicon: bookmarkData.favicon || ''
+                        });
+                      }
+                    });
+                    newGroups.push(newGroup);
+                  }
+                });
+              } else {
+                for (const groupName in importedData) {
+                  if (importedData.hasOwnProperty(groupName)) {
+                    const bookmarks = importedData[groupName];
+                    if (Array.isArray(bookmarks)) {
+                      const newGroup = {
+                        id: generateId(),
+                        name: groupName,
+                        bookmarks: []
+                      };
+                      bookmarks.forEach(bookmark => {
+                        if (bookmark && typeof bookmark === 'object' && (bookmark.name || bookmark.title) && bookmark.url) {
+                          newGroup.bookmarks.push({
+                            id: generateId(),
+                            title: bookmark.name || bookmark.title,
+                            url: bookmark.url,
+                            favicon: bookmark.favicon || ''
+                          });
+                        }
+                      });
+                      newGroups.push(newGroup);
+                    }
+                  }
+                }
+              }
+              if (newGroups.length === 0) {
+                alert('导入失败：未检测到有效的书签分组和书签。');
+                return;
+              }
+              groups = groups.concat(newGroups);
+              render();
+              alert('导入成功！');
+            } else {
+              alert('导入数据格式不正确。');
+            }
+          } catch (error) {
+            console.error("导入数据失败:", error);
+            alert('导入数据失败，请检查文件格式是否正确。');
+          }
+        }
+        reader.readAsText(file);
+      }
+    });
+    clearBtn.addEventListener('click', () => {
+      if (confirm('确定要清空所有书签数据并恢复到初始状态吗？此操作不可撤销！')) {
+        hideContextMenus();
+        resetToDefault();
+        saveData();
+        render();
+        alert('书签数据已清空并恢复到初始状态。');
+      }
+    });
+    function hideContextMenus() {
+      contextMenu.style.display = 'none';
+      groupContextMenu.style.display = 'none';
+      importExportMenu.style.display = 'none';
+    }
+    addBookmarkBtn.addEventListener('click', () => {
+      hideContextMenus();
+      isEditingBookmark = false;
+      modalTitle.textContent = '添加书签';
+      bookmarkTitleLabel.style.display = 'block';
+      bookmarkTitleInput.style.display = 'block';
+      bookmarkUrlLabel.style.display = 'block';
+      bookmarkUrlInput.style.display = 'block';
+      bookmarkFaviconLabel.style.display = 'block';
+      bookmarkFaviconInput.style.display = 'block';
+      changeFaviconBtn.style.display = '';
+      currentFaviconPreview.style.display = 'none';
+      bookmarkTitleInput.value = '';
+      bookmarkUrlInput.value = '';
+      bookmarkFaviconInput.value = '';
+      faviconPresetIndex = -1;
+      updateFaviconPreview();
+      modalOverlay.style.display = 'flex';
+    });
+    editBookmarkBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (currentBookmark) {
+        isEditingBookmark = true;
+        modalTitle.textContent = '修改书签';
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkTitleInput.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'block';
+        bookmarkUrlInput.style.display = 'block';
+        bookmarkFaviconLabel.style.display = 'block';
+        bookmarkFaviconInput.style.display = 'block';
+        changeFaviconBtn.style.display = '';
+        bookmarkTitleInput.value = currentBookmark.title;
+        bookmarkUrlInput.value = currentBookmark.url;
+        bookmarkFaviconInput.value = currentBookmark.favicon;
+        faviconPresetIndex = -1;
+        updateFaviconPreview();
+        modalOverlay.style.display = 'flex';
+      } else {
+        alert('请先长按选择要修改的书签');
+      }
+    });
+    deleteBookmarkBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (currentBookmark && currentGroup) {
+        try {
+          currentGroup.bookmarks = currentGroup.bookmarks.filter(bm => bm.id !== currentBookmark.id);
+          currentBookmark = null;
+          currentGroup = null;
+          saveData();
+          render();
+        } catch (error) {
+          console.error("删除书签失败:", error);
+          alert('删除书签失败，请查看控制台');
+        }
+      } else {
+        alert('请先长按选择要删除的书签');
+      }
+    });
+    addGroupFromMenuBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (!currentGroup) {
+        groups.push(createDefaultGroup());
+      } else {
+        const idx = groups.findIndex(g => g.id === currentGroup.id);
+        if (idx !== -1) {
+          groups.splice(idx + 1, 0, createDefaultGroup());
+        } else {
+          groups.push(createDefaultGroup());
+        }
+      }
+      saveData();
+      render();
+    });
+    editGroupBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (currentGroup) {
+        isEditingBookmark = false;
+        modalTitle.textContent = '修改分组';
+        bookmarkTitleLabel.textContent = '分组名称';
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkTitleInput.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'none';
+        bookmarkUrlInput.style.display = 'none';
+        bookmarkFaviconLabel.style.display = 'none';
+        bookmarkFaviconInput.style.display = 'none';
+        changeFaviconBtn.style.display = 'none';
+        currentFaviconPreview.style.display = 'none';
+        bookmarkTitleInput.value = currentGroup.name;
+        modalOverlay.style.display = 'flex';
+      } else {
+        alert('请先长按选择要修改的分组');
+      }
+    });
+    deleteGroupBtn.addEventListener('click', () => {
+      hideContextMenus();
+      if (currentGroup) {
+        try {
+          groups = groups.filter(g => g.id !== currentGroup.id);
+          currentGroup = null;
+          if (groups.length === 0) {
+            resetToDefault();
+          }
+          saveData();
+          render();
+        } catch (error) {
+          console.error("删除分组失败:", error);
+          alert('删除分组失败，请查看控制台');
+        }
+      } else {
+        alert('请先长按选择要删除的分组');
+      }
+    });
+    modalCancelBtn.addEventListener('click', () => {
+      modalOverlay.style.display = 'none';
+    });
+    modalSaveBtn.addEventListener('click', () => {
+      if (isEditingBookmark) {
+        if (currentBookmark && currentGroup) {
+          const titleVal = bookmarkTitleInput.value.trim();
+          const urlVal = bookmarkUrlInput.value.trim();
+          if (!titleVal || !urlVal) {
+            alert('标题和链接不能为空！');
+            return;
+          }
+          currentBookmark.title = titleVal;
+          currentBookmark.url = urlVal;
+          currentBookmark.favicon = bookmarkFaviconInput.value.trim();
+        }
+      } else {
+        if (bookmarkUrlLabel.style.display === 'none') {
+          const newName = bookmarkTitleInput.value.trim();
+          if (!newName) {
+            alert('分组名称不能为空！');
+            return;
+          }
+          if (groups.some(g => g.name === newName && g.id !== currentGroup.id)) {
+            alert('分组名称已存在！');
+            return;
+          }
+          currentGroup.name = newName;
+        } else {
+          const titleVal = bookmarkTitleInput.value.trim();
+          const urlVal = bookmarkUrlInput.value.trim();
+          if (!titleVal || !urlVal) {
+            alert('标题和链接不能为空！');
+            return;
+          }
+          if (!currentGroup) {
+            alert('当前分组不存在，无法添加书签');
+            return;
+          }
+          const newBookmark = {
+            id: generateId(),
+            title: titleVal,
+            url: urlVal,
+            favicon: bookmarkFaviconInput.value.trim()
+          };
+          const currentBookmarkIndex = currentGroup.bookmarks.findIndex(b => b.id === currentBookmark.id);
+          if (currentBookmarkIndex !== -1) {
+            currentGroup.bookmarks.splice(currentBookmarkIndex + 1, 0, newBookmark);
+          } else {
+            currentGroup.bookmarks.push(newBookmark);
+          }
+        }
+      }
+      modalOverlay.style.display = 'none';
+      saveData();
+      render();
+      updateFaviconPreview();
+    });
+    const title = document.querySelector('h1');
+    bindLongPressTitle(title);
+    function bindLongPressTitle(el) {
+      let startX = 0, startY = 0;
+      el.addEventListener('touchstart', e => {
+        moved = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true; showImportExportMenu(startX, startY);
+        }, LONG_PRESS_DURATION);
+      }, { passive: false });
+      el.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) { moved = true; clearTimeout(longPressTimer); }
+      }, { passive: true });
+      el.addEventListener('touchend', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) { e.preventDefault(); e.stopPropagation(); }
+        isLongPress = false; moved = false;
+      });
+      el.addEventListener('mousedown', e => {
+        moved = false; startX = e.clientX; startY = e.clientY;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true; showImportExportMenu(startX, startY);
+        }, LONG_PRESS_DURATION);
+      });
+      el.addEventListener('mousemove', e => {
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+        if (dx > 5 || dy > 5) { clearTimeout(longPressTimer); moved = true; }
+      });
+      el.addEventListener('mouseup', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) { e.preventDefault(); e.stopPropagation(); }
+        isLongPress = false; moved = false;
+      });
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+      });
+    }
+    loadData();
+  </script>
+
+</body>
+</html>
