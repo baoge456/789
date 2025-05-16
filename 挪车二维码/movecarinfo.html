@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>快点挪车-信息</title>
+  <link href="https://baoge6789.github.io/ewm/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .card {
+      margin: 20px;
+    }
+    .car {
+      color: #fff;
+      background-color: #4b5cc4;
+      border-radius: 6px;
+      border: 1px solid #fff;
+      text-align: center;
+      padding: 10px 0;
+      box-shadow: 0 0 2px 4px #4b5cc4;
+      width: 95%;
+      margin: 15px auto;
+      font-size: 40px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6 offset-md-3">
+        <div class="car" style="background: rgb(75, 92, 196); box-shadow: rgb(75, 92, 196) 0px 0px 2px 4px; color: rgb(255, 255, 255);">
+          <span class="car-province">京</span><span class="car-letter">A</span><span class="car-dot">•</span><span class="car-number">12345</span>
+        </div>
+        <div id="cardContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const plateNumber = urlParams.get('plateNumber');
+    const phoneNumber = urlParams.get('phoneNumber');
+
+    const carProvince = document.querySelector('.car-province');
+    const carLetter = document.querySelector('.car-letter');
+    const carNumber = document.querySelector('.car-number');
+
+    if (plateNumber) {
+        carProvince.textContent = plateNumber.charAt(0);
+        carLetter.textContent = plateNumber.charAt(1);
+        carNumber.textContent = plateNumber.slice(2);
+    }
+
+    const cardContent = `
+      <div class="card">
+        <div class="card-body">
+          <h1 class="card-title">挪车信息</h1>
+          <h2 class="card-text">临时停靠，请多关照</h2>
+          <p class="card-text">车牌号: ${plateNumber}</p>
+          <p class="card-text">联系电话: ${phoneNumber}</p>
+          <button type="button" class="btn btn-primary" onclick="callNumber('${phoneNumber}')">一键呼叫</button>
+          <button type="button" class="btn btn-primary" onclick="sendSMS('${phoneNumber}')">短信通知</button>
+        </div>
+      </div>
+    `;
+
+    const cardContainer = document.getElementById('cardContainer');
+    cardContainer.innerHTML = cardContent;
+
+    function callNumber(phoneNumber) {
+      window.location.href = 'tel:' + phoneNumber;
+    }
+
+    function sendSMS(phoneNumber) {
+      const messageBody = encodeURIComponent(`您好，您的车牌号是 ${plateNumber}，请及时挪车！`);
+      window.location.href = `sms:${phoneNumber}?body=${messageBody}`; // This will open the SMS app with the number and message
+    }
+  </script>
+
+  <script src="https://baoge6789.github.io/ewm/bootstrap.min.js"></script>
+</body>
+</html>
+<script defer src="https://fx.baoge.wang/tracker.min.js" data-website-id="挪车二维码生成器-挪车信息"></script>
