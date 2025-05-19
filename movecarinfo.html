@@ -20,7 +20,7 @@
       padding: 20px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
       border-radius: 8px;
-      background-color: #fff;
+      background-color: #3cb371; /* Green background for the panel */
       text-align: center;
     }
     .car {
@@ -28,28 +28,51 @@
       background-color: #4b5cc4;
       border-radius: 6px;
       border: 1px solid #fff;
-      text-align: center;
       padding: 15px 0;
       box-shadow: 0 0 2px 4px #4b5cc4;
       font-size: 40px;
       letter-spacing: 5px;
       text-transform: uppercase;
+      margin: 20px 0;
     }
     .card {
-      margin-top: 20px;
+      margin: 0;
       text-align: center;
     }
     .btn {
       margin: 5px;
     }
+    .car-image {
+      max-width: 50%; /* Reduce width to half for the car plate image */
+      height: auto;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="car">
-      <span class="car-province">京</span><span class="car-letter">A</span><span class="car-dot">•</span><span class="car-number">12345</span>
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title">
+          <img src="https://s3.bmp.ovh/imgs/2025/05/19/20a051d833493283.png" alt="临时停车，请多关照" style="max-width: 100%; height: auto;" />
+        </h3>
+        
+        <div class="car">
+          <span class="car-province">京</span>
+          <span class="car-letter">A</span>
+          <span class="car-dot">•</span>
+          <span class="car-number">12345</span>
+        </div>
+        
+        <h3 class="card-title">
+          <img class="car-image" src="https://s3.bmp.ovh/imgs/2025/05/19/2b2951f5b5db4f99.png" alt="联系车主" />
+        </h3>
+        
+        <div class="btn-container">
+          <button type="button" class="btn btn-primary" onclick="callNumber('${phoneNumber}')">一键呼叫</button>
+          <button type="button" class="btn btn-primary" onclick="sendSMS('${phoneNumber}')">短信通知</button>
+        </div>
+      </div>
     </div>
-    <div id="cardContainer"></div>
   </div>
 
   <script>
@@ -62,33 +85,10 @@
     const carNumber = document.querySelector('.car-number');
 
     if (plateNumber) {
-        carProvince.textContent = plateNumber.charAt(0);
-        carLetter.textContent = plateNumber.charAt(1);
-        carNumber.textContent = plateNumber.slice(2);
+      carProvince.textContent = plateNumber.charAt(0);
+      carLetter.textContent = plateNumber.charAt(1);
+      carNumber.textContent = plateNumber.slice(2);
     }
-
-    const cardContent = `
-      <div class="card">
-        <div class="card-body">
-                    <h3 class="card-title"><img src="https://s3.bmp.ovh/imgs/2025/05/19/20a051d833493283.png" alt="临时停车，请多关照" style="max-width: 100%; height: auto;" /></h3>
-</div>
-      </div>
-
-<br>
-  <br>
- 
-        <h3 class="card-title"><img src="https://s3.bmp.ovh/imgs/2025/05/19/2b2951f5b5db4f99.png" alt="联系车主 style="max-width: 50%; height: auto;" /></h3>
-
-    <br>  
-   <br>
-         <button type="button" class="btn btn-primary" style="margin-right: 80px;" onclick="callNumber('${phoneNumber}')">一键呼叫</button>
-<button type="button" class="btn btn-primary" onclick="sendSMS('${phoneNumber}')">短信通知</button>
-        </div>
-      </div>
-    `;
-
-    const cardContainer = document.getElementById('cardContainer');
-    cardContainer.innerHTML = cardContent;
 
     function callNumber(phoneNumber) {
       window.location.href = 'tel:' + phoneNumber;
