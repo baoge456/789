@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网站图标抓取工具（修复版）</title>
+    <style>
+        /* 修复面板样式 */
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 20px;
+            font-family: 'Segoe UI', sans-serif;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #urlInput {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        #fetchButton {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #fetchButton:hover {
+            background: #0056b3;
+        }
+
+        .result-container {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .icon-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .icon-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .icon-item:hover {
+            transform: translateY(-3px);
+        }
+
+        .error {
+            color: #dc3545;
+            margin-top: 10px;
+            padding: 10px;
+            background: #ffeaea;
+            border-radius: 4px;
+        }
+
+        .loading {
+            display: none;
+            color: #6c757d;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: #2c3e50; text-align: center;">网站图标抓取工具</h1>
+        <div class="input-group">
+            <input type="url" id="urlInput" placeholder="输入网站地址 (如: example.com)">
+            <button id="fetchButton">获取图标</button>
+        </div>
+        <div class="loading">🔍 正在搜索图标...</div>
+        <div class="result-container" id="resultContainer">
+            <h3 style="margin-top: 0;">找到以下图标：</h3>
+            <div class="icon-preview" id="iconContainer"></div>
+        </div>
+        <div class="error" id="errorMessage"></div>
+    </div>
+
+    <script>
+        // 使用可靠的CORS代理
+        const CORS_PROXY = 'https://corsproxy.io/?';
+        
+        // 增强的API端点列表
+        const API_ENDPOINTS = [
+            url => `${CORS_PROXY}https://www.google.com/s2/favicons?domain=${url}&sz=256`,
+            url => `${CORS_PROXY}https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&url=${url}&size=256`,
+            url => `${CORS_PROXY}${url}/favicon.ico`,
+            url => `${CORS_PROXY}${url}/apple-touch-icon.png`
+        ];
+
+        // 配置请求参数
+        const FETCH_CONFIG = {
+            timeout: 8000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        };
+
+        async function fetchFavicon(originalUrl) {
+            try {
+                // 初始化状态
+                const resultContainer = document.getElementById('resultContainer');
+                const errorMessage = document.getElementById('errorMessage');
+                const loading = document.querySelector('.loading');
+                
+                loading.style.display = 'block';
+                resultContainer.style.display = 'none';
+                errorMessage.textContent = '';
+
+                // 标准化URL
+                const url = originalUrl.startsWith('http') ? originalUrl : `https://${originalUrl}`;
+                const { protocol, hostname } = new URL(url);
+                const baseUrl = `${protocol}//${hostname}`;
+
+                // 尝试多个API源
+                const apiPromises = API_ENDPOINTS.map(endpoint => 
+                    fetch(endpoint(baseUrl), FETCH_CONFIG)
+                        .then(res => res.ok ? res.blob() : Promise.reject())
+                        .catch(() => null)
+                );
+
+                const apiResults = await Promise.all(apiPromises);
+                const validIcons = apiResults.filter(Boolean);
+
+                // 如果API未找到，解析页面
+                if (validIcons.length === 0) {
+                    const pageResponse = await fetch(`${CORS_PROXY}${baseUrl}`, FETCH_CONFIG);
+                    const html = await pageResponse.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    // 扩展图标发现规则
+                    const iconSources = [
+                        ...doc.querySelectorAll('link[rel*="icon"]'),
+                        ...doc.querySelectorAll('meta[property="og:image"]'),
+                        ...doc.querySelectorAll('meta[name="twitter:image"]'),
+                        ...doc.querySelectorAll('img[alt*="logo"]')
+                    ];
+
+                    // 添加常见默认路径
+                    const defaultPaths = [
+                        '/favicon.ico',
+                        '/apple-touch-icon.png',
+                        '/logo.png',
+                        '/img/logo.png',
+                        '/static/favicon.ico'
+                    ];
+
+                    defaultPaths.forEach(path => {
+                        const fakeElement = document.createElement('link');
+                        fakeElement.href = path;
+                        iconSources.push(fakeElement);
+                    });
+
+                    // 处理找到的图标
+                    iconSources.forEach(source => {
+                        let iconUrl = source.href || source.content;
+                        if (!iconUrl) return;
+
+                        // 转换为绝对URL
+                        try {
+                            iconUrl = new URL(iconUrl, baseUrl).href;
+                        } catch {
+                            iconUrl = `${baseUrl}${iconUrl.startsWith('/') ? '' : '/'}${iconUrl}`;
+                        }
+                        
+                        displayIcon(iconUrl);
+                    });
+
+                    if (iconSources.length === 0) {
+                        throw new Error('未找到任何图标资源');
+                    }
+                } else {
+                    validIcons.forEach(blob => {
+                        const url = URL.createObjectURL(blob);
+                        displayIcon(url);
+                    });
+                }
+
+                resultContainer.style.display = 'block';
+
+            } catch (error) {
+                document.querySelector('#errorMessage').textContent = 
+                    `获取失败: ${error.message || '未知错误'}`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayIcon(url) {
+            const container = document.getElementById('iconContainer');
+            
+            // 避免重复显示
+            if ([...container.children].some(item => item.querySelector('a').href === url)) return;
+
+            const item = document.createElement('div');
+            item.className = 'icon-item';
+            item.innerHTML = `
+                <img src="${url}" 
+                     alt="网站图标" 
+                     style="width:64px;height:64px;object-fit:contain;">
+                <div style="margin-top:10px;">
+                    <a href="${url}" 
+                       target="_blank" 
+                       style="word-break:break-all;font-size:12px;">
+                       ${new URL(url).pathname.split('/').pop()}
+                    </a>
+                </div>
+            `;
+            container.appendChild(item);
+        }
+
+        // 事件绑定
+        document.getElementById('fetchButton').addEventListener('click', () => {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) return showError('请输入网站地址');
+            
+            document.getElementById('iconContainer').innerHTML = '';
+            fetchFavicon(url);
+        });
+
+        document.getElementById('urlInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') document.getElementById('fetchButton').click();
+        });
+
+        function showError(msg) {
+            document.getElementById('errorMessage').textContent = msg;
+            document.getElementById('resultContainer').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
