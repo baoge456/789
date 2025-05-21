@@ -7,21 +7,23 @@
     html, body { height: 100%; margin: 0; padding: 0; }
     body {
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      overflow: auto;
     }
     .panel {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
       background: linear-gradient(120deg, #f8ffae 0%, #43cea2 100%);
       width: 95%;
       max-width: 440px;
-      margin: 0 auto;
       padding: 32px 24px;
       border-radius: 18px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.12);
       text-align: center;
       transition: box-shadow 0.2s;
+      z-index: 10;
     }
     .panel:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.18); }
     input[type="text"] {
@@ -123,6 +125,11 @@
     <div class="result" id="result"></div>
   </div>
   <script>
+    // 页面加载时自动聚焦输入框
+    window.onload = function() {
+      document.getElementById('urlInput').focus();
+    };
+
     async function fetch缩略图() {
       const url = document.getElementById('urlInput').value.trim();
       const resultDiv = document.getElementById('result');
@@ -143,28 +150,25 @@
           return;
         }
       }
-      // 仅保留两种API
+      // 并发抓取
       const apis = [
         { name: 'Unavatar', url: `https://unavatar.io/${domain}` },
-        { name: 'DuckDuckGo Favicon', url: `https://icons.duckduckgo.com/ip3/${domain}.ico` }
+        { name: 'DuckDuckGo Favicon', url: `https://icons.duckduckgo.com/ip3/${domain}.ico` },
+        { name: '网站自身', url: `https://${domain}/favicon.ico` }
       ];
+      // 并发检测图片可用性
+      const checkImage = (api) => new Promise((resolve) => {
+        const img = new window.Image();
+        img.onload = () => resolve({ ...api, valid: img.width > 8 });
+        img.onerror = () => resolve({ ...api, valid: false });
+        img.src = api.url + (api.url.includes('?') ? '&' : '?') + 't=' + Date.now();
+      });
+      const results = await Promise.all(apis.map(checkImage));
       let html = '';
-      for (let i = 0; i < apis.length; i++) {
-        const api = apis[i];
-        // 检查图片是否可用
-        let valid = false;
-        try {
-          await new Promise((resolve, reject) => {
-            const img = new window.Image();
-            img.onload = () => img.width > 8 ? resolve() : reject();
-            img.onerror = reject;
-            img.src = api.url + (api.url.includes('?') ? '&' : '?') + 't=' + Date.now();
-          });
-          valid = true;
-        } catch {}
+      for (const api of results) {
         html += `<div class="icon-block">
           <h4>${api.name}</h4>
-          ${valid ? `<img src="${api.url}" alt="${api.name} 图标">` : `<span style='color:#e74c3c;'>获取失败</span>`}
+          ${api.valid ? `<img src="${api.url}" alt="${api.name} 图标">` : `<span style='color:#e74c3c;'>获取失败</span>`}
           <div class="icon-link-row">
             <a href="${api.url}" target="_blank">${api.url}</a>
             <button class="copy-btn" onclick="copyToClipboard('${api.url}', this)">复制</button>
