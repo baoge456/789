@@ -1,221 +1,157 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>网站图标提取工具</title>
-    <style>
-        .container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            font-family: 'Segoe UI', system-ui;
-        }
-
-        .search-box {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        #urlInput {
-            flex: 1;
-            padding: 0.8rem;
-            border: 2px solid #4a90e2;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-
-        #fetchBtn {
-            padding: 0.8rem 1.5rem;
-            background: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        #fetchBtn:hover {
-            background: #357abd;
-            transform: translateY(-1px);
-        }
-
-        .result-panel {
-            margin-top: 1.5rem;
-            padding: 1.5rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #eee;
-        }
-
-        .icon-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .icon-card {
-            padding: 1rem;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            text-align: center;
-            transition: transform 0.2s;
-        }
-
-        .icon-card:hover {
-            transform: translateY(-3px);
-        }
-
-        .icon-img {
-            width: 80px;
-            height: 80px;
-            object-fit: contain;
-            margin-bottom: 0.5rem;
-        }
-
-        .status-text {
-            padding: 1rem;
-            text-align: center;
-            color: #666;
-        }
-
-        .error-box {
-            color: #dc3545;
-            background: #ffecec;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>网站Logo自动抓取面板</title>
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    }
+    .panel {
+      background: linear-gradient(120deg, #f8ffae 0%, #43cea2 100%);
+      width: 95%;
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      text-align: center;
+      transition: box-shadow 0.2s;
+    }
+    .panel:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.18); }
+    input[type="text"] {
+      width: 85%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      font-size: 17px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    input[type="text"]:focus { border: 1.5px solid #0078ff; }
+    button {
+      padding: 10px 28px;
+      background: linear-gradient(90deg, #0078ff 0%, #00c6ff 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 17px;
+      cursor: pointer;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 8px rgba(0,120,255,0.08);
+      transition: background 0.2s;
+    }
+    button:hover { background: linear-gradient(90deg, #005ecb 0%, #00aaff 100%); }
+    .result {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      align-items: center;
+    }
+    .icon-block {
+      background: linear-gradient(90deg, #fbc2eb 0%, #a6c1ee 100%);
+      border-radius: 12px;
+      padding: 14px 10px 10px 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      width: 90%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .icon-block h4 {
+      margin: 0 0 6px 0;
+      font-size: 15px;
+      color: #0078ff;
+      font-weight: 600;
+    }
+    .icon-block img {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      background: #f5f6fa;
+      object-fit: contain;
+      margin-bottom: 6px;
+    }
+    .icon-block a {
+      color: #0078ff;
+      word-break: break-all;
+      font-size: 14px;
+      text-decoration: underline;
+    }
+    @media (max-width: 600px) {
+      .panel { padding: 18px 4vw; max-width: 98vw; }
+      .icon-block { max-width: 98vw; }
+      .icon-block img { width: 40px; height: 40px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1 style="color: #2c3e50; margin-bottom: 1.5rem;">🔍 网站图标提取工具</h1>
-        
-        <div class="search-box">
-            <input type="url" id="urlInput" placeholder="输入域名或URL (例: google.com)">
-            <button id="fetchBtn">提取图标</button>
-        </div>
-
-        <div id="status" class="status-text"></div>
-        <div id="errorBox" class="error-box" style="display: none;"></div>
-
-        <div class="result-panel" id="resultPanel" style="display: none;">
-            <h3 style="margin: 0 0 1rem;">找到以下图标资源</h3>
-            <div class="icon-grid" id="iconGrid"></div>
-        </div>
-    </div>
-
-<script>
-const FAVICON_API = 'https://favicon.zhusl.com/ico?url=';
-
-// 域名验证正则
-const DOMAIN_REGEX = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/.*)?$/;
-
-async function fetchIcons(url) {
-    try {
-        showLoading('正在搜索图标...');
-        hideError();
-        
-        // 标准化输入
-        const cleanUrl = normalizeUrl(url);
-        if (!validateDomain(cleanUrl)) {
-            throw new Error('无效的域名格式');
+  <div class="panel">
+    <h2>网站Logo自动抓取</h2>
+    <input type="text" id="urlInput" placeholder="输入网址，如 https://www.baidu.com" />
+    <br>
+    <button onclick="fetchLogo()">获取Logo</button>
+    <div class="result" id="result"></div>
+  </div>
+  <script>
+    async function fetchLogo() {
+      const url = document.getElementById('urlInput').value.trim();
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+      if (!url) {
+        alert('请输入网址');
+        return;
+      }
+      // 域名提取
+      let domain = '';
+      try {
+        domain = new URL(url).hostname;
+      } catch {
+        try {
+          domain = new URL('https://' + url).hostname;
+        } catch {
+          resultDiv.innerHTML = '<span style="color:#e74c3c;">无法识别网址，请输入正确的网址！</span>';
+          return;
         }
-
-        // 主API请求
-        const apiUrl = `${FAVICON_API}${encodeURIComponent(cleanUrl)}`;
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) throw new Error(`API请求失败: ${response.status}`);
-        
-        const data = await response.json();
-        if (!data || !data.icons || data.icons.length === 0) {
-            throw new Error('未找到图标资源');
-        }
-
-        displayResults(data.icons);
-        
-    } catch (error) {
-        showError(`获取失败: ${error.message}`);
-        console.error('Error:', error);
-    } finally {
-        hideLoading();
+      }
+      // 四种API
+      const apis = [
+        { name: 'Unavatar', url: `https://unavatar.io/${domain}` },
+        { name: 'Clearbit', url: `https://logo.clearbit.com/${domain}` },
+        { name: 'Google Favicon', url: `https://www.google.com/s2/favicons?sz=64&domain=${domain}` },
+        { name: 'DuckDuckGo Favicon', url: `https://icons.duckduckgo.com/ip3/${domain}.ico` }
+      ];
+      let html = '';
+      for (let i = 0; i < apis.length; i++) {
+        const api = apis[i];
+        // 检查图片是否可用
+        let valid = false;
+        try {
+          await new Promise((resolve, reject) => {
+            const img = new window.Image();
+            img.onload = () => img.width > 8 ? resolve() : reject();
+            img.onerror = reject;
+            img.src = api.url + (api.url.includes('?') ? '&' : '?') + 't=' + Date.now();
+          });
+          valid = true;
+        } catch {}
+        html += `<div class="icon-block">
+          <h4>${api.name}</h4>
+          ${valid ? `<img src="${api.url}" alt="${api.name} 图标">` : `<span style='color:#e74c3c;'>获取失败</span>`}
+          <a href="${api.url}" target="_blank">${api.url}</a>
+        </div>`;
+      }
+      resultDiv.innerHTML = html;
     }
-}
-
-function normalizeUrl(input) {
-    // 移除协议头和路径
-    return input.replace(/^(https?:\/\/)?/i, '')
-                .split('/')[0]
-                .toLowerCase();
-}
-
-function validateDomain(domain) {
-    return DOMAIN_REGEX.test(domain);
-}
-
-function displayResults(icons) {
-    const grid = document.getElementById('iconGrid');
-    grid.innerHTML = '';
-    
-    icons.forEach(icon => {
-        if (!icon.src) return;
-        
-        const card = document.createElement('div');
-        card.className = 'icon-card';
-        card.innerHTML = `
-            <img src="${icon.src}" class="icon-img" alt="网站图标">
-            <div style="font-size: 0.9em;">
-                <a href="${icon.src}" target="_blank" 
-                   style="word-break: break-all;">
-                   ${new URL(icon.src).pathname.split('/').pop()}
-                </a>
-                ${icon.size ? `<div>${icon.size}px</div>` : ''}
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-    
-    document.getElementById('resultPanel').style.display = 'block';
-}
-
-// 状态控制函数
-function showLoading(text) {
-    document.getElementById('status').textContent = text;
-}
-
-function hideLoading() {
-    document.getElementById('status').textContent = '';
-}
-
-function showError(msg) {
-    const errorBox = document.getElementById('errorBox');
-    errorBox.style.display = 'block';
-    errorBox.textContent = msg;
-}
-
-function hideError() {
-    document.getElementById('errorBox').style.display = 'none';
-}
-
-// 事件绑定
-document.getElementById('fetchBtn').addEventListener('click', () => {
-    const input = document.getElementById('urlInput').value.trim();
-    if (!input) return showError('请输入要查询的域名');
-    
-    document.getElementById('resultPanel').style.display = 'none';
-    fetchIcons(input);
-});
-
-document.getElementById('urlInput').addEventListener('keypress', e => {
-    if (e.key === 'Enter') document.getElementById('fetchBtn').click();
-});
-</script>
+  </script>
 </body>
 </html>
