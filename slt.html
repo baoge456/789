@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>网站Logo自动抓取面板</title>
+  <title>网站缩略图</title>
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
     body {
@@ -81,11 +81,31 @@
       object-fit: contain;
       margin-bottom: 6px;
     }
+    .icon-link-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
     .icon-block a {
       color: #0078ff;
       word-break: break-all;
       font-size: 14px;
       text-decoration: underline;
+      margin-right: 0;
+    }
+    .copy-btn {
+      padding: 2px 10px;
+      font-size: 13px;
+      border: none;
+      border-radius: 6px;
+      background: #43cea2;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .copy-btn.copied {
+      background: #0078ff;
     }
     @media (max-width: 600px) {
       .panel { padding: 18px 4vw; max-width: 98vw; }
@@ -96,14 +116,14 @@
 </head>
 <body>
   <div class="panel">
-    <h2>网站Logo自动抓取</h2>
+    <h2>网站缩略图</h2>
     <input type="text" id="urlInput" placeholder="输入网址，如 https://www.baidu.com" />
     <br>
-    <button onclick="fetchLogo()">获取Logo</button>
+    <button onclick="fetch缩略图()">抓取</button>
     <div class="result" id="result"></div>
   </div>
   <script>
-    async function fetchLogo() {
+    async function fetch缩略图() {
       const url = document.getElementById('urlInput').value.trim();
       const resultDiv = document.getElementById('result');
       resultDiv.innerHTML = '';
@@ -123,11 +143,9 @@
           return;
         }
       }
-      // 四种API
+      // 仅保留两种API
       const apis = [
         { name: 'Unavatar', url: `https://unavatar.io/${domain}` },
-        { name: 'Clearbit', url: `https://logo.clearbit.com/${domain}` },
-        { name: 'Google Favicon', url: `https://www.google.com/s2/favicons?sz=64&domain=${domain}` },
         { name: 'DuckDuckGo Favicon', url: `https://icons.duckduckgo.com/ip3/${domain}.ico` }
       ];
       let html = '';
@@ -147,10 +165,43 @@
         html += `<div class="icon-block">
           <h4>${api.name}</h4>
           ${valid ? `<img src="${api.url}" alt="${api.name} 图标">` : `<span style='color:#e74c3c;'>获取失败</span>`}
-          <a href="${api.url}" target="_blank">${api.url}</a>
+          <div class="icon-link-row">
+            <a href="${api.url}" target="_blank">${api.url}</a>
+            <button class="copy-btn" onclick="copyToClipboard('${api.url}', this)">复制</button>
+          </div>
         </div>`;
       }
       resultDiv.innerHTML = html;
+    }
+
+    // 复制功能
+    function copyToClipboard(text, btn) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          btn.classList.add('copied');
+          btn.textContent = '已复制';
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.textContent = '复制';
+          }, 1200);
+        });
+      } else {
+        // 兼容旧浏览器
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          btn.classList.add('copied');
+          btn.textContent = '已复制';
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.textContent = '复制';
+          }, 1200);
+        } catch {}
+        document.body.removeChild(textarea);
+      }
     }
   </script>
 </body>
