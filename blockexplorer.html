@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Pi Network 区块浏览器查询</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; }
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 20px; }
+        .section { background: #fff; border-radius: 12px; box-shadow: 0 2px 15px rgba(0,0,0,0.08); margin-bottom: 2rem; padding: 1.5rem; }
+        .section h2 { margin-top: 0; }
+        .query-bar { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .query-bar input { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
+        .query-bar button { padding: 8px 20px; border-radius: 6px; border: none; background: #42b983; color: #fff; font-weight: bold; cursor: pointer; }
+        .action-bar { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .action-bar button { padding: 6px 16px; border-radius: 6px; border: none; background: #eee; color: #333; font-weight: bold; cursor: pointer; }
+        .iframe-block { width: 100%; }
+        iframe { width: 100%; height: 600px; border: 1px solid #eee; border-radius: 8px; background: #fff; }
+        .address-block { background: #f8f8f8; border-radius: 8px; padding: 10px; margin: 10px 0; font-family: monospace; font-size: 1em; word-break: break-all; }
+        .tips { color: #888; font-size: 0.95em; margin-top: 1em; }
+        .wallet-list { margin: 0.5em 0 0 0; padding: 0 0 0 1em; color: #444; font-size: 0.98em; }
+        .wallet-list li { margin-bottom: 0.3em; }
+        .data-source { margin-top: 1em; }
+        .data-source a { color: #42b983; text-decoration: none; }
+        @media (max-width: 700px) {
+            .container { padding: 0 5px; }
+            iframe { height: 400px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="section">
+            <h2>Pi Network 区块浏览器查询</h2>
+                        <div class="query-bar">
+                <input type="text" id="searchInput" 
+                    placeholder="输入区块高度、交易哈希或钱包地址"
+                    value="GABT7EMPGNCQSZM22DIYC4FNKHUVJTXITUF6Y5HNIWPU4GA7BHT4GC5G">
+                <button onclick="searchBlockExplorer()">查询</button>
+            </div>
+            <div class="iframe-block">
+                <iframe id="iframe1" src="https://blockexplorer.minepi.com/mainnet/account/GABT7EMPGNCQSZM22DIYC4FNKHUVJTXITUF6Y5HNIWPU4GA7BHT4GC5G" loading="lazy"></iframe>
+            </div>
+        </div>
+        <div class="section" style="font-size:1em;">
+                        <ul class="wallet-list">
+                <li>Pi 最大供应量为 <b>1000 亿</b>，社区最终获得 <b>800 亿</b>，核心团队获得 <b>200 亿</b>。</li>
+                <li>650 亿 Pi 分配给所有挖矿奖励，剩余部分将通过主网新挖矿机制分配。</li>
+                <li>
+                    <b>主要钱包地址：</b>
+                    <ul>
+                        <li>650亿矿池主钱包（挖矿奖励）：<br>
+                            <span class="address-block">GBQQRIQKS7XLMWTTRM2EPMTRLPUGQJDLEKCGNDIFGTBZG4GL5CHHJI25</span>
+                        </li>
+                        <li>650亿矿池分发钱包：<br>
+                            <span class="address-block">GABT7EMPGNCQSZM22DIYC4FNKHUVJTXITUF6Y5HNIWPU4GA7BHT4GC5G</span>
+                        </li>
+                        <li>100亿社区生态钱包：<br>
+                            <span class="address-block">GDPDSLFVGEPX6FJKGZXSTJCPTSKKAI4KBHBAQCCKQDXISW3S5SJ6MGMS</span>
+                        </li>
+                        <li>50亿流动性池钱包：<br>
+                            <span class="address-block">GB7HLN74IIY6PENSHHBBJJXWV6IZQDELTBZNXXORDGTL75O4KC5CUXEV</span>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+            <div class="data-source">
+                数据来源：
+                <a href="https://blockexplorer.minepi.com/mainnet/account/GABT7EMPGNCQSZM22DIYC4FNKHUVJTXITUF6Y5HNIWPU4GA7BHT4GC5G" target="_blank">blockexplorer.minepi.com</a>
+        
+                            </div>
+
+<div class="data-source">
+            相关查询：
+                <a href="https://explorepi.info/zh-CN/explorer" target="_blank">explorepi.info</a>
+            </div>
+
+
+        </div>
+    </div>
+<script>
+function searchBlockExplorer() {
+    const val = document.getElementById('searchInput').value.trim();
+    if (!val) return alert('请输入区块高度、交易哈希或钱包地址');
+
+    let type = '';
+    // 判断类型
+    if (/^[0-9]+$/.test(val)) {
+        type = 'block';
+    } else if (/^[A-Z0-9]{56,}$/.test(val) && (val.startsWith('G') || val.startsWith('M'))) {
+        type = 'account';
+    } else if (/^[a-f0-9]{64}$/i.test(val)) {
+        type = 'tx';
+    } else {
+        alert('无法识别输入类型，请输入正确的区块高度、交易哈希或钱包地址');
+        return;
+    }
+
+    document.getElementById('iframe1').src = `https://blockexplorer.minepi.com/mainnet/${type}/${encodeURIComponent(val)}`;
+}
+</script>
+</body>
+</html>
