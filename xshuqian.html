@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=yes" />
+  <title>书签导航</title>
+  <link rel="icon" href="https://s3.bmp.ovh/imgs/2025/04/24/c767656a890464c5.webp" alt="书签 Logo" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      background-color: #f9f9f9;
+      user-select: none;
+    }
+    h1 {
+      margin-bottom: 20px;
+      text-align: center;
+      user-select: none;
+      cursor: default;
+    }
+    section#groupsContainer {
+      max-width: 600px;
+      width: 100%;
+    }
+    .group {
+      background: linear-gradient(135deg, #f3e7fa 0%, #e3f0ff 100%);
+      border-radius: 14px;
+      margin-bottom: 24px;
+      padding: 14px 18px 18px 18px;
+      box-shadow: 0 4px 16px rgba(120, 60, 180, 0.10), 0 1.5px 4px rgba(120, 60, 180, 0.06);
+      transition: box-shadow 0.2s, background 0.2s;
+    }
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      user-select: none;
+    }
+    .group-title {
+      font-size: 1.2em;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      color: #7c3aed;
+      letter-spacing: 1px;
+    }
+    .bookmark-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .bookmark {
+      display: flex;
+      align-items: center;
+      padding: 12px 10px 12px 12px;
+      background: linear-gradient(120deg, #f8fafc 60%, #e9e3ff 100%);
+      border: 1.5px solid #e0d7fa;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.07);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      width: calc(50% - 10px);
+      max-width: none;
+      position: relative;
+      user-select: none;
+    }
+    .bookmark:hover {
+      background: linear-gradient(120deg, #a084e8 60%, #8b1db1 100%) !important;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(124, 58, 237, 0.18);
+    }
+    .bookmark:active {
+      background: linear-gradient(120deg, #6c2eb7 60%, #2d0040 100%) !important;
+      color: #fff;
+    }
+    .bookmark img {
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+      border-radius: 4px;
+      background: #eee;
+      flex-shrink: 0;
+    }
+    .bookmark a {
+      text-decoration: none;
+      color: inherit;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      user-select: text;
+      -webkit-touch-callout: none;
+    }
+    @media (min-width: 768px) {
+      .bookmark {
+        width: calc(33.33% - 10px);
+      }
+    }
+    #contextMenu, #groupContextMenu, #importExportMenu {
+      position: fixed;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 6px;
+      padding: 5px 0;
+      width: 160px;
+      display: none;
+      z-index: 9999;
+      user-select: none;
+    }
+    #contextMenu button, #groupContextMenu button, #importExportMenu button {
+      width: 100%;
+      padding: 8px 15px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #contextMenu button:hover, #groupContextMenu button:hover, #importExportMenu button:hover {
+      background-color: #f0f0f0;
+    }
+    #groupContextMenu button.delete, #importExportMenu button#clearBtn {
+      color: #d33;
+    }
+    #modalOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    #modal {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    #modal h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    #modal label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    #modal input[type=text] {
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    #modal .buttons {
+      text-align: right;
+    }
+    #modal .buttons button {
+      padding: 6px 15px;
+      margin-left: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #modal .buttons .cancel {
+      background: #e53935;
+      color: #fff;
+    }
+    #modal .buttons .save {
+      background: #4CAF50;
+      color: white;
+    }
+    #importInput {
+      display: none;
+    }
+  </style>
+</head>
+<body style="display:none;">
+  <script>
+    // ====== 密码保护开始 ======
+    const PAGE_PASSWORD = 'baoge888';
+    const VERIFIED_KEY = 'pi_bookmark_verified';
+    if (localStorage.getItem(VERIFIED_KEY) === '1') {
+      document.body.style.display = '';
+    } else {
+      let tryCount = 0;
+      while (true) {
+        const input = prompt('请输入访问密码：');
+        if (input === null) {
+          document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40vh;">已取消访问</h2>';
+          throw new Error('用户取消访问');
+        }
+        if (input === PAGE_PASSWORD) {
+          localStorage.setItem(VERIFIED_KEY, '1');
+          document.body.style.display = '';
+          break;
+        } else {
+          tryCount++;
+          if (tryCount >= 3) {
+            document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40vh;">密码错误次数过多，禁止访问</h2>';
+            throw new Error('密码错误次数过多');
+          }
+          alert('密码错误，请重试！');
+        }
+      }
+    }
+    // ====== 密码保护结束 ======
+  </script>
+  <h1><img src="https://s3.bmp.ovh/imgs/2025/05/06/d8744e73dcf563f9.png" alt="书签导航" style="height: 60px;"></h1>
+  <section id="groupsContainer"></section>
+  <div id="importExportMenu">
+    <button id="exportBtn">导出数据</button>
+    <button id="importBtn">导入数据</button>
+    <button id="clearBtn">清空数据</button>
+  </div>
+  <input type="file" id="importInput" accept=".json" />
+  <div id="contextMenu">
+    <button id="addBookmarkBtn">添加书签</button>
+    <button id="editBookmarkBtn">修改书签</button>
+    <button id="deleteBookmarkBtn">删除书签</button>
+  </div>
+  <div id="groupContextMenu">
+    <button id="addGroupFromMenuBtn">添加分组</button>
+    <button id="editGroupBtn">修改分组</button>
+    <button id="deleteGroupBtn" class="delete">删除分组</button>
+  </div>
+  <div id="modalOverlay">
+    <div id="modal">
+      <h2 id="modalTitle"></h2>
+      <label id="bookmarkTitleLabel" for="bookmarkTitleInput">标题</label>
+      <input type="text" id="bookmarkTitleInput" placeholder="请输入标题" />
+      <label id="bookmarkUrlLabel" for="bookmarkUrlInput">链接</label>
+      <input type="text" id="bookmarkUrlInput" placeholder="请输入链接" style="display:none;" />
+      <label id="bookmarkFaviconLabel" for="bookmarkFaviconInput">缩略图链接（可选）</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="text" id="bookmarkFaviconInput" placeholder="自定义缩略图链接" style="display:none;" />
+        <button type="button" id="changeFaviconBtn" style="display:none;">更换</button>
+        <img id="currentFaviconPreview" src="" alt="缩略图预览" style="display:none;width:32px;height:32px;border-radius:4px;border:1px solid #eee;background:#fafafa;" />
+      </div>
+      <div class="buttons">
+        <button class="cancel" id="modalCancelBtn">取消</button>
+        <button class="save" id="modalSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+   <script>
+    const groupsContainer = document.getElementById('groupsContainer');
+    const contextMenu = document.getElementById('contextMenu');
+    const addBookmarkBtn = document.getElementById('addBookmarkBtn');
+    const editBookmarkBtn = document.getElementById('editBookmarkBtn');
+    const deleteBookmarkBtn = document.getElementById('deleteBookmarkBtn');
+    const groupContextMenu = document.getElementById('groupContextMenu');
+    const addGroupFromMenuBtn = document.getElementById('addGroupFromMenuBtn');
+    const editGroupBtn = document.getElementById('editGroupBtn');
+    const deleteGroupBtn = document.getElementById('deleteGroupBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const bookmarkTitleInput = document.getElementById('bookmarkTitleInput');
+    const bookmarkUrlInput = document.getElementById('bookmarkUrlInput');
+    const bookmarkFaviconInput = document.getElementById('bookmarkFaviconInput');
+    const bookmarkTitleLabel = document.getElementById('bookmarkTitleLabel');
+    const bookmarkUrlLabel = document.getElementById('bookmarkUrlLabel');
+    const bookmarkFaviconLabel = document.getElementById('bookmarkFaviconLabel');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const modalSaveBtn = document.getElementById('modalSaveBtn');
+    const importExportMenu = document.getElementById('importExportMenu');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const importInput = document.getElementById('importInput');
+    const changeFaviconBtn = document.getElementById('changeFaviconBtn');
+    const currentFaviconPreview = document.getElementById('currentFaviconPreview');
+    let faviconPresetIndex = -1;
+    let faviconCycleUrls = []; // Array to store the generated favicon URLs for cycling
+    let groups = [];
+    let currentGroup = null; // Use group ID instead of object
+    let currentBookmark = null; // Use bookmark ID instead of object
+    let isEditingBookmark = false;
+    const STORAGE_KEY = 'pi_groups_data';
+    const LONG_PRESS_DURATION = 600;
+    let longPressTimer = null;
+    let isLongPress = false;
+    let moved = false;
+    const ACCELERATE_PREFIX = 'https://js.653827.xyz/';
+    let ignoreNextClick = false; // Flag to ignore the click event right after context menu appears
+
+    // 六种缩略图部署链接的生成逻辑 (返回不带加速前缀的原始链接)
+    const FAVICON_PATTERNS = [
+      (url) => { // type 0: favicon.im
+         let domain = ''; try { domain = new URL(url).hostname; } catch { return ''; }
+         return `https://favicon.im/${url}`;
+      },
+       (url) => { // type 1: unavatar.io
+         let domain = ''; try { domain = new URL(url).hostname; } catch { return ''; }
+         return `https://unavatar.io/${domain}`;
+      },
+       (url) => { // type 2: duckduckgo
+         let domain = ''; try { domain = new URL(url).hostname; } catch { return ''; }
+         return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+      },
+       (url) => { // type 3: 域名/favicon.ico
+         let domain = ''; try { domain = new URL(url).hostname; } catch { return ''; }
+         return `https://${domain}/favicon.ico`;
+      },
+      (url) => { // type 4: google
+          let domain = ''; try { domain = new URL(url).hostname; } catch { return ''; }
+          return `https://www.google.com/s2/favicons?domain=${domain}`;
+      },
+      (url) => { // type 5: cccyun
+          let u; try { u = new URL(url); } catch { return ''; }
+          // For cccyun, use the origin if available, otherwise domain
+          return `https://favicon.cccyun.cc/${u.origin || u.hostname}`;
+      }
+    ];
+
+    function getDomainAndOrigin(url) {
+      try {
+        const u = new URL(url);
+        return { domain: u.hostname, origin: u.origin };
+      } catch {
+        return { domain: '', origin: '' };
+      }
+    }
+
+    function updateFaviconPreview() {
+      const url = bookmarkFaviconInput.value.trim();
+      // Display the preview image using the potentially accelerated URL
+      const previewUrl = url.startsWith('http') ? url : (ACCELERATE_PREFIX + url);
+      if (url) {
+        currentFaviconPreview.src = previewUrl;
+        currentFaviconPreview.style.display = '';
+      } else {
+        currentFaviconPreview.style.display = 'none';
+      }
+    }
+
+    changeFaviconBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Stop propagation to prevent modal overlay click
+      const link = bookmarkUrlInput.value.trim();
+      if (!link) {
+          alert('请先填写书签链接以生成缩略图选项。');
+          return;
+      }
+      // Ensure cycle URLs are generated if not already
+      if (faviconCycleUrls.length === 0) {
+           faviconCycleUrls = FAVICON_PATTERNS.map(patternFunc => patternFunc(link)).filter(url => url !== ''); // Filter out empty URLs
+      }
+      if (faviconCycleUrls.length === 0) {
+          alert('无法为当前链接生成缩略图。');
+          return;
+      }
+
+      faviconPresetIndex = (faviconPresetIndex + 1) % faviconCycleUrls.length;
+      const url = faviconCycleUrls[faviconPresetIndex];
+      bookmarkFaviconInput.value = url; // Set input value to raw URL
+      updateFaviconPreview(); // Update preview using the potentially accelerated URL
+    });
+    bookmarkFaviconInput.addEventListener('input', updateFaviconPreview);
+
+    function generateId() {
+      return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    }
+    // Create default bookmarks with favicon.im and accelerator prefix
+    function createDefaultBookmarks() {
+       const defaultBms = [
+            { title: '来购酷买', url: 'https://lgkm.net' },
+            { title: '314159 商城', url: 'https://314159u.com' },
+            { title: '元气山谷', url: 'https://pipet.me' }
+        ];
+        return defaultBms.map(bm => ({
+            id: generateId(),
+            title: bm.title,
+            url: bm.url,
+            // Use favicon.im (type 0) and add accelerator prefix
+            favicon: ACCELERATE_PREFIX + FAVICON_PATTERNS[0](bm.url)
+        }));
+    }
+    function createDefaultGroup() {
+      return {
+        id: generateId(),
+        name: '默认分组',
+        bookmarks: createDefaultBookmarks()
+      };
+    }
+    function resetToDefault() {
+      groups = [createDefaultGroup()];
+    }
+    function loadData() {
+      let data = localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        try {
+          groups = JSON.parse(data);
+          if (!Array.isArray(groups)) throw new Error('数据格式不正确');
+          // Ensure all bookmarks and groups have an ID for easier management
+          groups.forEach(group => {
+              if (!group.id) group.id = generateId();
+              group.bookmarks.forEach(bm => {
+                  if (!bm.id) bm.id = generateId();
+              });
+          });
+           if (groups.length === 0) { // Fallback if parsed data is an empty array
+               resetToDefault();
+           }
+        } catch (error) {
+          console.error("从本地存储加载数据时出错:", error);
+          resetToDefault();
+        }
+      } else {
+        resetToDefault();
+      }
+      // Ensure currentGroup is valid (store ID)
+      let storedCurrentGroupId = localStorage.getItem('currentGroupId');
+      if (storedCurrentGroupId && groups.some(g => g.id === storedCurrentGroupId)) {
+          currentGroup = storedCurrentGroupId;
+      } else {
+          currentGroup = groups.length > 0 ? groups[0].id : null;
+      }
+      render();
+    }
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+         // Save current group ID
+        localStorage.setItem('currentGroupId', currentGroup);
+      } catch (error) {
+        console.error("保存数据失败:", error);
+      }
+    }
+
+    async function createBookmarkElement(data, group) {
+      const div = document.createElement('div');
+      div.className = 'bookmark';
+      div.dataset.bookmarkId = data.id;
+      div.dataset.groupId = group.id;
+      const img = document.createElement('img');
+      img.alt = '图标';
+      // Display the favicon using the URL stored in data (should include prefix if applicable)
+      img.src = data.favicon || 'https://via.placeholder.com/40?text=?';
+      img.onerror = () => {
+        // Fallback without prefix
+        img.src = 'https://via.placeholder.com/40?text=?';
+      };
+      const a = document.createElement('a');
+      a.href = data.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = data.title;
+      div.appendChild(img);
+      div.appendChild(a);
+      bindLongPressBookmark(div, group, data);
+      return div;
+    }
+    async function render() {
+      try {
+        groupsContainer.innerHTML = '';
+         if (groups.length === 0) { // Should not happen with resetToDefault, but safe check
+             resetToDefault();
+         }
+         // Ensure currentGroup is still valid after potential reset
+         if (!currentGroup || !groups.some(g => g.id === currentGroup)) {
+            currentGroup = groups.length > 0 ? groups[0].id : null;
+         }
+
+        for (const group of groups) {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'group';
+          const header = document.createElement('div');
+          header.className = 'group-header';
+          const title = document.createElement('div');
+          title.className = 'group-title';
+          title.textContent = group.name;
+          bindLongPressGroup(title, group);
+          header.appendChild(title);
+          groupDiv.appendChild(header);
+          const bookmarkList = document.createElement('div');
+          bookmarkList.className = 'bookmark-list';
+          // Do not modify bookmark.favicon here, use the stored value which should have prefix
+          if (Array.isArray(group.bookmarks)) { // Ensure bookmarks is an array
+              for (const bm of group.bookmarks) {
+                const bmEl = await createBookmarkElement(bm, group);
+                bookmarkList.appendChild(bmEl);
+              }
+          }
+          groupDiv.appendChild(bookmarkList);
+          groupsContainer.appendChild(groupDiv);
+        }
+      } catch (error) {
+        console.error("渲染过程中出错:", error);
+        alert('渲染页面失败，请检查控制台错误信息！');
+      } finally {
+        saveData();
+      }
+    }
+
+    // Function to show a context menu and manage the ignoreNextClick flag
+    function showMenu(menuElement, x, y) {
+         hideContextMenus(); // Hide any other open menus
+         menuElement.style.display = 'block';
+         menuElement.style.left = x + 'px';
+         menuElement.style.top = y + 'px';
+         ignoreNextClick = true; // Set flag to ignore the next document click
+         // Reset flag after a short delay
+         setTimeout(() => { ignoreNextClick = false; }, 300); // Adjust delay as needed
+    }
+
+    function showContextMenu(x, y) {
+        showMenu(contextMenu, x, y);
+    }
+    function showGroupContextMenu(x, y) {
+        showMenu(groupContextMenu, x, y);
+    }
+     function showImportExportMenu(x, y) {
+        showMenu(importExportMenu, x, y);
+    }
+
+     function hideContextMenus() {
+        contextMenu.style.display = 'none';
+        groupContextMenu.style.display = 'none';
+        importExportMenu.style.display = 'none';
+         // Ensure ignoreNextClick is false when menus are explicitly hidden
+         ignoreNextClick = false;
+    }
+
+
+    function bindLongPressBookmark(el, group, bookmark) {
+      let startX = 0, startY = 0;
+
+      const handleClick = (e) => {
+        if (!moved && !isLongPress && e.button === 0) { // e.button === 0 for left click
+           // Only open URL on left click, and if not moved or long press
+          e.preventDefault();
+          e.stopPropagation();
+          window.open(bookmark.url, '_blank');
+        }
+      };
+
+      const handleLongPressOrRightClick = (x, y) => {
+           isLongPress = true; // Mark as long press event happened
+           // Store bookmark and group IDs
+           currentGroup = group.id;
+           currentBookmark = bookmark.id;
+           showContextMenu(x, y);
+      };
+
+      // Touch events
+      el.addEventListener('touchstart', e => {
+        moved = false; isLongPress = false;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        longPressTimer = setTimeout(() => {
+           handleLongPressOrRightClick(e.touches[0].clientX, e.touches[0].clientY);
+           e.preventDefault(); // Prevent default browser action on long press touch
+        }, LONG_PRESS_DURATION);
+      }, { passive: false });
+
+      el.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) { moved = true; clearTimeout(longPressTimer); }
+      }, { passive: true });
+
+      el.addEventListener('touchend', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) {
+             // If long press happened, prevent default click/tap
+             e.preventDefault();
+             e.stopPropagation();
+        } else {
+             // If it was a short tap, handle the click
+             handleClick(e);
+        }
+        isLongPress = false; moved = false;
+      });
+
+      // Mouse events
+      el.addEventListener('mousedown', e => {
+        if (e.button === 0) { // Left click
+          moved = false; isLongPress = false;
+          startX = e.clientX; startY = e.clientY;
+          longPressTimer = setTimeout(() => {
+             handleLongPressOrRightClick(e.clientX, e.clientY);
+          }, LONG_PRESS_DURATION);
+        }
+      });
+
+      el.addEventListener('mousemove', e => {
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+        if (dx > 5 || dy > 5) { clearTimeout(longPressTimer); moved = true; }
+      });
+
+      el.addEventListener('mouseup', e => {
+        if (e.button === 0) { // Left click
+           clearTimeout(longPressTimer);
+           if (isLongPress) {
+              // If long press happened, prevent default click
+              e.preventDefault();
+              e.stopPropagation();
+           } else {
+              // If it was a short click, handle the click
+              handleClick(e);
+           }
+           isLongPress = false; moved = false;
+        }
+      });
+
+      el.addEventListener('contextmenu', e => { // Right click
+        e.preventDefault(); // Prevent default browser context menu
+        // Store bookmark and group IDs
+        currentGroup = group.id;
+        currentBookmark = bookmark.id;
+        handleLongPressOrRightClick(e.clientX, e.clientY); // Show custom menu
+        e.stopPropagation(); // Stop propagation
+      });
+
+       // Prevent default click action on the link inside the bookmark div
+       const link = el.querySelector('a');
+       if (link) {
+         link.addEventListener('click', e => {
+             // If a menu is currently open due to long press or right click, prevent the link click
+              if (contextMenu.style.display === 'block') {
+                  e.preventDefault();
+                  e.stopPropagation();
+              }
+         });
+       }
+    }
+
+    function bindLongPressGroup(el, group) {
+      let startX = 0, startY = 0;
+
+       const handleLongPressOrRightClick = (x, y) => {
+           isLongPress = true; // Mark as long press event happened
+           // Store group ID
+           currentGroup = group.id;
+           currentBookmark = null; // No bookmark selected
+           showGroupContextMenu(x, y);
+       };
+
+      // Touch events
+      el.addEventListener('touchstart', e => {
+        moved = false; isLongPress = false;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        longPressTimer = setTimeout(() => {
+          handleLongPressOrRightClick(e.touches[0].clientX, e.touches[0].clientY);
+           e.preventDefault(); // Prevent default browser action on long press touch
+        }, LONG_PRESS_DURATION);
+      }, { passive: false });
+
+      el.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) { moved = true; clearTimeout(longPressTimer); }
+      }, { passive: true });
+
+      el.addEventListener('touchend', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) {
+            // If long press happened, prevent default click/tap
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        isLongPress = false; moved = false;
+      });
+
+      // Mouse events
+      el.addEventListener('mousedown', e => {
+        if (e.button === 0) { // Left click
+          moved = false; isLongPress = false;
+          startX = e.clientX; startY = e.clientY;
+          longPressTimer = setTimeout(() => {
+            handleLongPressOrRightClick(e.clientX, e.clientY);
+          }, LONG_PRESS_DURATION);
+        }
+      });
+
+      el.addEventListener('mousemove', e => {
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+        if (dx > 5 || dy > 5) { clearTimeout(longPressTimer); moved = true; }
+      });
+
+      el.addEventListener('mouseup', e => {
+        if (e.button === 0) { // Left click
+           clearTimeout(longPressTimer);
+           if (isLongPress) {
+               // If long press happened, prevent default click
+              e.preventDefault();
+              e.stopPropagation();
+           }
+           isLongPress = false; moved = false;
+        }
+      });
+
+      el.addEventListener('contextmenu', e => { // Right click
+        e.preventDefault(); // Prevent default browser context menu
+        // Store group ID
+        currentGroup = group.id;
+        currentBookmark = null;
+        handleLongPressOrRightClick(e.clientX, e.clientY); // Show custom menu
+        e.stopPropagation(); // Stop propagation
+      });
+    }
+
+    function bindLongPressTitle(el) {
+      let startX = 0, startY = 0;
+
+       const handleLongPressOrRightClick = (x, y) => {
+          isLongPress = true; // Mark as long press event happened
+           // No specific group or bookmark for title
+          currentGroup = null;
+          currentBookmark = null;
+          showImportExportMenu(x, y);
+       };
+
+      // Touch events
+      el.addEventListener('touchstart', e => {
+        moved = false; isLongPress = false;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        longPressTimer = setTimeout(() => {
+          handleLongPressOrRightClick(e.touches[0].clientX, e.touches[0].clientY);
+           e.preventDefault(); // Prevent default browser action on long press touch
+        }, LONG_PRESS_DURATION);
+      }, { passive: false });
+
+      el.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dx > 10 || dy > 10) { moved = true; clearTimeout(longPressTimer); }
+      }, { passive: true });
+
+      el.addEventListener('touchend', e => {
+        clearTimeout(longPressTimer);
+        if (isLongPress) {
+            // If long press happened, prevent default click/tap
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        isLongPress = false; moved = false;
+      });
+
+      // Mouse events
+      el.addEventListener('mousedown', e => {
+        if (e.button === 0) { // Left click
+          moved = false; isLongPress = false;
+          startX = e.clientX; startY = e.clientY;
+          longPressTimer = setTimeout(() => {
+            handleLongPressOrRightClick(e.clientX, e.clientY);
+          }, LONG_PRESS_DURATION);
+        }
+      });
+
+      el.addEventListener('mousemove', e => {
+        const dx = Math.abs(e.clientX - startX);
+        const dy = Math.abs(e.clientY - startY);
+        if (dx > 5 || dy > 5) { clearTimeout(longPressTimer); moved = true; }
+      });
+
+      el.addEventListener('mouseup', e => {
+        if (e.button === 0) { // Left click
+           clearTimeout(longPressTimer);
+           if (isLongPress) {
+               // If long press happened, prevent default click
+               e.preventDefault();
+               e.stopPropagation();
+           }
+           isLongPress = false; moved = false;
+        }
+      });
+
+      el.addEventListener('contextmenu', e => { // Right click
+        e.preventDefault(); // Prevent default browser context menu
+        handleLongPressOrRightClick(e.clientX, e.clientY); // Show custom menu
+        e.stopPropagation(); // Stop propagation
+      });
+    }
+
+
+    exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      try {
+        // Export the data as is (with prefixes)
+        const data = groups.map(group => ({
+          name: group.name,
+          bookmarks: group.bookmarks.map(bookmark => ({
+            title: bookmark.title,
+            url: bookmark.url,
+            favicon: bookmark.favicon // Export with prefix
+          }))
+        }));
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+        const exportFileDefaultName = 'bookmarks.json';
+        let linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        document.body.appendChild(linkElement);
+        linkElement.click();
+        document.body.removeChild(linkElement);
+      } catch (error) {
+        console.error("导出数据失败:", error);
+        alert('导出数据失败，请检查控制台错误信息！');
+      }
+    });
+
+    importBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      importInput.value = '';
+      importInput.click();
+    });
+
+    importInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const importedData = JSON.parse(e.target.result);
+            if (typeof importedData === 'object' && importedData !== null) {
+              let newGroups = [];
+              if (Array.isArray(importedData)) {
+                importedData.forEach(groupData => {
+                  if (groupData && typeof groupData === 'object' && groupData.name && Array.isArray(groupData.bookmarks)) {
+                    const newGroup = {
+                      id: generateId(),
+                      name: groupData.name,
+                      bookmarks: []
+                    };
+                    groupData.bookmarks.forEach(bookmarkData => {
+                      if (bookmarkData && typeof bookmarkData === 'object' && (bookmarkData.name || bookmarkData.title) && bookmarkData.url) {
+                        // Import favicon logic modified here:
+                        let importedFavicon = bookmarkData.favicon || '';
+                        // If favicon is empty BUT url exists, set default favicon.im with prefix
+                        if (!importedFavicon && bookmarkData.url) {
+                            importedFavicon = ACCELERATE_PREFIX + FAVICON_PATTERNS[0](bookmarkData.url);
+                        }
+                        // If favicon is provided but doesn't start with http, assume it's a raw path/domain and prefix it
+                         else if (importedFavicon && !importedFavicon.startsWith('http')) {
+                            importedFavicon = ACCELERATE_PREFIX + importedFavicon;
+                         }
+                         // If it's a full http/https URL that doesn't have the ACCELERATE_PREFIX, assume manual input and keep as is.
+                         // If it's a full http/https URL that HAS the ACCELERATE_PREFIX, keep as is.
+
+
+                        newGroup.bookmarks.push({
+                          id: generateId(),
+                          title: bookmarkData.name || bookmarkData.title,
+                          url: bookmarkData.url,
+                          favicon: importedFavicon // Use the determined favicon
+                        });
+                      }
+                    });
+                    newGroups.push(newGroup);
+                  }
+                });
+              } else {
+                for (const groupName in importedData) {
+                  if (importedData.hasOwnProperty(groupName)) {
+                    const bookmarks = importedData[groupName];
+                    if (Array.isArray(bookmarks)) {
+                      const newGroup = {
+                        id: generateId(),
+                        name: groupName,
+                        bookmarks: []
+                      };
+                      bookmarks.forEach(bookmark => {
+                        if (bookmark && typeof bookmark === 'object' && (bookmark.name || bookmark.title) && bookmark.url) {
+                           // Import favicon logic modified here:
+                           let importedFavicon = bookmark.favicon || '';
+                           // If favicon is empty BUT url exists, set default favicon.im with prefix
+                           if (!importedFavicon && bookmark.url) {
+                               importedFavicon = ACCELERATE_PREFIX + FAVICON_PATTERNS[0](bookmark.url);
+                           }
+                            // If favicon is provided but doesn't start with http, assume it's a raw path/domain and prefix it
+                           else if (importedFavicon && !importedFavicon.startsWith('http')) {
+                              importedFavicon = ACCELERATE_PREFIX + importedFavicon;
+                           }
+
+
+                          newGroup.bookmarks.push({
+                            id: generateId(),
+                            title: bookmark.name || bookmark.title,
+                            url: bookmark.url,
+                            favicon: importedFavicon // Use the determined favicon
+                          });
+                        }
+                      });
+                      newGroups.push(newGroup);
+                    }
+                  }
+                }
+              }
+              if (newGroups.length === 0) {
+                alert('导入失败：未检测到有效的书签分组和书签。');
+                return;
+              }
+              // Append imported groups to existing groups
+              groups = groups.concat(newGroups);
+              render();
+              alert('导入成功！');
+            } else {
+              alert('导入数据格式不正确。');
+            }
+          } catch (error) {
+            console.error("导入数据失败:", error);
+            alert('导入数据失败，请检查文件格式是否正确。');
+          }
+        }
+        reader.readAsText(file);
+      }
+    });
+
+    clearBtn.addEventListener('click', (e) => {
+       e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      if (confirm('确定要清空所有书签数据并恢复到初始状态吗？此操作不可撤销！')) {
+        resetToDefault();
+        saveData();
+        render();
+        alert('书签数据已清空并恢复到初始状态。');
+      }
+    });
+
+    addBookmarkBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      isEditingBookmark = false;
+       // Clear any previously selected bookmark IDs
+       currentBookmark = null;
+       // The currentGroup should be the group where the context menu was opened.
+       // If opened from title, currentGroup will be null. Prompt user to select group or add to default?
+       // Let's assume for now, if currentGroup is null, add to the first group.
+       if (!currentGroup && groups.length > 0) {
+            currentGroup = groups[0].id;
+       } else if (!currentGroup && groups.length === 0) {
+            // Should not happen with resetToDefault, but safety
+             resetToDefault();
+             currentGroup = groups[0].id;
+       }
+
+
+      modalTitle.textContent = '添加书签';
+      bookmarkTitleLabel.style.display = 'block';
+      bookmarkTitleInput.style.display = 'block';
+      bookmarkUrlLabel.style.display = 'block';
+      bookmarkUrlInput.style.display = 'block';
+      bookmarkFaviconLabel.style.display = 'block';
+      bookmarkFaviconInput.style.display = 'block';
+      changeFaviconBtn.style.display = '';
+      currentFaviconPreview.style.display = 'none'; // Hide preview initially for new bookmark
+      bookmarkTitleInput.value = '';
+      bookmarkUrlInput.value = '';
+      bookmarkFaviconInput.value = '';
+      faviconPresetIndex = -1; // Reset cycle index
+      faviconCycleUrls = []; // Clear previous cycle URLs
+      // Do not set default favicon here, let user type or click '更换'
+      modalOverlay.style.display = 'flex';
+    });
+
+    editBookmarkBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      // Find the bookmark and group objects using stored IDs
+       const group = groups.find(g => g.id === currentGroup);
+       const bookmark = group ? group.bookmarks.find(bm => bm.id === currentBookmark) : null;
+
+      if (bookmark && group) {
+        isEditingBookmark = true;
+        modalTitle.textContent = '修改书签';
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkTitleInput.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'block';
+        bookmarkUrlInput.style.display = 'block';
+        bookmarkFaviconLabel.style.display = 'block';
+        bookmarkFaviconInput.style.display = 'block';
+        changeFaviconBtn.style.display = '';
+        bookmarkTitleInput.value = bookmark.title;
+        bookmarkUrlInput.value = bookmark.url;
+        // Show the currently saved favicon (which should include prefix)
+        bookmarkFaviconInput.value = bookmark.favicon;
+        updateFaviconPreview(); // Show the saved favicon in preview
+        faviconPresetIndex = -1; // Reset cycle index
+        faviconCycleUrls = []; // Clear previous cycle URLs
+         // Generate cycle URLs based on the current bookmark's URL (raw URLs)
+        if (bookmark.url) {
+             faviconCycleUrls = FAVICON_PATTERNS.map(patternFunc => patternFunc(bookmark.url)).filter(url => url !== '');
+             // Find the index of the current favicon (after removing prefix if present) in raw cycle URLs
+             const currentRawFavicon = bookmark.favicon.startsWith(ACCELERATE_PREFIX) ? bookmark.favicon.substring(ACCELERATE_PREFIX.length) : bookmark.favicon;
+             const currentIndex = faviconCycleUrls.indexOf(currentRawFavicon);
+             if(currentIndex !== -1) {
+                 faviconPresetIndex = currentIndex;
+             } else {
+                  // If current favicon is not in the cycle, set index to -1 (will start from 0 on next click)
+                 faviconPresetIndex = -1;
+             }
+        }
+        modalOverlay.style.display = 'flex';
+      } else {
+        alert('请先长按选择要修改的书签');
+      }
+    });
+
+    deleteBookmarkBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+       // Find the group object using stored ID
+       const group = groups.find(g => g.id === currentGroup);
+
+      if (currentBookmark && group) {
+        if (!confirm('确定要删除该书签吗？')) return;
+        try {
+          group.bookmarks = group.bookmarks.filter(bm => bm.id !== currentBookmark);
+          // Clear selected bookmark ID
+          currentBookmark = null;
+          // currentGroup remains selected
+          saveData();
+          render();
+        } catch (error) {
+          console.error("删除书签失败:", error);
+          alert('删除书签失败，请查看控制台');
+        }
+      } else {
+        alert('请先长按选择要删除的书签');
+      }
+    });
+
+    addGroupFromMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      // Create a new group with default bookmarks (which include prefix)
+      const newGroup = createDefaultGroup();
+      // Find the index of the current group ID (if any)
+       const currentGroupIndex = currentGroup ? groups.findIndex(g => g.id === currentGroup) : -1;
+
+      if (currentGroupIndex !== -1) {
+          // Insert the new group after the current group
+          groups.splice(currentGroupIndex + 1, 0, newGroup);
+      } else {
+          // If no current group selected (e.g., from title menu), add to the end
+          groups.push(newGroup);
+      }
+       // Set the newly added group's ID as current
+       currentGroup = newGroup.id;
+      saveData();
+      render();
+    });
+
+    editGroupBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      // Find the group object using stored ID
+       const groupToEdit = groups.find(g => g.id === currentGroup);
+
+      if (groupToEdit) {
+        isEditingBookmark = false;
+        modalTitle.textContent = '修改分组';
+        bookmarkTitleLabel.textContent = '分组名称';
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkTitleInput.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'none';
+        bookmarkUrlInput.style.display = 'none';
+        bookmarkFaviconLabel.style.display = 'none';
+        bookmarkFaviconInput.style.display = 'none';
+        changeFaviconBtn.style.display = 'none';
+        currentFaviconPreview.style.display = 'none';
+         bookmarkTitleInput.value = groupToEdit.name;
+        modalOverlay.style.display = 'flex';
+      } else {
+        alert('请先长按选择要修改的分组');
+      }
+    });
+
+    deleteGroupBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      // Find the group object using stored ID
+       const groupToDelete = groups.find(g => g.id === currentGroup);
+
+      if (groupToDelete) {
+        if (groups.length === 1) { alert('至少保留一个分组'); return; }
+        if (!confirm(`确定要删除分组 "${groupToDelete.name}" 吗？所有书签也将被删除！`)) return;
+        try {
+          groups = groups.filter(g => g.id !== currentGroup);
+          // Set currentGroup to the ID of the first remaining group
+          currentGroup = groups.length > 0 ? groups[0].id : null;
+           if (currentGroup === null) { // Should not happen due to the check above, but as a fallback
+              resetToDefault();
+              currentGroup = groups[0].id;
+           }
+          saveData();
+          render();
+        } catch (error) {
+          console.error("删除分组失败:", error);
+          alert('删除分组失败，请查看控制台');
+        }
+      } else {
+        alert('请先长按选择要删除的分组');
+      }
+    });
+
+    modalCancelBtn.addEventListener('click', (e) => {
+       e.stopPropagation(); // Prevent click from closing modal overlay
+      modalOverlay.style.display = 'none';
+       // Reset states related to modals
+       currentBookmark = null; // Clear selected bookmark ID
+       // currentGroup ID remains selected
+       isEditingBookmark = false;
+       faviconCycleUrls = [];
+       faviconPresetIndex = -1;
+    });
+
+    modalSaveBtn.addEventListener('click', async (e) => { // Made async to use await if needed in the future
+      e.stopPropagation(); // Prevent click from closing modal overlay
+
+      if (isEditingBookmark) {
+        // Saving an existing bookmark
+        // Find the group and bookmark objects using stored IDs
+        const group = groups.find(g => g.id === currentGroup);
+        const bookmark = group ? group.bookmarks.find(bm => bm.id === currentBookmark) : null;
+
+        if (bookmark && group) {
+          const titleVal = bookmarkTitleInput.value.trim();
+          const urlVal = bookmarkUrlInput.value.trim();
+          let faviconVal = bookmarkFaviconInput.value.trim(); // Get the value from the input
+
+          if (!titleVal || !urlVal) {
+            alert('标题和链接不能为空！');
+            return;
+          }
+
+           // Logic to add accelerator prefix ONLY if it's a raw URL from the cycle or a manually entered non-http URL
+           // If it's a full http/https URL that IS NOT one of the raw cycle URLs, treat it as manual input and don't prefix.
+           // If it's a raw cycle URL, add the prefix.
+           // If it's a non-http URL (relative path or just domain), add the prefix.
+           // If it already has the prefix, do nothing.
+
+           if (faviconVal && !faviconVal.startsWith(ACCELERATE_PREFIX)) {
+               // Check if it's a full http/https URL
+               const isFullUrl = faviconVal.startsWith('http://') || faviconVal.startsWith('https://');
+               if (isFullUrl) {
+                    // It's a full URL, now check if it's one of the raw cycle URLs
+                    const isRawCycleUrl = faviconCycleUrls.includes(faviconVal);
+                    if (isRawCycleUrl) {
+                        // It's a raw cycle URL, add the prefix
+                        faviconVal = ACCELERATE_PREFIX + faviconVal;
+                    }
+                    // If it's a full URL but not in the raw cycle, assume manual and keep as is.
+               } else {
+                   // It's not a full http URL, likely a path or domain, add the prefix
+                    faviconVal = ACCELERATE_PREFIX + faviconVal;
+               }
+           }
+           // If faviconVal is empty but urlVal exists, set default favicon.im with prefix
+           else if (!faviconVal && urlVal) {
+               faviconVal = ACCELERATE_PREFIX + FAVICON_PATTERNS[0](urlVal);
+           }
+           // If faviconVal already has the prefix, do nothing.
+
+
+          bookmark.title = titleVal;
+          bookmark.url = urlVal;
+          bookmark.favicon = faviconVal; // Save the processed favicon URL
+        }
+      } else {
+        // Adding a new bookmark or editing group name
+        if (bookmarkUrlLabel.style.display === 'none') {
+          // Editing group name
+          const newName = bookmarkTitleInput.value.trim();
+          if (!newName) {
+            alert('分组名称不能为空！');
+            return;
+          }
+          // Find the group being edited by currentGroup ID
+          const groupToEdit = groups.find(g => g.id === currentGroup);
+          if (groupToEdit) {
+              // Check for duplicate name excluding the current group
+              if (groups.some(g => g.name === newName && g.id !== groupToEdit.id)) {
+                  alert('分组名称已存在！');
+                  return;
+              }
+              groupToEdit.name = newName;
+          } else {
+               alert('无法修改分组：未选择当前分组');
+               modalOverlay.style.display = 'none';
+               return;
+          }
+        } else {
+          // Adding a new bookmark
+          const titleVal = bookmarkTitleInput.value.trim();
+          const urlVal = bookmarkUrlInput.value.trim();
+           let faviconVal = bookmarkFaviconInput.value.trim(); // Get the value from the input
+
+          if (!titleVal || !urlVal) {
+            alert('标题和链接不能为空！');
+            return;
+          }
+
+          // Find the current group object by ID
+          const groupToAddInto = groups.find(g => g.id === currentGroup);
+          if (!groupToAddInto) {
+            alert('当前分组不存在，无法添加书签');
+            modalOverlay.style.display = 'none';
+            return;
+          }
+
+           // Logic to add accelerator prefix (same as edit bookmark)
+           if (faviconVal && !faviconVal.startsWith(ACCELERATE_PREFIX)) {
+               const isFullUrl = faviconVal.startsWith('http://') || faviconVal.startsWith('https://');
+               if (isFullUrl) {
+                    const isRawCycleUrl = faviconCycleUrls.includes(faviconVal);
+                    if (isRawCycleUrl) {
+                        faviconVal = ACCELERATE_PREFIX + faviconVal;
+                    }
+               } else {
+                    faviconVal = ACCELERATE_PREFIX + faviconVal;
+               }
+           } else if (!faviconVal && urlVal) {
+               // If favicon is empty but URL exists, generate default (favicon.im) and add prefix
+               faviconVal = ACCELERATE_PREFIX + FAVICON_PATTERNS[0](urlVal);
+           }
+
+
+          const newBookmark = {
+            id: generateId(),
+            title: titleVal,
+            url: urlVal,
+            favicon: faviconVal // Save the processed favicon URL
+          };
+
+           // Add the new bookmark to the end of the current group's bookmarks.
+           groupToAddInto.bookmarks.push(newBookmark);
+        }
+      }
+      modalOverlay.style.display = 'none';
+      saveData();
+      render();
+       // Reset states related to modals
+       currentBookmark = null; // Clear selected bookmark ID
+       // currentGroup ID remains selected
+       isEditingBookmark = false;
+       faviconCycleUrls = [];
+       faviconPresetIndex = -1;
+    });
+
+    const title = document.querySelector('h1');
+    bindLongPressTitle(title);
+
+     // Global click listener to hide menus when clicking outside
+    document.addEventListener('click', (event) => {
+        // If the ignoreNextClick flag is true, reset it and do nothing
+        if (ignoreNextClick) {
+            ignoreNextClick = false;
+            return;
+        }
+
+        // Hide menus if clicking outside of them
+        if (contextMenu.style.display === 'block' && !contextMenu.contains(event.target)) {
+            hideContextMenus();
+        }
+         if (groupContextMenu.style.display === 'block' && !groupContextMenu.contains(event.target)) {
+            hideContextMenus();
+        }
+         if (importExportMenu.style.display === 'block' && !importExportMenu.contains(event.target)) {
+            hideContextMenus();
+        }
+
+         // Close modal if clicking outside the modal content, but only if the modal is open
+         const modalContent = document.getElementById('modal'); // Get modal content element
+         if (modalOverlay.style.display === 'flex' && !modalContent.contains(event.target)) {
+              modalOverlay.style.display = 'none';
+               // Reset states related to modals on closing the modal by clicking outside
+               currentBookmark = null; // Clear selected bookmark ID
+               // currentGroup ID remains selected
+               isEditingBookmark = false;
+               faviconCycleUrls = [];
+               faviconPresetIndex = -1;
+         }
+    });
+
+
+     // Prevent context menus from showing on regular clicks (redundant with long press logic but safe)
+     // These event listeners on the menus themselves might interfere with the global listener if propagation isn't stopped.
+     // Let's rely on the global listener and the ignoreNextClick flag. Remove these specific menu click listeners.
+     /*
+     contextMenu.addEventListener('click', hideContextMenus);
+     groupContextMenu.addEventListener('click', hideContextMenus);
+     importExportMenu.addEventListener('click', hideContextMenus);
+     */
+
+
+    loadData();
+  </script>
+
+</body>
+</html>
