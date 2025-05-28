@@ -120,6 +120,13 @@
       z-index: 9999;
       user-select: none;
     }
+     /* Add class for easier selection */
+    #contextMenu.context-menu,
+    #groupContextMenu.group-context-menu,
+    #importExportMenu.import-export-menu {
+        display: none; /* Initially hidden */
+    }
+
     #contextMenu button, #groupContextMenu button, #importExportMenu button {
       width: 100%;
       padding: 8px 15px;
@@ -195,9 +202,70 @@
     #importInput {
       display: none;
     }
+
+     /* 添加自定义提示/确认框的样式 */
+    #customAlert, #customConfirm {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10001; /* Higher than modalOverlay */
+        display: none;
+        font-family: Arial, sans-serif;
+    }
+    #customAlert .alert-content, #customConfirm .confirm-content {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        max-width: 350px;
+        width: 90%;
+        text-align: center;
+    }
+    #customAlert .alert-content h3, #customConfirm .confirm-content h3 {
+        margin-top: 0;
+        color: #333;
+        font-size: 1.1em;
+        margin-bottom: 20px;
+    }
+    #customAlert .alert-content button, #customConfirm .confirm-content button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em;
+        margin: 0 5px;
+        transition: background-color 0.2s ease;
+    }
+    #customAlert .alert-content button {
+        background: #007bff;
+        color: white;
+    }
+    #customAlert .alert-content button:hover {
+        background: #0056b3;
+    }
+    #customConfirm .confirm-content .confirm-ok {
+        background: #28a745;
+        color: white;
+    }
+    #customConfirm .confirm-content .confirm-ok:hover {
+        background: #218838;
+    }
+    #customConfirm .confirm-content .confirm-cancel {
+        background: #dc3545;
+        color: white;
+    }
+    #customConfirm .confirm-content .confirm-cancel:hover {
+        background: #c82333;
+    }
   </style>
 </head>
-<body style="display:none;">
+<body>
   <script>
     // ====== 密码保护开始 ======
     const PAGE_PASSWORD = 'baoge888';
@@ -222,30 +290,35 @@
             document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40vh;">密码错误次数过多，禁止访问</h2>';
             throw new Error('密码错误次数过多');
           }
-          alert('密码错误，请重试！');
+          alert('密码错误，请重试！'); // Keep alert for password prompt as it's a simple initial gate
         }
       }
     }
     // ====== 密码保护结束 ======
   </script>
+
   <h1><img src="https://s3.bmp.ovh/imgs/2025/05/06/d8744e73dcf563f9.png" alt="书签导航" style="height: 60px;"></h1>
   <section id="groupsContainer"></section>
-  <div id="importExportMenu">
+
+  <div id="importExportMenu" class="import-export-menu">
     <button id="exportBtn">导出数据</button>
     <button id="importBtn">导入数据</button>
     <button id="clearBtn">清空数据</button>
   </div>
   <input type="file" id="importInput" accept=".json" />
-  <div id="contextMenu">
+
+  <div id="contextMenu" class="context-menu">
     <button id="addBookmarkBtn">添加书签</button>
     <button id="editBookmarkBtn">修改书签</button>
     <button id="deleteBookmarkBtn">删除书签</button>
   </div>
-  <div id="groupContextMenu">
+
+  <div id="groupContextMenu" class="group-context-menu">
     <button id="addGroupFromMenuBtn">添加分组</button>
     <button id="editGroupBtn">修改分组</button>
     <button id="deleteGroupBtn" class="delete">删除分组</button>
   </div>
+
   <div id="modalOverlay">
     <div id="modal">
       <h2 id="modalTitle"></h2>
@@ -265,48 +338,30 @@
       </div>
     </div>
   </div>
-   <script>
-    const groupsContainer = document.getElementById('groupsContainer');
-    const contextMenu = document.getElementById('contextMenu');
-    const addBookmarkBtn = document.getElementById('addBookmarkBtn');
-    const editBookmarkBtn = document.getElementById('editBookmarkBtn');
-    const deleteBookmarkBtn = document.getElementById('deleteBookmarkBtn');
-    const groupContextMenu = document.getElementById('groupContextMenu');
-    const addGroupFromMenuBtn = document.getElementById('addGroupFromMenuBtn');
-    const editGroupBtn = document.getElementById('editGroupBtn');
-    const deleteGroupBtn = document.getElementById('deleteGroupBtn');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const modalTitle = document.getElementById('modalTitle');
-    const bookmarkTitleInput = document.getElementById('bookmarkTitleInput');
-    const bookmarkUrlInput = document.getElementById('bookmarkUrlInput');
-    const bookmarkFaviconInput = document.getElementById('bookmarkFaviconInput');
-    const bookmarkTitleLabel = document.getElementById('bookmarkTitleLabel');
-    const bookmarkUrlLabel = document.getElementById('bookmarkUrlLabel');
-    const bookmarkFaviconLabel = document.getElementById('bookmarkFaviconLabel');
-    const modalCancelBtn = document.getElementById('modalCancelBtn');
-    const modalSaveBtn = document.getElementById('modalSaveBtn');
-    const importExportMenu = document.getElementById('importExportMenu');
-    const exportBtn = document.getElementById('exportBtn');
-    const importBtn = document.getElementById('importBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const importInput = document.getElementById('importInput');
-    const changeFaviconBtn = document.getElementById('changeFaviconBtn');
-    const currentFaviconPreview = document.getElementById('currentFaviconPreview');
-    let faviconPresetIndex = -1;
-    let faviconCycleUrls = []; // Array to store the generated favicon URLs for cycling
-    let groups = [];
-    let currentGroup = null; // Use group ID instead of object
-    let currentBookmark = null; // Use bookmark ID instead of object
-    let isEditingBookmark = false;
-    const STORAGE_KEY = 'pi_groups_data';
-    const LONG_PRESS_DURATION = 600;
-    let longPressTimer = null;
-    let isLongPress = false;
-    let moved = false;
-    const ACCELERATE_PREFIX = 'https://js.653827.xyz/';
-    let ignoreNextClick = false; // Flag to ignore the click event right after context menu appears
 
-    // 六种缩略图部署链接的生成逻辑 (返回不带加速前缀的原始链接)
+  <!-- 自定义提示和确认框 -->
+  <div id="customAlert">
+    <div class="alert-content">
+      <h3 id="customAlertMessage"></h3>
+      <button id="customAlertOk">确定</button>
+    </div>
+  </div>
+
+  <div id="customConfirm">
+    <div class="confirm-content">
+      <h3 id="customConfirmMessage"></h3>
+      <button class="confirm-ok" id="customConfirmOk">确定</button>
+      <button class="confirm-cancel" id="customConfirmCancel">取消</button>
+    </div>
+  </div>
+
+
+  <script>
+    // --- 常量定义 ---
+    const STORAGE_KEY = 'pi_groups_data';
+    const CURRENT_GROUP_STORAGE_KEY = 'currentGroupId';
+    const LONG_PRESS_DURATION = 600; // ms
+    const ACCELERATE_PREFIX = 'https://js.653827.xyz/';
     const FAVICON_PATTERNS = [
       (url) => { // type 0: favicon.im
          let domain = ''; try { domain = new URL(url).hostname; } catch { return ''; }
@@ -335,6 +390,65 @@
       }
     ];
 
+    // --- DOM 元素获取 ---
+    const groupsContainer = document.getElementById('groupsContainer');
+    const contextMenu = document.getElementById('contextMenu');
+    const addBookmarkBtn = document.getElementById('addBookmarkBtn');
+    const editBookmarkBtn = document.getElementById('editBookmarkBtn');
+    const deleteBookmarkBtn = document.getElementById('deleteBookmarkBtn');
+    const groupContextMenu = document.getElementById('groupContextMenu');
+    const addGroupFromMenuBtn = document.getElementById('addGroupFromMenuBtn');
+    const editGroupBtn = document.getElementById('editGroupBtn');
+    const deleteGroupBtn = document.getElementById('deleteGroupBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const bookmarkTitleInput = document.getElementById('bookmarkTitleInput');
+    const bookmarkUrlInput = document.getElementById('bookmarkUrlInput');
+    const bookmarkFaviconInput = document.getElementById('bookmarkFaviconInput');
+    const bookmarkTitleLabel = document.getElementById('bookmarkTitleLabel');
+    const bookmarkUrlLabel = document.getElementById('bookmarkUrlLabel');
+    const bookmarkFaviconLabel = document.getElementById('bookmarkFaviconLabel');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const modalSaveBtn = document.getElementById('modalSaveBtn');
+    const importExportMenu = document.getElementById('importExportMenu');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const importInput = document.getElementById('importInput');
+    const changeFaviconBtn = document.getElementById('changeFaviconBtn');
+    const currentFaviconPreview = document.getElementById('currentFaviconPreview');
+    const titleElement = document.querySelector('h1'); // Get the h1 element for long press
+
+    // 自定义提示/确认框元素
+    const customAlert = document.getElementById('customAlert');
+    const customAlertMessage = document.getElementById('customAlertMessage');
+    const customAlertOk = document.getElementById('customAlertOk');
+    const customConfirm = document.getElementById('customConfirm');
+    const customConfirmMessage = document.getElementById('customConfirmMessage');
+    const customConfirmOk = document.getElementById('customConfirmOk');
+    const customConfirmCancel = document.getElementById('customConfirmCancel');
+
+    // --- 状态变量 ---
+    let groups = [];
+    let currentGroup = null; // Store group ID
+    let currentBookmark = null; // Store bookmark ID
+    let modalState = { mode: '', data: null }; // { mode: 'addBookmark' | 'editBookmark' | 'editGroup', data: { groupId, bookmarkId } }
+    let faviconPresetIndex = -1;
+    let faviconCycleUrls = []; // Array to store the generated favicon URLs for cycling
+
+    // Pointer/Long Press state
+    let pressTimer = null;
+    let isPressing = false;
+    let isLongPress = false;
+    let initialPressTarget = null; // The element the pointer initially pressed down on
+    let initialPressPos = { x: 0, y: 0 }; // The initial position of the pointer
+
+
+    // --- 工具函数 ---
+    function generateId() {
+      return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    }
+
     function getDomainAndOrigin(url) {
       try {
         const u = new URL(url);
@@ -344,45 +458,101 @@
       }
     }
 
-    function updateFaviconPreview() {
-      const url = bookmarkFaviconInput.value.trim();
-      // Display the preview image using the potentially accelerated URL
-      const previewUrl = url.startsWith('http') ? url : (ACCELERATE_PREFIX + url);
-      if (url) {
-        currentFaviconPreview.src = previewUrl;
-        currentFaviconPreview.style.display = '';
-      } else {
-        currentFaviconPreview.style.display = 'none';
-      }
+     // Custom Alert function
+    function showCustomAlert(message, callback) {
+        customAlertMessage.textContent = message;
+        customAlert.style.display = 'flex';
+        customAlertOk.onclick = () => {
+            customAlert.style.display = 'none';
+            if (callback) callback();
+        };
     }
 
-    changeFaviconBtn.addEventListener('click', (e) => {
-      e.stopPropagation(); // Stop propagation to prevent modal overlay click
-      const link = bookmarkUrlInput.value.trim();
-      if (!link) {
-          alert('请先填写书签链接以生成缩略图选项。');
-          return;
-      }
-      // Ensure cycle URLs are generated if not already
-      if (faviconCycleUrls.length === 0) {
-           faviconCycleUrls = FAVICON_PATTERNS.map(patternFunc => patternFunc(link)).filter(url => url !== ''); // Filter out empty URLs
-      }
-      if (faviconCycleUrls.length === 0) {
-          alert('无法为当前链接生成缩略图。');
-          return;
-      }
-
-      faviconPresetIndex = (faviconPresetIndex + 1) % faviconCycleUrls.length;
-      const url = faviconCycleUrls[faviconPresetIndex];
-      bookmarkFaviconInput.value = url; // Set input value to raw URL
-      updateFaviconPreview(); // Update preview using the potentially accelerated URL
-    });
-    bookmarkFaviconInput.addEventListener('input', updateFaviconPreview);
-
-    function generateId() {
-      return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+     // Custom Confirm function
+    function showCustomConfirm(message, okCallback, cancelCallback) {
+        customConfirmMessage.textContent = message;
+        customConfirm.style.display = 'flex';
+        customConfirmOk.onclick = () => {
+            customConfirm.style.display = 'none';
+            if (okCallback) okCallback();
+        };
+        customConfirmCancel.onclick = () => {
+            customConfirm.style.display = 'none';
+            if (cancelCallback) cancelCallback();
+        };
     }
-    // Create default bookmarks with favicon.im and accelerator prefix
+
+    // --- New: Check if an image URL loads successfully ---
+    function checkImageUrl(url) {
+        return new Promise((resolve) => {
+            if (!url) {
+                resolve(false);
+                return;
+            }
+            const img = new Image();
+            img.onload = () => resolve(true);
+            img.onerror = () => resolve(false);
+            img.src = url;
+             // Add a timeout in case the onerror/onload never fire
+            setTimeout(() => resolve(false), 5000); // 5 seconds timeout
+        });
+    }
+
+    // --- New: Find and apply a working favicon for a bookmark ---
+    async function findAndApplyWorkingFavicon(bookmark, bookmarkElement) {
+        const imgElement = bookmarkElement.querySelector('img');
+        const originalFavicon = bookmark.favicon;
+        const bookmarkUrl = bookmark.url;
+
+        // List of URLs to try (original + patterns with prefix)
+        const urlsToTry = [originalFavicon]; // Start with the saved favicon
+
+        // Add generated URLs from patterns with the accelerator prefix
+        FAVICON_PATTERNS.forEach(patternFunc => {
+             const generatedUrl = patternFunc(bookmarkUrl);
+             if (generatedUrl) {
+                 // Ensure prefix is added ONLY if the generated URL doesn't already have it and isn't a full http/https URL
+                 let prefixedUrl = generatedUrl;
+                  if (!generatedUrl.startsWith('http') && !generatedUrl.startsWith(ACCELERATE_PREFIX)) {
+                     prefixedUrl = ACCELERATE_PREFIX + generatedUrl;
+                  } else if (generatedUrl.startsWith('http') && !generatedUrl.startsWith(ACCELERATE_PREFIX)) {
+                       // If it's a full http URL, check if it's one of the raw cycle URLs before prefixing
+                       const isRawCycleUrl = FAVICON_PATTERNS.map(p => p(bookmarkUrl)).includes(generatedUrl);
+                        if (isRawCycleUrl) {
+                           prefixedUrl = ACCELERATE_PREFIX + generatedUrl;
+                        }
+                   }
+                 urlsToTry.push(prefixedUrl);
+             }
+        });
+
+        // Remove duplicates
+        const uniqueUrlsToTry = [...new Set(urlsToTry)];
+
+        let workingFaviconFound = false;
+        for (const url of uniqueUrlsToTry) {
+            if (await checkImageUrl(url)) {
+                // Found a working URL
+                bookmark.favicon = url; // Update bookmark data
+                imgElement.src = url; // Update image element
+                saveData(); // Save updated data
+                workingFaviconFound = true;
+                break; // Stop trying patterns for this bookmark
+            }
+        }
+
+        if (!workingFaviconFound) {
+            // If no working favicon was found after trying everything, set a default
+            const fallbackIcon = 'https://via.placeholder.com/40?text=?';
+            bookmark.favicon = fallbackIcon; // Update bookmark data
+            imgElement.src = fallbackIcon; // Update image element
+            saveData(); // Save updated data
+            console.warn(`无法为书签 "${bookmark.title}" (${bookmark.url}) 找到可用的缩略图，已使用默认图标。`);
+        }
+    }
+
+
+    // --- 数据处理与渲染 ---
     function createDefaultBookmarks() {
        const defaultBms = [
             { title: '来购酷买', url: 'https://lgkm.net' },
@@ -393,7 +563,7 @@
             id: generateId(),
             title: bm.title,
             url: bm.url,
-            // Use favicon.im (type 0) and add accelerator prefix
+            // Use favicon.im (type 0) and add accelerator prefix initially
             favicon: ACCELERATE_PREFIX + FAVICON_PATTERNS[0](bm.url)
         }));
     }
@@ -411,27 +581,74 @@
       let data = localStorage.getItem(STORAGE_KEY);
       if (data) {
         try {
-          groups = JSON.parse(data);
-          if (!Array.isArray(groups)) throw new Error('数据格式不正确');
-          // Ensure all bookmarks and groups have an ID for easier management
+          const parsedData = JSON.parse(data);
+          // --- Modified loadData: Ensure compatibility with new object format on load ---
+          if (Array.isArray(parsedData)) {
+              // Handle old array format [{ name: '...', bookmarks: [...] }]
+              groups = parsedData; // Assume it's the array format
+          } else if (typeof parsedData === 'object' && parsedData !== null) {
+              // Handle new object format { groupName: [{ name: '...', url: '...', favicon: '...' }] }
+              groups = []; // Reset groups array
+              for (const groupName in parsedData) {
+                  if (parsedData.hasOwnProperty(groupName)) {
+                       const bookmarks = parsedData[groupName];
+                       if (Array.isArray(bookmarks)) {
+                            const newGroup = {
+                                id: generateId(),
+                                name: groupName, // Use object key as group name
+                                bookmarks: []
+                            };
+                            bookmarks.forEach(bookmarkData => {
+                                 if (bookmarkData && typeof bookmarkData === 'object' && (bookmarkData.name || bookmarkData.title) && bookmarkData.url) {
+                                      // Import favicon logic: add prefix if it doesn't start with http and isn't already prefixed
+                                      let importedFavicon = bookmarkData.favicon || '';
+                                       if (importedFavicon && !importedFavicon.startsWith('http') && !importedFavicon.startsWith(ACCELERATE_PREFIX)) {
+                                          importedFavicon = ACCELERATE_PREFIX + importedFavicon;
+                                       } else if (!importedFavicon && bookmarkData.url) {
+                                           // If favicon is empty BUT url exists, set default favicon.im with prefix
+                                           importedFavicon = ACCELERATE_PREFIX + FAVICON_PATTERNS[0](bookmarkData.url);
+                                       }
+                                      // If it's a full http/https URL or already has the prefix, keep as is.
+
+                                      newGroup.bookmarks.push({
+                                        id: generateId(),
+                                        title: bookmarkData.name || bookmarkData.title, // Support 'name' or 'title'
+                                        url: bookmarkData.url,
+                                        favicon: importedFavicon // Use the determined favicon
+                                      });
+                                 }
+                            });
+                            groups.push(newGroup);
+                       }
+                  }
+              }
+          } else {
+              throw new Error('数据格式不正确');
+          }
+          // --- End Modified loadData ---
+
+
+          // Ensure all bookmarks and groups have an ID for easier management (for both formats)
           groups.forEach(group => {
               if (!group.id) group.id = generateId();
               group.bookmarks.forEach(bm => {
                   if (!bm.id) bm.id = generateId();
               });
           });
-           if (groups.length === 0) { // Fallback if parsed data is an empty array
+
+           if (groups.length === 0) { // Fallback if parsed data is an empty array or object resulted in no groups
                resetToDefault();
            }
         } catch (error) {
           console.error("从本地存储加载数据时出错:", error);
+          showCustomAlert('加载书签数据失败，已恢复到默认状态。'); // Notify user on load error
           resetToDefault();
         }
       } else {
         resetToDefault();
       }
       // Ensure currentGroup is valid (store ID)
-      let storedCurrentGroupId = localStorage.getItem('currentGroupId');
+      let storedCurrentGroupId = localStorage.getItem(CURRENT_GROUP_STORAGE_KEY);
       if (storedCurrentGroupId && groups.some(g => g.id === storedCurrentGroupId)) {
           currentGroup = storedCurrentGroupId;
       } else {
@@ -443,9 +660,21 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
          // Save current group ID
-        localStorage.setItem('currentGroupId', currentGroup);
+        localStorage.setItem(CURRENT_GROUP_STORAGE_KEY, currentGroup);
       } catch (error) {
         console.error("保存数据失败:", error);
+      }
+    }
+
+    function updateFaviconPreview() {
+      const url = bookmarkFaviconInput.value.trim();
+      // Display the preview image using the potentially accelerated URL
+      const previewUrl = url.startsWith('http') ? url : (ACCELERATE_PREFIX + url);
+      if (url) {
+        currentFaviconPreview.src = previewUrl;
+        currentFaviconPreview.style.display = '';
+      } else {
+        currentFaviconPreview.style.display = 'none';
       }
     }
 
@@ -459,19 +688,34 @@
       // Display the favicon using the URL stored in data (should include prefix if applicable)
       img.src = data.favicon || 'https://via.placeholder.com/40?text=?';
       img.onerror = () => {
-        // Fallback without prefix
-        img.src = 'https://via.placeholder.com/40?text=?';
+        // Fallback for immediate rendering, but the checkAndApplyWorkingFavicon will handle persistent fix
+        img.src = 'https://via.placeholder.com/40?text=?'; // Consider a better fallback icon
       };
       const a = document.createElement('a');
       a.href = data.url;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       a.textContent = data.title;
+      // Prevent default click on the link itself if a menu is open (less critical with new pointer logic but safe)
+       a.addEventListener('click', (e) => {
+           if (contextMenu.style.display === 'block' || groupContextMenu.style.display === 'block' || importExportMenu.style.display === 'block') {
+               e.preventDefault();
+               e.stopPropagation();
+           }
+       });
       div.appendChild(img);
       div.appendChild(a);
-      bindLongPressBookmark(div, group, data);
+
+       // --- New: Start favicon check/fix process after element is created ---
+       // Wait a bit or add to a queue to avoid blocking initial render
+        setTimeout(() => {
+             findAndApplyWorkingFavicon(data, div); // Pass bookmark data and the created element
+        }, 100); // Small delay
+       // --- End New ---
+
       return div;
     }
+
     async function render() {
       try {
         groupsContainer.innerHTML = '';
@@ -483,334 +727,368 @@
             currentGroup = groups.length > 0 ? groups[0].id : null;
          }
 
+        // Use a DocumentFragment for potentially faster rendering with many groups/bookmarks
+        const fragment = document.createDocumentFragment();
+
         for (const group of groups) {
           const groupDiv = document.createElement('div');
           groupDiv.className = 'group';
+          groupDiv.dataset.groupId = group.id; // Add group ID to group div
           const header = document.createElement('div');
           header.className = 'group-header';
           const title = document.createElement('div');
           title.className = 'group-title';
           title.textContent = group.name;
-          bindLongPressGroup(title, group);
+          title.dataset.groupId = group.id; // Add group ID to group title for delegation
           header.appendChild(title);
           groupDiv.appendChild(header);
           const bookmarkList = document.createElement('div');
           bookmarkList.className = 'bookmark-list';
-          // Do not modify bookmark.favicon here, use the stored value which should have prefix
+          // Do not modify bookmark.favicon here, use the stored value which should include prefix
           if (Array.isArray(group.bookmarks)) { // Ensure bookmarks is an array
               for (const bm of group.bookmarks) {
+                // bookmark creation is now async and handles its own favicon checking
                 const bmEl = await createBookmarkElement(bm, group);
                 bookmarkList.appendChild(bmEl);
               }
           }
           groupDiv.appendChild(bookmarkList);
-          groupsContainer.appendChild(groupDiv);
+          fragment.appendChild(groupDiv); // Append to fragment
         }
+         groupsContainer.appendChild(fragment); // Append fragment to DOM
       } catch (error) {
         console.error("渲染过程中出错:", error);
-        alert('渲染页面失败，请检查控制台错误信息！');
+        showCustomAlert('渲染页面失败，请检查控制台错误信息！');
       } finally {
-        saveData();
+        // saveData is called by findAndApplyWorkingFavicon if a favicon is updated
+        // but a final save after rendering (if no favicons were updated) is good practice
+        // saveData(); // Let's rely on individual bookmark updates for saving to avoid race conditions/overwrites
       }
     }
 
-    // Function to show a context menu and manage the ignoreNextClick flag
+    // --- 菜单显示/隐藏 ---
     function showMenu(menuElement, x, y) {
          hideContextMenus(); // Hide any other open menus
          menuElement.style.display = 'block';
-         menuElement.style.left = x + 'px';
-         menuElement.style.top = y + 'px';
-         ignoreNextClick = true; // Set flag to ignore the next document click
-         // Reset flag after a short delay
-         setTimeout(() => { ignoreNextClick = false; }, 300); // Adjust delay as needed
-    }
+         // Ensure menu is within viewport
+         const menuWidth = menuElement.offsetWidth;
+         const menuHeight = menuElement.offsetHeight;
+         const viewportWidth = window.innerWidth;
+         const viewportHeight = window.innerHeight;
 
-    function showContextMenu(x, y) {
-        showMenu(contextMenu, x, y);
-    }
-    function showGroupContextMenu(x, y) {
-        showMenu(groupContextMenu, x, y);
-    }
-     function showImportExportMenu(x, y) {
-        showMenu(importExportMenu, x, y);
+         let finalX = x;
+         let finalY = y;
+
+         if (x + menuWidth > viewportWidth - 10) { // 10px margin from right
+             finalX = viewportWidth - menuWidth - 10;
+         }
+         if (y + menuHeight > viewportHeight - 10) { // 10px margin from bottom
+             finalY = viewportHeight - menuHeight - 10;
+         }
+         // Ensure minimum margin from top/left
+         finalX = Math.max(10, finalX);
+         finalY = Math.max(10, finalY);
+
+
+         menuElement.style.left = finalX + 'px';
+         menuElement.style.top = finalY + 'px';
     }
 
      function hideContextMenus() {
         contextMenu.style.display = 'none';
         groupContextMenu.style.display = 'none';
         importExportMenu.style.display = 'none';
-         // Ensure ignoreNextClick is false when menus are explicitly hidden
-         ignoreNextClick = false;
     }
 
+    // --- 事件处理 (使用事件委托和 Pointer Events) ---
 
-    function bindLongPressBookmark(el, group, bookmark) {
-      let startX = 0, startY = 0;
+    // Global Pointer Down handler
+    document.addEventListener('pointerdown', (e) => {
+        // Clear any previous timer and reset states
+        clearTimeout(pressTimer);
+        isPressing = true;
+        isLongPress = false;
+        initialPressTarget = null; // Reset target
 
-      const handleClick = (e) => {
-        if (!moved && !isLongPress && e.button === 0) { // e.button === 0 for left click
-           // Only open URL on left click, and if not moved or long press
-          e.preventDefault();
-          e.stopPropagation();
-          window.open(bookmark.url, '_blank');
+        // Find the relevant target element: bookmark, group title, or main title h1
+        const bookmarkTarget = e.target.closest('.bookmark');
+        const groupTitleTarget = e.target.classList.contains('group-title') ? e.target : null;
+        const mainTitleTarget = (e.target === titleElement || titleElement.contains(e.target)) ? titleElement : null;
+        const menuButtonTarget = e.target.closest('#contextMenu button, #groupContextMenu button, #importExportMenu button');
+
+        // If clicking a menu button or inside modal/alerts, let default behavior happen (or hide menus if clicking outside them)
+        if (menuButtonTarget || e.target.closest('#modalOverlay') || e.target.closest('#customAlert') || e.target.closest('#customConfirm')) {
+             // Handled by specific button listeners or global pointerup outside modal/menus
+             isPressing = false; // Not interested in long press for these elements
+             return;
         }
-      };
 
-      const handleLongPressOrRightClick = (x, y) => {
-           isLongPress = true; // Mark as long press event happened
-           // Store bookmark and group IDs
-           currentGroup = group.id;
-           currentBookmark = bookmark.id;
-           showContextMenu(x, y);
-      };
+        // If pressing on an interactive element
+        if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
+            initialPressTarget = bookmarkTarget || groupTitleTarget || mainTitleTarget;
+            initialPressPos = { x: e.clientX, y: e.clientY };
 
-      // Touch events
-      el.addEventListener('touchstart', e => {
-        moved = false; isLongPress = false;
-        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-        longPressTimer = setTimeout(() => {
-           handleLongPressOrRightClick(e.touches[0].clientX, e.touches[0].clientY);
-           e.preventDefault(); // Prevent default browser action on long press touch
-        }, LONG_PRESS_DURATION);
-      }, { passive: false });
+            // Prevent default only for right-click (button=2) or if it's a touch (to prevent scrolling/zoom/native context menu)
+             if (e.button === 2 || e.pointerType === 'touch') {
+                e.preventDefault();
+             }
 
-      el.addEventListener('touchmove', e => {
-        const dx = Math.abs(e.touches[0].clientX - startX);
-        const dy = Math.abs(e.touches[0].clientY - startY);
-        if (dx > 10 || dy > 10) { moved = true; clearTimeout(longPressTimer); }
-      }, { passive: true });
+            // --- Modified: Handle Right-Click (button 2) immediately ---
+            if (e.button === 2) {
+                 hideContextMenus(); // Hide any other open menus
+                 // Set current context based on target and show menu
+                 if (bookmarkTarget) {
+                     currentBookmark = bookmarkTarget.dataset.bookmarkId;
+                     currentGroup = bookmarkTarget.dataset.groupId;
+                     showMenu(contextMenu, e.clientX, e.clientY);
+                 } else if (groupTitleTarget) {
+                      currentGroup = groupTitleTarget.dataset.groupId;
+                      currentBookmark = null;
+                     showMenu(groupContextMenu, e.clientX, e.clientY);
+                 } else if (mainTitleTarget) {
+                      currentGroup = null;
+                      currentBookmark = null;
+                     showMenu(importExportMenu, e.clientX, e.clientY);
+                 }
+                 isPressing = false; // Not a long press scenario, stop tracking for this event
+                 return; // Stop processing for right-click here
+            }
+            // --- End Modified ---
 
-      el.addEventListener('touchend', e => {
-        clearTimeout(longPressTimer);
-        if (isLongPress) {
-             // If long press happened, prevent default click/tap
-             e.preventDefault();
-             e.stopPropagation();
+            // Start long press timer for left-click/touch (pointerType === 'touch' or button === 0)
+            if (e.button === 0 || e.pointerType === 'touch') {
+                pressTimer = setTimeout(() => {
+                    if (isPressing) { // Check if still pressing (not moved too much)
+                         isLongPress = true;
+                         hideContextMenus(); // Hide any other open menus
+
+                         // Set current context based on target and show menu
+                         if (bookmarkTarget) {
+                             currentBookmark = bookmarkTarget.dataset.bookmarkId;
+                             currentGroup = bookmarkTarget.dataset.groupId;
+                             showMenu(contextMenu, e.clientX, e.clientY);
+                         } else if (groupTitleTarget) {
+                              currentGroup = groupTitleTarget.dataset.groupId;
+                              currentBookmark = null;
+                             showMenu(groupContextMenu, e.clientX, e.clientY);
+                         } else if (mainTitleTarget) {
+                              currentGroup = null;
+                              currentBookmark = null;
+                             showMenu(importExportMenu, e.clientX, e.clientY);
+                         }
+                         // Prevent potential click event after long press for mouse
+                          if (e.pointerType === 'mouse') {
+                              e.target.addEventListener('click', preventNextClick, { once: true });
+                          }
+                    }
+                }, LONG_PRESS_DURATION);
+            }
         } else {
-             // If it was a short tap, handle the click
-             handleClick(e);
-        }
-        isLongPress = false; moved = false;
-      });
-
-      // Mouse events
-      el.addEventListener('mousedown', e => {
-        if (e.button === 0) { // Left click
-          moved = false; isLongPress = false;
-          startX = e.clientX; startY = e.clientY;
-          longPressTimer = setTimeout(() => {
-             handleLongPressOrRightClick(e.clientX, e.clientY);
-          }, LONG_PRESS_DURATION);
-        }
-      });
-
-      el.addEventListener('mousemove', e => {
-        const dx = Math.abs(e.clientX - startX);
-        const dy = Math.abs(e.clientY - startY);
-        if (dx > 5 || dy > 5) { clearTimeout(longPressTimer); moved = true; }
-      });
-
-      el.addEventListener('mouseup', e => {
-        if (e.button === 0) { // Left click
-           clearTimeout(longPressTimer);
-           if (isLongPress) {
-              // If long press happened, prevent default click
-              e.preventDefault();
-              e.stopPropagation();
-           } else {
-              // If it was a short click, handle the click
-              handleClick(e);
-           }
-           isLongPress = false; moved = false;
-        }
-      });
-
-      el.addEventListener('contextmenu', e => { // Right click
-        e.preventDefault(); // Prevent default browser context menu
-        // Store bookmark and group IDs
-        currentGroup = group.id;
-        currentBookmark = bookmark.id;
-        handleLongPressOrRightClick(e.clientX, e.clientY); // Show custom menu
-        e.stopPropagation(); // Stop propagation
-      });
-
-       // Prevent default click action on the link inside the bookmark div
-       const link = el.querySelector('a');
-       if (link) {
-         link.addEventListener('click', e => {
-             // If a menu is currently open due to long press or right click, prevent the link click
-              if (contextMenu.style.display === 'block') {
-                  e.preventDefault();
-                  e.stopPropagation();
+             // If pressed outside any interactive element, hide menus/modals
+             hideContextMenus();
+              // Also close modal if open and clicking outside
+              if (modalOverlay.style.display === 'flex' && !e.target.closest('#modal')) {
+                   modalOverlay.style.display = 'none';
+                   // Reset modal state on closing
+                   modalState = { mode: '', data: null };
+                   faviconCycleUrls = [];
+                   faviconPresetIndex = -1;
               }
-         });
-       }
-    }
-
-    function bindLongPressGroup(el, group) {
-      let startX = 0, startY = 0;
-
-       const handleLongPressOrRightClick = (x, y) => {
-           isLongPress = true; // Mark as long press event happened
-           // Store group ID
-           currentGroup = group.id;
-           currentBookmark = null; // No bookmark selected
-           showGroupContextMenu(x, y);
-       };
-
-      // Touch events
-      el.addEventListener('touchstart', e => {
-        moved = false; isLongPress = false;
-        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-        longPressTimer = setTimeout(() => {
-          handleLongPressOrRightClick(e.touches[0].clientX, e.touches[0].clientY);
-           e.preventDefault(); // Prevent default browser action on long press touch
-        }, LONG_PRESS_DURATION);
-      }, { passive: false });
-
-      el.addEventListener('touchmove', e => {
-        const dx = Math.abs(e.touches[0].clientX - startX);
-        const dy = Math.abs(e.touches[0].clientY - startY);
-        if (dx > 10 || dy > 10) { moved = true; clearTimeout(longPressTimer); }
-      }, { passive: true });
-
-      el.addEventListener('touchend', e => {
-        clearTimeout(longPressTimer);
-        if (isLongPress) {
-            // If long press happened, prevent default click/tap
-            e.preventDefault();
-            e.stopPropagation();
+               // Also close custom alerts/confirms if clicking outside (though the buttons are the primary way)
+               if (customAlert.style.display === 'flex' && !e.target.closest('.alert-content')) {
+                   customAlert.style.display = 'none';
+               }
+               if (customConfirm.style.display === 'flex' && !e.target.closest('.confirm-content')) {
+                    customConfirm.style.display = 'none';
+               }
         }
-        isLongPress = false; moved = false;
-      });
+    });
 
-      // Mouse events
-      el.addEventListener('mousedown', e => {
-        if (e.button === 0) { // Left click
-          moved = false; isLongPress = false;
-          startX = e.clientX; startY = e.clientY;
-          longPressTimer = setTimeout(() => {
-            handleLongPressOrRightClick(e.clientX, e.clientY);
-          }, LONG_PRESS_DURATION);
+    // Helper to prevent the next click event
+     function preventNextClick(e) {
+         e.preventDefault();
+         e.stopPropagation();
+     }
+
+
+    // Global Pointer Move handler
+    document.addEventListener('pointermove', (e) => {
+        if (isPressing && !isLongPress && initialPressTarget) {
+            const dx = Math.abs(e.clientX - initialPressPos.x);
+            const dy = Math.abs(e.clientY - initialPressPos.y);
+            // If moved more than a threshold, cancel long press
+            if (dx > 10 || dy > 10) {
+                clearTimeout(pressTimer);
+                isPressing = false; // Stop tracking this press as a potential long press/click
+            }
         }
-      });
+    });
 
-      el.addEventListener('mousemove', e => {
-        const dx = Math.abs(e.clientX - startX);
-        const dy = Math.abs(e.clientY - startY);
-        if (dx > 5 || dy > 5) { clearTimeout(longPressTimer); moved = true; }
-      });
+    // Global Pointer Up handler
+    document.addEventListener('pointerup', (e) => {
+        clearTimeout(pressTimer); // Always clear timer on pointer up
 
-      el.addEventListener('mouseup', e => {
-        if (e.button === 0) { // Left click
-           clearTimeout(longPressTimer);
-           if (isLongPress) {
-               // If long press happened, prevent default click
-              e.preventDefault();
-              e.stopPropagation();
-           }
-           isLongPress = false; moved = false;
+        const wasPressing = isPressing; // Capture state before resetting
+        const hadLongPress = isLongPress; // Capture state before resetting
+
+        // Reset states
+        isPressing = false;
+        isLongPress = false;
+        initialPressTarget = null;
+        // initialPressPos doesn't need reset
+
+        // If it was a long press or right click, the menu is already shown and default was prevented in pointerdown/timer.
+        // Do nothing more here for long presses or right clicks.
+
+        // If it was a press (started with pointerdown) but NOT a long press and NOT a right click, it's a short left click/tap
+        if (wasPressing && !hadLongPress && e.button !== 2) {
+            const bookmarkTarget = e.target.closest('.bookmark');
+             // If the released target is the same as the initial press target (or within it)
+            if (bookmarkTarget && (e.target.closest('.bookmark') === initialPressTarget || initialPressTarget.contains(e.target)) ) {
+                 // This is a short click/tap on a bookmark element
+                 const link = bookmarkTarget.querySelector('a');
+                 // Manually trigger the link click, but only if no menus are open
+                 if (link && contextMenu.style.display !== 'block' && groupContextMenu.style.display !== 'block' && importExportMenu.style.display !== 'block') {
+                    // Check if the target is the link itself, if so, let its own listener handle it (if not prevented)
+                    if (e.target.tagName === 'A') {
+                        // Let the browser handle the default click on the <a>
+                    } else {
+                       // Clicked the bookmark div, manually open the link
+                       window.open(link.href, link.target || '_self');
+                       e.preventDefault(); // Prevent any other default action from the div click
+                       e.stopPropagation(); // Stop propagation
+                    }
+                 }
+            } else if (e.target.classList.contains('group-title') && initialPressTarget === e.target) {
+                 // This is a short click/tap on a group title.
+                 // Current code doesn't have a specific action for this (like collapsing), so do nothing.
+            } else if ((e.target === titleElement || titleElement.contains(e.target)) && initialPressTarget === titleElement) {
+                 // This is a short click/tap on the main title.
+                 // Current code doesn't have a specific action for this, so do nothing.
+            }
         }
-      });
+         // If clicked outside any menu/modal, handle closing them (this overlaps with pointerdown logic but safer here too)
+         // The pointerdown listener handles hiding menus when pressing outside. This pointerup listener handles cases where the press started
+         // on a menu/modal but released outside, or vice versa, or complex gesture interactions.
+         // A simpler approach is to rely on pointerdown for initial menu/modal hiding when pressing outside, and
+         // specific button clicks or modal background clicks for closing when they are open.
+         // Let's refine the closing logic to be clearer.
+    });
 
-      el.addEventListener('contextmenu', e => { // Right click
-        e.preventDefault(); // Prevent default browser context menu
-        // Store group ID
-        currentGroup = group.id;
-        currentBookmark = null;
-        handleLongPressOrRightClick(e.clientX, e.clientY); // Show custom menu
-        e.stopPropagation(); // Stop propagation
-      });
-    }
 
-    function bindLongPressTitle(el) {
-      let startX = 0, startY = 0;
+    // Close context menus/modal when clicking outside
+    document.addEventListener('click', (e) => {
+        // Check if click target is outside any open context menu or modal
+        const clickedOutsideMenus = !e.target.closest('.context-menu, .group-context-menu, .import-export-menu');
+        const clickedOutsideModal = !e.target.closest('#modal');
+        const clickedOutsideAlertConfirm = !e.target.closest('.alert-content');
 
-       const handleLongPressOrRightClick = (x, y) => {
-          isLongPress = true; // Mark as long press event happened
-           // No specific group or bookmark for title
-          currentGroup = null;
-          currentBookmark = null;
-          showImportExportMenu(x, y);
-       };
 
-      // Touch events
-      el.addEventListener('touchstart', e => {
-        moved = false; isLongPress = false;
-        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-        longPressTimer = setTimeout(() => {
-          handleLongPressOrRightClick(e.touches[0].clientX, e.touches[0].clientY);
-           e.preventDefault(); // Prevent default browser action on long press touch
-        }, LONG_PRESS_DURATION);
-      }, { passive: false });
-
-      el.addEventListener('touchmove', e => {
-        const dx = Math.abs(e.touches[0].clientX - startX);
-        const dy = Math.abs(e.touches[0].clientY - startY);
-        if (dx > 10 || dy > 10) { moved = true; clearTimeout(longPressTimer); }
-      }, { passive: true });
-
-      el.addEventListener('touchend', e => {
-        clearTimeout(longPressTimer);
-        if (isLongPress) {
-            // If long press happened, prevent default click/tap
-            e.preventDefault();
-            e.stopPropagation();
+        if (clickedOutsideMenus && (contextMenu.style.display === 'block' || groupContextMenu.style.display === 'block' || importExportMenu.style.display === 'block')) {
+            hideContextMenus();
         }
-        isLongPress = false; moved = false;
-      });
 
-      // Mouse events
-      el.addEventListener('mousedown', e => {
-        if (e.button === 0) { // Left click
-          moved = false; isLongPress = false;
-          startX = e.clientX; startY = e.clientY;
-          longPressTimer = setTimeout(() => {
-            handleLongPressOrRightClick(e.clientX, e.clientY);
-          }, LONG_PRESS_DURATION);
+        if (clickedOutsideModal && modalOverlay.style.display === 'flex') {
+             modalOverlay.style.display = 'none';
+              // Reset modal state on closing
+              modalState = { mode: '', data: null };
+              faviconCycleUrls = [];
+              faviconPresetIndex = -1;
         }
-      });
 
-      el.addEventListener('mousemove', e => {
-        const dx = Math.abs(e.clientX - startX);
-        const dy = Math.abs(e.clientY - startY);
-        if (dx > 5 || dy > 5) { clearTimeout(longPressTimer); moved = true; }
-      });
+         if (clickedOutsideAlertConfirm && (customAlert.style.display === 'flex' || customConfirm.style.display === 'flex')) {
+             customAlert.style.display = 'none';
+             customConfirm.style.display = 'none';
+         }
 
-      el.addEventListener('mouseup', e => {
-        if (e.button === 0) { // Left click
-           clearTimeout(longPressTimer);
-           if (isLongPress) {
-               // If long press happened, prevent default click
-               e.preventDefault();
-               e.stopPropagation();
-           }
-           isLongPress = false; moved = false;
+    });
+
+    // Prevent default browser context menu on elements where we handle it manually
+     document.addEventListener('contextmenu', (e) => {
+        const bookmarkTarget = e.target.closest('.bookmark');
+        const groupTitleTarget = e.target.classList.contains('group-title') ? e.target : null;
+        const mainTitleTarget = (e.target === titleElement || titleElement.contains(e.target)) ? titleElement : null;
+
+        if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
+            e.preventDefault(); // Prevent default browser context menu
+             // The custom menu is shown by the pointerdown button=2 logic
         }
-      });
+     });
 
-      el.addEventListener('contextmenu', e => { // Right click
-        e.preventDefault(); // Prevent default browser context menu
-        handleLongPressOrRightClick(e.clientX, e.clientY); // Show custom menu
-        e.stopPropagation(); // Stop propagation
-      });
-    }
+
+    // --- Modal 和菜单按钮点击处理 ---
+
+    changeFaviconBtn.addEventListener('click', async (e) => { // Made async
+      e.stopPropagation(); // Stop propagation to prevent modal overlay click
+      const link = bookmarkUrlInput.value.trim();
+      if (!link) {
+          showCustomAlert('请先填写书签链接以生成缩略图选项。');
+          return;
+      }
+      // Ensure cycle URLs are generated if not already
+      if (faviconCycleUrls.length === 0) {
+           faviconCycleUrls = FAVICON_PATTERNS.map(patternFunc => patternFunc(link)).filter(url => url !== ''); // Filter out empty URLs
+      }
+      if (faviconCycleUrls.length === 0) {
+          showCustomAlert('无法为当前链接生成缩略图。');
+          return;
+      }
+
+      // --- Modified: Cycle through presets and check if they load ---
+      let foundWorking = false;
+      // Start checking from the next preset index
+      let startIndex = (faviconPresetIndex + 1) % faviconCycleUrls.length;
+      let currentIndex = startIndex;
+
+      do {
+          const rawUrl = faviconCycleUrls[currentIndex];
+          const urlToTest = rawUrl.startsWith('http') ? rawUrl : (ACCELERATE_PREFIX + rawUrl); // Test with potential prefix
+
+          if (await checkImageUrl(urlToTest)) {
+              // Found a working URL
+              bookmarkFaviconInput.value = urlToTest; // Set input value to the working URL (with prefix if applied)
+              updateFaviconPreview(); // Update preview
+              faviconPresetIndex = currentIndex; // Update index to the working preset
+              foundWorking = true;
+              break; // Stop cycling
+          }
+
+          currentIndex = (currentIndex + 1) % faviconCycleUrls.length;
+
+      } while (currentIndex !== startIndex); // Cycle through all until we loop back
+
+      if (!foundWorking) {
+           // If no working favicon found among presets, keep current value or clear? Let's clear.
+           bookmarkFaviconInput.value = '';
+           updateFaviconPreview();
+           faviconPresetIndex = -1; // Reset index
+           showCustomAlert('未能找到一个可以加载的缩略图，请手动输入或检查链接。');
+      }
+       // --- End Modified ---
+    });
+
+    bookmarkFaviconInput.addEventListener('input', updateFaviconPreview);
 
 
     exportBtn.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent click from closing menu immediately
       hideContextMenus();
       try {
-        // Export the data as is (with prefixes)
-        const data = groups.map(group => ({
-          name: group.name,
-          bookmarks: group.bookmarks.map(bookmark => ({
-            title: bookmark.title,
-            url: bookmark.url,
-            favicon: bookmark.favicon // Export with prefix
-          }))
-        }));
-        const dataStr = JSON.stringify(data, null, 2);
+        // --- Modified Export Logic ---
+        const exportData = {};
+        groups.forEach(group => {
+            // Use group name as the key
+            exportData[group.name] = group.bookmarks.map(bookmark => ({
+                // Map internal 'title' to exported 'name'
+                name: bookmark.title,
+                url: bookmark.url,
+                // Export favicon as stored (includes prefix if applicable)
+                favicon: bookmark.favicon || '' // Ensure favicon is at least an empty string if missing
+            }));
+        });
+        // --- End Modified Export Logic ---
+
+        const dataStr = JSON.stringify(exportData, null, 2); // Use the new format object
         const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
         const exportFileDefaultName = 'bookmarks.json';
         let linkElement = document.createElement('a');
@@ -821,14 +1099,14 @@
         document.body.removeChild(linkElement);
       } catch (error) {
         console.error("导出数据失败:", error);
-        alert('导出数据失败，请检查控制台错误信息！');
+        showCustomAlert('导出数据失败，请检查控制台错误信息！');
       }
     });
 
     importBtn.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent click from closing menu immediately
       hideContextMenus();
-      importInput.value = '';
+      importInput.value = ''; // Clear previous file selection
       importInput.click();
     });
 
@@ -841,7 +1119,10 @@
             const importedData = JSON.parse(e.target.result);
             if (typeof importedData === 'object' && importedData !== null) {
               let newGroups = [];
+
+              // --- Modified Import Logic ---
               if (Array.isArray(importedData)) {
+                // Handle old array format [{ name: '...', bookmarks: [...] }]
                 importedData.forEach(groupData => {
                   if (groupData && typeof groupData === 'object' && groupData.name && Array.isArray(groupData.bookmarks)) {
                     const newGroup = {
@@ -851,23 +1132,19 @@
                     };
                     groupData.bookmarks.forEach(bookmarkData => {
                       if (bookmarkData && typeof bookmarkData === 'object' && (bookmarkData.name || bookmarkData.title) && bookmarkData.url) {
-                        // Import favicon logic modified here:
+                        // Import favicon logic: add prefix if it doesn't start with http and isn't already prefixed
                         let importedFavicon = bookmarkData.favicon || '';
-                        // If favicon is empty BUT url exists, set default favicon.im with prefix
-                        if (!importedFavicon && bookmarkData.url) {
+                        if (importedFavicon && !importedFavicon.startsWith('http') && !importedFavicon.startsWith(ACCELERATE_PREFIX)) {
+                           importedFavicon = ACCELERATE_PREFIX + importedFavicon;
+                        } else if (!importedFavicon && bookmarkData.url) {
+                            // If favicon is empty BUT url exists, set default favicon.im with prefix
                             importedFavicon = ACCELERATE_PREFIX + FAVICON_PATTERNS[0](bookmarkData.url);
                         }
-                        // If favicon is provided but doesn't start with http, assume it's a raw path/domain and prefix it
-                         else if (importedFavicon && !importedFavicon.startsWith('http')) {
-                            importedFavicon = ACCELERATE_PREFIX + importedFavicon;
-                         }
-                         // If it's a full http/https URL that doesn't have the ACCELERATE_PREFIX, assume manual input and keep as is.
-                         // If it's a full http/https URL that HAS the ACCELERATE_PREFIX, keep as is.
-
+                        // If it's a full http/https URL or already has the prefix, keep as is.
 
                         newGroup.bookmarks.push({
                           id: generateId(),
-                          title: bookmarkData.name || bookmarkData.title,
+                          title: bookmarkData.name || bookmarkData.title, // Support 'name' or 'title' from old format
                           url: bookmarkData.url,
                           favicon: importedFavicon // Use the determined favicon
                         });
@@ -877,32 +1154,29 @@
                   }
                 });
               } else {
+                // Handle new object format { groupName: [{ name: '...', url: '...', favicon: '...' }] }
                 for (const groupName in importedData) {
                   if (importedData.hasOwnProperty(groupName)) {
                     const bookmarks = importedData[groupName];
                     if (Array.isArray(bookmarks)) {
                       const newGroup = {
                         id: generateId(),
-                        name: groupName,
+                        name: groupName, // Use object key as group name
                         bookmarks: []
                       };
                       bookmarks.forEach(bookmark => {
                         if (bookmark && typeof bookmark === 'object' && (bookmark.name || bookmark.title) && bookmark.url) {
-                           // Import favicon logic modified here:
+                           // Import favicon logic (same as above)
                            let importedFavicon = bookmark.favicon || '';
-                           // If favicon is empty BUT url exists, set default favicon.im with prefix
-                           if (!importedFavicon && bookmark.url) {
+                           if (importedFavicon && !importedFavicon.startsWith('http') && !importedFavicon.startsWith(ACCELERATE_PREFIX)) {
+                              importedFavicon = ACCELERATE_PREFIX + importedFavicon;
+                           } else if (!importedFavicon && bookmark.url) {
                                importedFavicon = ACCELERATE_PREFIX + FAVICON_PATTERNS[0](bookmark.url);
                            }
-                            // If favicon is provided but doesn't start with http, assume it's a raw path/domain and prefix it
-                           else if (importedFavicon && !importedFavicon.startsWith('http')) {
-                              importedFavicon = ACCELERATE_PREFIX + importedFavicon;
-                           }
-
 
                           newGroup.bookmarks.push({
                             id: generateId(),
-                            title: bookmark.name || bookmark.title,
+                            title: bookmark.name || bookmark.title, // Support 'name' or 'title' from new format
                             url: bookmark.url,
                             favicon: importedFavicon // Use the determined favicon
                           });
@@ -913,20 +1187,46 @@
                   }
                 }
               }
+              // --- End Modified Import Logic ---
+
+
               if (newGroups.length === 0) {
-                alert('导入失败：未检测到有效的书签分组和书签。');
+                showCustomAlert('导入失败：未检测到有效的书签分组和书签。');
                 return;
               }
+
               // Append imported groups to existing groups
               groups = groups.concat(newGroups);
-              render();
-              alert('导入成功！');
+              render(); // Render the page with new data
+
+              // --- New: Start checking and fixing favicons after import and render ---
+              setTimeout(async () => { // Use setTimeout to allow initial render to complete
+                   showCustomAlert('导入成功！正在检查并修复书签缩略图...'); // Inform user
+                   for (const group of groups) {
+                       // Find the group element to ensure it's in the DOM
+                       const groupElement = document.querySelector(`.group[data-group-id="${group.id}"]`);
+                       if (groupElement) {
+                           for (const bookmark of group.bookmarks) {
+                               // Find the bookmark element in the DOM
+                               const bookmarkElement = groupElement.querySelector(`.bookmark[data-bookmark-id="${bookmark.id}"]`);
+                               if (bookmarkElement) {
+                                    // Call the async fix function for each bookmark
+                                    await findAndApplyWorkingFavicon(bookmark, bookmarkElement);
+                               }
+                           }
+                       }
+                   }
+                    showCustomAlert('书签缩略图检查和修复完成。'); // Inform user when done
+              }, 500); // Delay the check process slightly
+              // --- End New ---
+
+
             } else {
-              alert('导入数据格式不正确。');
+              showCustomAlert('导入数据格式不正确。');
             }
           } catch (error) {
             console.error("导入数据失败:", error);
-            alert('导入数据失败，请检查文件格式是否正确。');
+            showCustomAlert('导入数据失败，请检查文件格式是否正确。\n' + error.message); // Added error message for debugging
           }
         }
         reader.readAsText(file);
@@ -936,23 +1236,25 @@
     clearBtn.addEventListener('click', (e) => {
        e.stopPropagation(); // Prevent click from closing menu immediately
       hideContextMenus();
-      if (confirm('确定要清空所有书签数据并恢复到初始状态吗？此操作不可撤销！')) {
-        resetToDefault();
-        saveData();
-        render();
-        alert('书签数据已清空并恢复到初始状态。');
-      }
+      showCustomConfirm('确定要清空所有书签数据并恢复到初始状态吗？此操作不可撤销！',
+         () => { // OK Callback
+            resetToDefault();
+            saveData();
+            render();
+            showCustomAlert('书签数据已清空并恢复到初始状态。');
+         },
+         () => { // Cancel Callback
+            // Do nothing
+         }
+      );
     });
 
     addBookmarkBtn.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent click from closing menu immediately
       hideContextMenus();
-      isEditingBookmark = false;
-       // Clear any previously selected bookmark IDs
-       currentBookmark = null;
-       // The currentGroup should be the group where the context menu was opened.
-       // If opened from title, currentGroup will be null. Prompt user to select group or add to default?
-       // Let's assume for now, if currentGroup is null, add to the first group.
+
+       // The currentGroup should be the group where the context menu was opened (from a bookmark).
+       // If opened from title, currentGroup will be null. If so, add to the first group.
        if (!currentGroup && groups.length > 0) {
             currentGroup = groups[0].id;
        } else if (!currentGroup && groups.length === 0) {
@@ -961,8 +1263,10 @@
              currentGroup = groups[0].id;
        }
 
+      modalState = { mode: 'addBookmark', data: { groupId: currentGroup } };
 
       modalTitle.textContent = '添加书签';
+      bookmarkTitleLabel.textContent = '标题'; // Ensure label is correct
       bookmarkTitleLabel.style.display = 'block';
       bookmarkTitleInput.style.display = 'block';
       bookmarkUrlLabel.style.display = 'block';
@@ -976,7 +1280,6 @@
       bookmarkFaviconInput.value = '';
       faviconPresetIndex = -1; // Reset cycle index
       faviconCycleUrls = []; // Clear previous cycle URLs
-      // Do not set default favicon here, let user type or click '更换'
       modalOverlay.style.display = 'flex';
     });
 
@@ -988,8 +1291,9 @@
        const bookmark = group ? group.bookmarks.find(bm => bm.id === currentBookmark) : null;
 
       if (bookmark && group) {
-        isEditingBookmark = true;
+        modalState = { mode: 'editBookmark', data: { groupId: currentGroup, bookmarkId: currentBookmark } };
         modalTitle.textContent = '修改书签';
+        bookmarkTitleLabel.textContent = '标题'; // Ensure label is correct
         bookmarkTitleLabel.style.display = 'block';
         bookmarkTitleInput.style.display = 'block';
         bookmarkUrlLabel.style.display = 'block';
@@ -1019,7 +1323,7 @@
         }
         modalOverlay.style.display = 'flex';
       } else {
-        alert('请先长按选择要修改的书签');
+        showCustomAlert('请先长按选择要修改的书签');
       }
     });
 
@@ -1030,20 +1334,26 @@
        const group = groups.find(g => g.id === currentGroup);
 
       if (currentBookmark && group) {
-        if (!confirm('确定要删除该书签吗？')) return;
-        try {
-          group.bookmarks = group.bookmarks.filter(bm => bm.id !== currentBookmark);
-          // Clear selected bookmark ID
-          currentBookmark = null;
-          // currentGroup remains selected
-          saveData();
-          render();
-        } catch (error) {
-          console.error("删除书签失败:", error);
-          alert('删除书签失败，请查看控制台');
-        }
+        showCustomConfirm('确定要删除该书签吗？',
+           () => { // OK Callback
+             try {
+               group.bookmarks = group.bookmarks.filter(bm => bm.id !== currentBookmark);
+               // Clear selected bookmark ID
+               currentBookmark = null;
+               // currentGroup remains selected
+               saveData();
+               render();
+             } catch (error) {
+               console.error("删除书签失败:", error);
+               showCustomAlert('删除书签失败，请查看控制台');
+             }
+           },
+           () => { // Cancel Callback
+              // Do nothing
+           }
+        );
       } else {
-        alert('请先长按选择要删除的书签');
+        showCustomAlert('请先长按选择要删除的书签');
       }
     });
 
@@ -1075,9 +1385,9 @@
        const groupToEdit = groups.find(g => g.id === currentGroup);
 
       if (groupToEdit) {
-        isEditingBookmark = false;
+        modalState = { mode: 'editGroup', data: { groupId: currentGroup } };
         modalTitle.textContent = '修改分组';
-        bookmarkTitleLabel.textContent = '分组名称';
+        bookmarkTitleLabel.textContent = '分组名称'; // Change label text
         bookmarkTitleLabel.style.display = 'block';
         bookmarkTitleInput.style.display = 'block';
         bookmarkUrlLabel.style.display = 'none';
@@ -1089,7 +1399,7 @@
          bookmarkTitleInput.value = groupToEdit.name;
         modalOverlay.style.display = 'flex';
       } else {
-        alert('请先长按选择要修改的分组');
+        showCustomAlert('请先长按选择要修改的分组');
       }
     });
 
@@ -1100,24 +1410,30 @@
        const groupToDelete = groups.find(g => g.id === currentGroup);
 
       if (groupToDelete) {
-        if (groups.length === 1) { alert('至少保留一个分组'); return; }
-        if (!confirm(`确定要删除分组 "${groupToDelete.name}" 吗？所有书签也将被删除！`)) return;
-        try {
-          groups = groups.filter(g => g.id !== currentGroup);
-          // Set currentGroup to the ID of the first remaining group
-          currentGroup = groups.length > 0 ? groups[0].id : null;
-           if (currentGroup === null) { // Should not happen due to the check above, but as a fallback
-              resetToDefault();
-              currentGroup = groups[0].id;
+        if (groups.length === 1) { showCustomAlert('至少保留一个分组'); return; }
+        showCustomConfirm(`确定要删除分组 "${groupToDelete.name}" 吗？所有书签也将被删除！`,
+           () => { // OK Callback
+             try {
+               groups = groups.filter(g => g.id !== currentGroup);
+               // Set currentGroup to the ID of the first remaining group
+               currentGroup = groups.length > 0 ? groups[0].id : null;
+                if (currentGroup === null) { // Should not happen due to the check above, but as a fallback
+                   resetToDefault();
+                   currentGroup = groups[0].id;
+                }
+               saveData();
+               render();
+             } catch (error) {
+               console.error("删除分组失败:", error);
+               showCustomAlert('删除分组失败，请查看控制台');
+             }
+           },
+           () => { // Cancel Callback
+             // Do nothing
            }
-          saveData();
-          render();
-        } catch (error) {
-          console.error("删除分组失败:", error);
-          alert('删除分组失败，请查看控制台');
-        }
+        );
       } else {
-        alert('请先长按选择要删除的分组');
+        showCustomAlert('请先长按选择要删除的分组');
       }
     });
 
@@ -1125,9 +1441,8 @@
        e.stopPropagation(); // Prevent click from closing modal overlay
       modalOverlay.style.display = 'none';
        // Reset states related to modals
+       modalState = { mode: '', data: null };
        currentBookmark = null; // Clear selected bookmark ID
-       // currentGroup ID remains selected
-       isEditingBookmark = false;
        faviconCycleUrls = [];
        faviconPresetIndex = -1;
     });
@@ -1135,11 +1450,15 @@
     modalSaveBtn.addEventListener('click', async (e) => { // Made async to use await if needed in the future
       e.stopPropagation(); // Prevent click from closing modal overlay
 
-      if (isEditingBookmark) {
+      const mode = modalState.mode;
+
+      if (mode === 'editBookmark') {
         // Saving an existing bookmark
+        const groupId = modalState.data.groupId;
+        const bookmarkId = modalState.data.bookmarkId;
         // Find the group and bookmark objects using stored IDs
-        const group = groups.find(g => g.id === currentGroup);
-        const bookmark = group ? group.bookmarks.find(bm => bm.id === currentBookmark) : null;
+        const group = groups.find(g => g.id === groupId);
+        const bookmark = group ? group.bookmarks.find(bm => bm.id === bookmarkId) : null;
 
         if (bookmark && group) {
           const titleVal = bookmarkTitleInput.value.trim();
@@ -1147,7 +1466,7 @@
           let faviconVal = bookmarkFaviconInput.value.trim(); // Get the value from the input
 
           if (!titleVal || !urlVal) {
-            alert('标题和链接不能为空！');
+            showCustomAlert('标题和链接不能为空！');
             return;
           }
 
@@ -1162,7 +1481,9 @@
                const isFullUrl = faviconVal.startsWith('http://') || faviconVal.startsWith('https://');
                if (isFullUrl) {
                     // It's a full URL, now check if it's one of the raw cycle URLs
-                    const isRawCycleUrl = faviconCycleUrls.includes(faviconVal);
+                    // Re-generate raw cycle URLs from the potentially updated URL for accurate check
+                    const currentCycleUrls = FAVICON_PATTERNS.map(patternFunc => patternFunc(urlVal)).filter(url => url !== '');
+                    const isRawCycleUrl = currentCycleUrls.includes(faviconVal);
                     if (isRawCycleUrl) {
                         // It's a raw cycle URL, add the prefix
                         faviconVal = ACCELERATE_PREFIX + faviconVal;
@@ -1184,133 +1505,97 @@
           bookmark.url = urlVal;
           bookmark.favicon = faviconVal; // Save the processed favicon URL
         }
-      } else {
-        // Adding a new bookmark or editing group name
-        if (bookmarkUrlLabel.style.display === 'none') {
-          // Editing group name
-          const newName = bookmarkTitleInput.value.trim();
-          if (!newName) {
-            alert('分组名称不能为空！');
-            return;
-          }
-          // Find the group being edited by currentGroup ID
-          const groupToEdit = groups.find(g => g.id === currentGroup);
-          if (groupToEdit) {
-              // Check for duplicate name excluding the current group
-              if (groups.some(g => g.name === newName && g.id !== groupToEdit.id)) {
-                  alert('分组名称已存在！');
-                  return;
-              }
-              groupToEdit.name = newName;
-          } else {
-               alert('无法修改分组：未选择当前分组');
-               modalOverlay.style.display = 'none';
-               return;
-          }
+      } else if (mode === 'editGroup') {
+        // Editing group name
+        const groupId = modalState.data.groupId;
+        const newName = bookmarkTitleInput.value.trim();
+        if (!newName) {
+          showCustomAlert('分组名称不能为空！');
+          return;
+        }
+        // Find the group being edited by currentGroup ID
+        const groupToEdit = groups.find(g => g.id === groupId);
+        if (groupToEdit) {
+            // Check for duplicate name excluding the current group
+            if (groups.some(g => g.name === newName && g.id !== groupToEdit.id)) {
+                showCustomAlert('分组名称已存在！');
+                return;
+            }
+            groupToEdit.name = newName;
         } else {
-          // Adding a new bookmark
-          const titleVal = bookmarkTitleInput.value.trim();
-          const urlVal = bookmarkUrlInput.value.trim();
-           let faviconVal = bookmarkFaviconInput.value.trim(); // Get the value from the input
-
-          if (!titleVal || !urlVal) {
-            alert('标题和链接不能为空！');
-            return;
-          }
-
-          // Find the current group object by ID
-          const groupToAddInto = groups.find(g => g.id === currentGroup);
-          if (!groupToAddInto) {
-            alert('当前分组不存在，无法添加书签');
-            modalOverlay.style.display = 'none';
-            return;
-          }
-
-           // Logic to add accelerator prefix (same as edit bookmark)
-           if (faviconVal && !faviconVal.startsWith(ACCELERATE_PREFIX)) {
-               const isFullUrl = faviconVal.startsWith('http://') || faviconVal.startsWith('https://');
-               if (isFullUrl) {
-                    const isRawCycleUrl = faviconCycleUrls.includes(faviconVal);
-                    if (isRawCycleUrl) {
-                        faviconVal = ACCELERATE_PREFIX + faviconVal;
-                    }
-               } else {
-                    faviconVal = ACCELERATE_PREFIX + faviconVal;
-               }
-           } else if (!faviconVal && urlVal) {
-               // If favicon is empty but URL exists, generate default (favicon.im) and add prefix
-               faviconVal = ACCELERATE_PREFIX + FAVICON_PATTERNS[0](urlVal);
-           }
-
-
-          const newBookmark = {
-            id: generateId(),
-            title: titleVal,
-            url: urlVal,
-            favicon: faviconVal // Save the processed favicon URL
-          };
-
-           // Add the new bookmark to the end of the current group's bookmarks.
-           groupToAddInto.bookmarks.push(newBookmark);
+             showCustomAlert('无法修改分组：未选择当前分组');
+             modalOverlay.style.display = 'none';
+             modalState = { mode: '', data: null };
+             return;
         }
-      }
-      modalOverlay.style.display = 'none';
-      saveData();
-      render();
-       // Reset states related to modals
-       currentBookmark = null; // Clear selected bookmark ID
-       // currentGroup ID remains selected
-       isEditingBookmark = false;
-       faviconCycleUrls = [];
-       faviconPresetIndex = -1;
-    });
+      } else if (mode === 'addBookmark') {
+        // Adding a new bookmark
+        const groupId = modalState.data.groupId;
+        const titleVal = bookmarkTitleInput.value.trim();
+        const urlVal = bookmarkUrlInput.value.trim();
+         let faviconVal = bookmarkFaviconInput.value.trim(); // Get the value from the input
 
-    const title = document.querySelector('h1');
-    bindLongPressTitle(title);
-
-     // Global click listener to hide menus when clicking outside
-    document.addEventListener('click', (event) => {
-        // If the ignoreNextClick flag is true, reset it and do nothing
-        if (ignoreNextClick) {
-            ignoreNextClick = false;
-            return;
+        if (!titleVal || !urlVal) {
+          showCustomAlert('标题和链接不能为空！');
+          return;
         }
 
-        // Hide menus if clicking outside of them
-        if (contextMenu.style.display === 'block' && !contextMenu.contains(event.target)) {
-            hideContextMenus();
-        }
-         if (groupContextMenu.style.display === 'block' && !groupContextMenu.contains(event.target)) {
-            hideContextMenus();
-        }
-         if (importExportMenu.style.display === 'block' && !importExportMenu.contains(event.target)) {
-            hideContextMenus();
+        // Find the current group object by ID
+        const groupToAddInto = groups.find(g => g.id === groupId);
+        if (!groupToAddInto) {
+          showCustomAlert('当前分组不存在，无法添加书签');
+          modalOverlay.style.display = 'none';
+          modalState = { mode: '', data: null };
+          return;
         }
 
-         // Close modal if clicking outside the modal content, but only if the modal is open
-         const modalContent = document.getElementById('modal'); // Get modal content element
-         if (modalOverlay.style.display === 'flex' && !modalContent.contains(event.target)) {
-              modalOverlay.style.display = 'none';
-               // Reset states related to modals on closing the modal by clicking outside
-               currentBookmark = null; // Clear selected bookmark ID
-               // currentGroup ID remains selected
-               isEditingBookmark = false;
-               faviconCycleUrls = [];
-               faviconPresetIndex = -1;
+         // Logic to add accelerator prefix (same as edit bookmark)
+         if (faviconVal && !faviconVal.startsWith(ACCELERATE_PREFIX)) {
+             const isFullUrl = faviconVal.startsWith('http://') || faviconVal.startsWith('https://');
+             if (isFullUrl) {
+                  // Re-generate raw cycle URLs from the new URL for accurate check
+                  const currentCycleUrls = FAVICON_PATTERNS.map(patternFunc => patternFunc(urlVal)).filter(url => url !== '');
+                  const isRawCycleUrl = currentCycleUrls.includes(faviconVal);
+                  if (isRawCycleUrl) {
+                      faviconVal = ACCELERATE_PREFIX + faviconVal;
+                  }
+             }
+             // If it's a full URL but not in the raw cycle, assume manual and keep as is.
+         } else if (faviconVal && !(faviconVal.startsWith('http://') || faviconVal.startsWith('https://'))) {
+             // It's not a full http URL and doesn't have the prefix, likely a path or domain, add the prefix
+              faviconVal = ACCELERATE_PREFIX + faviconVal;
          }
+         // If faviconVal already has the prefix, do nothing.
+         // If faviconVal is empty but urlVal exists, set default favicon.im with prefix
+         else if (!faviconVal && urlVal) {
+             faviconVal = ACCELERATE_PREFIX + FAVICON_PATTERNS[0](urlVal);
+         }
+
+
+        const newBookmark = {
+          id: generateId(),
+          title: titleVal,
+          url: urlVal,
+          favicon: faviconVal // Save the processed favicon URL
+        };
+
+         // Add the new bookmark to the end of the current group's bookmarks.
+         groupToAddInto.bookmarks.push(newBookmark);
+      }
+
+      // Close modal and reset state after successful save
+      modalOverlay.style.display = 'none';
+      modalState = { mode: '', data: null };
+      currentBookmark = null; // Clear selected bookmark ID
+      faviconCycleUrls = [];
+      faviconPresetIndex = -1;
+
+      saveData();
+      render(); // Re-render the page to show changes and trigger favicon checks
     });
 
 
-     // Prevent context menus from showing on regular clicks (redundant with long press logic but safe)
-     // These event listeners on the menus themselves might interfere with the global listener if propagation isn't stopped.
-     // Let's rely on the global listener and the ignoreNextClick flag. Remove these specific menu click listeners.
-     /*
-     contextMenu.addEventListener('click', hideContextMenus);
-     groupContextMenu.addEventListener('click', hideContextMenus);
-     importExportMenu.addEventListener('click', hideContextMenus);
-     */
-
-
+    // --- 初始化加载 ---
     loadData();
   </script>
 
