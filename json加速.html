@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon Accelerator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            background-color: #e9ebee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: #f0f8ff; /* Light blue background for the panel */
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid #cce5ff; /* Light blue border */
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        /* Style for the custom file input button (the label) */
+        .custom-file-upload {
+            display: inline-block; /* Allows padding and margins like a block */
+            width: 100%; /* Takes full width */
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #218838; /* Darker green border */
+            background-color: #28a745; /* Green background */
+            color: white; /* White text */
+            cursor: pointer;
+            text-align: center; /* Center the text */
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        .custom-file-upload:hover {
+             background-color: #218838; /* Darker green on hover */
+        }
+
+        /* Hide the actual file input */
+        #jsonFile {
+            display: none;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: none; /* Buttons have no border by default */
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+            box-sizing: border-box;
+            color: white; /* Default text color for buttons */
+        }
+        button:hover:not(:disabled) {
+             opacity: 0.9;
+        }
+        button:disabled {
+            background-color: #cccccc !important;
+            cursor: not-allowed;
+        }
+
+        .accelerate-button {
+            background-color: #007bff; /* Blue */
+        }
+         .accelerate-button:hover:not(:disabled) {
+             background-color: #0056b3;
+        }
+
+        .export-button {
+            background-color: #ffc107; /* Yellow/Orange */
+            color: #333;
+            border: 1px solid #e0a800; /* Darker yellow border */
+        }
+         .export-button:hover:not(:disabled) {
+             background-color: #e0a800;
+        }
+
+
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>缩略图链接加速器</h1>
+
+        <p>选择包含缩略图链接的文件，本工具将尝试查找并加速这些链接。</p>
+
+        <!-- Styled Label acting as the "Select File" button -->
+        <label for="jsonFile" class="custom-file-upload">选择文件</label>
+        <!-- Actual file input, hidden -->
+        <input type="file" id="jsonFile">
+
+        <button id="accelerateButton" class="accelerate-button" disabled>加速缩略图链接</button>
+        <button id="exportButton" class="export-button hidden">导出文件</button>
+
+        <div id="status">请选择文件以开始。</div>
+    </div>
+
+    <script>
+        let originalContent = null;
+        let modifiedContent = null;
+        let originalFileName = null;
+        const prefix = 'https://js.653827.xyz/';
+        const fileInput = document.getElementById('jsonFile');
+        const accelerateButton = document.getElementById('accelerateButton');
+        const exportButton = document.getElementById('exportButton');
+        const statusDiv = document.getElementById('status');
+
+        // Handle file selection
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                statusDiv.textContent = '未选择文件。';
+                accelerateButton.disabled = true;
+                exportButton.classList.add('hidden');
+                originalContent = null;
+                modifiedContent = null;
+                originalFileName = null;
+                return;
+            }
+
+            originalFileName = file.name; // Store the filename
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                originalContent = e.target.result;
+                statusDiv.textContent = `文件 "${originalFileName}" 加载成功。请点击 '加速缩略图链接'。`;
+                accelerateButton.disabled = false;
+                exportButton.classList.add('hidden'); // Hide export until accelerated
+                modifiedContent = null; // Reset modified data
+            };
+            reader.onerror = function() {
+                statusDiv.textContent = '读取文件失败。';
+                accelerateButton.disabled = true;
+                exportButton.classList.add('hidden');
+                originalContent = null;
+                modifiedContent = null;
+                originalFileName = null;
+            };
+            reader.readAsText(file); // Read as text
+        });
+
+        // Handle Accelerate button click
+        accelerateButton.addEventListener('click', function() {
+            if (!originalContent) {
+                statusDiv.textContent = '没有内容可处理。请先加载文件。';
+                return;
+            }
+
+            statusDiv.textContent = '正在加速缩略图链接...'; // Indicate processing
+
+            try {
+                const lines = originalContent.split('\n');
+                const modifiedLines = [];
+                let acceleratedCount = 0;
+
+                // Regex to find a URL pattern (http/https followed by non-space/quote characters)
+                // This regex looks for "favicon" (case-insensitive) followed by optional characters
+                // and then captures a URL starting with http or https.
+                const faviconUrlRegex = /(favicon["']?\s*[:=]?\s*["']?)(https?:\/\/[^"'\s]+)/i;
+
+
+                lines.forEach(line => {
+                    let modifiedLine = line;
+                     const match = line.match(faviconUrlRegex);
+
+                    if (match && match[2]) { // match[1] is the part before the URL, match[2] is the URL itself
+                        const urlPrefixPart = match[1];
+                        const faviconUrl = match[2];
+
+                        // Check if the URL needs acceleration
+                        if (!faviconUrl.startsWith(prefix)) {
+                            // Replace the original URL with the accelerated one
+                             modifiedLine = line.replace(faviconUrl, prefix + faviconUrl);
+                            acceleratedCount++;
+                        }
+                    }
+                    modifiedLines.push(modifiedLine);
+                });
+
+                modifiedContent = modifiedLines.join('\n');
+
+                statusDiv.textContent = `加速完成。共加速 ${acceleratedCount} 个缩略图链接。\n请点击 '导出文件'。`;
+                exportButton.classList.remove('hidden');
+
+            } catch (error) {
+                 statusDiv.textContent = '加速失败：' + error.message;
+                 modifiedContent = null; // Reset modified content on error
+                 exportButton.classList.add('hidden');
+            }
+        });
+
+        // Handle Export button click
+        exportButton.addEventListener('click', function() {
+            if (!modifiedContent) {
+                statusDiv.textContent = '没有修改后的内容可导出。请先加速。';
+                return;
+            }
+
+            statusDiv.textContent = '正在准备文件导出...'; // Indicate processing
+
+            try {
+                const blob = new Blob([modifiedContent], { type: 'text/plain' }); // Export as plain text
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                // Use the original filename, potentially with a prefix/suffix
+                a.download = 'accelerated_' + (originalFileName || 'output.txt');
+                document.body.appendChild(a); // Append to trigger download
+                a.click(); // Trigger the download
+                document.body.removeChild(a); // Clean up
+
+                URL.revokeObjectURL(url); // Free up memory
+                statusDiv.textContent += '\n文件已准备下载。';
+
+            } catch (error) {
+                statusDiv.textContent = '创建文件失败：' + error.message;
+            }
+        });
+
+    </script>
+</body>
+</html>
