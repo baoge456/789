@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=yes" />
+  <title>书签导航</title>
+  <link rel="icon" href="https://s3.bmp.ovh/imgs/2025/04/24/c767656a890464c5.webp" alt="书签 Logo" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      background-color: #f9f9f9;
+      user-select: none;
+    }
+    h1 {
+      margin-bottom: 20px;
+      text-align: center;
+      user-select: none;
+      cursor: default;
+    }
+    section#groupsContainer {
+      max-width: 600px;
+      width: 100%;
+    }
+    .group {
+      background: linear-gradient(135deg, #f3e7fa 0%, #e3f0ff 100%);
+      border-radius: 14px;
+      margin-bottom: 24px;
+      padding: 14px 18px 18px 18px;
+      box-shadow: 0 4px 16px rgba(120, 60, 180, 0.10), 0 1.5px 4px rgba(120, 60, 180, 0.06);
+      transition: box-shadow 0.2s, background 0.2s;
+    }
+    .group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      user-select: none;
+    }
+    .group-title {
+      font-size: 1.2em;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      color: #7c3aed;
+      letter-spacing: 1px;
+    }
+    .bookmark-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .bookmark {
+      display: flex;
+      align-items: center;
+      justify-content: center; /* Center content horizontally */
+      padding: 12px 15px; /* Adjusted padding */
+      background: linear-gradient(120deg, #f8fafc 60%, #e9e3ff 100%);
+      border: 1.5px solid #e0d7fa;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.07);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      width: calc(50% - 10px);
+      max-width: none;
+      position: relative;
+      user-select: none;
+      text-align: center; /* Center text */
+    }
+    .bookmark:hover {
+      background: linear-gradient(120deg, #a084e8 60%, #8b1db1 100%) !important;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(124, 58, 237, 0.18);
+    }
+    .bookmark:active {
+      background: linear-gradient(120deg, #6c2eb7 60%, #2d0040 100%) !important;
+      color: #fff;
+    }
+    /* Removed bookmark img styles */
+    .bookmark a {
+      text-decoration: none;
+      color: inherit;
+      flex: none; /* Allow text to wrap if needed, but don't force ellipsis */
+      overflow: visible;
+      white-space: normal;
+      text-overflow: initial;
+      word-break: break-word; /* Break long words */
+      user-select: text;
+      -webkit-touch-callout: none;
+    }
+    @media (min-width: 768px) {
+      .bookmark {
+        width: calc(33.33% - 10px);
+      }
+    }
+    #contextMenu, #groupContextMenu, #importExportMenu {
+      position: fixed;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 6px;
+      padding: 5px 0;
+      width: 160px;
+      display: none;
+      z-index: 9999;
+      user-select: none;
+    }
+     /* Add class for easier selection */
+    #contextMenu.context-menu,
+    #groupContextMenu.group-context-menu,
+    #importExportMenu.import-export-menu {
+        display: none; /* Initially hidden */
+    }
+
+    #contextMenu button, #groupContextMenu button, #importExportMenu button {
+      width: 100%;
+      padding: 8px 15px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #contextMenu button:hover, #groupContextMenu button:hover, #importExportMenu button:hover {
+      background-color: #f0f0f0;
+    }
+    #groupContextMenu button.delete, #importExportMenu button#clearBtn {
+      color: #d33;
+    }
+    #modalOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    #modal {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    #modal h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    #modal label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    #modal input[type=text] {
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    #modal .buttons {
+      text-align: right;
+    }
+    #modal .buttons button {
+      padding: 6px 15px;
+      margin-left: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #modal .buttons .cancel {
+      background: #e53935;
+      color: #fff;
+    }
+    #modal .buttons .save {
+      background: #4CAF50;
+      color: white;
+    }
+    #importInput {
+      display: none;
+    }
+
+     /* 添加自定义提示/确认框的样式 */
+    #customAlert, #customConfirm {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10001; /* Higher than modalOverlay */
+        display: none;
+        font-family: Arial, sans-serif;
+    }
+    #customAlert .alert-content, #customConfirm .confirm-content {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        max-width: 350px;
+        width: 90%;
+        text-align: center;
+    }
+    #customAlert .alert-content h3, #customConfirm .confirm-content h3 {
+        margin-top: 0;
+        color: #333;
+        font-size: 1.1em;
+        margin-bottom: 20px;
+    }
+    #customAlert .alert-content button, #customConfirm .confirm-content button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em;
+        margin: 0 5px;
+        transition: background-color 0.2s ease;
+    }
+    #customAlert .alert-content button {
+        background: #007bff;
+        color: white;
+    }
+    #customAlert .alert-content button:hover {
+        background: #0056b3;
+    }
+    #customConfirm .confirm-content .confirm-ok {
+        background: #28a745;
+        color: white;
+    }
+    #customConfirm .confirm-content .confirm-ok:hover {
+        background: #218838;
+    }
+    #customConfirm .confirm-content .confirm-cancel {
+        background: #dc3545;
+        color: white;
+    }
+    #customConfirm .confirm-content .confirm-cancel:hover {
+        background: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    // ====== 密码保护开始 ======
+    const PAGE_PASSWORD = 'baoge888';
+    const VERIFIED_KEY = 'pi_bookmark_verified';
+    if (localStorage.getItem(VERIFIED_KEY) === '1') {
+      document.body.style.display = '';
+    } else {
+      let tryCount = 0;
+      while (true) {
+        const input = prompt('请输入访问密码：');
+        if (input === null) {
+          document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40vh;">已取消访问</h2>';
+          throw new Error('用户取消访问');
+        }
+        if (input === PAGE_PASSWORD) {
+          localStorage.setItem(VERIFIED_KEY, '1');
+          document.body.style.display = '';
+          break;
+        } else {
+          tryCount++;
+          if (tryCount >= 3) {
+            document.body.innerHTML = '<h2 style="color:red;text-align:center;margin-top:40vh;">密码错误次数过多，禁止访问</h2>';
+            throw new Error('密码错误次数过多');
+          }
+          alert('密码错误，请重试！'); // Keep alert for password prompt as it's a simple initial gate
+        }
+      }
+    }
+    // ====== 密码保护结束 ======
+  </script>
+
+  <h1><img src="https://s3.bmp.ovh/imgs/2025/05/06/d8744e73dcf563f9.png" alt="书签导航" style="height: 60px;"></h1>
+  <section id="groupsContainer"></section>
+
+  <div id="importExportMenu" class="import-export-menu">
+    <button id="exportBtn">导出数据</button>
+    <button id="importBtn">导入数据</button>
+    <button id="clearBtn">清空数据</button>
+  </div>
+  <input type="file" id="importInput" accept=".json" />
+
+  <div id="contextMenu" class="context-menu">
+    <button id="addBookmarkBtn">添加书签</button>
+    <button id="editBookmarkBtn">修改书签</button>
+    <button id="deleteBookmarkBtn">删除书签</button>
+  </div>
+
+  <div id="groupContextMenu" class="group-context-menu">
+    <button id="addGroupFromMenuBtn">添加分组</button>
+    <button id="editGroupBtn">修改分组</button>
+    <button id="deleteGroupBtn" class="delete">删除分组</button>
+  </div>
+
+  <div id="modalOverlay">
+    <div id="modal">
+      <h2 id="modalTitle"></h2>
+      <label id="bookmarkTitleLabel" for="bookmarkTitleInput">标题</label>
+      <input type="text" id="bookmarkTitleInput" placeholder="请输入标题" />
+      <label id="bookmarkUrlLabel" for="bookmarkUrlInput">链接</label>
+      <input type="text" id="bookmarkUrlInput" placeholder="请输入链接" />
+      <!-- Removed Favicon related input and button -->
+      <div class="buttons">
+        <button class="cancel" id="modalCancelBtn">取消</button>
+        <button class="save" id="modalSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自定义提示和确认框 -->
+  <div id="customAlert">
+    <div class="alert-content">
+      <h3 id="customAlertMessage"></h3>
+      <button id="customAlertOk">确定</button>
+    </div>
+  </div>
+
+  <div id="customConfirm">
+    <div class="confirm-content">
+      <h3 id="customConfirmMessage"></h3>
+      <button class="confirm-ok" id="customConfirmOk">确定</button>
+      <button class="confirm-cancel" id="customConfirmCancel">取消</button>
+    </div>
+  </div>
+
+
+  <script>
+    // --- 常量定义 ---
+    const STORAGE_KEY = 'pi_groups_data';
+    const CURRENT_GROUP_STORAGE_KEY = 'currentGroupId';
+    const LONG_PRESS_DURATION = 600; // ms
+    // Removed FAVICON_PATTERNS and ACCELERATE_PREFIX
+
+    // --- DOM 元素获取 ---
+    const groupsContainer = document.getElementById('groupsContainer');
+    const contextMenu = document.getElementById('contextMenu');
+    const addBookmarkBtn = document.getElementById('addBookmarkBtn');
+    const editBookmarkBtn = document.getElementById('editBookmarkBtn');
+    const deleteBookmarkBtn = document.getElementById('deleteBookmarkBtn');
+    const groupContextMenu = document.getElementById('groupContextMenu');
+    const addGroupFromMenuBtn = document.getElementById('addGroupFromMenuBtn');
+    const editGroupBtn = document.getElementById('editGroupBtn');
+    const deleteGroupBtn = document.getElementById('deleteGroupBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('modalTitle');
+    const bookmarkTitleInput = document.getElementById('bookmarkTitleInput');
+    const bookmarkUrlInput = document.getElementById('bookmarkUrlInput');
+    // Removed bookmarkFaviconInput, bookmarkFaviconLabel
+    const bookmarkTitleLabel = document.getElementById('bookmarkTitleLabel');
+    const bookmarkUrlLabel = document.getElementById('bookmarkUrlLabel');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const modalSaveBtn = document.getElementById('modalSaveBtn');
+    const importExportMenu = document.getElementById('importExportMenu');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const importInput = document.getElementById('importInput');
+    // Removed changeFaviconBtn, currentFaviconPreview
+    const titleElement = document.querySelector('h1'); // Get the h1 element for long press
+
+    // 自定义提示/确认框元素
+    const customAlert = document.getElementById('customAlert');
+    const customAlertMessage = document.getElementById('customAlertMessage');
+    const customAlertOk = document.getElementById('customAlertOk');
+    const customConfirm = document.getElementById('customConfirm');
+    const customConfirmMessage = document.getElementById('customConfirmMessage');
+    const customConfirmOk = document.getElementById('customConfirmOk');
+    const customConfirmCancel = document.getElementById('customConfirmCancel');
+
+    // --- 状态变量 ---
+    let groups = [];
+    let currentGroup = null; // Store group ID
+    let currentBookmark = null; // Store bookmark ID
+    let modalState = { mode: '', data: null }; // { mode: 'addBookmark' | 'editBookmark' | 'editGroup', data: { groupId, bookmarkId } }
+    // Removed faviconPresetIndex, faviconCycleUrls
+
+    // Pointer/Long Press state
+    let pressTimer = null;
+    let isPressing = false;
+    let isLongPress = false;
+    let initialPressTarget = null; // The element the pointer initially pressed down on
+    let initialPressPos = { x: 0, y: 0 }; // The initial position of the pointer
+
+
+    // --- 工具函数 ---
+    function generateId() {
+      return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    }
+
+    // Removed getDomainAndOrigin, checkImageUrl, findAndApplyWorkingFavicon
+
+     // Custom Alert function
+    function showCustomAlert(message, callback) {
+        customAlertMessage.textContent = message;
+        customAlert.style.display = 'flex';
+        customAlertOk.onclick = () => {
+            customAlert.style.display = 'none';
+            if (callback) callback();
+        };
+    }
+
+     // Custom Confirm function
+    function showCustomConfirm(message, okCallback, cancelCallback) {
+        customConfirmMessage.textContent = message;
+        customConfirm.style.display = 'flex';
+        customConfirmOk.onclick = () => {
+            customConfirm.style.display = 'none';
+            if (okCallback) okCallback();
+        };
+        customConfirmCancel.onclick = () => {
+            customConfirm.style.display = 'none';
+            if (cancelCallback) cancelCallback();
+        };
+    }
+
+    // --- 数据处理与渲染 ---
+    function createDefaultBookmarks() {
+       const defaultBms = [
+            { title: '来购酷买', url: 'https://lgkm.net' },
+            { title: '314159 商城', url: 'https://314159u.com' },
+            { title: '元气山谷', url: 'https://pipet.me' }
+        ];
+        return defaultBms.map(bm => ({
+            id: generateId(),
+            title: bm.title,
+            url: bm.url,
+             // Removed favicon from default bookmarks
+        }));
+    }
+    function createDefaultGroup() {
+      return {
+        id: generateId(),
+        name: '默认分组',
+        bookmarks: createDefaultBookmarks()
+      };
+    }
+    function resetToDefault() {
+      groups = [createDefaultGroup()];
+    }
+    function loadData() {
+      let data = localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        try {
+          const parsedData = JSON.parse(data);
+          // --- Modified loadData: Ensure compatibility with new object format on load ---
+          if (Array.isArray(parsedData)) {
+              // Handle old array format [{ name: '...', bookmarks: [...] }]
+              groups = parsedData; // Assume it's the array format
+          } else if (typeof parsedData === 'object' && parsedData !== null) {
+              // Handle new object format { groupName: [{ name: '...', url: '...' }] }
+              groups = []; // Reset groups array
+              for (const groupName in parsedData) {
+                  if (parsedData.hasOwnProperty(groupName)) {
+                       const bookmarks = parsedData[groupName];
+                       if (Array.isArray(bookmarks)) {
+                            const newGroup = {
+                                id: generateId(),
+                                name: groupName, // Use object key as group name
+                                bookmarks: []
+                            };
+                            bookmarks.forEach(bookmarkData => {
+                                 // Removed favicon import logic
+                                 if (bookmarkData && typeof bookmarkData === 'object' && (bookmarkData.name || bookmarkData.title) && bookmarkData.url) {
+                                      newGroup.bookmarks.push({
+                                        id: generateId(),
+                                        title: bookmarkData.name || bookmarkData.title, // Support 'name' or 'title'
+                                        url: bookmarkData.url,
+                                         // Removed favicon from imported bookmarks
+                                      });
+                                 }
+                            });
+                            groups.push(newGroup);
+                       }
+                  }
+              }
+          } else {
+              throw new Error('数据格式不正确');
+          }
+          // --- End Modified loadData ---
+
+
+          // Ensure all bookmarks and groups have an ID for easier management (for both formats)
+          groups.forEach(group => {
+              if (!group.id) group.id = generateId();
+              group.bookmarks.forEach(bm => {
+                  if (!bm.id) bm.id = generateId();
+              });
+          });
+
+           if (groups.length === 0) { // Fallback if parsed data is an empty array or object resulted in no groups
+               resetToDefault();
+           }
+        } catch (error) {
+          console.error("从本地存储加载数据时出错:", error);
+          showCustomAlert('加载书签数据失败，已恢复到默认状态。'); // Notify user on load error
+          resetToDefault();
+        }
+      } else {
+        resetToDefault();
+      }
+      // Ensure currentGroup is valid (store ID)
+      let storedCurrentGroupId = localStorage.getItem(CURRENT_GROUP_STORAGE_KEY);
+      if (storedCurrentGroupId && groups.some(g => g.id === storedCurrentGroupId)) {
+          currentGroup = storedCurrentGroupId;
+      } else {
+          currentGroup = groups.length > 0 ? groups[0].id : null;
+      }
+      render();
+    }
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+         // Save current group ID
+        localStorage.setItem(CURRENT_GROUP_STORAGE_KEY, currentGroup);
+      } catch (error) {
+        console.error("保存数据失败:", error);
+      }
+    }
+
+    // Removed updateFaviconPreview
+
+    async function createBookmarkElement(data, group) {
+      const div = document.createElement('div');
+      div.className = 'bookmark';
+      div.dataset.bookmarkId = data.id;
+      div.dataset.groupId = group.id;
+      // Removed img element
+      const a = document.createElement('a');
+      a.href = data.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = data.title;
+      // Prevent default click on the link itself if a menu is open (less critical with new pointer logic but safe)
+       a.addEventListener('click', (e) => {
+           if (contextMenu.style.display === 'block' || groupContextMenu.style.display === 'block' || importExportMenu.style.display === 'block') {
+               e.preventDefault();
+               e.stopPropagation();
+           }
+       });
+      // Removed img append
+      div.appendChild(a);
+
+       // Removed favicon check/fix process
+      return div;
+    }
+
+    async function render() {
+      try {
+        groupsContainer.innerHTML = '';
+         if (groups.length === 0) { // Should not happen with resetToDefault, but safe check
+             resetToDefault();
+         }
+         // Ensure currentGroup is still valid after potential reset
+         if (!currentGroup || !groups.some(g => g.id === currentGroup)) {
+            currentGroup = groups.length > 0 ? groups[0].id : null;
+         }
+
+        // Use a DocumentFragment for potentially faster rendering with many groups/bookmarks
+        const fragment = document.createDocumentFragment();
+
+        for (const group of groups) {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'group';
+          groupDiv.dataset.groupId = group.id; // Add group ID to group div
+          const header = document.createElement('div');
+          header.className = 'group-header';
+          const title = document.createElement('div');
+          title.className = 'group-title';
+          title.textContent = group.name;
+          title.dataset.groupId = group.id; // Add group ID to group title for delegation
+          header.appendChild(title);
+          groupDiv.appendChild(header);
+          const bookmarkList = document.createElement('div');
+          bookmarkList.className = 'bookmark-list';
+          // Do not modify bookmark.favicon here, use the stored value which should include prefix
+          if (Array.isArray(group.bookmarks)) { // Ensure bookmarks is an array
+              for (const bm of group.bookmarks) {
+                // bookmark creation is now async and handles its own favicon checking
+                const bmEl = await createBookmarkElement(bm, group);
+                bookmarkList.appendChild(bmEl);
+              }
+          }
+          groupDiv.appendChild(bookmarkList);
+          fragment.appendChild(groupDiv); // Append to fragment
+        }
+         groupsContainer.appendChild(fragment); // Append fragment to DOM
+      } catch (error) {
+        console.error("渲染过程中出错:", error);
+        showCustomAlert('渲染页面失败，请检查控制台错误信息！');
+      } finally {
+        // saveData is called by findAndApplyWorkingFavicon if a favicon is updated
+        // but a final save after rendering (if no favicons were updated) is good practice
+        // saveData(); // Let's rely on individual bookmark updates for saving to avoid race conditions/overwrites
+      }
+    }
+
+    // --- 菜单显示/隐藏 ---
+    function showMenu(menuElement, x, y) {
+         hideContextMenus(); // Hide any other open menus
+         menuElement.style.display = 'block';
+         // Ensure menu is within viewport
+         const menuWidth = menuElement.offsetWidth;
+         const menuHeight = menuElement.offsetHeight;
+         const viewportWidth = window.innerWidth;
+         const viewportHeight = window.innerHeight;
+
+         let finalX = x;
+         let finalY = y;
+
+         if (x + menuWidth > viewportWidth - 10) { // 10px margin from right
+             finalX = viewportWidth - menuWidth - 10;
+         }
+         if (y + menuHeight > viewportHeight - 10) { // 10px margin from bottom
+             finalY = viewportHeight - menuHeight - 10;
+         }
+         // Ensure minimum margin from top/left
+         finalX = Math.max(10, finalX);
+         finalY = Math.max(10, finalY);
+
+
+         menuElement.style.left = finalX + 'px';
+         menuElement.style.top = finalY + 'px';
+    }
+
+     function hideContextMenus() {
+        contextMenu.style.display = 'none';
+        groupContextMenu.style.display = 'none';
+        importExportMenu.style.display = 'none';
+    }
+
+    // --- 事件处理 (使用事件委托和 Pointer Events) ---
+
+    // Global Pointer Down handler
+    document.addEventListener('pointerdown', (e) => {
+        // Clear any previous timer and reset states
+        clearTimeout(pressTimer);
+        isPressing = true;
+        isLongPress = false;
+        initialPressTarget = null; // Reset target
+
+        // Find the relevant target element: bookmark, group title, or main title h1
+        const bookmarkTarget = e.target.closest('.bookmark');
+        const groupTitleTarget = e.target.classList.contains('group-title') ? e.target : null;
+        const mainTitleTarget = (e.target === titleElement || titleElement.contains(e.target)) ? titleElement : null;
+        const menuButtonTarget = e.target.closest('#contextMenu button, #groupContextMenu button, #importExportMenu button');
+
+        // If clicking a menu button or inside modal/alerts, let default behavior happen (or hide menus if clicking outside them)
+        if (menuButtonTarget || e.target.closest('#modalOverlay') || e.target.closest('#customAlert') || e.target.closest('#customConfirm')) {
+             // Handled by specific button listeners or global pointerup outside modal/menus
+             isPressing = false; // Not interested in long press for these elements
+             return;
+        }
+
+        // If pressing on an interactive element
+        if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
+            initialPressTarget = bookmarkTarget || groupTitleTarget || mainTitleTarget;
+            initialPressPos = { x: e.clientX, y: e.clientY };
+
+            // Prevent default only for right-click (button=2) or if it's a touch (to prevent scrolling/zoom/native context menu)
+             if (e.button === 2 || e.pointerType === 'touch') {
+                e.preventDefault();
+             }
+
+            // --- Modified: Handle Right-Click (button 2) immediately ---
+            if (e.button === 2) {
+                 hideContextMenus(); // Hide any other open menus
+                 // Set current context based on target and show menu
+                 if (bookmarkTarget) {
+                     currentBookmark = bookmarkTarget.dataset.bookmarkId;
+                     currentGroup = bookmarkTarget.dataset.groupId;
+                     showMenu(contextMenu, e.clientX, e.clientY);
+                 } else if (groupTitleTarget) {
+                      currentGroup = groupTitleTarget.dataset.groupId;
+                      currentBookmark = null;
+                     showMenu(groupContextMenu, e.clientX, e.clientY);
+                 } else if (mainTitleTarget) {
+                      currentGroup = null;
+                      currentBookmark = null;
+                     showMenu(importExportMenu, e.clientX, e.clientY);
+                 }
+                 isPressing = false; // Not a long press scenario, stop tracking for this event
+                 return; // Stop processing for right-click here
+            }
+            // --- End Modified ---
+
+            // Start long press timer for left-click/touch (pointerType === 'touch' or button === 0)
+            if (e.button === 0 || e.pointerType === 'touch') {
+                pressTimer = setTimeout(() => {
+                    if (isPressing) { // Check if still pressing (not moved too much)
+                         isLongPress = true;
+                         hideContextMenus(); // Hide any other open menus
+
+                         // Set current context based on target and show menu
+                         if (bookmarkTarget) {
+                             currentBookmark = bookmarkTarget.dataset.bookmarkId;
+                             currentGroup = bookmarkTarget.dataset.groupId;
+                             showMenu(contextMenu, e.clientX, e.clientY);
+                         } else if (groupTitleTarget) {
+                              currentGroup = groupTitleTarget.dataset.groupId;
+                              currentBookmark = null;
+                             showMenu(groupContextMenu, e.clientX, e.clientY);
+                         } else if (mainTitleTarget) {
+                              currentGroup = null;
+                              currentBookmark = null;
+                             showMenu(importExportMenu, e.clientX, e.clientY);
+                         }
+                         // Prevent potential click event after long press for mouse
+                          if (e.pointerType === 'mouse') {
+                              e.target.addEventListener('click', preventNextClick, { once: true });
+                          }
+                    }
+                }, LONG_PRESS_DURATION);
+            }
+        } else {
+             // If pressed outside any interactive element, hide menus/modals
+             hideContextMenus();
+              // Also close modal if open and clicking outside
+              if (modalOverlay.style.display === 'flex' && !e.target.closest('#modal')) {
+                   modalOverlay.style.display = 'none';
+                   // Reset modal state on closing
+                   modalState = { mode: '', data: null };
+                   // Removed favicon related resets
+              }
+               // Also close custom alerts/confirms if clicking outside (though the buttons are the primary way)
+               if (customAlert.style.display === 'flex' && !e.target.closest('.alert-content')) {
+                   customAlert.style.display = 'none';
+               }
+               if (customConfirm.style.display === 'flex' && !e.target.closest('.confirm-content')) {
+                    customConfirm.style.display = 'none';
+               }
+        }
+    });
+
+    // Helper to prevent the next click event
+     function preventNextClick(e) {
+         e.preventDefault();
+         e.stopPropagation();
+     }
+
+
+    // Global Pointer Move handler
+    document.addEventListener('pointermove', (e) => {
+        if (isPressing && !isLongPress && initialPressTarget) {
+            const dx = Math.abs(e.clientX - initialPressPos.x);
+            const dy = Math.abs(e.clientY - initialPressPos.y);
+            // If moved more than a threshold, cancel long press
+            if (dx > 10 || dy > 10) {
+                clearTimeout(pressTimer);
+                isPressing = false; // Stop tracking this press as a potential long press/click
+            }
+        }
+    });
+
+    // Global Pointer Up handler
+    document.addEventListener('pointerup', (e) => {
+        clearTimeout(pressTimer); // Always clear timer on pointer up
+
+        const wasPressing = isPressing; // Capture state before resetting
+        const hadLongPress = isLongPress; // Capture state before resetting
+
+        // Reset states
+        isPressing = false;
+        isLongPress = false;
+        initialPressTarget = null;
+        // initialPressPos doesn't need reset
+
+        // If it was a long press or right click, the menu is already shown and default was prevented in pointerdown/timer.
+        // Do nothing more here for long presses or right clicks.
+
+        // If it was a press (started with pointerdown) but NOT a long press and NOT a right click, it's a short left click/tap
+        if (wasPressing && !hadLongPress && e.button !== 2) {
+            const bookmarkTarget = e.target.closest('.bookmark');
+             // If the released target is the same as the initial press target (or within it)
+            if (bookmarkTarget && (e.target.closest('.bookmark') === initialPressTarget || initialPressTarget.contains(e.target)) ) {
+                 // This is a short click/tap on a bookmark element
+                 const link = bookmarkTarget.querySelector('a');
+                 // Manually trigger the link click, but only if no menus are open
+                 if (link && contextMenu.style.display !== 'block' && groupContextMenu.style.display !== 'block' && importExportMenu.style.display !== 'block') {
+                    // Check if the target is the link itself, if so, let its own listener handle it (if not prevented)
+                    if (e.target.tagName === 'A') {
+                        // Let the browser handle the default click on the <a>
+                    } else {
+                       // Clicked the bookmark div, manually open the link
+                       window.open(link.href, link.target || '_self');
+                       e.preventDefault(); // Prevent any other default action from the div click
+                       e.stopPropagation(); // Stop propagation
+                    }
+                 }
+            } else if (e.target.classList.contains('group-title') && initialPressTarget === e.target) {
+                 // This is a short click/tap on a group title.
+                 // Current code doesn't have a specific action for this (like collapsing), so do nothing.
+            } else if ((e.target === titleElement || titleElement.contains(e.target)) && initialPressTarget === titleElement) {
+                 // This is a short click/tap on the main title.
+                 // Current code doesn't have a specific action for this, so do nothing.
+            }
+        }
+         // If clicked outside any menu/modal, handle closing them (this overlaps with pointerdown logic but safer here too)
+         // The pointerdown listener handles hiding menus when pressing outside. This pointerup listener handles cases where the press started
+         // on a menu/modal but released outside, or vice versa, or complex gesture interactions.
+         // A simpler approach is to rely on pointerdown for initial menu/modal hiding when pressing outside, and
+         // specific button clicks or modal background clicks for closing when they are open.
+         // Let's refine the closing logic to be clearer.
+    });
+
+
+    // Close context menus/modal when clicking outside
+    document.addEventListener('click', (e) => {
+        // Check if click target is outside any open context menu or modal
+        const clickedOutsideMenus = !e.target.closest('.context-menu, .group-context-menu, .import-export-menu');
+        const clickedOutsideModal = !e.target.closest('#modal');
+        const clickedOutsideAlertConfirm = !e.target.closest('.alert-content');
+
+
+        if (clickedOutsideMenus && (contextMenu.style.display === 'block' || groupContextMenu.style.display === 'block' || importExportMenu.style.display === 'block')) {
+            hideContextMenus();
+        }
+
+        if (clickedOutsideModal && modalOverlay.style.display === 'flex') {
+             modalOverlay.style.display = 'none';
+              // Reset modal state on closing
+              modalState = { mode: '', data: null };
+              // Removed favicon related resets
+        }
+
+         if (clickedOutsideAlertConfirm && (customAlert.style.display === 'flex' || customConfirm.style.display === 'flex')) {
+             customAlert.style.display = 'none';
+             customConfirm.style.display = 'none';
+         }
+
+    });
+
+    // Prevent default browser context menu on elements where we handle it manually
+     document.addEventListener('contextmenu', (e) => {
+        const bookmarkTarget = e.target.closest('.bookmark');
+        const groupTitleTarget = e.target.classList.contains('group-title') ? e.target : null;
+        const mainTitleTarget = (e.target === titleElement || titleElement.contains(e.target)) ? titleElement : null;
+
+        if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
+            e.preventDefault(); // Prevent default browser context menu
+             // The custom menu is shown by the pointerdown button=2 logic
+        }
+     });
+
+
+    // --- Modal 和菜单按钮点击处理 ---
+
+    // Removed changeFaviconBtn listener
+    // Removed bookmarkFaviconInput listener
+
+    exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      try {
+        // --- Modified Export Logic ---
+        const exportData = {};
+        groups.forEach(group => {
+            // Use group name as the key
+            exportData[group.name] = group.bookmarks.map(bookmark => ({
+                // Map internal 'title' to exported 'name'
+                name: bookmark.title,
+                url: bookmark.url,
+                // Removed favicon export
+            }));
+        });
+        // --- End Modified Export Logic ---
+
+        const dataStr = JSON.stringify(exportData, null, 2); // Use the new format object
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+        const exportFileDefaultName = 'bookmarks.json';
+        let linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        document.body.appendChild(linkElement);
+        linkElement.click();
+        document.body.removeChild(linkElement);
+      } catch (error) {
+        console.error("导出数据失败:", error);
+        showCustomAlert('导出数据失败，请检查控制台错误信息！');
+      }
+    });
+
+    importBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      importInput.value = ''; // Clear previous file selection
+      importInput.click();
+    });
+
+    importInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const importedData = JSON.parse(e.target.result);
+            if (typeof importedData === 'object' && importedData !== null) {
+              let newGroups = [];
+
+              // --- Modified Import Logic ---
+              if (Array.isArray(importedData)) {
+                // Handle old array format [{ name: '...', bookmarks: [...] }]
+                importedData.forEach(groupData => {
+                  if (groupData && typeof groupData === 'object' && groupData.name && Array.isArray(groupData.bookmarks)) {
+                    const newGroup = {
+                      id: generateId(),
+                      name: groupData.name,
+                      bookmarks: []
+                    };
+                    groupData.bookmarks.forEach(bookmarkData => {
+                      if (bookmarkData && typeof bookmarkData === 'object' && (bookmarkData.name || bookmarkData.title) && bookmarkData.url) {
+                        // Removed favicon import logic
+                        newGroup.bookmarks.push({
+                          id: generateId(),
+                          title: bookmarkData.name || bookmarkData.title, // Support 'name' or 'title' from old format
+                          url: bookmarkData.url,
+                           // Removed favicon from imported data
+                        });
+                      }
+                    });
+                    newGroups.push(newGroup);
+                  }
+                });
+              } else {
+                // Handle new object format { groupName: [{ name: '...', url: '...' }] }
+                for (const groupName in importedData) {
+                  if (importedData.hasOwnProperty(groupName)) {
+                    const bookmarks = importedData[groupName];
+                    if (Array.isArray(bookmarks)) {
+                      const newGroup = {
+                        id: generateId(),
+                        name: groupName, // Use object key as group name
+                        bookmarks: []
+                      };
+                      bookmarks.forEach(bookmark => {
+                        if (bookmark && typeof bookmark === 'object' && (bookmark.name || bookmark.title) && bookmark.url) {
+                           // Removed favicon import logic
+                          newGroup.bookmarks.push({
+                            id: generateId(),
+                            title: bookmark.name || bookmark.title, // Support 'name' or 'title' from new format
+                            url: bookmark.url,
+                            // Removed favicon from imported data
+                          });
+                        }
+                      });
+                      newGroups.push(newGroup);
+                    }
+                  }
+                }
+              }
+              // --- End Modified Import Logic ---
+
+
+              if (newGroups.length === 0) {
+                showCustomAlert('导入失败：未检测到有效的书签分组和书签。');
+                return;
+              }
+
+              // Append imported groups to existing groups
+              groups = groups.concat(newGroups);
+              saveData(); // Save immediately after import
+              render(); // Render the page with new data
+
+              // Removed favicon check/fix process after import
+              showCustomAlert('导入成功！');
+
+
+            } else {
+              showCustomAlert('导入数据格式不正确。');
+            }
+          } catch (error) {
+            console.error("导入数据失败:", error);
+            showCustomAlert('导入数据失败，请检查文件格式是否正确。\n' + error.message); // Added error message for debugging
+          }
+        }
+        reader.readAsText(file);
+      }
+    });
+
+    clearBtn.addEventListener('click', (e) => {
+       e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      showCustomConfirm('确定要清空所有书签数据并恢复到初始状态吗？此操作不可撤销！',
+         () => { // OK Callback
+            resetToDefault();
+            saveData();
+            render();
+            showCustomAlert('书签数据已清空并恢复到初始状态。');
+         },
+         () => { // Cancel Callback
+            // Do nothing
+         }
+      );
+    });
+
+    addBookmarkBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+
+       // The currentGroup should be the group where the context menu was opened (from a bookmark).
+       // If opened from title, currentGroup will be null. If so, add to the first group.
+       if (!currentGroup && groups.length > 0) {
+            currentGroup = groups[0].id;
+       } else if (!currentGroup && groups.length === 0) {
+            // Should not happen with resetToDefault, but safety
+             resetToDefault();
+             currentGroup = groups[0].id;
+       }
+
+      modalState = { mode: 'addBookmark', data: { groupId: currentGroup } };
+
+      modalTitle.textContent = '添加书签';
+      bookmarkTitleLabel.textContent = '标题'; // Ensure label is correct
+      bookmarkTitleLabel.style.display = 'block';
+      bookmarkTitleInput.style.display = 'block';
+      bookmarkUrlLabel.style.display = 'block';
+      bookmarkUrlInput.style.display = 'block';
+      // Removed favicon related labels and inputs
+      bookmarkTitleInput.value = '';
+      bookmarkUrlInput.value = '';
+      // Removed favicon related resets
+      modalOverlay.style.display = 'flex';
+    });
+
+    editBookmarkBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      // Find the bookmark and group objects using stored IDs
+       const group = groups.find(g => g.id === currentGroup);
+       const bookmark = group ? group.bookmarks.find(bm => bm.id === currentBookmark) : null;
+
+      if (bookmark && group) {
+        modalState = { mode: 'editBookmark', data: { groupId: currentGroup, bookmarkId: currentBookmark } };
+        modalTitle.textContent = '修改书签';
+        bookmarkTitleLabel.textContent = '标题'; // Ensure label is correct
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkTitleInput.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'block';
+        bookmarkUrlInput.style.display = 'block';
+        // Removed favicon related labels and inputs
+        bookmarkTitleInput.value = bookmark.title;
+        bookmarkUrlInput.value = bookmark.url;
+        // Removed favicon related resets and preview update
+        modalOverlay.style.display = 'flex';
+      } else {
+        showCustomAlert('请先长按选择要修改的书签');
+      }
+    });
+
+    deleteBookmarkBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+       // Find the group object using stored ID
+       const group = groups.find(g => g.id === currentGroup);
+
+      if (currentBookmark && group) {
+        showCustomConfirm('确定要删除该书签吗？',
+           () => { // OK Callback
+             try {
+               group.bookmarks = group.bookmarks.filter(bm => bm.id !== currentBookmark);
+               // Clear selected bookmark ID
+               currentBookmark = null;
+               // currentGroup remains selected
+               saveData();
+               render();
+             } catch (error) {
+               console.error("删除书签失败:", error);
+               showCustomAlert('删除书签失败，请查看控制台');
+             }
+           },
+           () => { // Cancel Callback
+              // Do nothing
+           }
+        );
+      } else {
+        showCustomAlert('请先长按选择要删除的书签');
+      }
+    });
+
+    addGroupFromMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      // Create a new group with default bookmarks (which include prefix)
+      const newGroup = createDefaultGroup();
+      // Find the index of the current group ID (if any)
+       const currentGroupIndex = currentGroup ? groups.findIndex(g => g.id === currentGroup) : -1;
+
+      if (currentGroupIndex !== -1) {
+          // Insert the new group after the current group
+          groups.splice(currentGroupIndex + 1, 0, newGroup);
+      } else {
+          // If no current group selected (e.g., from title menu), add to the end
+          groups.push(newGroup);
+      }
+       // Set the newly added group's ID as current
+       currentGroup = newGroup.id;
+      saveData();
+      render();
+    });
+
+    editGroupBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      // Find the group object using stored ID
+       const groupToEdit = groups.find(g => g.id === currentGroup);
+
+      if (groupToEdit) {
+        modalState = { mode: 'editGroup', data: { groupId: currentGroup } };
+        modalTitle.textContent = '修改分组';
+        bookmarkTitleLabel.textContent = '分组名称'; // Change label text
+        bookmarkTitleLabel.style.display = 'block';
+        bookmarkTitleInput.style.display = 'block';
+        bookmarkUrlLabel.style.display = 'none';
+        bookmarkUrlInput.style.display = 'none';
+        // Removed favicon related labels and inputs
+         bookmarkTitleInput.value = groupToEdit.name;
+        modalOverlay.style.display = 'flex';
+      } else {
+        showCustomAlert('请先长按选择要修改的分组');
+      }
+    });
+
+    deleteGroupBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent click from closing menu immediately
+      hideContextMenus();
+      // Find the group object using stored ID
+       const groupToDelete = groups.find(g => g.id === currentGroup);
+
+      if (groupToDelete) {
+        if (groups.length === 1) { showCustomAlert('至少保留一个分组'); return; }
+        showCustomConfirm(`确定要删除分组 "${groupToDelete.name}" 吗？所有书签也将被删除！`,
+           () => { // OK Callback
+             try {
+               groups = groups.filter(g => g.id !== currentGroup);
+               // Set currentGroup to the ID of the first remaining group
+               currentGroup = groups.length > 0 ? groups[0].id : null;
+                if (currentGroup === null) { // Should not happen due to the check above, but as a fallback
+                   resetToDefault();
+                   currentGroup = groups[0].id;
+                }
+               saveData();
+               render();
+             } catch (error) {
+               console.error("删除分组失败:", error);
+               showCustomAlert('删除分组失败，请查看控制台');
+             }
+           },
+           () => { // Cancel Callback
+             // Do nothing
+           }
+        );
+      } else {
+        showCustomAlert('请先长按选择要删除的分组');
+      }
+    });
+
+    modalCancelBtn.addEventListener('click', (e) => {
+       e.stopPropagation(); // Prevent click from closing modal overlay
+      modalOverlay.style.display = 'none';
+       // Reset states related to modals
+       modalState = { mode: '', data: null };
+       currentBookmark = null; // Clear selected bookmark ID
+       // Removed favicon related resets
+    });
+
+    modalSaveBtn.addEventListener('click', async (e) => { // Made async to use await if needed in the future
+      e.stopPropagation(); // Prevent click from closing modal overlay
+
+      const mode = modalState.mode;
+
+      if (mode === 'editBookmark') {
+        // Saving an existing bookmark
+        const groupId = modalState.data.groupId;
+        const bookmarkId = modalState.data.bookmarkId;
+        // Find the group and bookmark objects using stored IDs
+        const group = groups.find(g => g.id === groupId);
+        const bookmark = group ? group.bookmarks.find(bm => bm.id === bookmarkId) : null;
+
+        if (bookmark && group) {
+          const titleVal = bookmarkTitleInput.value.trim();
+          const urlVal = bookmarkUrlInput.value.trim();
+           // Removed faviconVal
+
+          if (!titleVal || !urlVal) {
+            showCustomAlert('标题和链接不能为空！');
+            return;
+          }
+
+           // Removed favicon save logic
+
+
+          bookmark.title = titleVal;
+          bookmark.url = urlVal;
+          // Removed bookmark.favicon update
+        }
+      } else if (mode === 'editGroup') {
+        // Editing group name
+        const groupId = modalState.data.groupId;
+        const newName = bookmarkTitleInput.value.trim();
+        if (!newName) {
+          showCustomAlert('分组名称不能为空！');
+          return;
+        }
+        // Find the group being edited by currentGroup ID
+        const groupToEdit = groups.find(g => g.id === groupId);
+        if (groupToEdit) {
+            // Check for duplicate name excluding the current group
+            if (groups.some(g => g.name === newName && g.id !== groupToEdit.id)) {
+                showCustomAlert('分组名称已存在！');
+                return;
+            }
+            groupToEdit.name = newName;
+        } else {
+             showCustomAlert('无法修改分组：未选择当前分组');
+             modalOverlay.style.display = 'none';
+             modalState = { mode: '', data: null };
+             return;
+        }
+      } else if (mode === 'addBookmark') {
+        // Adding a new bookmark
+        const groupId = modalState.data.groupId;
+        const titleVal = bookmarkTitleInput.value.trim();
+        const urlVal = bookmarkUrlInput.value.trim();
+         // Removed faviconVal
+
+        if (!titleVal || !urlVal) {
+          showCustomAlert('标题和链接不能为空！');
+          return;
+        }
+
+        // Find the current group object by ID
+        const groupToAddInto = groups.find(g => g.id === groupId);
+        if (!groupToAddInto) {
+          showCustomAlert('当前分组不存在，无法添加书签');
+          modalOverlay.style.display = 'none';
+          modalState = { mode: '', data: null };
+          return;
+        }
+
+         // Removed favicon logic
+
+
+        const newBookmark = {
+          id: generateId(),
+          title: titleVal,
+          url: urlVal,
+           // Removed favicon from new bookmark object
+        };
+
+         // Add the new bookmark to the end of the current group's bookmarks.
+         groupToAddInto.bookmarks.push(newBookmark);
+      }
+
+      // Close modal and reset state after successful save
+      modalOverlay.style.display = 'none';
+      modalState = { mode: '', data: null };
+      currentBookmark = null; // Clear selected bookmark ID
+      // Removed favicon related resets
+
+      saveData();
+      render(); // Re-render the page to show changes and trigger favicon checks
+    });
+
+
+    // --- 初始化加载 ---
+    loadData();
+  </script>
+
+</body>
+</html>
