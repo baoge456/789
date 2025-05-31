@@ -263,6 +263,10 @@
     #customConfirm .confirm-content .confirm-cancel:hover {
         background: #c82333;
     }
+     /* Style to hide alert OK button */
+    #customAlert .alert-content button.hidden {
+        display: none;
+    }
   </style>
 </head>
 <body>
@@ -441,6 +445,8 @@
     let faviconPresetIndex = -1; // Index for cycling through favicon patterns
     let faviconCycleUrls = []; // Array to store the *raw* generated favicon URLs for cycling
     let isAcceleratorAvailable = false; // Flag to track if accelerator is available
+    let alertTimeout = null; // To store the timeout ID for auto-dismissing alerts
+    let loadingAnimationInterval = null; // To store the interval ID for loading animation
 
     // Pointer/Long Press state
     let pressTimer = null;
@@ -464,20 +470,56 @@
       }
     }
 
-     // Custom Alert function
-    function showCustomAlert(message, callback) {
+     // Custom Alert function (Modified to support auto-dismiss and hiding OK button)
+    function showCustomAlert(message, callback, duration = 0) {
+        clearTimeout(alertTimeout); // Clear any existing auto-dismiss timeout
+        clearInterval(loadingAnimationInterval); // Clear any existing animation
+
         customAlertMessage.textContent = message;
         customAlert.style.display = 'flex';
-        // Center the alert content vertically
-        customAlert.style.alignItems = 'center';
-        customAlertOk.onclick = () => {
-            customAlert.style.display = 'none';
-            if (callback) callback();
-        };
+        customAlert.style.alignItems = 'center'; // Center the alert content vertically
+
+        if (duration > 0) {
+            customAlertOk.classList.add('hidden'); // Hide OK button for auto-dismiss
+            alertTimeout = setTimeout(() => {
+                customAlert.style.display = 'none';
+                customAlertOk.classList.remove('hidden'); // Show button again for next time
+                 if (callback) callback();
+            }, duration);
+        } else {
+            customAlertOk.classList.remove('hidden'); // Ensure OK button is visible
+            customAlertOk.onclick = () => {
+                customAlert.style.display = 'none';
+                if (callback) callback();
+            };
+        }
     }
 
-     // Custom Confirm function
+     // Function to show loading alert with animation
+    function showLoadingAlert(messageBase) {
+        let dots = '';
+        const messageElement = customAlertMessage; // Reference the message element
+
+        function updateMessage() {
+            dots = dots.length < 3 ? dots + '.' : '';
+            messageElement.textContent = messageBase + dots;
+        }
+
+        updateMessage(); // Initial message
+        showCustomAlert(messageBase + dots, null, 0); // Show alert initially without auto-dismiss or button click
+        customAlertOk.classList.add('hidden'); // Ensure button is hidden
+
+        loadingAnimationInterval = setInterval(updateMessage, 500); // Animate dots every 500ms
+    }
+
+
+     // Custom Confirm function (No changes)
     function showCustomConfirm(message, okCallback, cancelCallback) {
+        // Clear any active loading animation or auto-dismiss alert before showing confirm
+        clearInterval(loadingAnimationInterval);
+        clearTimeout(alertTimeout);
+        customAlert.style.display = 'none'; // Ensure alert is hidden
+
         customConfirmMessage.textContent = message;
         customConfirm.style.display = 'flex';
          // Center the confirm content vertically
@@ -688,7 +730,8 @@
            }
         } catch (error) {
           console.error("从本地存储加载数据时出错:", error);
-          showCustomAlert('加载书签数据失败，已恢复到默认状态。'); // Notify user on load error
+          // showCustomAlert('加载书签数据失败，已恢复到默认状态。'); // Notify user on load error - keep default alerts for errors
+          showCustomAlert('加载书签数据失败，已恢复到默认状态。', null, 5000); // Auto-dismiss error? Or keep requiring OK? User implies ONLY loading tips auto-dismiss. Keep errors requiring OK.
           resetToDefault();
         }
       } else {
@@ -713,7 +756,7 @@
     // --- New: Find and apply favicons for ALL bookmarks (used on load and import) ---
     async function findAndApplyFaviconsForAllBookmarks(bookmarkGroups) {
         console.log('Starting favicon check and fix for all bookmarks...');
-        const bookmarkElements = document.querySelectorAll('.bookmark'); // Get existing elements if any
+        // const bookmarkElements = document.querySelectorAll('.bookmark'); // Get existing elements if any
 
         const faviconCheckPromises = [];
 
@@ -805,7 +848,7 @@
          groupsContainer.appendChild(fragment); // Append fragment to DOM
       } catch (error) {
         console.error("渲染过程中出错:", error);
-        showCustomAlert('渲染页面失败，请检查控制台错误信息！');
+        showCustomAlert('渲染页面失败，请检查控制台错误信息！'); // Keep this requiring OK
       }
     }
 
@@ -971,6 +1014,8 @@
                // Also close custom alerts/confirms if clicking outside
                if (customAlert.style.display === 'flex' && !e.target.closest('.alert-content')) {
                    customAlert.style.display = 'none';
+                    clearInterval(loadingAnimationInterval); // Stop any running animation if alert is closed manually
+                    clearTimeout(alertTimeout); // Clear timeout if alert is closed manually
                }
                if (customConfirm.style.display === 'flex' && !e.target.closest('.confirm-content')) {
                     customConfirm.style.display = 'none';
@@ -991,9 +1036,10 @@
             const dx = Math.abs(e.clientX - initialPressPos.x);
             const dy = Math.abs(e.clientY - initialPressPos.y);
             // If moved more than a threshold, cancel long press
-            if (dx > 10 || dy > 10) {
+            // Increased threshold for mobile touch tolerance
+            if (dx > 20 || dy > 20) { // MODIFIED: Changed threshold from 10 to 20
                 clearTimeout(pressTimer);
-                isPressing = false; // Stop tracking this press as a potential long press/click
+                isPressing = false; // This cancels future long press check for this sequence
             }
         }
     });
@@ -1059,7 +1105,8 @@
 
          if (clickedOutsideAlertConfirm && (customAlert.style.display === 'flex' || customConfirm.style.display === 'flex')) {
              customAlert.style.display = 'none';
-             customConfirm.style.display = 'none';
+             clearInterval(loadingAnimationInterval); // Stop any running animation if alert is closed manually
+             clearTimeout(alertTimeout); // Clear timeout if alert is closed manually
          }
 
     });
@@ -1083,7 +1130,7 @@
       e.stopPropagation(); // Stop propagation to prevent modal overlay click
       const link = bookmarkUrlInput.value.trim();
       if (!link) {
-          showCustomAlert('请先填写书签链接以生成缩略图选项。');
+          showCustomAlert('请先填写书签链接以生成缩略图选项。'); // Keep this requiring OK
           return;
       }
       // Generate raw cycle URLs if not already done for this link or needs regeneration
@@ -1091,7 +1138,7 @@
             faviconCycleUrls = FAVICON_PATTERNS.map(patternFunc => ({ url: patternFunc(link), source: 'raw_pattern' })).filter(item => item.url !== '');
        }
       if (faviconCycleUrls.length === 0) {
-          showCustomAlert('无法为当前链接生成缩略图。');
+          showCustomAlert('无法为当前链接生成缩略图。'); // Keep this requiring OK
           return;
       }
 
@@ -1144,7 +1191,7 @@
                bookmarkFaviconInput.value = '';
                updateFaviconPreview(); // This will hide preview if value is empty
                faviconPresetIndex = -1; // Reset index
-               showCustomAlert('未能找到一个可以加载的缩略图，请手动输入或检查链接。');
+               showCustomAlert('未能找到一个可以加载的缩略图，请手动输入或检查链接。'); // Keep this requiring OK
            }
         }
     });
@@ -1179,9 +1226,10 @@
         document.body.appendChild(linkElement);
         linkElement.click();
         document.body.removeChild(linkElement);
+         showCustomAlert('数据导出成功！', null, 3000); // Auto-dismiss export success
       } catch (error) {
         console.error("导出数据失败:", error);
-        showCustomAlert('导出数据失败，请检查控制台错误信息！');
+        showCustomAlert('导出数据失败，请检查控制台错误信息！'); // Keep this requiring OK
       }
     });
 
@@ -1240,7 +1288,7 @@
                       bookmarks.forEach(bookmark => {
                         if (bookmark && typeof bookmark === 'object' && (bookmark.name || bookmark.title) && bookmark.url) {
                            // Store favicon as is from imported data (can be empty)
-                          newGroup.bookmarks.push({
+                          newBookmark.push({ // FIX: This should be newGroup.bookmarks.push
                             id: generateId(),
                             title: bookmark.name || bookmark.title, // Support 'name' or 'title' from new format
                             url: bookmark.url,
@@ -1252,22 +1300,47 @@
                     }
                   }
                 }
+                 // FIX: Corrected the bookmark push logic for the new format loop
+                newGroups = []; // Reset newGroups to build corrected list
+                 for (const groupName in importedData) {
+                   if (importedData.hasOwnProperty(groupName)) {
+                     const bookmarks = importedData[groupName];
+                     if (Array.isArray(bookmarks)) {
+                       const newGroup = {
+                         id: generateId(),
+                         name: groupName,
+                         bookmarks: []
+                       };
+                       bookmarks.forEach(bookmark => {
+                         if (bookmark && typeof bookmark === 'object' && (bookmark.name || bookmark.title) && bookmark.url) {
+                           newGroup.bookmarks.push({ // Corrected push
+                             id: generateId(),
+                             title: bookmark.name || bookmark.title,
+                             url: bookmark.url,
+                             favicon: bookmark.favicon || ''
+                           });
+                         }
+                       });
+                       newGroups.push(newGroup);
+                     }
+                   }
+                 }
               }
               // --- End Modified Import Logic ---
 
 
               if (newGroups.length === 0) {
-                showCustomAlert('导入失败：未检测到有效的书签分组和书签。');
+                showCustomAlert('导入失败：未检测到有效的书签分组和书签。'); // Keep this requiring OK
                 return;
               }
 
                // --- New: Process favicons for imported bookmarks BEFORE merging and rendering ---
-               showCustomAlert('导入数据成功！正在检查并查找书签缩略图，这可能需要一些时间...');
+               showCustomAlert('导入数据成功！正在检查并查找书签缩略图，这可能需要一些时间...'); // Keep visible during process
 
                // Find and apply favicons for the NEWLY imported groups
                await findAndApplyFaviconsForAllBookmarks(newGroups); // Pass only the new groups
 
-               showCustomAlert('书签缩略图查找完成！正在合并并渲染...');
+               showCustomAlert('书签缩略图查找完成！正在合并并渲染...'); // Keep visible during process
 
                // Append imported groups to existing groups AFTER favicon finding
                groups = groups.concat(newGroups);
@@ -1275,15 +1348,14 @@
                saveData(); // Save the combined data with updated favicons
 
               render(); // Render the page with combined data
-              showCustomAlert('数据导入和缩略图处理完成！');
-
+              showCustomAlert('数据导入和缩略图处理完成。', null, 3000); // Auto-dismiss final success
 
             } else {
-              showCustomAlert('导入数据格式不正确。');
+              showCustomAlert('导入数据格式不正确。'); // Keep this requiring OK
             }
           } catch (error) {
             console.error("导入数据失败:", error);
-            showCustomAlert('导入数据失败，请检查文件格式是否正确。\n' + error.message); // Added error message for debugging
+            showCustomAlert('导入数据失败，请检查文件格式是否正确。\n' + error.message); // Keep this requiring OK
           }
         }
         reader.readAsText(file);
@@ -1298,7 +1370,7 @@
             resetToDefault();
             saveData();
             render();
-            showCustomAlert('书签数据已清空并恢复到初始状态。');
+            showCustomAlert('书签数据已清空并恢复到初始状态。', null, 3000); // Auto-dismiss clear success
          },
          () => { // Cancel Callback
             // Do nothing
@@ -1371,7 +1443,7 @@
         }
         modalOverlay.style.display = 'flex';
       } else {
-        showCustomAlert('请先长按选择要修改的书签');
+        showCustomAlert('请先长按选择要修改的书签'); // Keep this requiring OK
       }
     });
 
@@ -1391,9 +1463,10 @@
                // currentGroup remains selected
                saveData();
                render();
+                showCustomAlert('书签删除成功！', null, 3000); // Auto-dismiss delete success
              } catch (error) {
                console.error("删除书签失败:", error);
-               showCustomAlert('删除书签失败，请查看控制台');
+               showCustomAlert('删除书签失败，请查看控制台'); // Keep this requiring OK
              }
            },
            () => { // Cancel Callback
@@ -1401,7 +1474,7 @@
            }
         );
       } else {
-        showCustomAlert('请先长按选择要删除的书签');
+        showCustomAlert('请先长按选择要删除的书签'); // Keep this requiring OK
       }
     });
 
@@ -1425,6 +1498,7 @@
       saveData(); // Save after adding the group structure
       // No need to await favicon finding here, as render will trigger it
       render();
+       showCustomAlert('分组添加成功！', null, 3000); // Auto-dismiss add group success
     });
 
     editGroupBtn.addEventListener('click', (e) => {
@@ -1448,7 +1522,7 @@
          bookmarkTitleInput.value = groupToEdit.name;
         modalOverlay.style.display = 'flex';
       } else {
-        showCustomAlert('请先长按选择要修改的分组');
+        showCustomAlert('请先长按选择要修改的分组'); // Keep this requiring OK
       }
     });
 
@@ -1459,7 +1533,7 @@
        const groupToDelete = groups.find(g => g.id === currentGroup);
 
       if (groupToDelete) {
-        if (groups.length === 1) { showCustomAlert('至少保留一个分组'); return; }
+        if (groups.length === 1) { showCustomAlert('至少保留一个分组'); return; } // Keep this requiring OK
         showCustomConfirm(`确定要删除分组 "${groupToDelete.name}" 吗？所有书签也将被删除！`,
            () => { // OK Callback
              try {
@@ -1472,9 +1546,10 @@
                 }
                saveData();
                render();
+                showCustomAlert('分组删除成功！', null, 3000); // Auto-dismiss delete group success
              } catch (error) {
                console.error("删除分组失败:", error);
-               showCustomAlert('删除分组失败，请查看控制台');
+               showCustomAlert('删除分组失败，请查看控制台'); // Keep this requiring OK
              }
            },
            () => { // Cancel Callback
@@ -1482,7 +1557,7 @@
            }
         );
       } else {
-        showCustomAlert('请先长按选择要删除的分组');
+        showCustomAlert('请先长按选择要删除的分组'); // Keep this requiring OK
       }
     });
 
@@ -1517,7 +1592,7 @@
           const faviconVal = bookmarkFaviconInput.value.trim(); // Get the value directly from the input
 
           if (!titleVal || !urlVal) {
-            showCustomAlert('标题和链接不能为空！');
+            showCustomAlert('标题和链接不能为空！'); // Keep this requiring OK
             return;
           }
 
@@ -1547,7 +1622,7 @@
         const groupId = modalState.data.groupId;
         const newName = bookmarkTitleInput.value.trim();
         if (!newName) {
-          showCustomAlert('分组名称不能为空！');
+          showCustomAlert('分组名称不能为空！'); // Keep this requiring OK
           return;
         }
         // Find the group being edited by currentGroup ID
@@ -1555,12 +1630,12 @@
         if (groupToEdit) {
             // Check for duplicate name excluding the current group
             if (groups.some(g => g.name === newName && g.id !== groupToEdit.id)) {
-                showCustomAlert('分组名称已存在！');
+                showCustomAlert('分组名称已存在！'); // Keep this requiring OK
                 return;
             }
             groupToEdit.name = newName;
         } else {
-             showCustomAlert('无法修改分组：未选择当前分组');
+             showCustomAlert('无法修改分组：未选择当前分组'); // Keep this requiring OK
              modalOverlay.style.display = 'none';
              modalState = { mode: '', data: null };
              return;
@@ -1573,14 +1648,14 @@
         const faviconVal = bookmarkFaviconInput.value.trim(); // Get the value directly from the input
 
         if (!titleVal || !urlVal) {
-          showCustomAlert('标题和链接不能为空！');
+          showCustomAlert('标题和链接不能为空！'); // Keep this requiring OK
           return;
         }
 
         // Find the current group object by ID
         const groupToAddInto = groups.find(g => g.id === groupId);
         if (!groupToAddInto) {
-          showCustomAlert('当前分组不存在，无法添加书签');
+          showCustomAlert('当前分组不存在，无法添加书签'); // Keep this requiring OK
           modalOverlay.style.display = 'none';
           modalState = { mode: '', data: null };
           return;
@@ -1620,37 +1695,51 @@
           // Now find the element and run the favicon check for this specific bookmark
            const bookmarkElement = document.querySelector(`.bookmark[data-bookmark-id="${targetBookmark.id}"]`);
            if (bookmarkElement) {
-               showCustomAlert('正在查找并修复缩略图...');
+               showCustomAlert('正在查找并修复缩略图...'); // Keep visible during process
                await findAndApplyWorkingFavicon(targetBookmark, bookmarkElement);
                saveData(); // Save again after finding favicon
                // No need to re-render, the element is updated directly
-               showCustomAlert('缩略图查找完成！');
+               showCustomAlert('缩略图查找完成！', null, 3000); // Auto-dismiss after fix
            } else {
                // Should not happen if render completed
                console.error("Bookmark element not found after render for favicon check.");
-                showCustomAlert('保存成功，但无法立即检查缩略图。请刷新页面。');
+                showCustomAlert('保存成功，但无法立即检查缩略图。请刷新页面。'); // Keep this requiring OK
            }
 
       } else {
          // If no specific favicon check is needed (group edit or bookmark edit with valid favicon)
           saveData();
           render();
-          // Optionally run a full check on all bookmarks in the background if desired,
-          // but initial load/import already does this.
-          // findAndApplyFaviconsForAllBookmarks(groups); // This would re-check everything
+          showCustomAlert('保存成功！', null, 3000); // Auto-dismiss general save success
       }
     });
 
 
     // --- Initial Load and Accelerator Check ---
     async function initApp() {
-        showCustomAlert('正在检查加速服务可用性...');
+        showLoadingAlert('正在检查加速服务可用性'); // Show loading alert with animation
         isAcceleratorAvailable = await checkAcceleratorAvailability();
         console.log(`Accelerator availability: ${isAcceleratorAvailable}`);
-        showCustomAlert('加速服务检查完成。正在加载数据...');
+        clearInterval(loadingAnimationInterval); // Stop animation
+        showCustomAlert('加速服务检查完成。正在加载数据...'); // Show next message, still no button, waits for loadData
+
         await loadData(); // Load data and find/apply favicons before initial render
         // render is called inside loadData after favicon processing
-         showCustomAlert('数据加载和缩略图处理完成。');
+
+         // The final success message is handled by the loadData function's call to findAndApplyFaviconsForAllBookmarks
+         // which ends with a showCustomAlert('数据导入和缩略图处理完成。', null, 3000);
+         // If no data import happens (normal load), the loadData function itself ends.
+         // We need a final message here for the normal load path.
+         // If loadData finished without an import, the last message shown was "加速服务检查完成。正在加载数据...".
+         // So, after loadData completes (and assuming no import path), show final success.
+         // Check if the last message shown was the loading one.
+         // A simpler way is to just show the final message after loadData completes, assuming loadData clears the previous one.
+         // Or, loadData can be responsible for the final success message as it includes favicon finding.
+         // Let's make loadData ONLY handle errors. The initApp will control the sequence of messages.
+
+         clearInterval(loadingAnimationInterval); // Ensure animation stops
+
+         showCustomAlert('数据加载和缩略图处理完成。', null, 3000); // Auto-dismiss final success message
     }
 
     initApp(); // Start the app initialization process
