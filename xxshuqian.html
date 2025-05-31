@@ -458,10 +458,10 @@
 
     // Pointer/Long Press/Drag state
     let pressTimer = null;
-    let isPressing = false; // True while pointer is down and hasn't moved beyond threshold
+    let isPressing = false; // True while pointer is down and hasn't moved beyond threshold AND hasn't been cancelled by drag
     let isLongPress = false; // True if long press timer fired while isPressing was true
-    let isDragging = false; // True if pointer moved beyond threshold while isPressing was true
-    let initialPressTarget = null; // The element the pointer initially pressed down on
+    let isDragging = false; // True if pointer moved beyond threshold while initialPressTarget was set
+    let initialPressTarget = null; // The element the pointer initially pressed down on that could trigger a menu
     let initialPressPos = { x: 0, y: 0 }; // The initial position of the pointer
 
 
@@ -934,7 +934,7 @@
     document.addEventListener('pointerdown', (e) => {
         // Clear any previous timer and reset states
         clearTimeout(pressTimer);
-        isPressing = true; // Pointer is down
+        isPressing = false; // Assume not a press for menu until target is confirmed
         isLongPress = false;
         isDragging = false; // Reset dragging state on new pointerdown
         initialPressTarget = null; // Reset target
@@ -947,7 +947,6 @@
 
         // If clicking a menu button or inside modal/alerts, let default behavior happen
         if (menuButtonTarget || e.target.closest('#modalOverlay') || e.target.closest('#customAlert') || e.target.closest('#customConfirm')) {
-             isPressing = false; // Not interested in long press for these elements
              return;
         }
 
@@ -955,6 +954,7 @@
         if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
             initialPressTarget = bookmarkTarget || groupTitleTarget || mainTitleTarget;
             initialPressPos = { x: e.clientX, y: e.clientY };
+            isPressing = true; // Pointer is down on a relevant target
 
             // Prevent default only for right-click (button=2) or if it's a touch (to prevent scrolling/zoom/native context menu)
              if (e.button === 2 || e.pointerType === 'touch') {
@@ -964,7 +964,7 @@
             // Start long press timer for left-click/touch
             if (e.button === 0 || e.pointerType === 'touch') {
                 pressTimer = setTimeout(() => {
-                    // Check if pointer is still down AND no drag has been detected
+                    // Check if pointer is still down and has NOT started dragging
                     if (isPressing && !isDragging) {
                          isLongPress = true;
                          hideContextMenus(); // Hide any other open menus
@@ -1023,29 +1023,30 @@
 
     // Global Pointer Move handler
     document.addEventListener('pointermove', (e) => {
-        // If pointer is down (isPressing is true), check for movement
-        if (isPressing) {
+        // If pointer is down on a potential menu target AND hasn't already been cancelled by drag
+        if (isPressing && !isDragging) {
             const dx = Math.abs(e.clientX - initialPressPos.x);
             const dy = Math.abs(e.clientY - initialPressPos.y);
 
             // If moved more than threshold, it's a drag
             if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
                 clearTimeout(pressTimer); // Cancel long press timer
-                // isPressing remains true as the pointer is still down
-                isDragging = true; // It's a drag
+                isPressing = false; // Cancel the 'press' state that could lead to a long press menu
+                isDragging = true; // Indicate that dragging has occurred
+                hideContextMenus(); // Hide any context menus if they were shown early by timer or right click
                  // Allow default browser behavior for dragging (e.g. scrolling)
             }
         }
          // If isDragging is already true, continue allowing default move behavior.
     });
 
-    // Global Pointer Up handler (MODIFIED logic)
+    // Global Pointer Up handler
     document.addEventListener('pointerup', (e) => {
         clearTimeout(pressTimer); // Always clear timer on pointer up
 
         // Capture states *before* resetting them
-        const wasPressingBeforeUp = isPressing; // Was the pointer down before this up event?
-        const hadLongPressBeforeUp = isLongPress; // Did the long press timer fire?
+        const wasPressingBeforeUp = isPressing; // Was the pointer down on a relevant target before this up event?
+        const hadLongPressBeforeUp = isLongPress; // Did the long press timer fire and show the menu?
         const wasDraggingBeforeUp = isDragging; // Did a drag motion happen?
 
         // Reset states
@@ -1054,21 +1055,25 @@
         isDragging = false; // Reset dragging state on pointer up
         initialPressTarget = null;
 
-        // If it was a drag (at any point during the press), OR the long press timer fired (meaning no drag before timeout), OR it was a right click, do nothing more here.
-        // This prevents short click actions or re-triggering menus after a drag or a successful long press.
+
+        // If it was a drag (meaning isDragging became true in pointermove), OR the long press timer fired (meaning no drag occurred before timeout), OR it was a right click, do nothing more here.
+        // This prevents short click actions after a drag or a successful long press.
+        // Note: if a drag occurred, wasDraggingBeforeUp will be true and we return.
+        // If a long press occurred *without* drag, hadLongPressBeforeUp will be true and we return.
+        // If it was a right click, e.button === 2 and we return.
         if (wasDraggingBeforeUp || hadLongPressBeforeUp || e.button === 2) {
              return;
         }
 
-        // If none of the above, and it was a press (left-click/tap) that didn't turn into a drag and didn't trigger the long press timer, handle as a short click
-        // The check 'wasPressingBeforeUp' ensures the pointer was initially down on a target element we care about.
+        // If none of the above, and the pointer was initially down on a relevant target (wasPressingBeforeUp), and it was a left click/tap (e.button === 0), handle as a short click.
+        // This condition is now true only if it was a short tap/click without drag or long press.
         if (wasPressingBeforeUp && e.button === 0) {
             const bookmarkTarget = e.target.closest('.bookmark');
              // If the released target is the same as the initial press target (or within it) and it's a bookmark
-            if (bookmarkTarget && (e.target.closest('.bookmark') === initialPressTarget || (initialPressTarget && initialPressTarget.contains(e.target))) ) {
+            if (bookmarkTarget && initialPressTarget && (initialPressTarget.contains(e.target)) ) {
                  // This is a short click/tap on a bookmark element that wasn't a drag or a long press
                  const link = bookmarkTarget.querySelector('a');
-                 // Manually trigger the link click, but only if no menus are open (safety check, though menus are prevented by long press/drag logic now)
+                 // Manually trigger the link click, but only if no menus are open (safety check, though menus should be hidden now)
                  if (link && contextMenu.style.display !== 'block' && groupContextMenu.style.display !== 'block' && importExportMenu.style.display !== 'block') {
                     // Check if the target is the link itself, if so, let its own listener handle it (if not prevented)
                     if (e.target.tagName === 'A') {
@@ -1083,6 +1088,8 @@
             }
              // No action needed for short clicks on group title or main title based on current requirements
         }
+
+        // If pointer was down but released outside initial target (wasPressingBeforeUp is true but initialPressTarget.contains(e.target) is false) - this is a drag that started on a relevant target and ended elsewhere. It should not trigger a short click. The 'wasDraggingBeforeUp' check already handles this by causing a return early.
     });
 
 
