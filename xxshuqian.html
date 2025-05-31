@@ -368,8 +368,8 @@
     // --- 常量定义 ---
     const STORAGE_KEY = 'pi_groups_data';
     const CURRENT_GROUP_STORAGE_KEY = 'currentGroupId';
-    const LONG_PRESS_DURATION = 2400; // MODIFIED: Increased long press duration to 2400ms
-    const MOVE_THRESHOLD = 20; // Pixels allowed before cancelling potential long press/click
+    const LONG_PRESS_DURATION = 2400; // 长按时间阈值，单位毫秒
+    const MOVE_THRESHOLD = 20; // 允许的移动像素阈值，超过此值被认为是拖动
     // 检查加速链接是否可用的 URL (可根据实际加速服务调整) - 使用一个已知图标的加速链接进行测试
     const ACCELERATOR_CHECK_URL = 'https://js.653827.xyz/unavatar.io/github.com';
     const ACCELERATE_PREFIX = 'https://js.653827.xyz/';
@@ -963,7 +963,7 @@
                 pressTimer = setTimeout(() => {
                     // Check if pointer is still down and has NOT started dragging
                     if (isPressing && !isDragging) {
-                         isLongPress = true;
+                         isLongPress = true; // 标记为长按成功
                          hideContextMenus(); // Hide any other open menus
 
                          // Set current context based on target and show menu
@@ -985,7 +985,7 @@
                               e.target.addEventListener('click', preventNextClick, { once: true });
                           }
                     }
-                     // If timer fires but isDragging is true, it means a drag started before timer, so do nothing
+                     // 如果定时器触发时检测到拖动，isDragging 会是 true，此处的 if 条件不满足，菜单不会显示。
                 }, LONG_PRESS_DURATION);
             }
         } else {
@@ -1028,9 +1028,9 @@
             // If moved more than threshold, it's a drag
             if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
                 clearTimeout(pressTimer); // Cancel long press timer
-                isPressing = false; // Cancel the 'press' state that could lead to a long press menu
-                isDragging = true; // Indicate that dragging has occurred
-                hideContextMenus(); // Hide any context menus if they were shown early by timer or right click
+                isPressing = false; // 取消 'press' 状态，阻止长按菜单弹出
+                isDragging = true; // 标记为正在拖动
+                hideContextMenus(); // 隐藏可能已经弹出的菜单（预防性）
                  // Allow default browser behavior for dragging (e.g. scrolling)
             }
         }
@@ -1042,51 +1042,53 @@
         clearTimeout(pressTimer); // Always clear timer on pointer up
 
         // Capture states *before* resetting them
-        const wasPressingBeforeUp = isPressing; // Was the pointer down on a relevant target before this up event?
-        const hadLongPressBeforeUp = isLongPress; // Did the long press timer fire and show the menu?
-        const wasDraggingBeforeUp = isDragging; // Did a drag motion happen?
+        const wasPressingBeforeUp = isPressing; // 在抬起前，指针是否按在相关目标上且未被标记为拖动取消？
+        const hadLongPressBeforeUp = isLongPress; // 在抬起前，长按定时器是否已成功触发？
+        const wasDraggingBeforeUp = isDragging; // 在抬起前，是否发生过拖动？
 
         // Reset states
-        isPressing = false; // Pointer is no longer down
-        isLongPress = false; // Reset long press state
-        isDragging = false; // Reset dragging state on pointer up
+        isPressing = false; // 指针已抬起
+        isLongPress = false; // 重置长按状态
+        isDragging = false; // 重置拖动状态
         initialPressTarget = null;
 
-
-        // If it was a drag (meaning isDragging became true in pointermove), OR the long press timer fired (meaning no drag occurred before timeout), OR it was a right click, do nothing more here.
-        // This prevents short click actions after a drag or a successful long press.
-        // Note: if a drag occurred, wasDraggingBeforeUp will be true and we return.
-        // If a long press occurred *without* drag, hadLongPressBeforeUp will be true and we return.
-        // If it was a right click, e.button === 2 and we return.
-        if (wasDraggingBeforeUp || hadLongPressBeforeUp || e.button === 2) {
-             return;
+        // **兜底逻辑：如果不是我们预期的长按（hadLongPressBeforeUp 为假），但菜单却开着，就隐藏它。**
+        // 这个检查在处理任何其他逻辑之前进行。
+        if (!hadLongPressBeforeUp && (contextMenu.style.display === 'block' || groupContextMenu.style.display === 'block' || importExportMenu.style.display === 'block')) {
+             hideContextMenus();
         }
 
-        // If none of the above, and the pointer was initially down on a relevant target (wasPressingBeforeUp), and it was a left click/tap (e.button === 0), handle as a short click.
-        // This condition is now true only if it was a short tap/click without drag or long press.
+        // 如果是拖动行为（wasDraggingBeforeUp 为真），或者长按定时器已成功触发（hadLongPressBeforeUp 为真），或者检测到右键，则不执行后续的短按逻辑。
+        // 注意：这里的顺序确保了即使长按定时器和拖动检测都发生了（尽管我们的逻辑设计上避免了这种情况），或者只有拖动，都不会触发短按。
+        if (wasDraggingBeforeUp || hadLongPressBeforeUp || e.button === 2) {
+             return; // 退出函数，不执行短按逻辑
+        }
+
+        // 如果上述情况都不是，并且指针最初按下的是相关目标（wasPressingBeforeUp 为真），且是左键/点触（e.button === 0），则作为短按处理。
+        // 这通常意味着用户快速地按下并抬起了手指，没有触发拖动阈值，也没有达到长按时长。
         if (wasPressingBeforeUp && e.button === 0) {
             const bookmarkTarget = e.target.closest('.bookmark');
-             // If the released target is the same as the initial press target (or within it) and it's a bookmark
+             // 如果释放的目标与初始按下目标相同或在其内部，且是书签元素
             if (bookmarkTarget && initialPressTarget && (initialPressTarget.contains(e.target)) ) {
-                 // This is a short click/tap on a bookmark element that wasn't a drag or a long press
+                 // 这是对书签元素的短按点击
                  const link = bookmarkTarget.querySelector('a');
-                 // Manually trigger the link click, but only if no menus are open (safety check, though menus should be hidden now)
+                 // 手动触发链接点击，但要确保没有任何菜单是打开状态（安全检查）
                  if (link && contextMenu.style.display !== 'block' && groupContextMenu.style.display !== 'block' && importExportMenu.style.display !== 'block') {
-                    // Check if the target is the link itself, if so, let its own listener handle it (if not prevented)
+                    // 检查是否直接点击了链接本身，如果是，让其自身的监听器处理
                     if (e.target.tagName === 'A') {
-                        // Let the browser handle the default click on the <a>
+                        // 让浏览器处理 <a> 的默认点击行为
                     } else {
-                       // Clicked the bookmark div, manually open the link
+                       // 点击了书签 div，手动打开链接
                        window.open(link.href, link.target || '_self');
-                       e.preventDefault(); // Prevent any other default action from the div click
-                       e.stopPropagation(); // Stop propagation
+                       e.preventDefault(); // 阻止 div 点击的任何其他默认行为
+                       e.stopPropagation(); // 阻止事件冒泡
                     }
                  }
             }
-             // No action needed for short clicks on group title or main title based on current requirements
+             // 对分组标题或主标题的短按目前没有特殊行为，此处不做处理。
         }
 
-        // If pointer was down but released outside initial target (wasPressingBeforeUp is true but initialPressTarget.contains(e.target) is false) - this is a drag that started on a relevant target and ended elsewhere. It should not trigger a short click. The 'wasDraggingBeforeUp' check already handles this by causing a return early.
+        // 如果指针最初按下的是相关目标但释放时不在其内部（wasPressingBeforeUp 为真但 initialPressTarget.contains(e.target) 为假），这通常意味着用户进行了拖动，但抬起手指的位置在目标外部。wasDraggingBeforeUp 检查已经处理了这种情况，导致函数提前返回，不会走到这里的短按逻辑。
     });
 
 
@@ -1126,7 +1128,7 @@
 
         if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
             e.preventDefault(); // Prevent default browser context menu
-             // The custom menu is shown by the pointerdown button=2 logic
+             // The custom menu is shown by the pointerdown button=2 logic (虽然在移动端通常不适用)
         }
      });
 
