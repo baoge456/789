@@ -1050,13 +1050,14 @@
          // If isDragging is already true, continue allowing default move behavior.
     });
 
-    // Global Pointer Up handler
+    // Global Pointer Up handler (MODIFIED logic)
     document.addEventListener('pointerup', (e) => {
         clearTimeout(pressTimer); // Always clear timer on pointer up
 
-        const wasPressingBeforeUp = isPressing; // Capture state before resetting
-        const hadLongPressBeforeUp = isLongPress; // Capture state before resetting
-        const wasDraggingBeforeUp = isDragging; // Capture state before resetting
+        // Capture states *before* resetting them
+        const wasPressingBeforeUp = isPressing;
+        const hadLongPressBeforeUp = isLongPress;
+        const wasDraggingBeforeUp = isDragging;
 
         // Reset states
         isPressing = false;
@@ -1064,17 +1065,14 @@
         isDragging = false; // Reset dragging state on pointer up
         initialPressTarget = null;
 
-        // If it was a long press or right click, the menu is already shown/handled. Do nothing more here.
-        if (hadLongPressBeforeUp || e.button === 2) {
+        // If it was a drag, OR a long press, OR a right click, do nothing more here.
+        // The menu is handled by pointerdown (right-click) or the setTimeout callback (long press).
+        // By returning if wasDraggingBeforeUp is true, we prevent clicks/menus after a slide.
+        if (wasDraggingBeforeUp || hadLongPressBeforeUp || e.button === 2) {
              return;
         }
 
-        // If it was a drag, do nothing more here.
-        if (wasDraggingBeforeUp) {
-             return;
-        }
-
-        // If it was a press (started with pointerdown) but NOT a long press and NOT a drag, it's a short left click/tap
+        // If none of the above, and it was a press (left-click/tap), handle as a short click
         if (wasPressingBeforeUp && e.button === 0) {
             const bookmarkTarget = e.target.closest('.bookmark');
              // If the released target is the same as the initial press target (or within it)
