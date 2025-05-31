@@ -81,10 +81,7 @@
       color: #fff;
       box-shadow: 0 4px 16px rgba(124, 58, 237, 0.18);
     }
-    .bookmark:active {
-      background: linear-gradient(120deg, #6c2eb7 60%, #2d0040 100%) !important;
-      color: #fff;
-    }
+    /* Removed .bookmark:active style to prevent purple color on press */
     .bookmark img {
       width: 40px;
       height: 40px;
@@ -458,9 +455,9 @@
 
     // Pointer/Long Press/Drag state
     let pressTimer = null;
-    let isPressing = false; // True while pointer is down and hasn't moved beyond threshold AND hasn't been cancelled by drag
+    let isPressing = false; // True while pointer is down on a relevant target AND hasn't been cancelled by drag
     let isLongPress = false; // True if long press timer fired while isPressing was true
-    let isDragging = false; // True if pointer moved beyond threshold while initialPressTarget was set
+    let isDragging = false; // True if pointer moved beyond threshold while initialPressTarget was set and pointer is down
     let initialPressTarget = null; // The element the pointer initially pressed down on that could trigger a menu
     let initialPressPos = { x: 0, y: 0 }; // The initial position of the pointer
 
@@ -627,7 +624,7 @@
              if (isAcceleratorAvailable && rawUrl) {
                    const acceleratedUrl = ACCELERATE_PREFIX + rawUrl;
                     // Avoid adding accelerated version if it's the same as the raw one (unlikely but safe)
-                   if (acceleratedUrl !== rawUrl && !urlsToTry.some(item => item.url === acceleratedUrl)) {
+                   if (acceleratedUrl !== rawUrl) { // Avoid testing same URL twice
                         urlsToTry.push({ url: acceleratedUrl, source: 'accelerated_pattern' });
                    }
              }
