@@ -81,7 +81,10 @@
       color: #fff;
       box-shadow: 0 4px 16px rgba(124, 58, 237, 0.18);
     }
-    /* Removed .bookmark:active style to prevent purple color on press */
+    .bookmark:active {
+      background: linear-gradient(120deg, #6c2eb7 60%, #2d0040 100%) !important;
+      color: #fff;
+    }
     .bookmark img {
       width: 40px;
       height: 40px;
@@ -368,8 +371,8 @@
     // --- 常量定义 ---
     const STORAGE_KEY = 'pi_groups_data';
     const CURRENT_GROUP_STORAGE_KEY = 'currentGroupId';
-    const LONG_PRESS_DURATION = 2400; // 长按时间阈值，单位毫秒
-    const MOVE_THRESHOLD = 20; // 允许的移动像素阈值，超过此值被认为是拖动
+    const LONG_PRESS_DURATION = 2400; // MODIFIED: Increased long press duration to 2400ms
+    const MOVE_THRESHOLD = 20; // Pixels allowed before cancelling potential long press/click
     // 检查加速链接是否可用的 URL (可根据实际加速服务调整) - 使用一个已知图标的加速链接进行测试
     const ACCELERATOR_CHECK_URL = 'https://js.653827.xyz/unavatar.io/github.com';
     const ACCELERATE_PREFIX = 'https://js.653827.xyz/';
@@ -455,10 +458,10 @@
 
     // Pointer/Long Press/Drag state
     let pressTimer = null;
-    let isPressing = false; // True while pointer is down on a relevant target AND hasn't been cancelled by drag
+    let isPressing = false; // True while pointer is down and hasn't moved beyond threshold
     let isLongPress = false; // True if long press timer fired while isPressing was true
-    let isDragging = false; // True if pointer moved beyond threshold while initialPressTarget was set and pointer is down
-    let initialPressTarget = null; // The element the pointer initially pressed down on that could trigger a menu
+    let isDragging = false; // True if pointer moved beyond threshold while isPressing was true
+    let initialPressTarget = null; // The element the pointer initially pressed down on
     let initialPressPos = { x: 0, y: 0 }; // The initial position of the pointer
 
 
@@ -624,7 +627,7 @@
              if (isAcceleratorAvailable && rawUrl) {
                    const acceleratedUrl = ACCELERATE_PREFIX + rawUrl;
                     // Avoid adding accelerated version if it's the same as the raw one (unlikely but safe)
-                   if (acceleratedUrl !== rawUrl) { // Avoid testing same URL twice
+                   if (acceleratedUrl !== rawUrl && !urlsToTry.some(item => item.url === acceleratedUrl)) {
                         urlsToTry.push({ url: acceleratedUrl, source: 'accelerated_pattern' });
                    }
              }
@@ -931,7 +934,7 @@
     document.addEventListener('pointerdown', (e) => {
         // Clear any previous timer and reset states
         clearTimeout(pressTimer);
-        isPressing = false; // Assume not a press for menu until target is confirmed
+        isPressing = true;
         isLongPress = false;
         isDragging = false; // Reset dragging state on new pointerdown
         initialPressTarget = null; // Reset target
@@ -944,6 +947,7 @@
 
         // If clicking a menu button or inside modal/alerts, let default behavior happen
         if (menuButtonTarget || e.target.closest('#modalOverlay') || e.target.closest('#customAlert') || e.target.closest('#customConfirm')) {
+             isPressing = false; // Not interested in long press for these elements
              return;
         }
 
@@ -951,7 +955,6 @@
         if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
             initialPressTarget = bookmarkTarget || groupTitleTarget || mainTitleTarget;
             initialPressPos = { x: e.clientX, y: e.clientY };
-            isPressing = true; // Pointer is down on a relevant target
 
             // Prevent default only for right-click (button=2) or if it's a touch (to prevent scrolling/zoom/native context menu)
              if (e.button === 2 || e.pointerType === 'touch') {
@@ -961,9 +964,8 @@
             // Start long press timer for left-click/touch
             if (e.button === 0 || e.pointerType === 'touch') {
                 pressTimer = setTimeout(() => {
-                    // Check if pointer is still down and has NOT started dragging
-                    if (isPressing && !isDragging) {
-                         isLongPress = true; // 标记为长按成功
+                    if (isPressing && !isDragging) { // Check if still pressing AND not dragging
+                         isLongPress = true;
                          hideContextMenus(); // Hide any other open menus
 
                          // Set current context based on target and show menu
@@ -985,7 +987,7 @@
                               e.target.addEventListener('click', preventNextClick, { once: true });
                           }
                     }
-                     // 如果定时器触发时检测到拖动，isDragging 会是 true，此处的 if 条件不满足，菜单不会显示。
+                     // If timer fires but isDragging is true, it means a drag started before timer, so do nothing
                 }, LONG_PRESS_DURATION);
             }
         } else {
@@ -1020,75 +1022,64 @@
 
     // Global Pointer Move handler
     document.addEventListener('pointermove', (e) => {
-        // If pointer is down on a potential menu target AND hasn't already been cancelled by drag
-        if (isPressing && !isDragging) {
+        if (isPressing) { // Check movement only if we are in a potential click/long press state
             const dx = Math.abs(e.clientX - initialPressPos.x);
             const dy = Math.abs(e.clientY - initialPressPos.y);
-
             // If moved more than threshold, it's a drag
             if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
                 clearTimeout(pressTimer); // Cancel long press timer
-                isPressing = false; // 取消 'press' 状态，阻止长按菜单弹出
-                isDragging = true; // 标记为正在拖动
-                hideContextMenus(); // 隐藏可能已经弹出的菜单（预防性）
+                isPressing = false; // Not a press anymore
+                isDragging = true; // It's a drag
                  // Allow default browser behavior for dragging (e.g. scrolling)
             }
         }
          // If isDragging is already true, continue allowing default move behavior.
     });
 
-    // Global Pointer Up handler
+    // Global Pointer Up handler (MODIFIED logic)
     document.addEventListener('pointerup', (e) => {
         clearTimeout(pressTimer); // Always clear timer on pointer up
 
         // Capture states *before* resetting them
-        const wasPressingBeforeUp = isPressing; // 在抬起前，指针是否按在相关目标上且未被标记为拖动取消？
-        const hadLongPressBeforeUp = isLongPress; // 在抬起前，长按定时器是否已成功触发？
-        const wasDraggingBeforeUp = isDragging; // 在抬起前，是否发生过拖动？
+        const wasPressingBeforeUp = isPressing;
+        const hadLongPressBeforeUp = isLongPress;
+        const wasDraggingBeforeUp = isDragging;
 
         // Reset states
-        isPressing = false; // 指针已抬起
-        isLongPress = false; // 重置长按状态
-        isDragging = false; // 重置拖动状态
+        isPressing = false;
+        isLongPress = false;
+        isDragging = false; // Reset dragging state on pointer up
         initialPressTarget = null;
 
-        // **兜底逻辑：如果不是我们预期的长按（hadLongPressBeforeUp 为假），但菜单却开着，就隐藏它。**
-        // 这个检查在处理任何其他逻辑之前进行。
-        if (!hadLongPressBeforeUp && (contextMenu.style.display === 'block' || groupContextMenu.style.display === 'block' || importExportMenu.style.display === 'block')) {
-             hideContextMenus();
-        }
-
-        // 如果是拖动行为（wasDraggingBeforeUp 为真），或者长按定时器已成功触发（hadLongPressBeforeUp 为真），或者检测到右键，则不执行后续的短按逻辑。
-        // 注意：这里的顺序确保了即使长按定时器和拖动检测都发生了（尽管我们的逻辑设计上避免了这种情况），或者只有拖动，都不会触发短按。
+        // If it was a drag, OR a long press, OR a right click, do nothing more here.
+        // The menu is handled by pointerdown (right-click) or the setTimeout callback (long press).
+        // By returning if wasDraggingBeforeUp is true, we prevent clicks/menus after a slide.
         if (wasDraggingBeforeUp || hadLongPressBeforeUp || e.button === 2) {
-             return; // 退出函数，不执行短按逻辑
+             return;
         }
 
-        // 如果上述情况都不是，并且指针最初按下的是相关目标（wasPressingBeforeUp 为真），且是左键/点触（e.button === 0），则作为短按处理。
-        // 这通常意味着用户快速地按下并抬起了手指，没有触发拖动阈值，也没有达到长按时长。
+        // If none of the above, and it was a press (left-click/tap), handle as a short click
         if (wasPressingBeforeUp && e.button === 0) {
             const bookmarkTarget = e.target.closest('.bookmark');
-             // 如果释放的目标与初始按下目标相同或在其内部，且是书签元素
-            if (bookmarkTarget && initialPressTarget && (initialPressTarget.contains(e.target)) ) {
-                 // 这是对书签元素的短按点击
+             // If the released target is the same as the initial press target (or within it)
+            if (bookmarkTarget && (e.target.closest('.bookmark') === initialPressTarget || (initialPressTarget && initialPressTarget.contains(e.target))) ) {
+                 // This is a short click/tap on a bookmark element
                  const link = bookmarkTarget.querySelector('a');
-                 // 手动触发链接点击，但要确保没有任何菜单是打开状态（安全检查）
+                 // Manually trigger the link click, but only if no menus are open
                  if (link && contextMenu.style.display !== 'block' && groupContextMenu.style.display !== 'block' && importExportMenu.style.display !== 'block') {
-                    // 检查是否直接点击了链接本身，如果是，让其自身的监听器处理
+                    // Check if the target is the link itself, if so, let its own listener handle it (if not prevented)
                     if (e.target.tagName === 'A') {
-                        // 让浏览器处理 <a> 的默认点击行为
+                        // Let the browser handle the default click on the <a>
                     } else {
-                       // 点击了书签 div，手动打开链接
+                       // Clicked the bookmark div, manually open the link
                        window.open(link.href, link.target || '_self');
-                       e.preventDefault(); // 阻止 div 点击的任何其他默认行为
-                       e.stopPropagation(); // 阻止事件冒泡
+                       e.preventDefault(); // Prevent any other default action from the div click
+                       e.stopPropagation(); // Stop propagation
                     }
                  }
             }
-             // 对分组标题或主标题的短按目前没有特殊行为，此处不做处理。
+             // No action needed for short clicks on group title or main title based on current requirements
         }
-
-        // 如果指针最初按下的是相关目标但释放时不在其内部（wasPressingBeforeUp 为真但 initialPressTarget.contains(e.target) 为假），这通常意味着用户进行了拖动，但抬起手指的位置在目标外部。wasDraggingBeforeUp 检查已经处理了这种情况，导致函数提前返回，不会走到这里的短按逻辑。
     });
 
 
@@ -1128,7 +1119,7 @@
 
         if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
             e.preventDefault(); // Prevent default browser context menu
-             // The custom menu is shown by the pointerdown button=2 logic (虽然在移动端通常不适用)
+             // The custom menu is shown by the pointerdown button=2 logic
         }
      });
 
@@ -1358,7 +1349,7 @@
          },
          () => { // Cancel Callback
             // Do nothing
-           }
+         }
         );
     });
 
@@ -1714,7 +1705,7 @@
          // which ends with a showCustomAlert('数据导入和缩略图处理完成。', null, 3000);
          // If no data import happens (normal load), the loadData function itself ends.
          // We need a final message here for the normal load path.
-         // If loadData finished without an import, the last message shown was the loading one.
+         // If loadData finished without an import, the last message shown was "加速服务检查完成。正在加载数据...".
          // So, after loadData completes (and assuming no import path), show final success.
          // Check if the last message shown was the loading one.
          // A simpler way is to just show the final message after loadData completes, assuming loadData clears the previous one.
