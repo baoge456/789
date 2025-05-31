@@ -934,7 +934,7 @@
     document.addEventListener('pointerdown', (e) => {
         // Clear any previous timer and reset states
         clearTimeout(pressTimer);
-        isPressing = true;
+        isPressing = true; // Pointer is down
         isLongPress = false;
         isDragging = false; // Reset dragging state on new pointerdown
         initialPressTarget = null; // Reset target
@@ -964,7 +964,8 @@
             // Start long press timer for left-click/touch
             if (e.button === 0 || e.pointerType === 'touch') {
                 pressTimer = setTimeout(() => {
-                    if (isPressing && !isDragging) { // Check if still pressing AND not dragging
+                    // Check if pointer is still down AND no drag has been detected
+                    if (isPressing && !isDragging) {
                          isLongPress = true;
                          hideContextMenus(); // Hide any other open menus
 
@@ -1022,13 +1023,15 @@
 
     // Global Pointer Move handler
     document.addEventListener('pointermove', (e) => {
-        if (isPressing) { // Check movement only if we are in a potential click/long press state
+        // If pointer is down (isPressing is true), check for movement
+        if (isPressing) {
             const dx = Math.abs(e.clientX - initialPressPos.x);
             const dy = Math.abs(e.clientY - initialPressPos.y);
+
             // If moved more than threshold, it's a drag
             if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
                 clearTimeout(pressTimer); // Cancel long press timer
-                isPressing = false; // Not a press anymore
+                // isPressing remains true as the pointer is still down
                 isDragging = true; // It's a drag
                  // Allow default browser behavior for dragging (e.g. scrolling)
             }
@@ -1041,31 +1044,31 @@
         clearTimeout(pressTimer); // Always clear timer on pointer up
 
         // Capture states *before* resetting them
-        const wasPressingBeforeUp = isPressing;
-        const hadLongPressBeforeUp = isLongPress;
-        const wasDraggingBeforeUp = isDragging;
+        const wasPressingBeforeUp = isPressing; // Was the pointer down before this up event?
+        const hadLongPressBeforeUp = isLongPress; // Did the long press timer fire?
+        const wasDraggingBeforeUp = isDragging; // Did a drag motion happen?
 
         // Reset states
-        isPressing = false;
-        isLongPress = false;
+        isPressing = false; // Pointer is no longer down
+        isLongPress = false; // Reset long press state
         isDragging = false; // Reset dragging state on pointer up
         initialPressTarget = null;
 
-        // If it was a drag, OR a long press, OR a right click, do nothing more here.
-        // The menu is handled by pointerdown (right-click) or the setTimeout callback (long press).
-        // By returning if wasDraggingBeforeUp is true, we prevent clicks/menus after a slide.
+        // If it was a drag (at any point during the press), OR the long press timer fired (meaning no drag before timeout), OR it was a right click, do nothing more here.
+        // This prevents short click actions or re-triggering menus after a drag or a successful long press.
         if (wasDraggingBeforeUp || hadLongPressBeforeUp || e.button === 2) {
              return;
         }
 
-        // If none of the above, and it was a press (left-click/tap), handle as a short click
+        // If none of the above, and it was a press (left-click/tap) that didn't turn into a drag and didn't trigger the long press timer, handle as a short click
+        // The check 'wasPressingBeforeUp' ensures the pointer was initially down on a target element we care about.
         if (wasPressingBeforeUp && e.button === 0) {
             const bookmarkTarget = e.target.closest('.bookmark');
-             // If the released target is the same as the initial press target (or within it)
+             // If the released target is the same as the initial press target (or within it) and it's a bookmark
             if (bookmarkTarget && (e.target.closest('.bookmark') === initialPressTarget || (initialPressTarget && initialPressTarget.contains(e.target))) ) {
-                 // This is a short click/tap on a bookmark element
+                 // This is a short click/tap on a bookmark element that wasn't a drag or a long press
                  const link = bookmarkTarget.querySelector('a');
-                 // Manually trigger the link click, but only if no menus are open
+                 // Manually trigger the link click, but only if no menus are open (safety check, though menus are prevented by long press/drag logic now)
                  if (link && contextMenu.style.display !== 'block' && groupContextMenu.style.display !== 'block' && importExportMenu.style.display !== 'block') {
                     // Check if the target is the link itself, if so, let its own listener handle it (if not prevented)
                     if (e.target.tagName === 'A') {
@@ -1705,7 +1708,7 @@
          // which ends with a showCustomAlert('数据导入和缩略图处理完成。', null, 3000);
          // If no data import happens (normal load), the loadData function itself ends.
          // We need a final message here for the normal load path.
-         // If loadData finished without an import, the last message shown was "加速服务检查完成。正在加载数据...".
+         // If loadData finished without an import, the last message shown was the loading one.
          // So, after loadData completes (and assuming no import path), show final success.
          // Check if the last message shown was the loading one.
          // A simpler way is to just show the final message after loadData completes, assuming loadData clears the previous one.
