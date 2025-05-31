@@ -365,6 +365,7 @@
     const STORAGE_KEY = 'pi_groups_data';
     const CURRENT_GROUP_STORAGE_KEY = 'currentGroupId';
     const LONG_PRESS_DURATION = 600; // ms
+    const MOVE_THRESHOLD = 20; // Pixels allowed before cancelling potential long press/click
     // 检查加速链接是否可用的 URL (可根据实际加速服务调整) - 使用一个已知图标的加速链接进行测试
     const ACCELERATOR_CHECK_URL = 'https://js.653827.xyz/unavatar.io/github.com';
     const ACCELERATE_PREFIX = 'https://js.653827.xyz/';
@@ -448,10 +449,11 @@
     let alertTimeout = null; // To store the timeout ID for auto-dismissing alerts
     let loadingAnimationInterval = null; // To store the interval ID for loading animation
 
-    // Pointer/Long Press state
+    // Pointer/Long Press/Drag state
     let pressTimer = null;
-    let isPressing = false;
-    let isLongPress = false;
+    let isPressing = false; // True while pointer is down and hasn't moved beyond threshold
+    let isLongPress = false; // True if long press timer fired while isPressing was true
+    let isDragging = false; // True if pointer moved beyond threshold while isPressing was true
     let initialPressTarget = null; // The element the pointer initially pressed down on
     let initialPressPos = { x: 0, y: 0 }; // The initial position of the pointer
 
@@ -731,7 +733,7 @@
         } catch (error) {
           console.error("从本地存储加载数据时出错:", error);
           // showCustomAlert('加载书签数据失败，已恢复到默认状态。'); // Notify user on load error - keep default alerts for errors
-          showCustomAlert('加载书签数据失败，已恢复到默认状态。', null, 5000); // Auto-dismiss error? Or keep requiring OK? User implies ONLY loading tips auto-dismiss. Keep errors requiring OK.
+          showCustomAlert('加载书签数据失败，已恢复到默认状态。'); // Error messages still require OK
           resetToDefault();
         }
       } else {
@@ -927,6 +929,7 @@
         clearTimeout(pressTimer);
         isPressing = true;
         isLongPress = false;
+        isDragging = false; // Reset dragging state on new pointerdown
         initialPressTarget = null; // Reset target
 
         // Find the relevant target element: bookmark, group title, or main title h1
@@ -975,7 +978,7 @@
             // Start long press timer for left-click/touch
             if (e.button === 0 || e.pointerType === 'touch') {
                 pressTimer = setTimeout(() => {
-                    if (isPressing) { // Check if still pressing (not moved too much)
+                    if (isPressing && !isDragging) { // Check if still pressing AND not dragging
                          isLongPress = true;
                          hideContextMenus(); // Hide any other open menus
 
@@ -998,6 +1001,7 @@
                               e.target.addEventListener('click', preventNextClick, { once: true });
                           }
                     }
+                     // If timer fires but isDragging is true, it means a drag started before timer, so do nothing
                 }, LONG_PRESS_DURATION);
             }
         } else {
@@ -1032,34 +1036,46 @@
 
     // Global Pointer Move handler
     document.addEventListener('pointermove', (e) => {
-        if (isPressing && !isLongPress && initialPressTarget) {
+        if (isPressing) { // Check movement only if we are in a potential click/long press state
             const dx = Math.abs(e.clientX - initialPressPos.x);
             const dy = Math.abs(e.clientY - initialPressPos.y);
-            // If moved more than a threshold, cancel long press
-            // Increased threshold for mobile touch tolerance
-            if (dx > 20 || dy > 20) { // MODIFIED: Changed threshold from 10 to 20
-                clearTimeout(pressTimer);
-                isPressing = false; // This cancels future long press check for this sequence
+            // If moved more than threshold, it's a drag
+            if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+                clearTimeout(pressTimer); // Cancel long press timer
+                isPressing = false; // Not a press anymore
+                isDragging = true; // It's a drag
+                 // Allow default browser behavior for dragging (e.g. scrolling)
             }
         }
+         // If isDragging is already true, continue allowing default move behavior.
     });
 
     // Global Pointer Up handler
     document.addEventListener('pointerup', (e) => {
         clearTimeout(pressTimer); // Always clear timer on pointer up
 
-        const wasPressing = isPressing; // Capture state before resetting
-        const hadLongPress = isLongPress; // Capture state before resetting
+        const wasPressingBeforeUp = isPressing; // Capture state before resetting
+        const hadLongPressBeforeUp = isLongPress; // Capture state before resetting
+        const wasDraggingBeforeUp = isDragging; // Capture state before resetting
 
         // Reset states
         isPressing = false;
         isLongPress = false;
+        isDragging = false; // Reset dragging state on pointer up
         initialPressTarget = null;
 
-        // If it was a long press or right click, the menu is already shown. Do nothing more here.
+        // If it was a long press or right click, the menu is already shown/handled. Do nothing more here.
+        if (hadLongPressBeforeUp || e.button === 2) {
+             return;
+        }
 
-        // If it was a press (started with pointerdown) but NOT a long press and NOT a right click, it's a short left click/tap
-        if (wasPressing && !hadLongPress && e.button !== 2) {
+        // If it was a drag, do nothing more here.
+        if (wasDraggingBeforeUp) {
+             return;
+        }
+
+        // If it was a press (started with pointerdown) but NOT a long press and NOT a drag, it's a short left click/tap
+        if (wasPressingBeforeUp && e.button === 0) {
             const bookmarkTarget = e.target.closest('.bookmark');
              // If the released target is the same as the initial press target (or within it)
             if (bookmarkTarget && (e.target.closest('.bookmark') === initialPressTarget || (initialPressTarget && initialPressTarget.contains(e.target))) ) {
@@ -1276,32 +1292,7 @@
                 });
               } else {
                 // Handle new object format { groupName: [{ name: '...', url: '...', favicon: '...' }] }
-                for (const groupName in importedData) {
-                  if (importedData.hasOwnProperty(groupName)) {
-                    const bookmarks = importedData[groupName];
-                    if (Array.isArray(bookmarks)) {
-                      const newGroup = {
-                        id: generateId(),
-                        name: groupName, // Use object key as group name
-                        bookmarks: []
-                      };
-                      bookmarks.forEach(bookmark => {
-                        if (bookmark && typeof bookmark === 'object' && (bookmark.name || bookmark.title) && bookmark.url) {
-                           // Store favicon as is from imported data (can be empty)
-                          newBookmark.push({ // FIX: This should be newGroup.bookmarks.push
-                            id: generateId(),
-                            title: bookmark.name || bookmark.title, // Support 'name' or 'title' from new format
-                            url: bookmark.url,
-                            favicon: bookmark.favicon || '' // Store imported favicon directly (or empty string)
-                          });
-                        }
-                      });
-                      newGroups.push(newGroup);
-                    }
-                  }
-                }
-                 // FIX: Corrected the bookmark push logic for the new format loop
-                newGroups = []; // Reset newGroups to build corrected list
+                 newGroups = []; // Reset newGroups to build corrected list
                  for (const groupName in importedData) {
                    if (importedData.hasOwnProperty(groupName)) {
                      const bookmarks = importedData[groupName];
