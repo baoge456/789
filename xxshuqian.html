@@ -22,6 +22,8 @@
       min-height: 100vh;
       background-color: #f9f9f9;
       user-select: none;
+      /* Allow text selection for bookmark links explicitly */
+      -webkit-tap-highlight-color: transparent; /* Prevent default tap highlight on mobile */
     }
     h1 {
       margin-bottom: 20px;
@@ -55,6 +57,8 @@
       user-select: none;
       color: #7c3aed;
       letter-spacing: 1px;
+      /* Prevent default tap highlight on mobile for group titles */
+      -webkit-tap-highlight-color: transparent;
     }
     .bookmark-list {
       display: flex;
@@ -75,6 +79,8 @@
       max-width: none;
       position: relative;
       user-select: none;
+      /* Prevent default tap highlight on mobile */
+      -webkit-tap-highlight-color: transparent;
     }
     .bookmark:hover {
       background: linear-gradient(120deg, #a084e8 60%, #8b1db1 100%) !important;
@@ -97,7 +103,7 @@
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      user-select: text;
+      user-select: text; /* Allow text selection on the link */
       -webkit-touch-callout: none;
     }
     @media (min-width: 768px) {
@@ -368,7 +374,7 @@
     // --- 常量定义 ---
     const STORAGE_KEY = 'pi_groups_data';
     const CURRENT_GROUP_STORAGE_KEY = 'currentGroupId';
-    const LONG_PRESS_DURATION = 2400; // 长按时间阈值，单位毫秒
+    const LONG_PRESS_DURATION = 3000; // 长按时间阈值，单位毫秒 (修改为3000毫秒)
     const MOVE_THRESHOLD = 20; // 允许的移动像素阈值，超过此值被认为是拖动
     // 检查加速链接是否可用的 URL (可根据实际加速服务调整) - 使用一个已知图标的加速链接进行测试
     const ACCELERATOR_CHECK_URL = 'https://js.653827.xyz/unavatar.io/github.com';
@@ -455,10 +461,7 @@
 
     // Pointer/Long Press/Drag state
     let pressTimer = null;
-    let isPressing = false; // True while pointer is down on a relevant target AND hasn't been cancelled by drag
-    let isLongPress = false; // True if long press timer fired while isPressing was true
-    let isDragging = false; // True if pointer moved beyond threshold while initialPressTarget was set and pointer is down
-    let initialPressTarget = null; // The element the pointer initially pressed down on that could trigger a menu
+    let isPressingRelevantTarget = false; // True while pointer is down on a bookmark, group title, or main title
     let initialPressPos = { x: 0, y: 0 }; // The initial position of the pointer
 
 
@@ -844,7 +847,7 @@
           if (Array.isArray(group.bookmarks)) { // Ensure bookmarks is an array
               for (const bm of group.bookmarks) {
                 // createBookmarkElement now just builds the DOM, it doesn't find/apply favicon
-                const bmEl = await createBookmarkElement(bm, group);
+                const bmEl = createBookmarkElement(bm, group); // createBookmarkElement is not async
                 bookmarkList.appendChild(bmEl);
               }
           }
@@ -904,9 +907,11 @@
          let finalX = x;
          let finalY = y;
 
+         // Adjust if menu goes off right edge
          if (x + menuWidth > viewportWidth - 10) { // 10px margin from right
              finalX = viewportWidth - menuWidth - 10;
          }
+         // Adjust if menu goes off bottom edge
          if (y + menuHeight > viewportHeight - 10) { // 10px margin from bottom
              finalY = viewportHeight - menuHeight - 10;
          }
@@ -929,12 +934,9 @@
 
     // Global Pointer Down handler
     document.addEventListener('pointerdown', (e) => {
-        // Clear any previous timer and reset states
+        // Clear any previous timer
         clearTimeout(pressTimer);
-        isPressing = false; // Assume not a press for menu until target is confirmed
-        isLongPress = false;
-        isDragging = false; // Reset dragging state on new pointerdown
-        initialPressTarget = null; // Reset target
+        isPressingRelevantTarget = false; // Reset state
 
         // Find the relevant target element: bookmark, group title, or main title h1
         const bookmarkTarget = e.target.closest('.bookmark');
@@ -942,68 +944,81 @@
         const mainTitleTarget = (e.target === titleElement || (titleElement && titleElement.contains(e.target))) ? titleElement : null;
         const menuButtonTarget = e.target.closest('#contextMenu button, #groupContextMenu button, #importExportMenu button');
 
-        // If clicking a menu button or inside modal/alerts, let default behavior happen
-        if (menuButtonTarget || e.target.closest('#modalOverlay') || e.target.closest('#customAlert') || e.target.closest('#customConfirm')) {
+        // If pressing a menu button, inside modal/alerts, or a bookmark link (<a>), ignore for long press logic
+         if (menuButtonTarget || e.target.closest('#modalOverlay') || e.target.closest('#customAlert') || e.target.closest('#customConfirm') || e.target.tagName === 'A') {
              return;
-        }
+         }
+
 
         // If pressing on an interactive element where context menu is needed
         if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
-            initialPressTarget = bookmarkTarget || groupTitleTarget || mainTitleTarget;
-            initialPressPos = { x: e.clientX, y: e.clientY };
-            isPressing = true; // Pointer is down on a relevant target
+            isPressingRelevantTarget = true; // Pointer is down on a relevant target
+            initialPressPos = { x: e.clientX, y: e.clientY }; // Record initial position
 
-            // Prevent default only for right-click (button=2) or if it's a touch (to prevent scrolling/zoom/native context menu)
-             if (e.button === 2 || e.pointerType === 'touch') {
+             // Store the specific element that initiated the press
+             // This helps in pointerup to check if the release happened on the same element
+             e.target.dataset.initialPress = 'true'; // Mark the element
+
+            // Prevent default context menu for right-click (button=2)
+             if (e.button === 2) {
                 e.preventDefault();
              }
 
             // Start long press timer for left-click/touch
             if (e.button === 0 || e.pointerType === 'touch') {
                 pressTimer = setTimeout(() => {
-                    // Check if pointer is still down and has NOT started dragging
-                    if (isPressing && !isDragging) {
-                         isLongPress = true; // 标记为长按成功
+                    // Timer fired. Check if the pointer is still down (isPressingRelevantTarget)
+                    // AND has not moved significantly (checked in pointermove and prevents isPressingRelevantTarget from being true)
+                    // The pointermove logic will handle clearing the timer and setting isPressingRelevantTarget = false if moved.
+                    // So if the timer fires, it implies the pointer was down and didn't move beyond the threshold.
+                    if (isPressingRelevantTarget) { // Check state again when timer fires
                          hideContextMenus(); // Hide any other open menus
 
                          // Set current context based on target and show menu
-                         if (bookmarkTarget) {
-                             currentBookmark = bookmarkTarget.dataset.bookmarkId;
-                             currentGroup = bookmarkTarget.dataset.groupId;
-                             showMenu(contextMenu, e.clientX, e.clientY);
-                         } else if (groupTitleTarget) {
-                              currentGroup = groupTitleTarget.dataset.groupId;
-                              currentBookmark = null;
-                             showMenu(groupContextMenu, e.clientX, e.clientY);
-                         } else if (mainTitleTarget) {
-                              currentGroup = null;
-                              currentBookmark = null;
-                             showMenu(importExportMenu, e.clientX, e.clientY);
+                         // Use the original target stored in the dataset
+                         const target = document.querySelector('[data-initial-press="true"]');
+                         if (target) {
+                             if (target.closest('.bookmark')) {
+                                 const bmTarget = target.closest('.bookmark');
+                                 currentBookmark = bmTarget.dataset.bookmarkId;
+                                 currentGroup = bmTarget.dataset.groupId;
+                                 showMenu(contextMenu, e.clientX, e.clientY);
+                             } else if (target.classList.contains('group-title')) {
+                                 currentGroup = target.dataset.groupId;
+                                 currentBookmark = null;
+                                 showMenu(groupContextMenu, e.clientX, e.clientY);
+                             } else if (target === titleElement) {
+                                 currentGroup = null;
+                                 currentBookmark = null;
+                                 showMenu(importExportMenu, e.clientX, e.clientY);
+                             }
                          }
-                         // Prevent potential click event after long press for mouse
-                          if (e.pointerType === 'mouse') {
-                              e.target.addEventListener('click', preventNextClick, { once: true });
-                          }
                     }
-                     // 如果定时器触发时检测到拖动，isDragging 会是 true，此处的 if 条件不满足，菜单不会显示。
+                     // Clear the initial press marker after timer attempt
+                    if (e.target.dataset.initialPress) {
+                        delete e.target.dataset.initialPress;
+                    }
+
                 }, LONG_PRESS_DURATION);
+
+                // On touch devices, prevent default touch behavior (like scrolling) immediately *if* it's a relevant target.
+                // This helps ensure a stationary press is possible. However, be careful not to break scrolling on other elements.
+                // A more robust approach is to handle pointermove distance check first.
+                // Let's rely on the pointermove cancelling the press state and timer if significant movement occurs.
             }
         } else {
-             // If pressed outside any interactive element, hide menus/modals
+             // If pressed outside any interactive element, hide menus/modals/alerts
              hideContextMenus();
-              // Also close modal if open and clicking outside
               if (modalOverlay.style.display === 'flex' && !e.target.closest('#modal')) {
                    modalOverlay.style.display = 'none';
-                   // Reset modal state on closing
                    modalState = { mode: '', data: null };
                    faviconCycleUrls = [];
                    faviconPresetIndex = -1;
               }
-               // Also close custom alerts/confirms if clicking outside
                if (customAlert.style.display === 'flex' && !e.target.closest('.alert-content')) {
                    customAlert.style.display = 'none';
-                    clearInterval(loadingAnimationInterval); // Stop any running animation if alert is closed manually
-                    clearTimeout(alertTimeout); // Clear timeout if alert is closed manually
+                    clearInterval(loadingAnimationInterval);
+                    clearTimeout(alertTimeout);
                }
                if (customConfirm.style.display === 'flex' && !e.target.closest('.confirm-content')) {
                     customConfirm.style.display = 'none';
@@ -1011,113 +1026,94 @@
         }
     });
 
-    // Helper to prevent the next click event
-     function preventNextClick(e) {
-         e.preventDefault();
-         e.stopPropagation();
-     }
-
-
     // Global Pointer Move handler
     document.addEventListener('pointermove', (e) => {
-        // If pointer is down on a potential menu target AND hasn't already been cancelled by drag
-        if (isPressing && !isDragging) {
+        // If pointer was initially down on a relevant target
+        if (isPressingRelevantTarget) {
             const dx = Math.abs(e.clientX - initialPressPos.x);
             const dy = Math.abs(e.clientY - initialPressPos.y);
 
-            // If moved more than threshold, it's a drag
+            // If moved more than threshold
             if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
                 clearTimeout(pressTimer); // Cancel long press timer
-                isPressing = false; // 取消 'press' 状态，阻止长按菜单弹出
-                isDragging = true; // 标记为正在拖动
-                hideContextMenus(); // 隐藏可能已经弹出的菜单（预防性）
-                 // Allow default browser behavior for dragging (e.g. scrolling)
+                isPressingRelevantTarget = false; // Cancel 'press' state (it's a drag/move now)
+                 // Remove the initial press marker from the element
+                const initialTarget = document.querySelector('[data-initial-press="true"]');
+                 if (initialTarget) {
+                     delete initialTarget.dataset.initialPress;
+                 }
+                // Allow default browser behavior for dragging/scrolling
             }
         }
-         // If isDragging is already true, continue allowing default move behavior.
     });
 
     // Global Pointer Up handler
     document.addEventListener('pointerup', (e) => {
         clearTimeout(pressTimer); // Always clear timer on pointer up
 
-        // Capture states *before* resetting them
-        const wasPressingBeforeUp = isPressing; // 在抬起前，指针是否按在相关目标上且未被标记为拖动取消？
-        const hadLongPressBeforeUp = isLongPress; // 在抬起前，长按定时器是否已成功触发？
-        const wasDraggingBeforeUp = isDragging; // 在抬起前，是否发生过拖动？
+        // Check if the element that initiated the press still has the marker
+        const initialTarget = document.querySelector('[data-initial-press="true"]');
+        const releasedOnInitialTarget = initialTarget && (e.target === initialTarget || initialTarget.contains(e.target));
 
-        // Reset states
-        isPressing = false; // 指针已抬起
-        isLongPress = false; // 重置长按状态
-        isDragging = false; // 重置拖动状态
-        initialPressTarget = null;
+         // Remove the initial press marker regardless
+         if (initialTarget) {
+             delete initialTarget.dataset.initialPress;
+         }
 
-        // **兜底逻辑：如果不是我们预期的长按（hadLongPressBeforeUp 为假），但菜单却开着，就隐藏它。**
-        // 这个检查在处理任何其他逻辑之前进行。
-        if (!hadLongPressBeforeUp && (contextMenu.style.display === 'block' || groupContextMenu.style.display === 'block' || importExportMenu.style.display === 'block')) {
-             hideContextMenus();
-        }
+        // Determine if it was a short press click on a bookmark
+        // This happens if pointer was down on a bookmark, lifted up on the same/inside element,
+        // AND the long press timer did NOT fire (because pointermove cancelled isPressingRelevantTarget, or it was lifted before LONG_PRESS_DURATION).
+        // We can infer short press if isPressingRelevantTarget is false at this point (cancelled by move or lift), AND releasedOnInitialTarget is true, AND it's a left click/touch.
+        // However, relying solely on isPressingRelevantTarget state at pointerup is tricky.
+        // A simpler approach for short clicks on bookmarks: let the browser handle the default click on the <a> tag *unless* our long press menu logic took over.
 
-        // 如果是拖动行为（wasDraggingBeforeUp 为真），或者长按定时器已成功触发（hadLongPressBeforeUp 为真），或者检测到右键，则不执行后续的短按逻辑。
-        // 注意：这里的顺序确保了即使长按定时器和拖动检测都发生了（尽管我们的逻辑设计上避免了这种情况），或者只有拖动，都不会触发短按。
-        if (wasDraggingBeforeUp || hadLongPressBeforeUp || e.button === 2) {
-             return; // 退出函数，不执行短按逻辑
-        }
+        // If a menu is currently displayed, clicking anywhere (including the element that triggered the menu) should hide it.
+        // However, the menu button clicks should be handled by their specific event listeners.
+        // The click event on the document is a good place to hide menus IF the click was NOT on a menu or modal.
+        // This is already handled in the global 'click' listener.
 
-        // 如果上述情况都不是，并且指针最初按下的是相关目标（wasPressingBeforeUp 为真），且是左键/点触（e.button === 0），则作为短按处理。
-        // 这通常意味着用户快速地按下并抬起了手指，没有触发拖动阈值，也没有达到长按时长。
-        if (wasPressingBeforeUp && e.button === 0) {
-            const bookmarkTarget = e.target.closest('.bookmark');
-             // 如果释放的目标与初始按下目标相同或在其内部，且是书签元素
-            if (bookmarkTarget && initialPressTarget && (initialPressTarget.contains(e.target)) ) {
-                 // 这是对书签元素的短按点击
-                 const link = bookmarkTarget.querySelector('a');
-                 // 手动触发链接点击，但要确保没有任何菜单是打开状态（安全检查）
-                 if (link && contextMenu.style.display !== 'block' && groupContextMenu.style.display !== 'block' && importExportMenu.style.display !== 'block') {
-                    // 检查是否直接点击了链接本身，如果是，让其自身的监听器处理
-                    if (e.target.tagName === 'A') {
-                        // 让浏览器处理 <a> 的默认点击行为
-                    } else {
-                       // 点击了书签 div，手动打开链接
-                       window.open(link.href, link.target || '_self');
-                       e.preventDefault(); // 阻止 div 点击的任何其他默认行为
-                       e.stopPropagation(); // 阻止事件冒泡
-                    }
-                 }
-            }
-             // 对分组标题或主标题的短按目前没有特殊行为，此处不做处理。
-        }
+        // The primary goal here in pointerup is to clean up and ensure no stray timers are left.
+        // The long press menu display is handled by the timer's callback in pointerdown.
+        // Short clicks on bookmark links will be handled by the <a> tag's default behavior + its own click listener for menu check.
 
-        // 如果指针最初按下的是相关目标但释放时不在其内部（wasPressingBeforeUp 为真但 initialPressTarget.contains(e.target) 为假），这通常意味着用户进行了拖动，但抬起手指的位置在目标外部。wasDraggingBeforeUp 检查已经处理了这种情况，导致函数提前返回，不会走到这里的短按逻辑。
+        // Reset states after processing
+        isPressingRelevantTarget = false; // Pointer is up
+        // Initial position is naturally reset by the next pointerdown
     });
 
 
-    // Close context menus/modal when clicking outside
+    // Global Click handler for hiding menus/modals when clicking outside
     document.addEventListener('click', (e) => {
-        // Check if click target is outside any open context menu or modal
+        // Check if click target is outside any open context menu or modal/alert
         const clickedOutsideMenus = !e.target.closest('.context-menu, .group-context-menu, .import-export-menu');
         const clickedOutsideModal = !e.target.closest('#modal');
         const clickedOutsideAlertConfirm = !e.target.closest('.alert-content');
+        const clickedMenuButton = e.target.closest('#contextMenu button, #groupContextMenu button, #importExportMenu button');
 
-
-        if (clickedOutsideMenus && (contextMenu.style.display === 'block' || groupContextMenu.style.display === 'block' || importExportMenu.style.display === 'block')) {
-            hideContextMenus();
+        // If clicked outside menus AND the click wasn't on a menu button itself
+        if (clickedOutsideMenus && !clickedMenuButton) {
+             // Hide menus if any are visible
+            if (contextMenu.style.display === 'block' || groupContextMenu.style.display === 'block' || importExportMenu.style.display === 'block') {
+                hideContextMenus();
+                 // If a menu was just hidden by this click, prevent the event from doing anything else potentially unwanted (like opening a link)
+                 // This might interfere with expected short click behavior if the click was *on* a bookmark but meant to open it.
+                 // Let's refine: only prevent default if a menu was actively hidden BY this click.
+                 // This is tricky. A simpler approach is to let the bookmark's <a> click handler decide if a menu is open.
+            }
         }
 
+        // Hide modal/alerts if clicking outside them
         if (clickedOutsideModal && modalOverlay.style.display === 'flex') {
              modalOverlay.style.display = 'none';
-              // Reset modal state on closing
               modalState = { mode: '', data: null };
               faviconCycleUrls = [];
               faviconPresetIndex = -1;
         }
-
          if (clickedOutsideAlertConfirm && (customAlert.style.display === 'flex' || customConfirm.style.display === 'flex')) {
              customAlert.style.display = 'none';
-             clearInterval(loadingAnimationInterval); // Stop any running animation if alert is closed manually
-             clearTimeout(alertTimeout); // Clear timeout if alert is closed manually
+             clearInterval(loadingAnimationInterval);
+             clearTimeout(alertTimeout);
          }
-
     });
 
     // Prevent default browser context menu on elements where we handle it manually
@@ -1128,12 +1124,17 @@
 
         if (bookmarkTarget || groupTitleTarget || mainTitleTarget) {
             e.preventDefault(); // Prevent default browser context menu
-             // The custom menu is shown by the pointerdown button=2 logic (虽然在移动端通常不适用)
+             // The custom menu is intended to be shown by the long press timer in pointerdown for touch,
+             // or potentially by button=2 in pointerdown for mouse right-click (though long press is preferred).
+             // We don't explicitly trigger showMenu here for contextmenu, relying on pointerdown handling.
         }
      });
 
 
     // --- Modal and Menu Button Click Handlers ---
+    // These handlers should just trigger the modal/action and hide menus.
+    // Their click events should ideally not propagate to the document's click handler that hides menus.
+    // We added e.stopPropagation() to these handlers.
 
     changeFaviconBtn.addEventListener('click', async (e) => { // Made async
       e.stopPropagation(); // Stop propagation to prevent modal overlay click
@@ -1366,8 +1367,8 @@
       e.stopPropagation(); // Prevent click from closing menu immediately
       hideContextMenus();
 
-       // The currentGroup should be the group where the context menu was opened (from a bookmark).
-       // If opened from title, currentGroup will be null. If so, add to the first group.
+       // The currentGroup should be the group where the context menu was opened (from a bookmark or group title).
+       // If opened from main title, currentGroup will be null. If so, add to the first group.
        if (!currentGroup && groups.length > 0) {
             currentGroup = groups[0].id;
        } else if (!currentGroup && groups.length === 0) {
@@ -1679,14 +1680,16 @@
           // Now find the element and run the favicon check for this specific bookmark
            const bookmarkElement = document.querySelector(`.bookmark[data-bookmark-id="${targetBookmark.id}"]`);
            if (bookmarkElement) {
-               showCustomAlert('正在查找并修复缩略图...'); // Keep visible during process
+               showLoadingAlert('正在查找并修复缩略图'); // Show loading alert
                await findAndApplyWorkingFavicon(targetBookmark, bookmarkElement);
+                clearInterval(loadingAnimationInterval); // Stop animation
                saveData(); // Save again after finding favicon
                // No need to re-render, the element is updated directly
                showCustomAlert('缩略图查找完成！', null, 3000); // Auto-dismiss after fix
            } else {
                // Should not happen if render completed
                console.error("Bookmark element not found after render for favicon check.");
+               clearInterval(loadingAnimationInterval); // Stop animation
                 showCustomAlert('保存成功，但无法立即检查缩略图。请刷新页面。'); // Keep this requiring OK
            }
 
@@ -1705,7 +1708,7 @@
         isAcceleratorAvailable = await checkAcceleratorAvailability();
         console.log(`Accelerator availability: ${isAcceleratorAvailable}`);
         clearInterval(loadingAnimationInterval); // Stop animation
-        showCustomAlert('加速服务检查完成。正在加载数据...'); // Show next message, still no button, waits for loadData
+        showLoadingAlert('正在加载数据'); // Show next loading message
 
         await loadData(); // Load data and find/apply favicons before initial render
         // render is called inside loadData after favicon processing
