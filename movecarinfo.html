@@ -41,12 +41,22 @@
     }
     .btn {
       margin: 20px auto;
-      padding: 15px 50px; /* 增大按钮大小 */
-      font-size: 28px; /* 增大字体 */
+      padding: 15px 50px;
+      font-size: 28px;
     }
     .car-image {
       max-width: 50%;
       height: auto;
+    }
+    #infoBox {
+      margin-top: 30px;
+      padding: 15px;
+      background: #f1f3f4;
+      border-radius: 12px;
+      color: #333;
+      font-size: 16px;
+      text-align: left;
+      display: block;
     }
   </style>
 </head>
@@ -70,11 +80,11 @@
     </div>
     <br>
     <br>
-    <!-- 新增提示和确认按钮 -->
+    <div id="infoBox"></div>
     <div id="noticeContainer">
-      <p style="color: #888; font-size: 18px;">点击“确认”后可以“一键呼叫”车主，但同时您的操作将被记录</p>
-<p style="color: #888; font-size: 18px;"> 为了保障您与车主双方信息的安全，请确认仅用于必要的挪车联系。  </p>
-<p style="color: #888; font-size: 18px;">感谢您的理解并对影响您的出行表示万分歉意！</p>
+      <p style="color: #888; font-size: 18px;">点击“确认”后可以“一键呼叫”车主</p>
+      <p style="color: #888; font-size: 18px;">为保障您与车主双方信息的安全，请确认仅用于必要的挪车联系。</p>
+      <p style="color: #888; font-size: 18px;">感谢您的理解并对影响您的出行表示万分歉意！</p>
       <button type="button" class="btn btn-warning" id="confirmBtn">确认</button>
     </div>
     <div id="cardContainer" style="display:none;"></div>
@@ -113,10 +123,21 @@
       window.location.href = 'tel:' + phoneNumber;
     }
 
-    // 确认后才展开呼叫页面
+    // 页面加载时就展示操作者信息
+    function showUserInfo() {
+      const infoBox = document.getElementById('infoBox');
+      const now = new Date();
+      let infoHtml = `<b>您的相关信息（仅本页面展示）：</b><br>`;
+      infoHtml += `访问时间：${now.toLocaleString()}<br>`;
+      infoHtml += `浏览器：${navigator.userAgent}<br>`;
+      infoHtml += `操作系统/平台：${navigator.platform}<br>`;
+      infoBox.innerHTML = infoHtml;
+      infoBox.style.display = 'block';
+    }
+
+    showUserInfo();
+
     document.getElementById('confirmBtn').onclick = function() {
-      // 这里可以添加日志上报代码，如fetch到你的后端
-      // fetch('https://你的服务器/api/log', { ... })
       document.getElementById('noticeContainer').style.display = 'none';
       cardContainer.style.display = 'block';
     };
