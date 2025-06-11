@@ -70,7 +70,14 @@
     </div>
     <br>
     <br>
-    <div id="cardContainer"></div>
+    <!-- 新增提示和确认按钮 -->
+    <div id="noticeContainer">
+      <p style="color: #888; font-size: 18px;">点击“确认”后可以“一键呼叫”车主，但同时您的操作将被记录</p>
+<p style="color: #888; font-size: 18px;"> 为了保障您与车主双方信息的安全，请确认仅用于必要的挪车联系。  </p>
+<p style="color: #888; font-size: 18px;">感谢您的理解并对影响您的出行表示万分歉意！</p>
+      <button type="button" class="btn btn-warning" id="confirmBtn">确认</button>
+    </div>
+    <div id="cardContainer" style="display:none;"></div>
   </div>
 
   <script>
@@ -98,13 +105,21 @@
         </div>
       </div>
     `;
- 
+
     const cardContainer = document.getElementById('cardContainer');
     cardContainer.innerHTML = cardContent;
 
     function callNumber(phoneNumber) {
       window.location.href = 'tel:' + phoneNumber;
     }
+
+    // 确认后才展开呼叫页面
+    document.getElementById('confirmBtn').onclick = function() {
+      // 这里可以添加日志上报代码，如fetch到你的后端
+      // fetch('https://你的服务器/api/log', { ... })
+      document.getElementById('noticeContainer').style.display = 'none';
+      cardContainer.style.display = 'block';
+    };
   </script>
 </body>
 </html>
