@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>快点挪车-信息</title>
+  <link href="https://js.653827.xyz/https%3A%2F%2Fbaoge6789.github.io%2Fewm%2Fbootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f8f9fa;
+      margin: 0;
+    }
+    .container {
+      max-width: 600px;
+      width: 98%;
+      padding: 20px;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.1);
+      border-radius: 36px;
+      background-color: #fff;
+      text-align: center;
+      border: 5px solid green;
+    }
+    .car {
+      color: #fff;
+      background-color: #4b5cc4;
+      border-radius: 6px;
+      border: 1px solid #fff;
+      padding: 15px 0;
+      box-shadow: 0 0 2px 4px #4b5cc4;
+      font-size: 40px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+    }
+    .card {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .btn {
+      margin: 20px auto;
+      padding: 15px 50px;
+      font-size: 28px;
+    }
+    .car-image {
+      max-width: 50%;
+      height: auto;
+    }
+    #infoBox {
+      margin-top: 30px;
+      padding: 15px;
+      background: #f1f3f4;
+      border-radius: 12px;
+      color: #333;
+      font-size: 16px;
+      text-align: left;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title">
+          <img src="https://s3.bmp.ovh/imgs/2025/05/19/20a051d833493283.png" alt="临时停车，请多关照" style="max-width: 100%; height: auto;" />
+        </h3>
+      </div>
+    </div>
+    <br>
+    <br>
+    <br>
+    <div class="car">
+      <span class="car-province">京</span>
+      <span class="car-letter">A</span>
+      <span class="car-dot">•</span>
+      <span class="car-number">12345</span>
+    </div>
+    <br>
+    <br>
+    <div id="infoBox"></div>
+    <div id="noticeContainer">
+      <p style="color: #888; font-size: 18px;">点击“确认”后可以“一键呼叫”车主，但同时您的操作将被记录并在本页面展示。</p>
+      <p style="color: #888; font-size: 18px;">为保障您与车主双方信息的安全，请确认仅用于必要的挪车联系。</p>
+      <p style="color: #888; font-size: 18px;">感谢您的理解并对影响您的出行表示万分歉意！</p>
+      <button type="button" class="btn btn-warning" id="confirmBtn">确认</button>
+    </div>
+    <div id="cardContainer" style="display:none;"></div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const plateNumber = urlParams.get('plateNumber');
+    const phoneNumber = urlParams.get('phoneNumber');
+
+    const carProvince = document.querySelector('.car-province');
+    const carLetter = document.querySelector('.car-letter');
+    const carNumber = document.querySelector('.car-number');
+
+    if (plateNumber) {
+      carProvince.textContent = plateNumber.charAt(0);
+      carLetter.textContent = plateNumber.charAt(1);
+      carNumber.textContent = plateNumber.slice(2);
+    }
+
+    const cardContent = `
+      <div class="card">
+        <div class="card-body">
+          <h3 class="card-title">
+            <img class="car-image" src="https://s3.bmp.ovh/imgs/2025/05/19/2b2951f5b5db4f99.png" alt="联系车主" />
+          </h3>
+          <button type="button" class="btn btn-primary" onclick="callNumber('${phoneNumber}')">一键呼叫</button>
+        </div>
+      </div>
+    `;
+
+    const cardContainer = document.getElementById('cardContainer');
+    cardContainer.innerHTML = cardContent;
+
+    function callNumber(phoneNumber) {
+      window.location.href = 'tel:' + phoneNumber;
+    }
+
+    // 页面加载时就展示操作者信息
+    function showUserInfo() {
+      const infoBox = document.getElementById('infoBox');
+      const now = new Date();
+      let infoHtml = `<b>您的相关信息（仅本页面展示）：</b><br>`;
+      infoHtml += `访问时间：${now.toLocaleString()}<br>`;
+      infoHtml += `浏览器：${navigator.userAgent}<br>`;
+      infoHtml += `操作系统/平台：${navigator.platform}<br>`;
+      infoBox.innerHTML = infoHtml;
+      infoBox.style.display = 'block';
+    }
+
+    showUserInfo();
+
+    document.getElementById('confirmBtn').onclick = function() {
+      document.getElementById('noticeContainer').style.display = 'none';
+      cardContainer.style.display = 'block';
+    };
+  </script>
+</body>
+</html>
