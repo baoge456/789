@@ -44,13 +44,32 @@
       transition: background 0.2s;
     }
     .sidebar li:hover, .sidebar li.active {
-      background: #4a4e69;
+      background: #4a4e69; /* Keep sidebar active/hover color */
     }
-    .main-content {
-      flex: 1;
-      padding: 40px 48px;
-      overflow-y: auto;
+    .right-panel-wrapper {
+      flex: 1; /* Takes remaining horizontal space */
+      display: flex;
+      flex-direction: column; /* Stacks content and footer vertically */
+      padding: 40px 48px; /* Apply padding here for the whole right side */
+      min-height: 700px; /* Ensure a minimum height for the right panel */
     }
+    .content-scrollable { /* Applied to both #mainContent and #adminPanel */
+      flex: 1; /* Takes all available vertical space except for footer */
+      overflow-y: auto; /* Makes the entire content area scrollable */
+      padding-right: 15px; /* Add some padding to avoid scrollbar overlapping content */
+      margin-right: -15px; /* Compensate for the padding-right */
+    }
+    /* Hide the default scrollbar for a cleaner look, but keep functionality */
+    .content-scrollable::-webkit-scrollbar {
+      width: 0px;
+      background: transparent;
+    }
+    .content-scrollable {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+
+
     .search-bar {
       display: flex;
       margin-bottom: 32px;
@@ -76,7 +95,7 @@
       gap: 16px; /* Reduced gap for compactness */
     }
     .site-card {
-      background: #ADD8E6; /* Light grey background */
+      background: #ADD8E6; /* Light blue background */
       border-radius: 12px;
       padding: 12px; /* Reduced padding for compactness */
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
@@ -91,7 +110,7 @@
     .site-card:hover, .site-card:active {
       box-shadow: 0 8px 24px rgba(75, 0, 130, 0.3); /* Deeper purple shadow */
       transform: translateY(-3px);
-      background: #FFDAB9; /* Light purple background on hover/active */
+      background: #FFDAB9; /* Peach-puff background on hover/active */
     }
     .site-card .site-icon {
       width: 36px; /* Slightly smaller icon */
@@ -146,8 +165,8 @@
     .admin-container {
         display: flex;
         flex-direction: column;
-        height: 80vh;
-        overflow-y: auto;
+        height: 100%; /* Fill parent's height */
+        overflow-y: visible; /* Let parent handle overflow */
     }
     .admin-header {
         display: flex;
@@ -250,6 +269,13 @@
         border-radius: 4px;
     }
 
+    /* Footer styling */
+    .footer {
+      margin-top: auto; /* Push footer to the bottom of the flex container */
+      padding-top: 20px;
+      padding-bottom: 10px;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 992px) {
       .card-list {
@@ -259,7 +285,7 @@
         width: 180px;
         padding: 20px 0 0 0;
       }
-      .main-content {
+      .right-panel-wrapper {
         padding: 30px 30px;
       }
     }
@@ -289,8 +315,9 @@
         padding: 8px 15px;
         white-space: nowrap;
       }
-      .main-content {
+      .right-panel-wrapper {
         padding: 20px;
+        min-height: unset; /* Remove min-height on mobile if column layout */
       }
       .card-list {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -329,9 +356,6 @@
       .card-list {
         grid-template-columns: 1fr;
       }
-      .site-card .visit-btn {
-        opacity: 1;
-      }
       .search-bar {
         flex-direction: column;
       }
@@ -352,113 +376,116 @@
       </ul>
     </nav>
 
-    <!-- 右侧内容区 -->
-    <main class="main-content" id="mainContent">
-      <!-- 搜索栏 -->
-      <form class="search-bar" onsubmit="searchSite(event)">
-        <input type="text" id="searchInput" placeholder="输入关键词搜索站点...">
-        <select id="engineSelect">
-          <option value="https://www.baidu.com/s?wd=">百度</option>
-          <option value="https://www.bing.com/search?q=">必应</option>
-          <option value="https://www.google.com/search?q=">谷歌</option>
-          <option value="https://www.sogou.com/web?query=">搜狗</option>
-        </select>
-        <button type="submit" class="btn btn-primary">搜索</button>
-      </form>
+    <!-- 右侧内容区及底部固定信息 -->
+    <div class="right-panel-wrapper">
+      <!-- 右侧主要内容区域 (前台) -->
+      <main class="content-scrollable" id="mainContent">
+        <!-- 搜索栏 -->
+        <form class="search-bar" onsubmit="searchSite(event)">
+          <input type="text" id="searchInput" placeholder="输入关键词搜索站点...">
+          <select id="engineSelect">
+            <option value="https://www.baidu.com/s?wd=">百度</option>
+            <option value="https://www.bing.com/search?q=">必应</option>
+            <option value="https://www.google.com/search?q=">谷歌</option>
+            <option value="https://www.sogou.com/web?query=">搜狗</option>
+          </select>
+          <button type="submit" class="btn btn-primary">搜索</button>
+        </form>
 
-      <!-- 书签列表 -->
-      <div id="bookmarkList" class="card-list">
-        <!-- 书签JS渲染 -->
-      </div>
-
-      <!-- 底部信息 -->
-      <div class="footer text-center text-muted mt-4">
-        <p>&copy; 2025 网址导航. All Rights Reserved.</p>
-        <p>已稳定运行 <span id="runtime">0 天 0 小时 0 分 0 秒</span></p>
-        <button class="btn btn-link mt-2" onclick="location.hash = '#admin'">进入管理后台</button>
-      </div>
-    </main>
-
-    <!-- 管理后台 -->
-    <div class="main-content d-none" id="adminPanel">
-        <div class="admin-container">
-            <div class="admin-header">
-                <h2>书签管理后台</h2>
-                <div class="admin-actions">
-                    <button class="btn btn-success" onclick="exportBookmarks()">导出书签</button>
-                    <input type="file" id="importBookmarksFile" accept=".json" class="d-none" onchange="importBookmarks(event)">
-                    <button class="btn btn-info" onclick="document.getElementById('importBookmarksFile').click()">导入书签</button>
-                    <button class="btn btn-secondary" onclick="location.hash = ''">返回前台</button>
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <h3>添加分组</h3>
-                <form id="addGroupForm" class="row g-3" onsubmit="handleNewGroup(event)">
-                    <div class="col-md-8">
-                        <input type="text" class="form-control" id="newGroupName" placeholder="新分组名称" required>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary w-100">添加分组</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="admin-section">
-                <h3>书签列表管理</h3>
-                <div class="admin-group-list" id="adminGroupList">
-                    <!-- 管理后台分组列表JS渲染 -->
-                </div>
-
-                <form id="bookmarkForm" class="row g-3 mb-4" onsubmit="handleSaveBookmark(event)">
-                    <input type="hidden" id="bookmarkId">
-                    <div class="col-md-6">
-                        <label for="bookmarkName" class="form-label">名称</label>
-                        <input type="text" class="form-control" id="bookmarkName" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="bookmarkUrl" class="form-label">URL</label>
-                        <input type="url" class="form-control" id="bookmarkUrl" onblur="fetchFavicon()" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="bookmarkFavicon" class="form-label">图标URL</label>
-                        <input type="url" class="form-control" id="bookmarkFavicon">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="bookmarkGroup" class="form-label">分组</label>
-                        <select class="form-select" id="bookmarkGroup" required>
-                            <!-- 分组选项JS渲染 -->
-                        </select>
-                    </div>
-                    <div class="col-12">
-                        <label for="bookmarkDesc" class="form-label">描述</label>
-                        <textarea class="form-control" id="bookmarkDesc" rows="2"></textarea>
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">保存书签</button>
-                        <button type="button" class="btn btn-secondary" onclick="resetBookmarkForm()">取消</button>
-                    </div>
-                </form>
-
-                <div class="admin-table-container">
-                    <table class="table table-bordered table-striped admin-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px;">图标</th>
-                                <th style="width: 150px;">名称</th>
-                                <th style="width: 250px;">URL</th>
-                                <th style="width: 200px;">描述</th>
-                                <th style="width: 100px;">分组</th>
-                                <th style="width: 120px;">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminBookmarkTableBody">
-                            <!-- 管理后台书签列表JS渲染 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- 书签列表 -->
+        <div id="bookmarkList" class="card-list">
+          <!-- 书签JS渲染 -->
         </div>
+      </main>
+
+      <!-- 管理后台 -->
+      <div class="content-scrollable d-none" id="adminPanel">
+          <div class="admin-container">
+              <div class="admin-header">
+                  <h2>书签管理后台</h2>
+                  <div class="admin-actions">
+                      <button class="btn btn-success" onclick="exportBookmarks()">导出书签</button>
+                      <input type="file" id="importBookmarksFile" accept=".json" class="d-none" onchange="importBookmarks(event)">
+                      <button class="btn btn-info" onclick="document.getElementById('importBookmarksFile').click()">导入书签</button>
+                      <button class="btn btn-secondary" onclick="location.hash = ''">返回前台</button>
+                  </div>
+              </div>
+
+              <div class="admin-section">
+                  <h3>添加分组</h3>
+                  <form id="addGroupForm" class="row g-3" onsubmit="handleNewGroup(event)">
+                      <div class="col-md-8">
+                          <input type="text" class="form-control" id="newGroupName" placeholder="新分组名称" required>
+                      </div>
+                      <div class="col-md-4">
+                          <button type="submit" class="btn btn-primary w-100">添加分组</button>
+                      </div>
+                  </form>
+              </div>
+
+              <div class="admin-section">
+                  <h3>书签列表管理</h3>
+                  <div class="admin-group-list" id="adminGroupList">
+                      <!-- 管理后台分组列表JS渲染 -->
+                  </div>
+
+                  <form id="bookmarkForm" class="row g-3 mb-4" onsubmit="handleSaveBookmark(event)">
+                      <input type="hidden" id="bookmarkId">
+                      <div class="col-md-6">
+                          <label for="bookmarkName" class="form-label">名称</label>
+                          <input type="text" class="form-control" id="bookmarkName" required>
+                      </div>
+                      <div class="col-md-6">
+                          <label for="bookmarkUrl" class="form-label">URL</label>
+                          <input type="url" class="form-control" id="bookmarkUrl" onblur="fetchFavicon()" required>
+                      </div>
+                      <div class="col-md-6">
+                          <label for="bookmarkFavicon" class="form-label">图标URL</label>
+                          <input type="url" class="form-control" id="bookmarkFavicon">
+                      </div>
+                      <div class="col-md-6">
+                          <label for="bookmarkGroup" class="form-label">分组</label>
+                          <select class="form-select" id="bookmarkGroup" required>
+                              <!-- 分组选项JS渲染 -->
+                          </select>
+                      </div>
+                      <div class="col-12">
+                          <label for="bookmarkDesc" class="form-label">描述</label>
+                          <textarea class="form-control" id="bookmarkDesc" rows="2"></textarea>
+                      </div>
+                      <div class="col-12">
+                          <button type="submit" class="btn btn-primary">保存书签</button>
+                          <button type="button" class="btn btn-secondary" onclick="resetBookmarkForm()">取消</button>
+                      </div>
+                  </form>
+
+                  <div class="admin-table-container">
+                      <table class="table table-bordered table-striped admin-table">
+                          <thead>
+                              <tr>
+                                  <th style="width: 40px;">图标</th>
+                                  <th style="width: 150px;">名称</th>
+                                  <th style="width: 250px;">URL</th>
+                                  <th style="width: 200px;">描述</th>
+                                  <th style="width: 100px;">分组</th>
+                                  <th style="width: 120px;">操作</th>
+                              </tr>
+                          </thead>
+                          <tbody id="adminBookmarkTableBody">
+                              <!-- 管理后台书签列表JS渲染 -->
+                          </tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <!-- 底部信息 - 始终固定在右侧面板底部 -->
+      <div class="footer text-center text-muted mt-4">
+          <p>&copy; 2025 网址导航. All Rights Reserved.</p>
+          <p>已稳定运行 <span id="runtime">0 天 0 小时 0 分 0 秒</span></p>
+          <button class="btn btn-link mt-2" id="toggleAdminButton"></button>
+      </div>
     </div>
   </div>
     <script>
@@ -936,6 +963,7 @@
     function handleHashChange() {
       const mainContent = document.getElementById('mainContent');
       const adminPanel = document.getElementById('adminPanel');
+      const toggleAdminButton = document.getElementById('toggleAdminButton');
 
       if (window.location.hash === '#admin') {
         const password = prompt("请输入管理后台密码:");
@@ -943,6 +971,8 @@
           mainContent.classList.add('d-none');
           adminPanel.classList.remove('d-none');
           renderAdminPanel();
+          toggleAdminButton.textContent = "返回前台";
+          toggleAdminButton.onclick = () => { location.hash = ''; };
         } else {
           alert("密码错误，无法进入管理后台。");
           window.location.hash = ''; // Redirect back to main page
@@ -952,6 +982,8 @@
         adminPanel.classList.add('d-none');
         renderCategories();
         renderBookmarks(currentCategory);
+        toggleAdminButton.textContent = "进入管理后台";
+        toggleAdminButton.onclick = () => { location.hash = '#admin'; };
       }
     }
 
