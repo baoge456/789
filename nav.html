@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>现代化网址导航</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background: #f5f6fa;
+      font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+    }
+    .container-main {
+      max-width: 1200px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      display: flex;
+      min-height: 700px;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 220px;
+      background: #22223b;
+      color: #fff;
+      padding: 32px 0 0 0;
+      min-height: 700px;
+      flex-shrink: 0;
+    }
+    .sidebar h2 {
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      letter-spacing: 2px;
+    }
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    .sidebar li {
+      padding: 12px 32px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .sidebar li:hover, .sidebar li.active {
+      background: #4a4e69;
+    }
+    .main-content {
+      flex: 1;
+      padding: 40px 48px;
+      overflow-y: auto;
+    }
+    .search-bar {
+      display: flex;
+      margin-bottom: 32px;
+      gap: 12px;
+    }
+    .search-bar input {
+      flex: 1;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 10px 16px;
+      font-size: 1rem;
+    }
+    .search-bar select {
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 10px 16px;
+      font-size: 1rem;
+      background: #fff;
+    }
+    .card-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Adjusted for 4+ columns */
+      gap: 16px; /* Reduced gap for compactness */
+    }
+    .site-card {
+      background: #f0f2f5; /* Light grey background */
+      border-radius: 12px;
+      padding: 12px; /* Reduced padding for compactness */
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      transition: all 0.2s ease-in-out;
+      text-decoration: none;
+      color: #22223b;
+      position: relative;
+    }
+    .site-card:hover, .site-card:active {
+      box-shadow: 0 8px 24px rgba(75, 0, 130, 0.3); /* Deeper purple shadow */
+      transform: translateY(-3px);
+      background: #ede1f2; /* Light purple background on hover/active */
+    }
+    .site-card .site-icon {
+      width: 36px; /* Slightly smaller icon */
+      height: 36px;
+      border-radius: 8px;
+      margin-bottom: 8px; /* Reduced margin */
+      background: #fff;
+      object-fit: contain;
+      border: 1px solid #eee;
+      flex-shrink: 0;
+    }
+    .site-card-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      margin-bottom: 8px; /* Reduced margin */
+    }
+    .site-card .title {
+      font-weight: 600;
+      font-size: 1rem; /* Slightly smaller font */
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .site-card .desc {
+      font-size: 0.8rem; /* Slightly smaller font */
+      color: #6c757d;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .site-card .visit-btn {
+      align-self: flex-end;
+      padding: 5px 10px; /* Adjusted padding */
+      font-size: 0.8rem; /* Adjusted font size */
+      border-radius: 6px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      opacity: 1;
+      transition: background 0.2s;
+    }
+    .site-card .visit-btn:hover {
+      background: #0056b3;
+    }
+
+    /* Admin Panel Styles */
+    .admin-container {
+        display: flex;
+        flex-direction: column;
+        height: 80vh;
+        overflow-y: auto;
+    }
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        flex-wrap: wrap;
+    }
+    .admin-header h2 {
+        margin-bottom: 0;
+    }
+    .admin-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .admin-section {
+        margin-bottom: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .admin-section h3 {
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px dashed #eee;
+    }
+    .admin-group-list {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+    .admin-group-item {
+        white-space: nowrap;
+        padding: 8px 15px;
+        border: 1px solid #007bff;
+        border-radius: 20px;
+        cursor: pointer;
+        background-color: #e9f5ff;
+        color: #007bff;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-shrink: 0;
+    }
+    .admin-group-item.active {
+        background-color: #007bff;
+        color: #fff;
+    }
+    .admin-group-item button {
+        background: none;
+        border: none;
+        color: inherit;
+        font-size: 0.9em;
+        margin-left: 5px;
+        cursor: pointer;
+    }
+    .admin-group-item button:hover {
+        opacity: 0.8;
+    }
+
+    .admin-table-container {
+        flex: 1;
+        overflow-x: auto;
+    }
+    .admin-table {
+        min-width: 800px;
+    }
+
+    .admin-table th, .admin-table td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+    }
+
+    .admin-table img {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        object-fit: contain;
+    }
+
+    /* Form styling */
+    .form-group label {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    .form-group input, .form-group textarea, .form-group select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+      .card-list {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      }
+      .sidebar {
+        width: 180px;
+        padding: 20px 0 0 0;
+      }
+      .main-content {
+        padding: 30px 30px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container-main {
+        flex-direction: column;
+        margin: 20px auto;
+        border-radius: 8px;
+      }
+      .sidebar {
+        width: 100%;
+        min-height: unset;
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 15px 0;
+        border-radius: 8px 8px 0 0;
+      }
+      .sidebar h2 { display: none; }
+      .sidebar ul {
+        display: flex;
+        margin: 0;
+        padding: 0 10px;
+      }
+      .sidebar li {
+        padding: 8px 15px;
+        white-space: nowrap;
+      }
+      .main-content {
+        padding: 20px;
+      }
+      .card-list {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+      }
+      .site-card .site-icon {
+        width: 32px;
+        height: 32px;
+      }
+      .site-card .title {
+        font-size: 0.95rem;
+      }
+      .site-card .desc {
+        font-size: 0.75rem;
+      }
+      .site-card .visit-btn {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+      }
+      .admin-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+      }
+      .admin-actions {
+          width: 100%;
+          justify-content: center;
+      }
+      .admin-group-list {
+          flex-wrap: wrap;
+          justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card-list {
+        grid-template-columns: 1fr;
+      }
+      .site-card .visit-btn {
+        opacity: 1;
+      }
+      .search-bar {
+        flex-direction: column;
+      }
+      .admin-section {
+          padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container-main" id="app">
+    <!-- 左侧分类导航 -->
+    <nav class="sidebar" id="sidebar">
+      <h2>分类导航</h2>
+      <ul id="categoryList">
+        <!-- 分类JS渲染 -->
+      </ul>
+    </nav>
+
+    <!-- 右侧内容区 -->
+    <main class="main-content" id="mainContent">
+      <!-- 搜索栏 -->
+      <form class="search-bar" onsubmit="searchSite(event)">
+        <input type="text" id="searchInput" placeholder="输入关键词搜索站点...">
+        <select id="engineSelect">
+          <option value="https://www.baidu.com/s?wd=">百度</option>
+          <option value="https://www.bing.com/search?q=">必应</option>
+          <option value="https://www.google.com/search?q=">谷歌</option>
+          <option value="https://www.sogou.com/web?query=">搜狗</option>
+        </select>
+        <button type="submit" class="btn btn-primary">搜索</button>
+      </form>
+
+      <!-- 书签列表 -->
+      <div id="bookmarkList" class="card-list">
+        <!-- 书签JS渲染 -->
+      </div>
+
+      <!-- 底部信息 -->
+      <div class="footer text-center text-muted mt-4">
+        <p>&copy; 2023 现代化网址导航. All Rights Reserved.</p>
+        <p>已稳定运行 <span id="runtime">0 天 0 小时 0 分 0 秒</span></p>
+        <button class="btn btn-link mt-2" onclick="location.hash = '#admin'">进入管理后台</button>
+      </div>
+    </main>
+
+    <!-- 管理后台 -->
+    <div class="main-content d-none" id="adminPanel">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h2>书签管理后台</h2>
+                <div class="admin-actions">
+                    <button class="btn btn-success" onclick="exportBookmarks()">导出书签</button>
+                    <input type="file" id="importBookmarksFile" accept=".json" class="d-none" onchange="importBookmarks(event)">
+                    <button class="btn btn-info" onclick="document.getElementById('importBookmarksFile').click()">导入书签</button>
+                    <button class="btn btn-secondary" onclick="location.hash = ''">返回前台</button>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>添加分组</h3>
+                <form id="addGroupForm" class="row g-3" onsubmit="handleNewGroup(event)">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="newGroupName" placeholder="新分组名称" required>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">添加分组</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="admin-section">
+                <h3>书签列表管理</h3>
+                <div class="admin-group-list" id="adminGroupList">
+                    <!-- 管理后台分组列表JS渲染 -->
+                </div>
+
+                <form id="bookmarkForm" class="row g-3 mb-4" onsubmit="handleSaveBookmark(event)">
+                    <input type="hidden" id="bookmarkId">
+                    <div class="col-md-6">
+                        <label for="bookmarkName" class="form-label">名称</label>
+                        <input type="text" class="form-control" id="bookmarkName" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="bookmarkUrl" class="form-label">URL</label>
+                        <input type="url" class="form-control" id="bookmarkUrl" onblur="fetchFavicon()" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="bookmarkFavicon" class="form-label">图标URL</label>
+                        <input type="url" class="form-control" id="bookmarkFavicon">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="bookmarkGroup" class="form-label">分组</label>
+                        <select class="form-select" id="bookmarkGroup" required>
+                            <!-- 分组选项JS渲染 -->
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label for="bookmarkDesc" class="form-label">描述</label>
+                        <textarea class="form-control" id="bookmarkDesc" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">保存书签</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetBookmarkForm()">取消</button>
+                    </div>
+                </form>
+
+                <div class="admin-table-container">
+                    <table class="table table-bordered table-striped admin-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">图标</th>
+                                <th style="width: 150px;">名称</th>
+                                <th style="width: 250px;">URL</th>
+                                <th style="width: 200px;">描述</th>
+                                <th style="width: 100px;">分组</th>
+                                <th style="width: 120px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminBookmarkTableBody">
+                            <!-- 管理后台书签列表JS渲染 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+    <script>
+    // 定义书签数据结构
+    let bookmarksData = {
+      "常用推荐": [
+        { id: Date.now() + 1, name: "宝哥导航站", url: "https://dhz.baoge.wang/", favicon: "https://favicon.im/https://dhz.baoge.wang/", desc: "一个简洁实用的个人导航站" },
+        { id: Date.now() + 2, name: "泰安本地宝", url: "https://m.ta.bendibao.com/", favicon: "https://favicon.im/https://m.ta.bendibao.com/", desc: "泰安本地生活服务平台" },
+      ],
+      "新闻资讯": [
+        { id: Date.now() + 3, name: "全网热点", url: "https://hot.ailake.cn/hot/1", favicon: "https://favicon.im/https://hot.ailake.cn/hot/1", desc: "聚合全网热门新闻资讯" },
+        { id: Date.now() + 4, name: "今日热榜", url: "https://tophub.today/", favicon: "https://favicon.im/https://tophub.today/", desc: "实时更新的各类热点榜单" },
+      ],
+      "搜索引擎": [
+        { id: Date.now() + 5, name: "百度", url: "https://www.baidu.com/", favicon: "https://www.baidu.com/favicon.ico", desc: "全球最大的中文搜索引擎" },
+        { id: Date.now() + 6, name: "谷歌", url: "https://www.google.com/", favicon: "https://www.google.com/favicon.ico", desc: "全球领先的搜索引擎" },
+      ]
+    };
+
+    let currentCategory = localStorage.getItem('currentCategory') || "常用推荐"; // 从localStorage加载当前分类
+    let adminSelectedGroup = ""; // 管理后台当前选中的分组
+    const ADMIN_PASSWORD = "baoge888"; // 设置管理后台密码，请修改为你的密码
+
+    // --- 数据持久化与初始化 ---
+    function loadBookmarks() {
+      const storedData = localStorage.getItem('bookmarksData');
+      if (storedData) {
+        bookmarksData = JSON.parse(storedData);
+      }
+      // 确保每个书签都有一个唯一的ID
+      for (const group in bookmarksData) {
+        bookmarksData[group].forEach(bookmark => {
+          if (!bookmark.id) {
+            bookmark.id = Date.now() + Math.random();
+          }
+        });
+      }
+    }
+
+    function saveBookmarks() {
+      localStorage.setItem('bookmarksData', JSON.stringify(bookmarksData));
+    }
+
+    function saveCurrentCategory() {
+      localStorage.setItem('currentCategory', currentCategory);
+    }
+
+    // --- 前台渲染函数 ---
+    function renderCategories() {
+      const categoryList = document.getElementById('categoryList');
+      categoryList.innerHTML = '';
+      const categories = Object.keys(bookmarksData);
+
+      // 如果当前分类不存在，则默认选中第一个
+      if (!categories.includes(currentCategory) && categories.length > 0) {
+        currentCategory = categories[0];
+        saveCurrentCategory();
+      } else if (categories.length === 0) {
+        currentCategory = ""; // 如果没有分组，则清空当前分类
+        saveCurrentCategory();
+      }
+
+
+      categories.forEach(category => {
+        const li = document.createElement('li');
+        li.textContent = category;
+        li.dataset.category = category;
+        if (category === currentCategory) {
+          li.classList.add('active');
+        }
+        li.addEventListener('click', () => {
+          currentCategory = category;
+          saveCurrentCategory(); // 保存当前分类
+          renderCategories();
+          renderBookmarks(currentCategory);
+        });
+        categoryList.appendChild(li);
+      });
+    }
+
+    function renderBookmarks(category) {
+      const bookmarkList = document.getElementById('bookmarkList');
+      bookmarkList.innerHTML = '';
+
+      const bookmarks = bookmarksData[category] || [];
+
+      if (bookmarks.length === 0) {
+        bookmarkList.innerHTML = `<p class="text-center text-muted">该分类下暂无书签。</p>`;
+        return;
+      }
+
+      bookmarks.forEach(bookmark => {
+        const card = document.createElement('div'); // Changed to div for better layout control
+        card.classList.add('site-card');
+        card.innerHTML = `
+          <img src="${bookmark.favicon || 'https://www.google.com/s2/favicons?domain=default'}" alt="${bookmark.name}" class="site-icon" onerror="this.onerror=null;this.src='https://www.google.com/s2/favicons?domain=default';">
+          <div class="site-card-content">
+            <div class="title">${bookmark.name}</div>
+            <div class="desc">${bookmark.desc || '暂无描述'}</div>
+          </div>
+          <button class="visit-btn" onclick="window.open('${bookmark.url}', '_blank'); event.stopPropagation();">访问</button>
+        `;
+        bookmarkList.appendChild(card);
+      });
+    }
+
+    function searchSite(event) {
+      event.preventDefault();
+      const searchInput = document.getElementById('searchInput');
+      const engineSelect = document.getElementById('engineSelect');
+      const query = searchInput.value.trim();
+      const engineUrl = engineSelect.value;
+
+      if (query) {
+        window.open(engineUrl + encodeURIComponent(query), '_blank');
+      }
+    }
+
+    // --- 运行时间计算 ---
+    function updateRunTime() {
+      const startTime = new Date('2023-01-01T00:00:00'); // 你可以设置一个实际的开始时间
+      const now = new Date();
+      const diff = now.getTime() - startTime.getTime();
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      document.getElementById('runtime').textContent = `${days} 天 ${hours} 小时 ${minutes} 分 ${seconds} 秒`;
+    }
+
+    // --- 管理后台渲染函数 ---
+    function renderAdminPanel() {
+        const adminGroupList = document.getElementById('adminGroupList');
+        adminGroupList.innerHTML = '';
+        const groups = Object.keys(bookmarksData);
+
+        // 如果管理后台没有选中分组或选中分组被删除，则默认选中第一个
+        if (!adminSelectedGroup || !groups.includes(adminSelectedGroup)) {
+            adminSelectedGroup = groups.length > 0 ? groups[0] : "";
+        }
+
+        groups.forEach(group => {
+            const groupItem = document.createElement('div');
+            groupItem.classList.add('admin-group-item');
+            if (group === adminSelectedGroup) {
+                groupItem.classList.add('active');
+            }
+            groupItem.innerHTML = `
+                <span>${group}</span>
+                <button onclick="editGroup('${group}')">编辑</button>
+                <button onclick="deleteGroup('${group}')">删除</button>
+            `;
+            groupItem.addEventListener('click', (e) => {
+                if (!e.target.closest('button')) { // Only change group if not clicking a button
+                    adminSelectedGroup = group;
+                    renderAdminPanel(); // Re-render to update active state and bookmarks
+                }
+            });
+            adminGroupList.appendChild(groupItem);
+        });
+
+        renderAdminBookmarksTable(adminSelectedGroup);
+        populateGroupSelect();
+        resetBookmarkForm(); // 确保表单在重新渲染时重置
+    }
+
+    function renderAdminBookmarksTable(groupName) {
+        const adminBookmarkTableBody = document.getElementById('adminBookmarkTableBody');
+        adminBookmarkTableBody.innerHTML = '';
+
+        const bookmarks = bookmarksData[groupName] || [];
+
+        if (bookmarks.length === 0) {
+            adminBookmarkTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">该分组下暂无书签。</td></tr>`;
+            return;
+        }
+
+        bookmarks.forEach(bookmark => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><img src="${bookmark.favicon || 'https://www.google.com/s2/favicons?domain=default'}" alt="Icon" onerror="this.onerror=null;this.src='https://www.google.com/s2/favicons?domain=default';"></td>
+                <td>${bookmark.name}</td>
+                <td><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
+                <td>${bookmark.desc || ''}</td>
+                <td>${groupName}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning me-1" onclick="editBookmark('${bookmark.id}', '${groupName}')">编辑</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${bookmark.id}', '${groupName}')">删除</button>
+                </td>
+            `;
+            adminBookmarkTableBody.appendChild(tr);
+        });
+    }
+
+    function populateGroupSelect() {
+        const bookmarkGroupSelect = document.getElementById('bookmarkGroup');
+        bookmarkGroupSelect.innerHTML = '';
+        Object.keys(bookmarksData).forEach(group => {
+            const option = document.createElement('option');
+            option.value = group;
+            option.textContent = group;
+            bookmarkGroupSelect.appendChild(option);
+        });
+    }
+
+    // --- 管理后台操作逻辑 ---
+    function handleNewGroup(event) {
+        event.preventDefault();
+        const newGroupNameInput = document.getElementById('newGroupName');
+        const newGroupName = newGroupNameInput.value.trim();
+
+        if (newGroupName && !bookmarksData[newGroupName]) {
+            bookmarksData[newGroupName] = [];
+            saveBookmarks();
+            newGroupNameInput.value = '';
+            adminSelectedGroup = newGroupName; // 自动选中新添加的分组
+            renderAdminPanel();
+            renderCategories(); // 更新前台分类
+        } else if (bookmarksData[newGroupName]) {
+            alert('分组名称已存在！');
+        }
+    }
+
+    function editGroup(oldGroupName) {
+        const newGroupName = prompt(`请输入新的分组名称（原名称: ${oldGroupName}）:`);
+        if (newGroupName && newGroupName.trim() !== oldGroupName && !bookmarksData[newGroupName.trim()]) {
+            const trimmedNewName = newGroupName.trim();
+            // Update currentCategory if it was the old group
+            if (currentCategory === oldGroupName) {
+                currentCategory = trimmedNewName;
+                saveCurrentCategory();
+            }
+            // Update adminSelectedGroup if it was the old group
+            if (adminSelectedGroup === oldGroupName) {
+                adminSelectedGroup = trimmedNewName;
+            }
+
+            bookmarksData[trimmedNewName] = bookmarksData[oldGroupName];
+            delete bookmarksData[oldGroupName];
+            saveBookmarks();
+            renderAdminPanel();
+            renderCategories(); // 更新前台分类
+            renderBookmarks(currentCategory); // 更新前台书签
+        } else if (newGroupName && newGroupName.trim() === oldGroupName) {
+            // No change, do nothing
+        } else if (newGroupName && bookmarksData[newGroupName.trim()]) {
+            alert('新的分组名称已存在！');
+        }
+    }
+
+    function deleteGroup(groupToDelete) {
+        if (Object.keys(bookmarksData).length === 1) {
+            alert('不能删除最后一个分组！');
+            return;
+        }
+
+        if (confirm(`确定要删除分组 "${groupToDelete}" 吗？该分组下的所有书签将被转移到第一个分组。`)) {
+            const allGroups = Object.keys(bookmarksData);
+            const targetGroup = allGroups.find(g => g !== groupToDelete) || allGroups[0]; // Transfer to first available group
+
+            if (bookmarksData[groupToDelete] && bookmarksData[groupToDelete].length > 0) {
+                if (!bookmarksData[targetGroup]) {
+                    bookmarksData[targetGroup] = [];
+                }
+                bookmarksData[targetGroup] = bookmarksData[targetGroup].concat(bookmarksData[groupToDelete]);
+            }
+            delete bookmarksData[groupToDelete];
+            saveBookmarks();
+
+            // Adjust currentCategory if the deleted group was selected
+            if (currentCategory === groupToDelete) {
+                currentCategory = targetGroup;
+                saveCurrentCategory();
+            }
+            adminSelectedGroup = targetGroup; // Select the group where bookmarks were moved
+
+            renderAdminPanel();
+            renderCategories(); // Update front-end categories
+            renderBookmarks(currentCategory); // Re-render front-end bookmarks
+        }
+    }
+
+    function fetchFavicon() {
+        const bookmarkUrlInput = document.getElementById('bookmarkUrl');
+        const bookmarkFaviconInput = document.getElementById('bookmarkFavicon');
+        const bookmarkDescInput = document.getElementById('bookmarkDesc'); // 获取描述输入框
+        const url = bookmarkUrlInput.value.trim();
+
+        if (url) {
+            // 获取 Favicon
+            const faviconServiceUrl = `https://favicon.im/${url}`;
+            bookmarkFaviconInput.value = faviconServiceUrl;
+
+            // 尝试加载图片，如果失败则回退到默认
+            const img = new Image();
+            img.src = faviconServiceUrl;
+            img.onerror = () => {
+                console.warn(`Failed to load favicon from ${faviconServiceUrl}, falling back to default.`);
+                bookmarkFaviconInput.value = 'https://www.google.com/s2/favicons?domain=default';
+            };
+
+            // **关于自动获取描述的说明：**
+            // 浏览器出于安全考虑（同源策略/CORS），不允许前端 JavaScript 直接访问
+            // 不同域名的网页内容来提取标题或描述。
+            // 因此，这里无法通过纯前端代码自动获取描述信息。
+            // 如果你需要此功能，通常需要一个后端服务来作为代理，或者使用第三方内容提取API。
+            // 目前描述字段仍需手动填写。
+            bookmarkDescInput.value = ''; // 确保描述字段清空，等待手动输入
+        }
+    }
+
+    function handleSaveBookmark(event) {
+        event.preventDefault();
+        const id = document.getElementById('bookmarkId').value;
+        const name = document.getElementById('bookmarkName').value.trim();
+        const url = document.getElementById('bookmarkUrl').value.trim();
+        const favicon = document.getElementById('bookmarkFavicon').value.trim();
+        const group = document.getElementById('bookmarkGroup').value;
+        const desc = document.getElementById('bookmarkDesc').value.trim();
+
+        if (!name || !url || !group) {
+            alert('名称、URL 和分组是必填项！');
+            return;
+        }
+
+        if (id) {
+            // 编辑现有书签
+            let found = false;
+            for (const grp in bookmarksData) {
+                bookmarksData[grp] = bookmarksData[grp].filter(b => {
+                    if (b.id == id) {
+                        if (grp === group) { // Still in the same group
+                            b.name = name;
+                            b.url = url;
+                            b.favicon = favicon;
+                            b.desc = desc;
+                            found = true;
+                        } else { // Moved to a different group, remove from current
+                            found = true;
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+            if (found && !bookmarksData[group].some(b => b.id == id)) { // If bookmark was moved to a new group
+                bookmarksData[group].push({ id: parseFloat(id), name, url, favicon, desc });
+            }
+        } else {
+            // 添加新书签
+            if (!bookmarksData[group]) {
+                bookmarksData[group] = [];
+            }
+            bookmarksData[group].push({ id: Date.now() + Math.random(), name, url, favicon, desc });
+        }
+        saveBookmarks();
+        resetBookmarkForm();
+        renderAdminPanel();
+        renderBookmarks(currentCategory); // Update front-end
+        renderCategories(); // Update front-end categories if new group added
+    }
+
+    function editBookmark(id, groupName) {
+        let bookmarkToEdit = null;
+        if (bookmarksData[groupName]) {
+            bookmarkToEdit = bookmarksData[groupName].find(b => b.id == id);
+        }
+
+        if (bookmarkToEdit) {
+            document.getElementById('bookmarkId').value = bookmarkToEdit.id;
+            document.getElementById('bookmarkName').value = bookmarkToEdit.name;
+            document.getElementById('bookmarkUrl').value = bookmarkToEdit.url;
+            document.getElementById('bookmarkFavicon').value = bookmarkToEdit.favicon;
+            document.getElementById('bookmarkGroup').value = groupName;
+            document.getElementById('bookmarkDesc').value = bookmarkToEdit.desc;
+        }
+    }
+
+    function deleteBookmark(id, groupName) {
+        if (confirm('确定要删除此书签吗？')) {
+            if (bookmarksData[groupName]) {
+                bookmarksData[groupName] = bookmarksData[groupName].filter(bookmark => bookmark.id != id);
+                saveBookmarks();
+                renderAdminPanel();
+                renderBookmarks(currentCategory); // Update front-end
+            }
+        }
+    }
+
+    function resetBookmarkForm() {
+        document.getElementById('bookmarkForm').reset();
+        document.getElementById('bookmarkId').value = '';
+        // Reset to current admin group, or the first available group if adminSelectedGroup is empty
+        document.getElementById('bookmarkGroup').value = adminSelectedGroup || Object.keys(bookmarksData)[0];
+    }
+
+    function exportBookmarks() {
+        const dataStr = JSON.stringify(bookmarksData, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "bookmarks.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function importBookmarks(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (confirm('导入书签将覆盖现有数据，确定要继续吗？')) {
+                    // Validate imported data format
+                    let isValid = true;
+                    if (typeof importedData !== 'object' || importedData === null) {
+                        isValid = false;
+                    } else {
+                        for (const groupName in importedData) {
+                            if (!Array.isArray(importedData[groupName])) {
+                                isValid = false;
+                                break;
+                            }
+                            for (const bookmark of importedData[groupName]) {
+                                if (typeof bookmark !== 'object' || !bookmark.name || !bookmark.url) {
+                                    isValid = false;
+                                    break;
+                                }
+                                if (!bookmark.id) bookmark.id = Date.now() + Math.random(); // Assign ID if missing
+                            }
+                            if (!isValid) break;
+                        }
+                    }
+
+                    if (isValid) {
+                        bookmarksData = importedData;
+                        saveBookmarks();
+                        // Reset currentCategory and adminSelectedGroup based on new data
+                        const firstGroup = Object.keys(bookmarksData)[0];
+                        if (firstGroup) {
+                            currentCategory = firstGroup;
+                            adminSelectedGroup = firstGroup;
+                        } else {
+                            currentCategory = "";
+                            adminSelectedGroup = "";
+                        }
+                        saveCurrentCategory(); // 保存导入后的当前分类
+                        alert('书签导入成功！');
+                        // Re-render everything
+                        handleHashChange(); // This will re-render based on current hash
+                    } else {
+                        alert('导入的JSON格式不正确，请确保是分组嵌套的书签数据。');
+                    }
+                }
+            } catch (e) {
+                alert('导入文件失败，请确保是有效的JSON文件。');
+                console.error('导入错误:', e);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // Clear file input
+    }
+
+
+    // --- 路由处理 ---
+    function handleHashChange() {
+      const mainContent = document.getElementById('mainContent');
+      const adminPanel = document.getElementById('adminPanel');
+
+      if (window.location.hash === '#admin') {
+        const password = prompt("请输入管理后台密码:");
+        if (password === ADMIN_PASSWORD) {
+          mainContent.classList.add('d-none');
+          adminPanel.classList.remove('d-none');
+          renderAdminPanel();
+        } else {
+          alert("密码错误，无法进入管理后台。");
+          window.location.hash = ''; // Redirect back to main page
+        }
+      } else {
+        mainContent.classList.remove('d-none');
+        adminPanel.classList.add('d-none');
+        renderCategories();
+        renderBookmarks(currentCategory);
+      }
+    }
+
+    // --- 初始化 ---
+    document.addEventListener('DOMContentLoaded', () => {
+      loadBookmarks();
+      // Ensure currentCategory is valid after loading bookmarks and save it
+      const categories = Object.keys(bookmarksData);
+      if (!categories.includes(currentCategory) && categories.length > 0) {
+        currentCategory = categories[0];
+        saveCurrentCategory();
+      } else if (categories.length === 0) {
+        currentCategory = "";
+        saveCurrentCategory();
+      }
+
+      updateRunTime();
+      setInterval(updateRunTime, 1000); // 每秒更新运行时间
+      handleHashChange(); // 根据初始URL哈希渲染页面
+      window.addEventListener('hashchange', handleHashChange); // 监听哈希变化
+    });
+  </script>
+</body>
+</html>
