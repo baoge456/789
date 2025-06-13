@@ -27,7 +27,7 @@
       display: flex;
       /* min-height: 700px; */ /* 移除以允许动态高度 */
       /* overflow: hidden; */ /* 移除以允许内容延伸 */
-      position: relative; /* 用于底部定位如果主内容需要滚动 */
+      /* position: relative; */ /* 移除此行 */
       flex-grow: 1; /* 允许container-main增长并占据可用空间 */
     }
     .sidebar {
@@ -65,8 +65,8 @@
       flex: 1;
       padding: 40px 48px;
       overflow-y: auto;
-      position: relative; /* Added for footer positioning */
-      padding-bottom: 120px; /* Adjusted to give more space for the footer */
+      /* position: relative; */ /* 移除此行 */
+      /* padding-bottom: 120px; */ /* 移除此行 */
     }
     .search-bar {
       display: flex;
@@ -221,6 +221,24 @@
         margin-left: 5px;
         cursor: pointer;
     }
+    .admin-group-item button.btn-add-group {
+        background-color: #28a745; /* Green */
+        color: white;
+        border-radius: 5px;
+        padding: 3px 8px;
+    }
+    .admin-group-item button.btn-edit-group {
+        background-color: #ffc107; /* Yellow */
+        color: black;
+        border-radius: 5px;
+        padding: 3px 8px;
+    }
+    .admin-group-item button.btn-delete-group {
+        background-color: #dc3545; /* Red */
+        color: white;
+        border-radius: 5px;
+        padding: 3px 8px;
+    }
     .admin-group-item button:hover {
         opacity: 0.8;
     }
@@ -263,7 +281,7 @@
       }
       .main-content {
         padding: 30px 30px;
-        padding-bottom: 110px; /* Adjusted for smaller screens */
+        /* padding-bottom: 110px; */ /* 移除此行 */
       }
     }
 
@@ -294,7 +312,7 @@
       }
       .main-content {
         padding: 20px;
-        padding-bottom: 100px; /* Adjusted for even smaller screens */
+        /* padding-bottom: 100px; */ /* 移除此行 */
       }
       .site-card {
         height: 45px; /* Further reduce height for small screens */
@@ -361,14 +379,8 @@
       <div id="bookmarkList" class="card-list">
         <!-- 书签JS渲染 -->
       </div>
-
-      <!-- 底部信息 -->
-      <div class="footer text-center text-muted mt-4">
-        <p>&copy; 2025网址导航. All Rights Reserved.</p>
-        <p>已稳定运行 <span id="runtime">0 天 0 小时 0 分 0 秒</span></p>
-        <button class="btn btn-link mt-2" onclick="location.hash = '#admin'">进入管理后台</button>
-      </main>
-    </div>
+    </main>
+  </div>
 
     <!-- 管理后台 -->
     <div class="main-content d-none" id="adminPanel">
@@ -376,34 +388,23 @@
             <div class="admin-header">
                 <h2>书签管理后台</h2>
                 <div class="admin-actions">
-                    <button class="btn btn-success" onclick="exportBookmarks(true)">导出全部书签</button>
-                    <button class="btn btn-primary" onclick="exportBookmarks(false)">导出当前分组书签</button>
+                    <button class="btn btn-primary" onclick="handleExport()">导出书签</button>
                     <input type="file" id="importBookmarksFile" accept=".json" class="d-none" onchange="importBookmarks(event)">
                     <button class="btn btn-info" onclick="document.getElementById('importBookmarksFile').click()">导入书签</button>
+                    <button class="btn btn-danger" onclick="clearAllBookmarks()">清空所有书签</button> <!-- 新增的清空按钮 -->
                     <button class="btn btn-success" onclick="location.hash = ''">返回前台</button>
                 </div>
             </div>
 
             <div class="admin-section">
-                <h3>添加分组</h3>
-                <form id="addGroupForm" class="row g-3" onsubmit="handleNewGroup(event)">
-                    <div class="col-md-8">
-                        <input type="text" class="form-control" id="newGroupName" placeholder="新分组名称" required>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary w-100">添加分组</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="admin-section">
-                <h3>书签列表管理</h3>
+                <h3>分组管理</h3>
                 <div class="admin-group-list" id="adminGroupList">
                     <!-- 管理后台分组列表JS渲染 -->
                 </div>
 
-                <form id="bookmarkForm" class="row g-3 mb-4" onsubmit="handleSaveBookmark(event)">
+                <form id="bookmarkForm" class="row g-3 mb-4 d-none" onsubmit="handleSaveBookmark(event)">
                     <input type="hidden" id="bookmarkId">
+                    <input type="hidden" id="bookmarkAfterId"> <!-- New hidden field for "add after" -->
                     <div class="col-md-6">
                         <label for="bookmarkName" class="form-label">名称</label>
                         <input type="text" class="form-control" id="bookmarkName" required>
@@ -436,7 +437,7 @@
                                 <th style="width: 150px;">名称</th>
                                 <th style="width: 250px;">URL</th>
                                 <th style="width: 100px;">分组</th>
-                                <th style="width: 120px;">操作</th>
+                                <th style="width: 180px;">操作</th> <!-- Increased width for new "Add" button -->
                             </tr>
                         </thead>
                         <tbody id="adminBookmarkTableBody">
@@ -447,31 +448,36 @@
             </div>
         </div>
     </div>
+
+  <!-- 底部信息 (移动到这里) -->
+  <div class="footer text-center text-muted mt-4" id="frontendFooter">
+    <button class="btn btn-link mt-2" onclick="location.hash = '#admin'">进入管理后台</button>
+    <p>&copy; 2025网址导航. All Rights Reserved.</p>
+    <p>已稳定运行 <span id="runtime">0 天 0 小时 0 分 0 秒</span></p>
   </div>
     <script>
-    // 定义书签数据结构
-    let bookmarksData = {
-      "常用推荐": [
+    // 定义书签数据结构，现在是数组
+    const DEFAULT_BOOKMARKS_DATA = [ // 定义一个常量来保存默认数据
+      { name: "常用推荐", bookmarks: [
         { id: Date.now() + 1, name: "宝哥导航站", url: "https://dhz.baoge.wang/", favicon: "https://favicon.im/https://dhz.baoge.wang/" },
         { id: Date.now() + 2, name: "泰安本地宝", url: "https://m.ta.bendibao.com/", favicon: "https://favicon.im/https://m.ta.bendibao.com/" },
-      ],
-      "新闻资讯": [
+      ]},
+      { name: "新闻资讯", bookmarks: [
         { id: Date.now() + 3, name: "全网热点", url: "https://hot.ailake.cn/hot/1", favicon: "https://favicon.im/https://hot.ailake.cn/hot/1" },
         { id: Date.now() + 4, name: "今日热榜", url: "https://tophub.today/", favicon: "https://tophub.today/favicon.ico" },
-      ],
-      "搜索引擎": [
+      ]},
+      { name: "搜索引擎", bookmarks: [
         { id: Date.now() + 5, name: "百度", url: "https://www.baidu.com/", favicon: "https://www.baidu.com/favicon.ico" },
         { id: Date.now() + 6, name: "谷歌", url: "https://www.google.com/", favicon: "https://www.google.com/favicon.ico" },
-      ]
-    };
+      ]}
+    ];
 
-    let currentCategory = localStorage.getItem('currentCategory') || "常用推荐"; // 从localStorage加载当前分类
-    let adminSelectedGroup = ""; // 管理后台当前选中的分组
+    let bookmarksData = JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS_DATA)); // 初始化时深拷贝默认数据
+
+    let currentCategory = localStorage.getItem('currentCategory') || (bookmarksData.length > 0 ? bookmarksData[0].name : "");
+    let adminSelectedGroup = currentCategory; // 管理后台当前选中的分组
     const ADMIN_PASSWORD = "baoge888"; // 设置管理后台密码，请修改为你的密码
-    // Define a color palette for groups with associated text colors for contrast
-    // `main`: 主背景色
-    // `hover`: 鼠标悬停时的背景色
-    // `text`: 对应背景色下，确保书签名称清晰可见的字体颜色
+
     const groupColors = [
         { main: '#FF6347', hover: '#4B0082', text: '#fff' }, // Tomato Red - White text
         { main: '#3CB371', hover: '#4B0082', text: '#fff' }, // MediumSeaGreen - White text
@@ -492,21 +498,39 @@
     function loadBookmarks() {
       const storedData = localStorage.getItem('bookmarksData');
       if (storedData) {
-        bookmarksData = JSON.parse(storedData);
+        try {
+          const parsedData = JSON.parse(storedData);
+          // 检查是否是旧的对象格式，如果是，则转换为新数组格式
+          if (!Array.isArray(parsedData) && typeof parsedData === 'object' && parsedData !== null) {
+            bookmarksData = Object.keys(parsedData).map(groupName => ({
+              name: groupName,
+              bookmarks: parsedData[groupName] || []
+            }));
+            console.log("Converted old bookmarks data format to new array format.");
+          } else if (Array.isArray(parsedData)) {
+            bookmarksData = parsedData;
+          }
+        } catch (e) {
+          console.error("Error parsing stored bookmarks data, using default. ", e);
+          bookmarksData = JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS_DATA)); // 解析失败时使用默认数据
+        }
+      } else {
+          bookmarksData = JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS_DATA)); // 如果没有存储数据，则使用默认数据
       }
+
+
       // 确保每个书签都有一个唯一的ID，并移除旧的desc字段
-      for (const group in bookmarksData) {
-        bookmarksData[group] = bookmarksData[group].map(bookmark => {
+      bookmarksData.forEach(group => {
+        group.bookmarks = group.bookmarks.map(bookmark => {
           if (!bookmark.id) {
             bookmark.id = Date.now() + Math.random();
           }
-          // Remove description if it exists
           if (bookmark.hasOwnProperty('desc')) {
             delete bookmark.desc;
           }
           return bookmark;
         });
-      }
+      });
     }
 
     function saveBookmarks() {
@@ -521,17 +545,15 @@
     function renderCategories() {
       const categoryList = document.getElementById('categoryList');
       categoryList.innerHTML = '';
-      const categories = Object.keys(bookmarksData);
+      const categories = bookmarksData.map(group => group.name);
 
-      // 如果当前分类不存在，则默认选中第一个
       if (!categories.includes(currentCategory) && categories.length > 0) {
         currentCategory = categories[0];
         saveCurrentCategory();
       } else if (categories.length === 0) {
-        currentCategory = ""; // 如果没有分组，则清空当前分类
+        currentCategory = "";
         saveCurrentCategory();
       }
-
 
       categories.forEach(category => {
         const li = document.createElement('li');
@@ -542,7 +564,7 @@
         }
         li.addEventListener('click', () => {
           currentCategory = category;
-          saveCurrentCategory(); // 保存当前分类
+          saveCurrentCategory();
           renderCategories();
           renderBookmarks(currentCategory);
         });
@@ -550,37 +572,35 @@
       });
     }
 
-    function renderBookmarks(category) {
+    function renderBookmarks(categoryName) {
       const bookmarkList = document.getElementById('bookmarkList');
       bookmarkList.innerHTML = '';
 
-      const bookmarks = bookmarksData[category] || [];
+      const group = bookmarksData.find(g => g.name === categoryName);
+      const bookmarks = group ? group.bookmarks : [];
 
       if (bookmarks.length === 0) {
         bookmarkList.innerHTML = `<p class="text-center text-muted">该分类下暂无书签。</p>`;
         return;
       }
 
-      // Assign a unique color to the category if not already assigned
-      if (!colorMap[category]) {
+      if (!colorMap[categoryName]) {
         const existingColors = Object.values(colorMap).map(c => c.main);
         let availableColor = groupColors.find(color => !existingColors.includes(color.main));
         if (!availableColor) {
-            // If all predefined colors are used, cycle through them
             availableColor = groupColors[Object.keys(colorMap).length % groupColors.length];
         }
-        colorMap[category] = availableColor;
+        colorMap[categoryName] = availableColor;
       }
-      const categoryColor = colorMap[category];
-
+      const categoryColor = colorMap[categoryName];
 
       bookmarks.forEach(bookmark => {
         const card = document.createElement('div');
         card.classList.add('site-card');
-        card.setAttribute('data-group', category); // Add data attribute for group
+        card.setAttribute('data-group', categoryName);
         card.style.setProperty('--group-bg-color', categoryColor.main);
         card.style.setProperty('--group-hover-color', categoryColor.hover);
-        card.style.setProperty('--group-text-color', categoryColor.text); // Set text color CSS variable
+        card.style.setProperty('--group-text-color', categoryColor.text);
         card.innerHTML = `
           <div class="site-card-content">
             <div class="title">${bookmark.name}</div>
@@ -623,27 +643,29 @@
     function renderAdminPanel() {
         const adminGroupList = document.getElementById('adminGroupList');
         adminGroupList.innerHTML = '';
-        const groups = Object.keys(bookmarksData);
 
-        // 如果管理后台没有选中分组或选中分组被删除，则默认选中第一个
-        if (!adminSelectedGroup || !groups.includes(adminSelectedGroup)) {
-            adminSelectedGroup = groups.length > 0 ? groups[0] : "";
+        // 确保adminSelectedGroup始终有效
+        if (!bookmarksData.some(g => g.name === adminSelectedGroup) && bookmarksData.length > 0) {
+            adminSelectedGroup = bookmarksData[0].name;
+        } else if (bookmarksData.length === 0) {
+            adminSelectedGroup = "";
         }
 
-        groups.forEach(group => {
+        bookmarksData.forEach(group => {
             const groupItem = document.createElement('div');
             groupItem.classList.add('admin-group-item');
-            if (group === adminSelectedGroup) {
+            if (group.name === adminSelectedGroup) {
                 groupItem.classList.add('active');
             }
             groupItem.innerHTML = `
-                <span>${group}</span>
-                <button onclick="editGroup('${group}')">编辑</button>
-                <button onclick="deleteGroup('${group}')">删除</button>
+                <span>${group.name}</span>
+                <button class="btn-add-group" onclick="addNewGroupAfter('${group.name}')">添加</button>
+                <button class="btn-edit-group" onclick="editGroup('${group.name}')">编辑</button>
+                <button class="btn-delete-group" onclick="deleteGroup('${group.name}')">删除</button>
             `;
             groupItem.addEventListener('click', (e) => {
                 if (!e.target.closest('button')) { // Only change group if not clicking a button
-                    adminSelectedGroup = group;
+                    adminSelectedGroup = group.name;
                     renderAdminPanel(); // Re-render to update active state and bookmarks
                 }
             });
@@ -652,14 +674,15 @@
 
         renderAdminBookmarksTable(adminSelectedGroup);
         populateGroupSelect();
-        resetBookmarkForm(); // 确保表单在重新渲染时重置
+        resetBookmarkForm();
     }
 
     function renderAdminBookmarksTable(groupName) {
         const adminBookmarkTableBody = document.getElementById('adminBookmarkTableBody');
         adminBookmarkTableBody.innerHTML = '';
 
-        const bookmarks = bookmarksData[groupName] || [];
+        const group = bookmarksData.find(g => g.name === groupName);
+        const bookmarks = group ? group.bookmarks : [];
 
         if (bookmarks.length === 0) {
             adminBookmarkTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">该分组下暂无书签。</td></tr>`;
@@ -673,6 +696,7 @@
                 <td><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
                 <td>${groupName}</td>
                 <td>
+                    <button class="btn btn-sm btn-info me-1" onclick="prepareAddBookmarkAfter('${bookmark.id}', '${groupName}')">添加</button>
                     <button class="btn btn-sm btn-warning me-1" onclick="editBookmark('${bookmark.id}', '${groupName}')">编辑</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteBookmark('${bookmark.id}', '${groupName}')">删除</button>
                 </td>
@@ -684,85 +708,104 @@
     function populateGroupSelect() {
         const bookmarkGroupSelect = document.getElementById('bookmarkGroup');
         bookmarkGroupSelect.innerHTML = '';
-        Object.keys(bookmarksData).forEach(group => {
+        bookmarksData.forEach(group => {
             const option = document.createElement('option');
-            option.value = group;
-            option.textContent = group;
+            option.value = group.name;
+            option.textContent = group.name;
             bookmarkGroupSelect.appendChild(option);
         });
     }
 
     // --- 管理后台操作逻辑 ---
-    function handleNewGroup(event) {
-        event.preventDefault();
-        const newGroupNameInput = document.getElementById('newGroupName');
-        const newGroupName = newGroupNameInput.value.trim();
+    function addNewGroupAfter(targetGroupName) {
+        const newGroupName = prompt(`请输入新的分组名称（将在 "${targetGroupName}" 后面添加）:`);
+        if (newGroupName && newGroupName.trim() !== "") {
+            const trimmedNewName = newGroupName.trim();
+            if (bookmarksData.some(g => g.name === trimmedNewName)) {
+                alert('分组名称已存在！');
+                return;
+            }
 
-        if (newGroupName && !bookmarksData[newGroupName]) {
-            bookmarksData[newGroupName] = [];
+            // 为新分组添加一个默认书签
+            const defaultBookmark = {
+                id: Date.now() + Math.random(),
+                name: "默认书签",
+                url: "https://www.example.com",
+                favicon: "https://www.google.com/s2/favicons?domain=example.com"
+            };
+
+            const targetIndex = bookmarksData.findIndex(group => group.name === targetGroupName);
+            if (targetIndex !== -1) {
+                bookmarksData.splice(targetIndex + 1, 0, { name: trimmedNewName, bookmarks: [defaultBookmark] }); // 包含默认书签
+            } else {
+                // Should not happen if targetGroupName exists, but as fallback, add to end
+                bookmarksData.push({ name: trimmedNewName, bookmarks: [defaultBookmark] }); // 包含默认书签
+            }
+
             saveBookmarks();
-            newGroupNameInput.value = '';
-            adminSelectedGroup = newGroupName; // 自动选中新添加的分组
+            adminSelectedGroup = trimmedNewName; // 自动选中新添加的分组
             renderAdminPanel();
             renderCategories(); // 更新前台分类
-        } else if (bookmarksData[newGroupName]) {
-            alert('分组名称已存在！');
+        } else if (newGroupName !== null && newGroupName.trim() === "") {
+            alert('分组名称不能为空！');
         }
     }
 
     function editGroup(oldGroupName) {
         const newGroupName = prompt(`请输入新的分组名称（原名称: ${oldGroupName}）:`);
-        if (newGroupName && newGroupName.trim() !== oldGroupName && !bookmarksData[newGroupName.trim()]) {
+        if (newGroupName && newGroupName.trim() !== oldGroupName) {
             const trimmedNewName = newGroupName.trim();
-            // Update currentCategory if it was the old group
+            if (bookmarksData.some(g => g.name === trimmedNewName)) {
+                alert('新的分组名称已存在！');
+                return;
+            }
+
+            const groupToEdit = bookmarksData.find(g => g.name === oldGroupName);
+            if (groupToEdit) {
+                groupToEdit.name = trimmedNewName;
+            }
+
             if (currentCategory === oldGroupName) {
                 currentCategory = trimmedNewName;
                 saveCurrentCategory();
             }
-            // Update adminSelectedGroup if it was the old group
             if (adminSelectedGroup === oldGroupName) {
                 adminSelectedGroup = trimmedNewName;
             }
 
-            bookmarksData[trimmedNewName] = bookmarksData[oldGroupName];
-            delete bookmarksData[oldGroupName];
             saveBookmarks();
             renderAdminPanel();
-            renderCategories(); // 更新前台分类
-            renderBookmarks(currentCategory); // 更新前台书签
+            renderCategories();
+            renderBookmarks(currentCategory);
         } else if (newGroupName && newGroupName.trim() === oldGroupName) {
             // No change, do nothing
-        } else if (newGroupName && bookmarksData[newGroupName.trim()]) {
-            alert('新的分组名称已存在！');
         }
     }
 
     function deleteGroup(groupToDelete) {
-        if (Object.keys(bookmarksData).length === 1) {
+        if (bookmarksData.length === 1) {
             alert('不能删除最后一个分组！');
             return;
         }
 
         if (confirm(`确定要删除分组 "${groupToDelete}" 吗？该分组下的所有书签将被一同删除。`)) {
-            delete bookmarksData[groupToDelete]; // Directly delete the group and its bookmarks
+            bookmarksData = bookmarksData.filter(group => group.name !== groupToDelete);
             saveBookmarks();
 
-            const remainingGroups = Object.keys(bookmarksData);
             let newSelectedGroup = "";
-            if (remainingGroups.length > 0) {
-                newSelectedGroup = remainingGroups[0];
+            if (bookmarksData.length > 0) {
+                newSelectedGroup = bookmarksData[0].name;
             }
 
-            // Adjust currentCategory if the deleted group was selected
-            if (currentCategory === groupToDelete || !remainingGroups.includes(currentCategory)) {
+            if (currentCategory === groupToDelete || !bookmarksData.some(g => g.name === currentCategory)) {
                 currentCategory = newSelectedGroup;
                 saveCurrentCategory();
             }
-            adminSelectedGroup = newSelectedGroup; // Select the new first group in admin panel
+            adminSelectedGroup = newSelectedGroup;
 
             renderAdminPanel();
-            renderCategories(); // Update front-end categories
-            renderBookmarks(currentCategory); // Re-render front-end bookmarks
+            renderCategories();
+            renderBookmarks(currentCategory);
         }
     }
 
@@ -784,60 +827,93 @@
         }
     }
 
+    function prepareAddBookmarkAfter(id, groupName) {
+        resetBookmarkForm();
+        document.getElementById('bookmarkForm').classList.remove('d-none');
+        document.getElementById('bookmarkAfterId').value = id;
+        document.getElementById('bookmarkGroup').value = groupName;
+    }
+
     function handleSaveBookmark(event) {
         event.preventDefault();
         const id = document.getElementById('bookmarkId').value;
+        const bookmarkAfterId = document.getElementById('bookmarkAfterId').value;
         const name = document.getElementById('bookmarkName').value.trim();
         const url = document.getElementById('bookmarkUrl').value.trim();
         const favicon = document.getElementById('bookmarkFavicon').value.trim();
-        const group = document.getElementById('bookmarkGroup').value;
+        const groupName = document.getElementById('bookmarkGroup').value;
 
-        if (!name || !url || !group) {
+        if (!name || !url || !groupName) {
             alert('名称、URL 和分组是必填项！');
             return;
         }
 
+        const targetGroup = bookmarksData.find(g => g.name === groupName);
+        if (!targetGroup) {
+            alert('选择的分组不存在！');
+            return;
+        }
+
+        const newBookmark = { id: Date.now() + Math.random(), name, url, favicon };
+
         if (id) {
             // 编辑现有书签
-            let found = false;
-            for (const grp in bookmarksData) {
-                bookmarksData[grp] = bookmarksData[grp].filter(b => {
+            let originalGroupName = null;
+            // 找到并移除旧书签
+            bookmarksData.forEach(group => {
+                const initialLength = group.bookmarks.length;
+                group.bookmarks = group.bookmarks.filter(b => {
                     if (b.id == id) {
-                        if (grp === group) { // Still in the same group
-                            b.name = name;
-                            b.url = url;
-                            b.favicon = favicon;
-                            found = true;
-                        } else { // Moved to a different group, remove from current
-                            found = true;
-                            return false;
-                        }
+                        originalGroupName = group.name;
+                        return false; // Remove this bookmark
                     }
                     return true;
                 });
+            });
+
+            // 添加或更新书签到目标分组
+            if (targetGroup.name === originalGroupName) {
+                // 如果分组不变，直接更新
+                const existingBookmarkIndex = targetGroup.bookmarks.findIndex(b => b.id == id);
+                if(existingBookmarkIndex !== -1) {
+                    targetGroup.bookmarks[existingBookmarkIndex] = { id: parseFloat(id), name, url, favicon };
+                } else {
+                    targetGroup.bookmarks.push({ id: parseFloat(id), name, url, favicon }); // Re-add if it was filtered out mistakenly
+                }
+            } else {
+                // 如果分组改变，添加到新分组
+                targetGroup.bookmarks.push({ id: parseFloat(id), name, url, favicon });
             }
-            if (found && !bookmarksData[group].some(b => b.id == id)) { // If bookmark was moved to a new group
-                bookmarksData[group].push({ id: parseFloat(id), name, url, favicon });
+        } else if (bookmarkAfterId) {
+            // 在特定书签后添加新书签
+            const targetIndex = targetGroup.bookmarks.findIndex(b => b.id == bookmarkAfterId);
+            if (targetIndex !== -1) {
+                targetGroup.bookmarks.splice(targetIndex + 1, 0, newBookmark);
+            } else {
+                targetGroup.bookmarks.push(newBookmark);
             }
         } else {
-            // 添加新书签
-            if (!bookmarksData[group]) {
-                bookmarksData[group] = [];
-            }
-            bookmarksData[group].push({ id: Date.now() + Math.random(), name, url, favicon });
+            // 添加新书签到分组末尾
+            targetGroup.bookmarks.push(newBookmark);
         }
+
         saveBookmarks();
         resetBookmarkForm();
         renderAdminPanel();
-        renderBookmarks(currentCategory); // Update front-end
-        renderCategories(); // Update front-end categories if new group added
+        renderBookmarks(currentCategory);
+        renderCategories();
     }
 
+
     function editBookmark(id, groupName) {
-        let bookmarkToEdit = null;
-        if (bookmarksData[groupName]) {
-            bookmarkToEdit = bookmarksData[groupName].find(b => b.id == id);
-        }
+        resetBookmarkForm();
+        document.getElementById('bookmarkForm').classList.remove('d-none');
+        document.getElementById('bookmarkAfterId').value = '';
+
+        const group = bookmarksData.find(g => g.name === groupName);
+        if (!group) return;
+
+        const bookmarkToEdit = group.bookmarks.find(b => b.id == id);
 
         if (bookmarkToEdit) {
             document.getElementById('bookmarkId').value = bookmarkToEdit.id;
@@ -850,11 +926,12 @@
 
     function deleteBookmark(id, groupName) {
         if (confirm('确定要删除此书签吗？')) {
-            if (bookmarksData[groupName]) {
-                bookmarksData[groupName] = bookmarksData[groupName].filter(bookmark => bookmark.id != id);
+            const group = bookmarksData.find(g => g.name === groupName);
+            if (group) {
+                group.bookmarks = group.bookmarks.filter(bookmark => bookmark.id != id);
                 saveBookmarks();
                 renderAdminPanel();
-                renderBookmarks(currentCategory); // Update front-end
+                renderBookmarks(currentCategory);
             }
         }
     }
@@ -862,8 +939,21 @@
     function resetBookmarkForm() {
         document.getElementById('bookmarkForm').reset();
         document.getElementById('bookmarkId').value = '';
-        // Reset to current admin group, or the first available group if adminSelectedGroup is empty
-        document.getElementById('bookmarkGroup').value = adminSelectedGroup || Object.keys(bookmarksData)[0];
+        document.getElementById('bookmarkAfterId').value = '';
+        document.getElementById('bookmarkGroup').value = adminSelectedGroup || (bookmarksData.length > 0 ? bookmarksData[0].name : "");
+        document.getElementById('bookmarkForm').classList.add('d-none');
+    }
+
+    function handleExport() {
+        const exportOption = prompt("选择导出方式：\n1. 导出全部书签 (输入 '1')\n2. 导出当前分组书签 (输入 '2')", "1");
+
+        if (exportOption === '1') {
+            exportBookmarks(true);
+        } else if (exportOption === '2') {
+            exportBookmarks(false);
+        } else {
+            alert('导出操作已取消。');
+        }
     }
 
     function exportBookmarks(exportAll) {
@@ -871,8 +961,8 @@
         let filename;
 
         if (exportAll) {
-            Object.keys(bookmarksData).forEach(groupName => {
-                dataToExport[groupName] = bookmarksData[groupName].map(bookmark => ({
+            bookmarksData.forEach(group => {
+                dataToExport[group.name] = group.bookmarks.map(bookmark => ({
                     name: bookmark.name,
                     url: bookmark.url,
                     favicon: bookmark.favicon
@@ -880,8 +970,9 @@
             });
             filename = "all_bookmarks.json";
         } else {
-            if (adminSelectedGroup && bookmarksData[adminSelectedGroup]) {
-                dataToExport[adminSelectedGroup] = bookmarksData[adminSelectedGroup].map(bookmark => ({
+            const selectedGroupData = bookmarksData.find(group => group.name === adminSelectedGroup);
+            if (selectedGroupData) {
+                dataToExport[selectedGroupData.name] = selectedGroupData.bookmarks.map(bookmark => ({
                     name: bookmark.name,
                     url: bookmark.url,
                     favicon: bookmark.favicon
@@ -915,81 +1006,85 @@
         reader.onload = (e) => {
             try {
                 const importedRawData = JSON.parse(e.target.result);
-                let processedImportedData = {}; // Normalized structure for imported data
+                let processedImportedData = []; // 新格式：数组
 
-                // Heuristic to handle various JSON structures
                 if (Array.isArray(importedRawData)) {
-                    // Assume it's an array of bookmarks, put into "未分组" or a default group
-                    processedImportedData["未分组"] = importedRawData.map(item => ({
-                        id: item.id || Date.now() + Math.random(),
-                        name: item.name || item.title || '未知名称',
-                        url: item.url || item.link || 'http://unknown.com',
-                        favicon: item.favicon || `https://favicon.im/${item.url || item.link || 'http://unknown.com'}`,
-                    })).filter(b => b.name && b.url); // Filter out invalid entries
+                    // 如果导入的数据已经是数组格式（每个元素是 {name: "group", bookmarks: [...]}）
+                    processedImportedData = importedRawData.map(group => ({
+                        name: group.name,
+                        bookmarks: (group.bookmarks || []).map(item => ({
+                            id: item.id || Date.now() + Math.random(),
+                            name: item.name || item.title || '未知名称',
+                            url: item.url || item.link || 'http://unknown.com',
+                            favicon: item.favicon || `https://favicon.im/${item.url || item.link || 'http://unknown.com'}`,
+                        })).filter(b => b.name && b.url)
+                    }));
                 } else if (typeof importedRawData === 'object' && importedRawData !== null) {
-                    // Assume it's an object where keys are group names
+                    // 如果导入的数据是旧的对象格式（键是分组名，值是书签数组）
                     for (const groupName in importedRawData) {
                         if (Array.isArray(importedRawData[groupName])) {
-                            processedImportedData[groupName] = importedRawData[groupName].map(item => ({
-                                id: item.id || Date.now() + Math.random(),
-                                name: item.name || item.title || '未知名称',
-                                url: item.url || item.link || 'http://unknown.com',
-                                favicon: item.favicon || `https://favicon.im/${item.url || item.link || 'http://unknown.com'}`,
-                            })).filter(b => b.name && b.url); // Filter out invalid entries
+                            processedImportedData.push({
+                                name: groupName,
+                                bookmarks: importedRawData[groupName].map(item => ({
+                                    id: item.id || Date.now() + Math.random(),
+                                    name: item.name || item.title || '未知名称',
+                                    url: item.url || item.link || 'http://unknown.com',
+                                    favicon: item.favicon || `https://favicon.im/${item.url || item.link || 'http://unknown.com'}`,
+                                })).filter(b => b.name && b.url)
+                            });
                         } else if (typeof importedRawData[groupName] === 'object' && importedRawData[groupName] !== null) {
-                            // Handle cases where group is an object but contains bookmark info directly (e.g., single bookmark file)
-                            // This heuristic assumes if a group-level object has 'name' and 'url', it's a single bookmark.
+                            // 处理单个书签作为根对象导入的情况
                             if (importedRawData[groupName].name && importedRawData[groupName].url) {
-                                processedImportedData[groupName] = [{
-                                    id: importedRawData[groupName].id || Date.now() + Math.random(),
-                                    name: importedRawData[groupName].name || importedRawData[groupName].title || '未知名称',
-                                    url: importedRawData[groupName].url || importedRawData[groupName].link || 'http://unknown.com',
-                                    favicon: importedRawData[groupName].favicon || `https://favicon.im/${importedRawData[groupName].url || importedRawData[groupName].link || 'http://unknown.com'}`,
-                                }];
+                                processedImportedData.push({
+                                    name: groupName, // 使用键作为分组名
+                                    bookmarks: [{
+                                        id: importedRawData[groupName].id || Date.now() + Math.random(),
+                                        name: importedRawData[groupName].name || importedRawData[groupName].title || '未知名称',
+                                        url: importedRawData[groupName].url || importedRawData[groupName].link || 'http://unknown.com',
+                                        favicon: importedRawData[groupName].favicon || `https://favicon.im/${importedRawData[groupName].url || importedRawData[groupName].link || 'http://unknown.com'}`,
+                                    }]
+                                });
                             }
                         }
                     }
                 }
 
-                if (Object.keys(processedImportedData).length === 0) {
+                if (processedImportedData.length === 0) {
                     alert('导入的JSON文件不包含有效的书签数据。请确保文件包含书签名称和URL。');
                     return;
                 }
 
-                const importOption = prompt("选择导入方式：\n1. 覆盖现有书签 (输入 '1')\n2. 添加到现有书签 (输入 '2')\n\n注意：导入将尝试从文件名或URL中获取favicon，如果缺失将使用默认。", "2");
+                const importOption = prompt("选择导入方式：\n1. 覆盖现有书签 (输入 '1')\n2. 添加到现有书签 (输入 '2')", "2");
 
                 if (importOption === '1') {
                     if (confirm('确定要覆盖现有书签数据吗？此操作不可撤销！')) {
                         bookmarksData = processedImportedData;
                         saveBookmarks();
-                        colorMap = {}; // Clear colorMap and re-initialize it for new groups
-                        const firstGroup = Object.keys(bookmarksData)[0];
-                        if (firstGroup) {
-                            currentCategory = firstGroup;
-                            adminSelectedGroup = firstGroup;
-                        } else {
-                            currentCategory = "";
-                            adminSelectedGroup = "";
-                        }
+                        colorMap = {}; // 清空颜色映射并重新初始化
+                        currentCategory = bookmarksData.length > 0 ? bookmarksData[0].name : "";
+                        adminSelectedGroup = currentCategory;
                         saveCurrentCategory();
                         alert('书签导入成功（已覆盖）！');
                         handleHashChange();
                     }
                 } else if (importOption === '2') {
-                    for (const groupName in processedImportedData) {
-                        if (!bookmarksData[groupName]) {
-                            bookmarksData[groupName] = []; // Create new group if it doesn\'t exist
+                    processedImportedData.forEach(newGroup => {
+                        const existingGroup = bookmarksData.find(g => g.name === newGroup.name);
+                        if (existingGroup) {
+                            // 合并书签，避免重复URL
+                            newGroup.bookmarks.forEach(newBookmark => {
+                                const exists = existingGroup.bookmarks.some(b => b.url === newBookmark.url);
+                                if (!exists) {
+                                    existingGroup.bookmarks.push(newBookmark);
+                                } else {
+                                    console.log(`Bookmark with URL ${newBookmark.url} already exists in group ${newGroup.name}, skipping.`);
+                                }
+                            });
+                        } else {
+                            // 添加新分组
+                            bookmarksData.push(newGroup);
                         }
-                        // Append new bookmarks, ensuring no duplicate URLs when appending within a group
-                        processedImportedData[groupName].forEach(newBookmark => {
-                            const exists = bookmarksData[groupName].some(b => b.url === newBookmark.url);
-                            if (!exists) {
-                                bookmarksData[groupName].push(newBookmark);
-                            } else {
-                                console.log(`Bookmark with URL ${newBookmark.url} already exists in group ${groupName}, skipping.`);
-                            }
-                        });
-                    }
+                    });
                     saveBookmarks();
                     alert('书签导入成功（已追加）！');
                     handleHashChange();
@@ -1006,25 +1101,54 @@
         event.target.value = ''; // Clear file input
     }
 
+    // 新增：清空所有书签并恢复默认数据
+    function clearAllBookmarks() {
+        if (confirm('确定要清空所有自定义书签并恢复到默认书签吗？此操作不可撤销！')) {
+            // 恢复到 DEFAULT_BOOKMARKS_DATA
+            bookmarksData = JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS_DATA));
+            saveBookmarks();
+            colorMap = {}; // 清空颜色映射并重新初始化
+            currentCategory = bookmarksData.length > 0 ? bookmarksData[0].name : "";
+            adminSelectedGroup = currentCategory;
+            saveCurrentCategory();
+            alert('所有书签已清空并恢复到默认数据！');
+            handleHashChange(); // 重新渲染页面
+        }
+    }
+
 
     // --- 路由处理 ---
     function handleHashChange() {
       const mainContent = document.getElementById('mainContent');
       const adminPanel = document.getElementById('adminPanel');
+      const appContainer = document.getElementById('app'); // Get the main container
+      const frontendFooter = document.getElementById('frontendFooter'); // Get the frontend footer
 
       if (window.location.hash === '#admin') {
-        const password = prompt("请输入管理后台密码:");
-        if (password === ADMIN_PASSWORD) {
-          mainContent.classList.add('d-none');
-          adminPanel.classList.remove('d-none');
+        // 检查 sessionStorage 是否有登录状态
+        if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+          appContainer.classList.add('d-none'); // Hide the main container
+          frontendFooter.classList.add('d-none'); // Hide the frontend footer
+          adminPanel.classList.remove('d-none'); // Show the admin panel
           renderAdminPanel();
         } else {
-          alert("密码错误，无法进入管理后台。");
-          window.location.hash = ''; // Redirect back to main page
+          // 如果没有登录状态，则提示密码
+          const password = prompt("请输入管理后台密码:");
+          if (password === ADMIN_PASSWORD) {
+            sessionStorage.setItem('adminLoggedIn', 'true'); // 设置登录状态
+            appContainer.classList.add('d-none'); // Hide the main container
+            frontendFooter.classList.add('d-none'); // Hide the frontend footer
+            adminPanel.classList.remove('d-none'); // Show the admin panel
+            renderAdminPanel();
+          } else {
+            alert("密码错误，无法进入管理后台。");
+            window.location.hash = ''; // Redirect back to main page
+          }
         }
       } else {
-        mainContent.classList.remove('d-none');
-        adminPanel.classList.add('d-none');
+        appContainer.classList.remove('d-none'); // Show the main container
+        frontendFooter.classList.remove('d-none'); // Show the frontend footer
+        adminPanel.classList.add('d-none'); // Hide the admin panel
         renderCategories();
         renderBookmarks(currentCategory);
       }
@@ -1033,8 +1157,8 @@
     // --- 初始化 ---
     document.addEventListener('DOMContentLoaded', () => {
       loadBookmarks();
-      // Ensure currentCategory is valid after loading bookmarks and save it
-      const categories = Object.keys(bookmarksData);
+      // 确保 currentCategory 在加载书签后仍然有效并保存
+      const categories = bookmarksData.map(group => group.name);
       if (!categories.includes(currentCategory) && categories.length > 0) {
         currentCategory = categories[0];
         saveCurrentCategory();
@@ -1042,16 +1166,17 @@
         currentCategory = "";
         saveCurrentCategory();
       }
+      adminSelectedGroup = currentCategory; // 确保管理后台选中项与前台一致
 
-      // Initialize color map on load
-      Object.keys(bookmarksData).forEach(group => {
-        if (!colorMap[group]) {
+      // 初始化颜色映射
+      bookmarksData.forEach(group => {
+        if (!colorMap[group.name]) {
             const existingColors = Object.values(colorMap).map(c => c.main);
             let availableColor = groupColors.find(color => !existingColors.includes(color.main));
             if (!availableColor) {
                 availableColor = groupColors[Object.keys(colorMap).length % groupColors.length];
             }
-            colorMap[group] = availableColor;
+            colorMap[group.name] = availableColor;
         }
       });
 
