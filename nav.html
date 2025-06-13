@@ -19,6 +19,7 @@
       display: flex;
       min-height: 700px;
       overflow: hidden;
+      position: relative; /* For proper footer positioning if main-content needs to scroll */
     }
     .sidebar {
       width: 220px;
@@ -33,6 +34,11 @@
       text-align: center;
       margin-bottom: 2rem;
       letter-spacing: 2px;
+      padding: 10px 0; /* Add padding for the background */
+      background-color: rgba(123, 104, 238, 0.3); /* 更明显的半透明板岩蓝背景 */
+      border-radius: 8px; /* Slightly rounded corners */
+      margin: 0 15px 2rem 15px; /* Adjust margin to fit background */
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Subtle shadow */
     }
     .sidebar ul {
       list-style: none;
@@ -44,12 +50,14 @@
       transition: background 0.2s;
     }
     .sidebar li:hover, .sidebar li.active {
-      background: #4a4e69;
+      background: #7B68EE; /* 亮丽的板岩蓝悬浮色 */
     }
     .main-content {
       flex: 1;
       padding: 40px 48px;
       overflow-y: auto;
+      position: relative; /* Added for footer positioning */
+      padding-bottom: 100px; /* Adjust based on footer height to prevent overlap */
     }
     .search-bar {
       display: flex;
@@ -76,70 +84,60 @@
       gap: 16px; /* Reduced gap for compactness */
     }
     .site-card {
-      background: #f0f2f5; /* Light grey background */
-      border-radius: 12px;
-      padding: 12px; /* Reduced padding for compactness */
+      background: var(--group-bg-color);
+      background-image: linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 75%, transparent 75%, transparent);
+      background-size: 20px 20px;
+      border-radius: 25px; /* 半高，实现横向椭圆效果 */
+      height: 50px; /* 固定高度以形成横向椭圆 */
+      padding: 8px 15px; /* 调整内边距 */
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
+      align-items: center; /* 垂直居中内容 */
+      justify-content: center; /* 确保名称居中 */
       transition: all 0.2s ease-in-out;
       text-decoration: none;
-      color: #22223b;
       position: relative;
+      overflow: hidden; /* 防止内容溢出 */
+      cursor: pointer; /* 鼠标悬停时显示手型光标 */
     }
     .site-card:hover, .site-card:active {
-      box-shadow: 0 8px 24px rgba(75, 0, 130, 0.3); /* Deeper purple shadow */
+      box-shadow: 0 8px 24px rgba(75, 0, 130, 0.3);
       transform: translateY(-3px);
-      background: #ede1f2; /* Light purple background on hover/active */
+      background: #4B0082; /* 深紫色悬浮色 */
+      background-image: linear-gradient(45deg, rgba(255,255,255,0.08) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.08) 75%, transparent 75%, transparent);
+      background-size: 20px 20px;
     }
-    .site-card .site-icon {
-      width: 36px; /* Slightly smaller icon */
-      height: 36px;
-      border-radius: 8px;
-      margin-bottom: 8px; /* Reduced margin */
-      background: #fff;
-      object-fit: contain;
-      border: 1px solid #eee;
-      flex-shrink: 0;
-    }
+    /* 移除了 .site-card .site-icon */
     .site-card-content {
-      flex: 1;
+      flex: 1; /* 占据剩余空间 */
       display: flex;
       flex-direction: column;
-      min-width: 0;
-      margin-bottom: 8px; /* Reduced margin */
+      align-items: center; /* 垂直居中内容 */
+      justify-content: center; /* 水平居中内容 */
+      min-width: 0; /* 允许文本溢出省略 */
+      margin-bottom: 0; /* 移除底部外边距 */
+      text-align: center; /* 确保文本本身居中 */
     }
     .site-card .title {
-      font-weight: 600;
-      font-size: 1rem; /* Slightly smaller font */
-      margin-bottom: 2px;
+      font-weight: 700;
+      font-size: 0.95rem; /* Adjusted for smaller size */
+      margin-bottom: 0; /* 移除外边距 */
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      color: var(--group-text-color); /* 使用动态文本颜色 */
+      line-height: 1.2; /* 调整行高 */
     }
-    .site-card .desc {
-      font-size: 0.8rem; /* Slightly smaller font */
-      color: #6c757d;
-      text-align: left;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .site-card .visit-btn {
-      align-self: flex-end;
-      padding: 5px 10px; /* Adjusted padding */
-      font-size: 0.8rem; /* Adjusted font size */
-      border-radius: 6px;
-      background: #007bff;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      opacity: 1;
-      transition: background 0.2s;
-    }
-    .site-card .visit-btn:hover {
-      background: #0056b3;
+
+    .footer {
+      position: absolute; /* 绝对定位到 main-content 底部 */
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 15px;
+      background: #fff;
+      border-top: 1px solid #eee;
+      z-index: 10;
     }
 
     /* Admin Panel Styles */
@@ -231,13 +229,6 @@
         vertical-align: middle;
     }
 
-    .admin-table img {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-        object-fit: contain;
-    }
-
     /* Form styling */
     .form-group label {
         font-weight: 600;
@@ -261,6 +252,7 @@
       }
       .main-content {
         padding: 30px 30px;
+        padding-bottom: 90px; /* Adjust for smaller screens */
       }
     }
 
@@ -291,24 +283,15 @@
       }
       .main-content {
         padding: 20px;
+        padding-bottom: 80px; /* Adjust for even smaller screens */
       }
-      .card-list {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 12px;
-      }
-      .site-card .site-icon {
-        width: 32px;
-        height: 32px;
+      .site-card {
+        height: 45px; /* Further reduce height for small screens */
+        border-radius: 22.5px;
+        padding: 6px 12px;
       }
       .site-card .title {
-        font-size: 0.95rem;
-      }
-      .site-card .desc {
-        font-size: 0.75rem;
-      }
-      .site-card .visit-btn {
-        padding: 4px 8px;
-        font-size: 0.75rem;
+        font-size: 0.9rem;
       }
       .admin-header {
           flex-direction: column;
@@ -328,9 +311,6 @@
     @media (max-width: 480px) {
       .card-list {
         grid-template-columns: 1fr;
-      }
-      .site-card .visit-btn {
-        opacity: 1;
       }
       .search-bar {
         flex-direction: column;
@@ -385,10 +365,11 @@
             <div class="admin-header">
                 <h2>书签管理后台</h2>
                 <div class="admin-actions">
-                    <button class="btn btn-success" onclick="exportBookmarks()">导出书签</button>
+                    <button class="btn btn-success" onclick="exportBookmarks(true)">导出全部书签</button>
+                    <button class="btn btn-primary" onclick="exportBookmarks(false)">导出当前分组书签</button>
                     <input type="file" id="importBookmarksFile" accept=".json" class="d-none" onchange="importBookmarks(event)">
                     <button class="btn btn-info" onclick="document.getElementById('importBookmarksFile').click()">导入书签</button>
-                    <button class="btn btn-secondary" onclick="location.hash = ''">返回前台</button>
+                    <button class="btn btn-success" onclick="location.hash = ''">返回前台</button>
                 </div>
             </div>
 
@@ -430,10 +411,7 @@
                             <!-- 分组选项JS渲染 -->
                         </select>
                     </div>
-                    <div class="col-12">
-                        <label for="bookmarkDesc" class="form-label">描述</label>
-                        <textarea class="form-control" id="bookmarkDesc" rows="2"></textarea>
-                    </div>
+                    <!-- 移除了描述输入字段 -->
                     <div class="col-12">
                         <button type="submit" class="btn btn-primary">保存书签</button>
                         <button type="button" class="btn btn-secondary" onclick="resetBookmarkForm()">取消</button>
@@ -444,10 +422,8 @@
                     <table class="table table-bordered table-striped admin-table">
                         <thead>
                             <tr>
-                                <th style="width: 40px;">图标</th>
                                 <th style="width: 150px;">名称</th>
                                 <th style="width: 250px;">URL</th>
-                                <th style="width: 200px;">描述</th>
                                 <th style="width: 100px;">分组</th>
                                 <th style="width: 120px;">操作</th>
                             </tr>
@@ -465,22 +441,41 @@
     // 定义书签数据结构
     let bookmarksData = {
       "常用推荐": [
-        { id: Date.now() + 1, name: "宝哥导航站", url: "https://dhz.baoge.wang/", favicon: "https://favicon.im/https://dhz.baoge.wang/", desc: "一个简洁实用的个人导航站" },
-        { id: Date.now() + 2, name: "泰安本地宝", url: "https://m.ta.bendibao.com/", favicon: "https://favicon.im/https://m.ta.bendibao.com/", desc: "泰安本地生活服务平台" },
+        { id: Date.now() + 1, name: "宝哥导航站", url: "https://dhz.baoge.wang/", favicon: "https://favicon.im/https://dhz.baoge.wang/" },
+        { id: Date.now() + 2, name: "泰安本地宝", url: "https://m.ta.bendibao.com/", favicon: "https://favicon.im/https://m.ta.bendibao.com/" },
       ],
       "新闻资讯": [
-        { id: Date.now() + 3, name: "全网热点", url: "https://hot.ailake.cn/hot/1", favicon: "https://favicon.im/https://hot.ailake.cn/hot/1", desc: "聚合全网热门新闻资讯" },
-        { id: Date.now() + 4, name: "今日热榜", url: "https://tophub.today/", favicon: "https://favicon.im/https://tophub.today/", desc: "实时更新的各类热点榜单" },
+        { id: Date.now() + 3, name: "全网热点", url: "https://hot.ailake.cn/hot/1", favicon: "https://favicon.im/https://hot.ailake.cn/hot/1" },
+        { id: Date.now() + 4, name: "今日热榜", url: "https://tophub.today/", favicon: "https://tophub.today/favicon.ico" },
       ],
       "搜索引擎": [
-        { id: Date.now() + 5, name: "百度", url: "https://www.baidu.com/", favicon: "https://www.baidu.com/favicon.ico", desc: "全球最大的中文搜索引擎" },
-        { id: Date.now() + 6, name: "谷歌", url: "https://www.google.com/", favicon: "https://www.google.com/favicon.ico", desc: "全球领先的搜索引擎" },
+        { id: Date.now() + 5, name: "百度", url: "https://www.baidu.com/", favicon: "https://www.baidu.com/favicon.ico" },
+        { id: Date.now() + 6, name: "谷歌", url: "https://www.google.com/", favicon: "https://www.google.com/favicon.ico" },
       ]
     };
 
     let currentCategory = localStorage.getItem('currentCategory') || "常用推荐"; // 从localStorage加载当前分类
     let adminSelectedGroup = ""; // 管理后台当前选中的分组
     const ADMIN_PASSWORD = "baoge888"; // 设置管理后台密码，请修改为你的密码
+    // Define a color palette for groups with associated text colors for contrast
+    // `main`: 主背景色
+    // `hover`: 鼠标悬停时的背景色
+    // `text`: 对应背景色下，确保书签名称清晰可见的字体颜色
+    const groupColors = [
+        { main: '#FF6347', hover: '#4B0082', text: '#fff' }, // Tomato Red - White text
+        { main: '#3CB371', hover: '#4B0082', text: '#fff' }, // MediumSeaGreen - White text
+        { main: '#4169E1', hover: '#4B0082', text: '#fff' }, // RoyalBlue - White text
+        { main: '#FFA500', hover: '#4B0082', text: '#333' }, // Orange - Dark text
+        { main: '#8A2BE2', hover: '#4B0082', text: '#fff' }, // BlueViolet - White text
+        { main: '#FF69B4', hover: '#4B0082', text: '#fff' }, // HotPink - White text
+        { main: '#00CED1', hover: '#4B0082', text: '#333' }, // DarkTurquoise - Dark text
+        { main: '#ADFF2F', hover: '#4B0082', text: '#333' }, // GreenYellow - Dark text
+        { main: '#FFD700', hover: '#4B0082', text: '#333' }, // Gold - Dark text
+        { main: '#DAA520', hover: '#4B0082', text: '#fff' }, // Goldenrod - White text
+        { main: '#CD5C5C', hover: '#4B0082', text: '#fff' }, // IndianRed - White text
+        { main: '#6495ED', hover: '#4B0082', text: '#fff' }, // CornflowerBlue - White text
+    ];
+    let colorMap = {}; // To store group name to color mapping
 
     // --- 数据持久化与初始化 ---
     function loadBookmarks() {
@@ -488,12 +483,17 @@
       if (storedData) {
         bookmarksData = JSON.parse(storedData);
       }
-      // 确保每个书签都有一个唯一的ID
+      // 确保每个书签都有一个唯一的ID，并移除旧的desc字段
       for (const group in bookmarksData) {
-        bookmarksData[group].forEach(bookmark => {
+        bookmarksData[group] = bookmarksData[group].map(bookmark => {
           if (!bookmark.id) {
             bookmark.id = Date.now() + Math.random();
           }
+          // Remove description if it exists
+          if (bookmark.hasOwnProperty('desc')) {
+            delete bookmark.desc;
+          }
+          return bookmark;
         });
       }
     }
@@ -550,17 +550,34 @@
         return;
       }
 
+      // Assign a unique color to the category if not already assigned
+      if (!colorMap[category]) {
+        const existingColors = Object.values(colorMap).map(c => c.main);
+        let availableColor = groupColors.find(color => !existingColors.includes(color.main));
+        if (!availableColor) {
+            // If all predefined colors are used, cycle through them
+            availableColor = groupColors[Object.keys(colorMap).length % groupColors.length];
+        }
+        colorMap[category] = availableColor;
+      }
+      const categoryColor = colorMap[category];
+
+
       bookmarks.forEach(bookmark => {
-        const card = document.createElement('div'); // Changed to div for better layout control
+        const card = document.createElement('div');
         card.classList.add('site-card');
+        card.setAttribute('data-group', category); // Add data attribute for group
+        card.style.setProperty('--group-bg-color', categoryColor.main);
+        card.style.setProperty('--group-hover-color', categoryColor.hover);
+        card.style.setProperty('--group-text-color', categoryColor.text); // Set text color CSS variable
         card.innerHTML = `
-          <img src="${bookmark.favicon || 'https://www.google.com/s2/favicons?domain=default'}" alt="${bookmark.name}" class="site-icon" onerror="this.onerror=null;this.src='https://www.google.com/s2/favicons?domain=default';">
           <div class="site-card-content">
             <div class="title">${bookmark.name}</div>
-            <div class="desc">${bookmark.desc || '暂无描述'}</div>
           </div>
-          <button class="visit-btn" onclick="window.open('${bookmark.url}', '_blank'); event.stopPropagation();">访问</button>
         `;
+        card.addEventListener('click', () => {
+          window.open(bookmark.url, '_blank');
+        });
         bookmarkList.appendChild(card);
       });
     }
@@ -634,17 +651,15 @@
         const bookmarks = bookmarksData[groupName] || [];
 
         if (bookmarks.length === 0) {
-            adminBookmarkTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">该分组下暂无书签。</td></tr>`;
+            adminBookmarkTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">该分组下暂无书签。</td></tr>`;
             return;
         }
 
         bookmarks.forEach(bookmark => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><img src="${bookmark.favicon || 'https://www.google.com/s2/favicons?domain=default'}" alt="Icon" onerror="this.onerror=null;this.src='https://www.google.com/s2/favicons?domain=default';"></td>
                 <td><a href="#" onclick="editBookmark('${bookmark.id}', '${groupName}'); event.preventDefault();">${bookmark.name}</a></td>
                 <td><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
-                <td>${bookmark.desc || ''}</td>
                 <td>${groupName}</td>
                 <td>
                     <button class="btn btn-sm btn-warning me-1" onclick="editBookmark('${bookmark.id}', '${groupName}')">编辑</button>
@@ -743,29 +758,18 @@
     function fetchFavicon() {
         const bookmarkUrlInput = document.getElementById('bookmarkUrl');
         const bookmarkFaviconInput = document.getElementById('bookmarkFavicon');
-        const bookmarkDescInput = document.getElementById('bookmarkDesc'); // 获取描述输入框
         const url = bookmarkUrlInput.value.trim();
 
         if (url) {
-            // 获取 Favicon
             const faviconServiceUrl = `https://favicon.im/${url}`;
             bookmarkFaviconInput.value = faviconServiceUrl;
 
-            // 尝试加载图片，如果失败则回退到默认
             const img = new Image();
             img.src = faviconServiceUrl;
             img.onerror = () => {
                 console.warn(`Failed to load favicon from ${faviconServiceUrl}, falling back to default.`);
                 bookmarkFaviconInput.value = 'https://www.google.com/s2/favicons?domain=default';
             };
-
-            // **关于自动获取描述的说明：**
-            // 浏览器出于安全考虑（同源策略/CORS），不允许前端 JavaScript 直接访问
-            // 不同域名的网页内容来提取标题或描述。
-            // 因此，这里无法通过纯前端代码自动获取描述信息。
-            // 如果你需要此功能，通常需要一个后端服务来作为代理，或者使用第三方内容提取API。
-            // 目前描述字段仍需手动填写。
-            bookmarkDescInput.value = ''; // 确保描述字段清空，等待手动输入
         }
     }
 
@@ -776,7 +780,6 @@
         const url = document.getElementById('bookmarkUrl').value.trim();
         const favicon = document.getElementById('bookmarkFavicon').value.trim();
         const group = document.getElementById('bookmarkGroup').value;
-        const desc = document.getElementById('bookmarkDesc').value.trim();
 
         if (!name || !url || !group) {
             alert('名称、URL 和分组是必填项！');
@@ -793,7 +796,6 @@
                             b.name = name;
                             b.url = url;
                             b.favicon = favicon;
-                            b.desc = desc;
                             found = true;
                         } else { // Moved to a different group, remove from current
                             found = true;
@@ -804,14 +806,14 @@
                 });
             }
             if (found && !bookmarksData[group].some(b => b.id == id)) { // If bookmark was moved to a new group
-                bookmarksData[group].push({ id: parseFloat(id), name, url, favicon, desc });
+                bookmarksData[group].push({ id: parseFloat(id), name, url, favicon });
             }
         } else {
             // 添加新书签
             if (!bookmarksData[group]) {
                 bookmarksData[group] = [];
             }
-            bookmarksData[group].push({ id: Date.now() + Math.random(), name, url, favicon, desc });
+            bookmarksData[group].push({ id: Date.now() + Math.random(), name, url, favicon });
         }
         saveBookmarks();
         resetBookmarkForm();
@@ -832,7 +834,6 @@
             document.getElementById('bookmarkUrl').value = bookmarkToEdit.url;
             document.getElementById('bookmarkFavicon').value = bookmarkToEdit.favicon;
             document.getElementById('bookmarkGroup').value = groupName;
-            document.getElementById('bookmarkDesc').value = bookmarkToEdit.desc;
         }
     }
 
@@ -854,13 +855,39 @@
         document.getElementById('bookmarkGroup').value = adminSelectedGroup || Object.keys(bookmarksData)[0];
     }
 
-    function exportBookmarks() {
-        const dataStr = JSON.stringify(bookmarksData, null, 2);
+    function exportBookmarks(exportAll) {
+        let dataToExport = {};
+        let filename;
+
+        if (exportAll) {
+            Object.keys(bookmarksData).forEach(groupName => {
+                dataToExport[groupName] = bookmarksData[groupName].map(bookmark => ({
+                    name: bookmark.name,
+                    url: bookmark.url,
+                    favicon: bookmark.favicon
+                }));
+            });
+            filename = "all_bookmarks.json";
+        } else {
+            if (adminSelectedGroup && bookmarksData[adminSelectedGroup]) {
+                dataToExport[adminSelectedGroup] = bookmarksData[adminSelectedGroup].map(bookmark => ({
+                    name: bookmark.name,
+                    url: bookmark.url,
+                    favicon: bookmark.favicon
+                }));
+                filename = `${adminSelectedGroup}_bookmarks.json`;
+            } else {
+                alert("请选择一个分组或该分组下没有书签可导出。");
+                return;
+            }
+        }
+
+        const dataStr = JSON.stringify(dataToExport, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = "bookmarks.json";
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -876,33 +903,55 @@
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const importedData = JSON.parse(e.target.result);
-                if (confirm('导入书签将覆盖现有数据，确定要继续吗？')) {
-                    // Validate imported data format
-                    let isValid = true;
-                    if (typeof importedData !== 'object' || importedData === null) {
-                        isValid = false;
-                    } else {
-                        for (const groupName in importedData) {
-                            if (!Array.isArray(importedData[groupName])) {
-                                isValid = false;
-                                break;
+                const importedRawData = JSON.parse(e.target.result);
+                let processedImportedData = {}; // Normalized structure for imported data
+
+                // Heuristic to handle various JSON structures
+                if (Array.isArray(importedRawData)) {
+                    // Assume it's an array of bookmarks, put into "未分组" or a default group
+                    processedImportedData["未分组"] = importedRawData.map(item => ({
+                        id: item.id || Date.now() + Math.random(),
+                        name: item.name || item.title || '未知名称',
+                        url: item.url || item.link || 'http://unknown.com',
+                        favicon: item.favicon || `https://favicon.im/${item.url || item.link || 'http://unknown.com'}`,
+                    })).filter(b => b.name && b.url); // Filter out invalid entries
+                } else if (typeof importedRawData === 'object' && importedRawData !== null) {
+                    // Assume it's an object where keys are group names
+                    for (const groupName in importedRawData) {
+                        if (Array.isArray(importedRawData[groupName])) {
+                            processedImportedData[groupName] = importedRawData[groupName].map(item => ({
+                                id: item.id || Date.now() + Math.random(),
+                                name: item.name || item.title || '未知名称',
+                                url: item.url || item.link || 'http://unknown.com',
+                                favicon: item.favicon || `https://favicon.im/${item.url || item.link || 'http://unknown.com'}`,
+                            })).filter(b => b.name && b.url); // Filter out invalid entries
+                        } else if (typeof importedRawData[groupName] === 'object' && importedRawData[groupName] !== null) {
+                            // Handle cases where group is an object but contains bookmark info directly (e.g., single bookmark file)
+                            // This heuristic assumes if a group-level object has 'name' and 'url', it's a single bookmark.
+                            if (importedRawData[groupName].name && importedRawData[groupName].url) {
+                                processedImportedData[groupName] = [{
+                                    id: importedRawData[groupName].id || Date.now() + Math.random(),
+                                    name: importedRawData[groupName].name || importedRawData[groupName].title || '未知名称',
+                                    url: importedRawData[groupName].url || importedRawData[groupName].link || 'http://unknown.com',
+                                    favicon: importedRawData[groupName].favicon || `https://favicon.im/${importedRawData[groupName].url || importedRawData[groupName].link || 'http://unknown.com'}`,
+                                }];
                             }
-                            for (const bookmark of importedData[groupName]) {
-                                if (typeof bookmark !== 'object' || !bookmark.name || !bookmark.url) {
-                                    isValid = false;
-                                    break;
-                                }
-                                if (!bookmark.id) bookmark.id = Date.now() + Math.random(); // Assign ID if missing
-                            }
-                            if (!isValid) break;
                         }
                     }
+                }
 
-                    if (isValid) {
-                        bookmarksData = importedData;
+                if (Object.keys(processedImportedData).length === 0) {
+                    alert('导入的JSON文件不包含有效的书签数据。请确保文件包含书签名称和URL。');
+                    return;
+                }
+
+                const importOption = prompt("选择导入方式：\n1. 覆盖现有书签 (输入 '1')\n2. 添加到现有书签 (输入 '2')\n\n注意：导入将尝试从文件名或URL中获取favicon，如果缺失将使用默认。", "2");
+
+                if (importOption === '1') {
+                    if (confirm('确定要覆盖现有书签数据吗？此操作不可撤销！')) {
+                        bookmarksData = processedImportedData;
                         saveBookmarks();
-                        // Reset currentCategory and adminSelectedGroup based on new data
+                        colorMap = {}; // Clear colorMap and re-initialize it for new groups
                         const firstGroup = Object.keys(bookmarksData)[0];
                         if (firstGroup) {
                             currentCategory = firstGroup;
@@ -911,16 +960,34 @@
                             currentCategory = "";
                             adminSelectedGroup = "";
                         }
-                        saveCurrentCategory(); // 保存导入后的当前分类
-                        alert('书签导入成功！');
-                        // Re-render everything
-                        handleHashChange(); // This will re-render based on current hash
-                    } else {
-                        alert('导入的JSON格式不正确，请确保是分组嵌套的书签数据。');
+                        saveCurrentCategory();
+                        alert('书签导入成功（已覆盖）！');
+                        handleHashChange();
                     }
+                } else if (importOption === '2') {
+                    for (const groupName in processedImportedData) {
+                        if (!bookmarksData[groupName]) {
+                            bookmarksData[groupName] = []; // Create new group if it doesn\'t exist
+                        }
+                        // Append new bookmarks, ensuring no duplicate URLs when appending within a group
+                        processedImportedData[groupName].forEach(newBookmark => {
+                            const exists = bookmarksData[groupName].some(b => b.url === newBookmark.url);
+                            if (!exists) {
+                                bookmarksData[groupName].push(newBookmark);
+                            } else {
+                                console.log(`Bookmark with URL ${newBookmark.url} already exists in group ${groupName}, skipping.`);
+                            }
+                        });
+                    }
+                    saveBookmarks();
+                    alert('书签导入成功（已追加）！');
+                    handleHashChange();
+                } else {
+                    alert('导入操作已取消。');
                 }
+
             } catch (e) {
-                alert('导入文件失败，请确保是有效的JSON文件。');
+                alert('导入文件失败，请确保是有效的JSON文件。错误信息: ' + e.message);
                 console.error('导入错误:', e);
             }
         };
@@ -964,6 +1031,19 @@
         currentCategory = "";
         saveCurrentCategory();
       }
+
+      // Initialize color map on load
+      Object.keys(bookmarksData).forEach(group => {
+        if (!colorMap[group]) {
+            const existingColors = Object.values(colorMap).map(c => c.main);
+            let availableColor = groupColors.find(color => !existingColors.includes(color.main));
+            if (!availableColor) {
+                availableColor = groupColors[Object.keys(colorMap).length % groupColors.length];
+            }
+            colorMap[group] = availableColor;
+        }
+      });
+
 
       updateRunTime();
       setInterval(updateRunTime, 1000); // 每秒更新运行时间
