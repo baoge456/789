@@ -285,6 +285,11 @@
                 margin-left: 0;
             }
 
+            /* New style to hide main content on mobile when menu is active */
+            main.hide-content-on-mobile {
+                display: none;
+            }
+
             .link-grid {
                 grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* Adjusted for smaller cards on mobile */
                 gap: 8px; /* Even smaller gap */
@@ -446,6 +451,26 @@
             // 内置分组
             const defaultCategories = ["AI搜索", "社交", "工具"];
 
+            // Function to handle initial mobile content visibility and resize events
+            function handleMobileContentVisibility() {
+                if (window.innerWidth <= 768) {
+                    // On mobile, hide main content initially
+                    mainContent.classList.add('hide-content-on-mobile');
+                    // Hide all category sections
+                    categorySections.forEach(section => section.classList.add('hidden'));
+                } else {
+                    // On desktop, show main content and all category sections
+                    mainContent.classList.remove('hide-content-on-mobile');
+                    categorySections.forEach(section => section.classList.remove('hidden'));
+                }
+            }
+
+            // Call on load
+            handleMobileContentVisibility();
+            // Call on resize
+            window.addEventListener("resize", handleMobileContentVisibility);
+
+
             // -------------------- Popup Menu --------------------
             logo.addEventListener('mousedown', function (e) {
                 isLongPress = false;
@@ -458,7 +483,7 @@
 
             logo.addEventListener('mouseup', function (e) {
                 clearTimeout(longPressTimer);
-                if (!isLongPress) {
+                if (!isLongPress && window.innerWidth > 768) { // Only perform default logo action on desktop
                     // If it was a short click, perform the default logo action
                     categorySections.forEach(section => section.classList.remove("hidden"));
                 }
@@ -483,6 +508,14 @@
             function toggleMenu(e) {
                 e.preventDefault();
                 nav.classList.toggle("active");
+                if (window.innerWidth <= 768) { // Only apply this logic on mobile
+                    if (nav.classList.contains("active")) {
+                        // If menu is opened, hide the main content
+                        mainContent.classList.add('hide-content-on-mobile');
+                    } else {
+                        // If menu is closed, content should remain hidden until a category is selected
+                    }
+                }
             }
 
             // -------------------- Navigation Links --------------------
@@ -494,26 +527,25 @@
                         e.preventDefault();
                         const category = this.dataset.category;
 
-                        // 隐藏所有分组
+                        // Hide all category sections first
                         categorySections.forEach(section => section.classList.add("hidden"));
 
-                        // 显示当前分组
-                        document.getElementById(category).classList.remove("hidden");
+                        // Show the selected category
+                        const selectedCategorySection = document.getElementById(category);
+                        if (selectedCategorySection) {
+                            selectedCategorySection.classList.remove("hidden");
+                        }
 
+                        // If on mobile, remove the hide class from main content and close nav
                         if (window.innerWidth <= 768) {
-                            nav.classList.remove("active");
+                            mainContent.classList.remove('hide-content-on-mobile'); // Show main content
+                            nav.classList.remove("active"); // Close the nav
                         }
                     });
                 });
             }
 
             attachNavLinkListeners();
-
-            window.addEventListener("resize", function () {
-                if (window.innerWidth > 768) {
-                    nav.classList.remove("active");
-                }
-            });
 
             // --------------- Export Bookmarks Function --------------------
             exportBookmarksBtn.addEventListener("click", function (e) {
@@ -769,7 +801,7 @@
                         }
                     });
 
-                    // 重新获取 categorySections，确保包含新添加的分组
+                    // Re-fetch categorySections to include newly added groups
                     categorySections = document.querySelectorAll(".category-section");
                 }
             }
@@ -804,21 +836,19 @@
                 categoryTitlesVisible = !categoryTitlesVisible;
                 mainContent.classList.toggle('hidden-title', !categoryTitlesVisible);
 
-                // 更新按钮文本
+                // Update button text
                 toggleCategoriesBtn.textContent = categoryTitlesVisible ? '隐藏分组' : '显示分组';
             });
 
             // -------------------- Initial Load --------------------
-            // 页面加载时，加载 localStorage 中的书签
+            // Page load, load bookmarks from localStorage
             loadBookmarksFromLocalStorage();
-             // 初始状态所有分组内容都显示
-             categorySections.forEach(section => section.classList.remove('hidden'));
 
-             // 将“无分组书签”移动到 main-content 的末尾
-             const noCategorySection = document.getElementById('无分组书签');
-             if (noCategorySection) {
-                 document.getElementById('main-content').appendChild(noCategorySection);
-             }
+            // Move "无分组书签" to the end of main-content
+            const noCategorySection = document.getElementById('无分组书签');
+            if (noCategorySection) {
+                document.getElementById('main-content').appendChild(noCategorySection);
+            }
         });
     </script>
 </body>
