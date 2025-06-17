@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书签导航</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center content horizontally */
+            min-height: 100vh;
+            box-sizing: border-box;
+            background-image: url('https://source.unsplash.com/random/1920x1080/?nature,landscape'); /* Dynamic background */
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 1200px; /* Max width for content */
+            margin: 20px auto; /* Center the container */
+            box-sizing: border-box;
+            backdrop-filter: blur(5px); /* Frosted glass effect */
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .settings-icon {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 2em;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s ease;
+            z-index: 1000;
+        }
+
+        .settings-icon:hover {
+            color: #007bff;
+        }
+
+        .group-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .group {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-top: 5px solid var(--group-color, #007bff); /* Dynamic border color */
+        }
+
+        .group:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #eee;
+        }
+
+        .group-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+            color: var(--group-color, #007bff); /* Dynamic text color */
+        }
+
+        .bookmark-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .bookmark-card {
+            display: flex;
+            align-items: center;
+            background-color: rgba(var(--group-color-rgb, 0, 123, 255), 0.08); /* Semi-transparent background */
+            border-radius: 25px; /* Oval shape */
+            margin-bottom: 10px;
+            padding: 10px 15px;
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .bookmark-card:hover {
+            background-color: rgba(var(--group-color-rgb, 0, 123, 255), 0.15);
+            transform: translateX(5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .bookmark-card a {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #333;
+            flex-grow: 1;
+        }
+
+        .bookmark-card img {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            border-radius: 4px;
+            object-fit: contain;
+        }
+
+        .bookmark-card span {
+            font-size: 1.1em;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default - This ensures modal is initially hidden */
+            position: fixed; /* Stay in place */
+            z-index: 1001; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            padding: 20px; /* Padding around modal content */
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+            position: relative;
+            width: 90%;
+            max-width: 800px; /* Max width for modal */
+            animation: fadeIn 0.3s ease-out;
+            max-height: 90vh; /* Limit modal height */
+            overflow-y: auto; /* Enable scrolling for modal content */
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #333;
+            text-decoration: none;
+        }
+
+        .modal-content h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 2em;
+        }
+
+        .setting-item {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            border: 1px solid #eee;
+        }
+
+        .setting-item h3 {
+            margin-top: 0;
+            color: #555;
+            font-size: 1.3em;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .setting-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 10px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2);
+            margin-bottom: 10px;
+        }
+
+        .setting-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .setting-button:active {
+            transform: translateY(0);
+        }
+
+        /* Backend Page Button Styles */
+        .small-button {
+            padding: 6px 12px;
+            font-size: 0.9em;
+            border-radius: 5px;
+            margin: 3px;
+        }
+
+        .colored-button {
+            background-color: #2196F3; /* Blue */
+            box-shadow: 0 2px 5px rgba(33, 150, 243, 0.2);
+        }
+
+        .colored-button:hover {
+            background-color: #1976D2;
+        }
+
+        .warning-button {
+            background-color: #ff9800; /* Orange */
+            box-shadow: 0 2px 5px rgba(255, 152, 0, 0.2);
+        }
+
+        .warning-button:hover {
+            background-color: #fb8c00;
+        }
+
+        .danger-button {
+            background-color: #f44336; /* Red */
+            box-shadow: 0 2px 5px rgba(244, 67, 54, 0.2);
+        }
+
+        .danger-button:hover {
+            background-color: #d32f2f;
+        }
+
+        .data-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Space between buttons */
+            margin-top: 10px;
+        }
+
+        .setting-list {
+            max-height: 400px; /* Scrollable list for groups/bookmarks */
+            overflow-y: auto;
+            padding-right: 10px;
+            border: 1px solid #e9e9e9;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .setting-group-item, .setting-bookmark-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border-left: 5px solid var(--item-color, #ccc); /* For visual distinction */
+            flex-wrap: wrap; /* Allow content to wrap on smaller screens */
+        }
+
+        .setting-group-item .item-content,
+        .setting-bookmark-item .item-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 180px; /* Ensure content doesn't get too small */
+        }
+
+        .setting-group-item .item-actions,
+        .setting-bookmark-item .item-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0; /* Prevent actions from shrinking */
+            flex-wrap: wrap; /* Allow buttons to wrap */
+            justify-content: flex-end; /* Align buttons to the right when wrapping */
+        }
+
+        .setting-group-item input[type="text"],
+        .setting-bookmark-item input[type="text"],
+        .setting-bookmark-item input[type="url"] {
+            width: calc(100% - 20px); /* Adjust for padding and border */
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95em;
+            box-sizing: border-box;
+            margin-right: 10px; /* Keep some right margin */
+        }
+
+        .setting-group-item input[type="color"] {
+            width: 80px; /* Fixed width for color picker */
+            height: 34px; /* Fixed height for color picker */
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .setting-group-item button,
+        .setting-bookmark-item button {
+            padding: 5px 10px;
+            font-size: 0.85em;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .edit-button {
+            background-color: #ffc107; /* Yellow */
+            color: #333;
+        }
+        .edit-button:hover { background-color: #e0a800; }
+
+        .save-button {
+            background-color: #28a745; /* Green */
+            color: white;
+        }
+        .save-button:hover { background-color: #218838; }
+
+        .delete-button {
+            background-color: #dc3545; /* Red */
+            color: white;
+        }
+        .delete-button:hover { background-color: #c82333; }
+
+        .add-bookmark-button {
+            background-color: #6c757d; /* Grey */
+            color: white;
+        }
+        .add-bookmark-button:hover { background-color: #5a6268; }
+
+        .move-button {
+            background-color: #17a2b8; /* Cyan */
+            color: white;
+        }
+        .move-button:hover { background-color: #138496; }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .group-grid {
+                grid-template-columns: 1fr; /* Single column on small screens */
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .setting-button {
+                width: 100%; /* Full width buttons */
+                margin-right: 0;
+            }
+
+            .setting-group-item, .setting-bookmark-item {
+                flex-direction: column; /* Stack content and actions vertically */
+                align-items: flex-start;
+            }
+
+            .setting-group-item .item-actions,
+            .setting-bookmark-item .item-actions {
+                width: 100%;
+                justify-content: flex-start; /* Align buttons to the left when stacked */
+                margin-top: 10px;
+            }
+
+            .setting-group-item input[type="text"],
+            .setting-bookmark-item input[type="text"],
+            .setting-bookmark-item input[type="url"] {
+                width: 100%; /* Full width on small screens */
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Replaced Font Awesome with a Unicode character for the settings icon -->
+    <div class="settings-icon" id="settingsIcon">⚙️</div>
+
+    <div class="container">
+        <h1>我的书签导航</h1>
+        <div id="groupGrid" class="group-grid">
+            <!-- Bookmarks will be dynamically loaded here -->
+        </div>
+    </div>
+
+    <!-- Settings Modal (Backend Page) -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeSettingsModal">&times;</span>
+            <h2>设置</h2>
+            <div class="setting-item">
+                <h3>管理书签和分组</h3>
+                <button id="addGroupBtn" class="setting-button">添加分组</button>
+                <div id="groupList" class="setting-list"></div>
+            </div>
+            <div class="setting-item">
+                <h3>数据操作</h3>
+                <div class="data-buttons">
+                    <input type="file" id="importFile" accept=".json" style="display: none;">
+                    <button id="importOverlayBtn" class="setting-button small-button colored-button">覆盖导入</button>
+                    <button id="importAddBtn" class="setting-button small-button colored-button">追加导入</button>
+                    <button id="exportBtn" class="setting-button small-button colored-button">导出数据</button>
+                    <button id="restoreDefaultBtn" class="setting-button small-button colored-button warning-button">恢复默认</button>
+                    <button id="clearAllDataBtn" class="setting-button small-button colored-button danger-button">清空所有数据</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const groupGrid = document.getElementById('groupGrid');
+        const settingsIcon = document.getElementById('settingsIcon');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettingsModal = document.getElementById('closeSettingsModal');
+        const addGroupBtn = document.getElementById('addGroupBtn');
+        const groupList = document.getElementById('groupList');
+
+        const importFile = document.getElementById('importFile');
+        const importOverlayBtn = document.getElementById('importOverlayBtn');
+        const importAddBtn = document.getElementById('importAddBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const restoreDefaultBtn = document.getElementById('restoreDefaultBtn');
+        const clearAllDataBtn = document.getElementById('clearAllDataBtn');
+
+        // Check sessionStorage for authentication status (password persistence)
+        let isAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
+
+        // Helper to get a random pastel color for new groups
+        function getRandomColor() {
+            const hue = Math.floor(Math.random() * 360);
+            return `hsl(${hue}, 70%, 75%)`;
+        }
+
+        // Helper to convert hex to RGB for semi-transparent backgrounds
+        function hexToRgb(hex) {
+            let r = 0, g = 0, b = 0;
+            if (hex.length === 4) {
+                r = parseInt(hex[1] + hex[1], 16);
+                g = parseInt(hex[2] + hex[2], 16);
+                b = parseInt(hex[3] + hex[3], 16);
+            } else if (hex.length === 7) {
+                r = parseInt(hex.substring(1, 3), 16);
+                g = parseInt(hex.substring(3, 5), 16);
+                b = parseInt(hex.substring(5, 7), 16);
+            }
+            return `${r}, ${g}, ${b}`;
+        }
+
+        // Helper to convert HSL to RGB for semi-transparent backgrounds
+        function hslToRgb(h, s, l) {
+            s /= 100;
+            l /= 100;
+            let c = (1 - Math.abs(2 * l - 1)) * s,
+                x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+                m = l - c / 2,
+                r = 0,
+                g = 0,
+                b = 0;
+
+            if (0 <= h && h < 60) {
+                r = c; g = x; b = 0;
+            } else if (60 <= h && h < 120) {
+                r = x; g = c; b = 0;
+            } else if (120 <= h && h < 180) {
+                r = 0; g = c; b = x;
+            } else if (180 <= h && h < 240) {
+                r = 0; g = x; b = c;
+            } else if (240 <= h && h < 300) {
+                r = x; g = 0; b = c;
+            } else if (300 <= h && h < 360) {
+                r = c; g = 0; b = x;
+            }
+            r = Math.round((r + m) * 255);
+            g = Math.round((g + m) * 255);
+            b = Math.round((b + m) * 255);
+
+            return `${r}, ${g}, ${b}`;
+        }
+
+        // Function to determine RGB color string for background from any color format
+        function getColorRgb(color) {
+            if (color.startsWith('#')) {
+                return hexToRgb(color);
+            } else if (color.startsWith('hsl')) {
+                const parts = color.match(/\d+(\.\d+)?/g).map(Number); // Match decimals too
+                return hslToRgb(parts[0], parts[1], parts[2]);
+            }
+            return '0, 123, 255'; // Default blue if color format is unknown
+        }
+
+
+        // Default bookmarks data (structured as an array of group objects)
+        const defaultBookmarksData = [
+            {
+                id: 'default-group-1',
+                name: '常用网站',
+                color: '#6aa84f', // Example color
+                bookmarks: [
+                    { id: 'default-bookmark-1', name: 'Google', url: 'https://www.google.com', thumbnail: 'https://www.google.com/favicon.ico' },
+                    { id: 'default-bookmark-2', name: 'GitHub', url: 'https://github.com', thumbnail: 'https://github.com/favicon.ico' }
+                ]
+            },
+            {
+                id: 'default-group-2',
+                name: '学习资源',
+                color: '#cc0000', // Example color
+                bookmarks: [
+                    { id: 'default-bookmark-3', name: 'MDN Web Docs', url: 'https://developer.mozilla.org', thumbnail: 'https://developer.mozilla.org/favicon.ico' },
+                    { id: 'default-bookmark-4', name: 'Stack Overflow', url: 'https://stackoverflow.com', thumbnail: 'https://stackoverflow.com/favicon.ico' }
+                ]
+            }
+        ];
+
+        // Load bookmarks from localStorage, or use default data if localStorage is empty/invalid
+        let bookmarksData;
+        try {
+            const storedData = localStorage.getItem('bookmarksData');
+            if (storedData) {
+                bookmarksData = JSON.parse(storedData);
+                // Ensure loaded data conforms to the new array-of-groups structure
+                // This converts old formats and adds missing IDs/colors
+                bookmarksData = convertOldFormatToNew(bookmarksData);
+            } else {
+                bookmarksData = JSON.parse(JSON.stringify(defaultBookmarksData)); // Deep copy default
+            }
+        } catch (e) {
+            console.error('Failed to load bookmarks from localStorage, using default data:', e);
+            bookmarksData = JSON.parse(JSON.stringify(defaultBookmarksData)); // Fallback to default
+        }
+
+        // Function to save current bookmarks data to localStorage
+        function saveBookmarks() {
+            localStorage.setItem('bookmarksData', JSON.stringify(bookmarksData));
+        }
+
+        // Function to generate favicon URL from a given URL
+        function getFaviconUrl(url) {
+            try {
+                const hostname = new URL(url).hostname;
+                return `https://www.google.com/s2/favicons?domain=${hostname}`;
+            } catch (e) {
+                console.warn('Invalid URL for favicon:', url, e);
+                return ''; // Return empty string for invalid URLs
+            }
+        }
+
+        // Function to render bookmarks on the main frontend page
+        function renderBookmarks() {
+            groupGrid.innerHTML = ''; // Clear existing content
+            bookmarksData.forEach(group => {
+                const groupElement = document.createElement('div');
+                groupElement.className = 'group';
+                groupElement.style.setProperty('--group-color', group.color);
+                groupElement.style.setProperty('--group-color-rgb', getColorRgb(group.color));
+
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'group-header';
+                groupHeader.innerHTML = `<h2>${group.name}</h2>`;
+                groupElement.appendChild(groupHeader);
+
+                const bookmarkList = document.createElement('ul');
+                bookmarkList.className = 'bookmark-list';
+
+                group.bookmarks.forEach(bookmark => {
+                    const bookmarkItem = document.createElement('li');
+                    bookmarkItem.className = 'bookmark-card';
+                    bookmarkItem.style.setProperty('--group-color-rgb', getColorRgb(group.color));
+                    bookmarkItem.innerHTML = `
+                        <a href="${bookmark.url}" target="_blank">
+                            <img src="${bookmark.thumbnail || getFaviconUrl(bookmark.url)}" alt="favicon" onerror="this.onerror=null;this.src='https://www.google.com/s2/favicons?domain=default';">
+                            <span>${bookmark.name}</span>
+                        </a>
+                    `;
+                    bookmarkList.appendChild(bookmarkItem);
+                });
+                groupElement.appendChild(bookmarkList);
+                groupGrid.appendChild(groupElement);
+            });
+        }
+
+        // Function to render the settings/backend page with editable groups and bookmarks
+        function renderSettings() {
+            groupList.innerHTML = ''; // Clear existing content
+            bookmarksData.forEach(group => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'setting-group-item';
+                groupDiv.dataset.groupId = group.id; // Add group ID for event delegation
+                groupDiv.style.setProperty('--item-color', group.color);
+                groupDiv.innerHTML = `
+                    <div class="item-content">
+                        <input type="text" value="${group.name}" data-group-id="${group.id}" class="edit-group-name-input">
+                        <input type="color" value="${group.color}" data-group-id="${group.id}" class="edit-group-color-input">
+                    </div>
+                    <div class="item-actions">
+                        <button class="add-bookmark-button small-button" data-group-id="${group.id}">添加书签</button>
+                        <button class="move-button small-button move-up-group-btn" data-group-id="${group.id}">上移</button>
+                        <button class="move-button small-button move-down-group-btn" data-group-id="${group.id}">下移</button>
+                        <button class="delete-button small-button" data-group-id="${group.id}">删除分组</button>
+                    </div>
+                `;
+                groupList.appendChild(groupDiv);
+
+                const bookmarkContainer = document.createElement('div');
+                bookmarkContainer.className = 'bookmark-setting-container';
+                groupDiv.appendChild(bookmarkContainer);
+
+                group.bookmarks.forEach(bookmark => {
+                    const bookmarkDiv = document.createElement('div');
+                    bookmarkDiv.className = 'setting-bookmark-item';
+                    bookmarkDiv.dataset.groupId = group.id; // Add group ID for event delegation
+                    bookmarkDiv.dataset.bookmarkId = bookmark.id; // Add bookmark ID for event delegation
+                    bookmarkDiv.style.setProperty('--item-color', group.color); // Bookmarks also use group color
+                    bookmarkDiv.innerHTML = `
+                        <div class="item-content">
+                            <input type="text" value="${bookmark.name}" data-group-id="${group.id}" data-bookmark-id="${bookmark.id}" class="edit-bookmark-name-input" placeholder="书签名称">
+                            <input type="url" value="${bookmark.url}" data-group-id="${group.id}" data-bookmark-id="${bookmark.id}" class="edit-bookmark-url-input" placeholder="书签链接">
+                            <input type="url" value="${bookmark.thumbnail || ''}" data-group-id="${group.id}" data-bookmark-id="${bookmark.id}" class="edit-bookmark-thumbnail-input" placeholder="缩略图链接 (可选)">
+                        </div>
+                        <div class="item-actions">
+                            <button class="move-button small-button move-up-bookmark-btn" data-group-id="${group.id}" data-bookmark-id="${bookmark.id}">上移</button>
+                            <button class="move-button small-button move-down-bookmark-btn" data-group-id="${group.id}" data-bookmark-id="${bookmark.id}">下移</button>
+                            <button class="delete-button small-button" data-group-id="${group.id}" data-bookmark-id="${bookmark.id}">删除书签</button>
+                        </div>
+                    `;
+                    bookmarkContainer.appendChild(bookmarkDiv);
+                });
+            });
+        }
+
+        // Add New Group
+        addGroupBtn.addEventListener('click', () => {
+            const newGroupName = prompt('请输入新分组名称:');
+            if (newGroupName) {
+                bookmarksData.push({
+                    id: Date.now().toString() + Math.random().toString().substring(2, 8), // More robust unique ID
+                    name: newGroupName,
+                    color: getRandomColor(),
+                    bookmarks: []
+                });
+                saveBookmarks();
+                renderBookmarks();
+                renderSettings();
+            }
+        });
+
+        // Event delegation for actions within the settings list (edit, delete, add bookmark, move)
+        groupList.addEventListener('click', (event) => {
+            // Delete Group
+            if (event.target.classList.contains('delete-button') && event.target.dataset.groupId && !event.target.dataset.bookmarkId) {
+                const groupIdToDelete = event.target.dataset.groupId;
+                if (confirm('确定要删除此分组及其所有书签吗？此操作不可撤销！')) {
+                    bookmarksData = bookmarksData.filter(group => group.id !== groupIdToDelete);
+                    saveBookmarks();
+                    renderBookmarks();
+                    renderSettings();
+                }
+            }
+            // Add Bookmark
+            else if (event.target.classList.contains('add-bookmark-button')) {
+                const groupId = event.target.dataset.groupId;
+                const bookmarkName = prompt('请输入书签名称:');
+                if (!bookmarkName) return;
+                const bookmarkUrl = prompt('请输入书签链接:');
+                if (!bookmarkUrl) return;
+
+                const group = bookmarksData.find(g => g.id === groupId);
+                if (group) {
+                    group.bookmarks.push({
+                        id: Date.now().toString() + Math.random().toString().substring(2, 8), // Unique ID for bookmark
+                        name: bookmarkName,
+                        url: bookmarkUrl,
+                        thumbnail: getFaviconUrl(bookmarkUrl)
+                    });
+                    saveBookmarks();
+                    renderBookmarks();
+                    renderSettings();
+                }
+            }
+            // Delete Bookmark
+            else if (event.target.classList.contains('delete-button') && event.target.dataset.groupId && event.target.dataset.bookmarkId) {
+                const groupId = event.target.dataset.groupId;
+                const bookmarkIdToDelete = event.target.dataset.bookmarkId;
+                if (confirm('确定要删除此书签吗？此操作不可撤销！')) {
+                    const group = bookmarksData.find(g => g.id === groupId);
+                    if (group) {
+                        group.bookmarks = group.bookmarks.filter(b => b.id !== bookmarkIdToDelete);
+                        saveBookmarks();
+                        renderBookmarks();
+                        renderSettings();
+                    }
+                }
+            }
+             // Move Group Up
+            else if (event.target.classList.contains('move-up-group-btn')) {
+                const groupId = event.target.dataset.groupId;
+                moveGroup(groupId, 'up');
+            }
+            // Move Group Down
+            else if (event.target.classList.contains('move-down-group-btn')) {
+                const groupId = event.target.dataset.groupId;
+                moveGroup(groupId, 'down');
+            }
+            // Move Bookmark Up
+            else if (event.target.classList.contains('move-up-bookmark-btn')) {
+                const groupId = event.target.dataset.groupId;
+                const bookmarkId = event.target.dataset.bookmarkId;
+                moveBookmark(groupId, bookmarkId, 'up');
+            }
+            // Move Bookmark Down
+            else if (event.target.classList.contains('move-down-bookmark-btn')) {
+                const groupId = event.target.dataset.groupId;
+                const bookmarkId = event.target.dataset.bookmarkId;
+                moveBookmark(groupId, bookmarkId, 'down');
+            }
+        });
+
+        // Event delegation for input changes in settings (live editing)
+        groupList.addEventListener('input', (event) => {
+            // Edit Group Name
+            if (event.target.classList.contains('edit-group-name-input')) {
+                const groupId = event.target.dataset.groupId;
+                const newName = event.target.value;
+                const group = bookmarksData.find(g => g.id === groupId);
+                if (group) {
+                    group.name = newName;
+                    saveBookmarks();
+                    renderBookmarks(); // Re-render frontend to update group names
+                }
+            }
+            // Edit Group Color
+            else if (event.target.classList.contains('edit-group-color-input')) {
+                const groupId = event.target.dataset.groupId;
+                const newColor = event.target.value;
+                const group = bookmarksData.find(g => g.id === groupId);
+                if (group) {
+                    group.color = newColor;
+                    saveBookmarks();
+                    renderBookmarks(); // Re-render frontend to update group colors
+                    // Also update the border color of the settings item itself
+                    event.target.closest('.setting-group-item').style.setProperty('--item-color', newColor);
+                }
+            }
+            // Edit Bookmark Name
+            else if (event.target.classList.contains('edit-bookmark-name-input')) {
+                const groupId = event.target.dataset.groupId;
+                const bookmarkId = event.target.dataset.bookmarkId;
+                const newName = event.target.value;
+                const group = bookmarksData.find(g => g.id === groupId);
+                if (group) {
+                    const bookmark = group.bookmarks.find(b => b.id === bookmarkId);
+                    if (bookmark) {
+                        bookmark.name = newName;
+                        saveBookmarks();
+                        renderBookmarks(); // Re-render frontend
+                    }
+                }
+            }
+            // Edit Bookmark URL (and update favicon)
+            else if (event.target.classList.contains('edit-bookmark-url-input')) {
+                const groupId = event.target.dataset.groupId;
+                const bookmarkId = event.target.dataset.bookmarkId;
+                const newUrl = event.target.value;
+                const group = bookmarksData.find(g => g.id === groupId);
+                if (group) {
+                    const bookmark = group.bookmarks.find(b => b.id === bookmarkId);
+                    if (bookmark) {
+                        bookmark.url = newUrl;
+                        // Auto-update thumbnail if it was previously derived from URL and now URL changes
+                        if (!bookmark.thumbnail || bookmark.thumbnail.includes('google.com/s2/favicons')) {
+                            bookmark.thumbnail = getFaviconUrl(newUrl);
+                        }
+                        saveBookmarks();
+                        renderBookmarks(); // Re-render frontend
+                    }
+                }
+            }
+            // Edit Bookmark Thumbnail
+            else if (event.target.classList.contains('edit-bookmark-thumbnail-input')) {
+                const groupId = event.target.dataset.groupId;
+                const bookmarkId = event.target.dataset.bookmarkId;
+                const newThumbnail = event.target.value;
+                const group = bookmarksData.find(g => g.id === groupId);
+                if (group) {
+                    const bookmark = group.bookmarks.find(b => b.id === bookmarkId);
+                    if (bookmark) {
+                        bookmark.thumbnail = newThumbnail;
+                        saveBookmarks();
+                        renderBookmarks(); // Re-render frontend
+                    }
+                }
+            }
+        });
+
+        // Open Settings Modal (with password protection)
+        settingsIcon.addEventListener('click', () => {
+            if (!isAuthenticated) {
+                const password = prompt('请输入密码:');
+                if (password === 'baoge888') { // The password is "baoge888"
+                    isAuthenticated = true;
+                    sessionStorage.setItem('isAuthenticated', 'true'); // Store authentication status for session
+                    settingsModal.style.display = 'flex'; // Show modal
+                    renderSettings(); // Render settings content
+                } else {
+                    alert('密码错误！');
+                }
+            } else {
+                settingsModal.style.display = 'flex'; // Show modal directly if already authenticated
+                renderSettings(); // Render settings content
+            }
+        });
+
+        // Close Settings Modal
+        closeSettingsModal.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside of it
+        window.addEventListener('click', (event) => {
+            if (event.target === settingsModal) {
+                settingsModal.style.display = 'none';
+            }
+        });
+
+        // Export Data
+        exportBtn.addEventListener('click', () => {
+            const dataStr = JSON.stringify(bookmarksData, null, 4); // Pretty print JSON
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bookmarks.json'; // Suggested filename
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert('数据已导出为 bookmarks.json');
+        });
+
+        // Helper function to convert older flat bookmark structure or ensure new structure has IDs/colors
+        function convertOldFormatToNew(oldData) {
+            if (Array.isArray(oldData)) {
+                // If it's already an array, ensure each group has ID/color and each bookmark has ID/thumbnail
+                return oldData.map(group => ({
+                    id: group.id || Date.now() + Math.random().toString().substring(2, 8),
+                    name: group.name,
+                    color: group.color || getRandomColor(),
+                    bookmarks: (group.bookmarks || []).map(b => ({
+                        id: b.id || Date.now() + Math.random().toString().substring(2, 8) + b.url.length,
+                        name: b.name,
+                        url: b.url,
+                        thumbnail: b.thumbnail || getFaviconUrl(b.url) // Ensure thumbnail is set
+                    }))
+                }));
+            }
+            // If it's an object with group names as keys (old format)
+            if (typeof oldData === 'object' && oldData !== null) {
+                const newFormat = [];
+                for (const groupName in oldData) {
+                    if (Object.hasOwnProperty.call(oldData, groupName)) {
+                        newFormat.push({
+                            name: groupName,
+                            id: Date.now().toString() + Math.random().toString().substring(2, 8),
+                            color: getRandomColor(),
+                            bookmarks: (oldData[groupName] || []).map(b => ({
+                                id: Date.now().toString() + Math.random().toString().substring(2, 8) + b.url.length,
+                                name: b.name,
+                                url: b.url,
+                                thumbnail: b.thumbnail || getFaviconUrl(b.url)
+                            }))
+                        });
+                    }
+                }
+                return newFormat;
+            }
+            return []; // Return empty array if data format is completely unexpected
+        }
+
+
+        // Handle Import Function (Overlay or Add)
+        function handleImport(event, mode) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (mode === 'overwrite') {
+                        bookmarksData = convertOldFormatToNew(importedData); // Convert and overwrite
+                        saveBookmarks();
+                        renderBookmarks();
+                        renderSettings();
+                        alert('数据已覆盖导入！');
+                    } else if (mode === 'add') {
+                        addImportedData(importedData); // Add with de-duplication
+                        saveBookmarks();
+                        renderBookmarks();
+                        renderSettings();
+                        alert('数据已追加导入！');
+                    }
+                } catch (error) {
+                    alert('导入数据格式不正确或文件已损坏！请确保导入的是有效的JSON文件，且包含书签名称、链接。');
+                    console.error('Error parsing imported data:', error);
+                } finally {
+                    event.target.value = ''; // Clear file input for subsequent imports of same file
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Function to handle adding imported data with de-duplication
+        function addImportedData(importedData) {
+            let dataToImport = convertOldFormatToNew(importedData); // Ensure imported data is in new format
+
+            dataToImport.forEach(importedGroup => {
+                let existingGroup = bookmarksData.find(g => g.name === importedGroup.name);
+                if (existingGroup) {
+                    // Group exists, add bookmarks, de-duplicate by URL
+                    importedGroup.bookmarks.forEach(importedBookmark => {
+                        // Check if bookmark with same URL already exists in the group
+                        if (!existingGroup.bookmarks.some(b => b.url === importedBookmark.url)) {
+                            existingGroup.bookmarks.push(importedBookmark);
+                        }
+                    });
+                } else {
+                    // Group does not exist, add the whole group
+                    bookmarksData.push(importedGroup);
+                }
+            });
+        }
+
+        // Event listeners for import buttons
+        importOverlayBtn.addEventListener('click', () => {
+            importFile.click();
+            importFile.onchange = (event) => handleImport(event, 'overwrite');
+        });
+
+        importAddBtn.addEventListener('click', () => {
+            importFile.click();
+            importFile.onchange = (event) => handleImport(event, 'add');
+        });
+
+
+        // Restore Default Data
+        restoreDefaultBtn.addEventListener('click', () => {
+            if (confirm('确定要恢复到默认书签吗？这将覆盖所有现有数据，且不可撤销！')) {
+                bookmarksData = JSON.parse(JSON.stringify(defaultBookmarksData)); // Deep copy to restore defaults
+                saveBookmarks();
+                renderBookmarks();
+                renderSettings();
+                alert('已恢复到默认书签！');
+                settingsModal.style.display = 'none'; // Close modal after action
+            }
+        });
+
+        // Clear All Data
+        clearAllDataBtn.addEventListener('click', () => {
+            if (confirm('确定要清空所有书签数据吗？此操作不可撤销！')) {
+                bookmarksData = []; // Set to empty array to clear all
+                saveBookmarks();
+                renderBookmarks();
+                renderSettings();
+                alert('所有书签数据已清空！');
+                settingsModal.style.display = 'none'; // Close modal after action
+            }
+        });
+
+        // Function to move group up/down in the array
+        function moveGroup(groupId, direction) {
+            const index = bookmarksData.findIndex(g => g.id === groupId);
+            if (index === -1) return;
+
+            if (direction === 'up' && index > 0) {
+                [bookmarksData[index - 1], bookmarksData[index]] = [bookmarksData[index], bookmarksData[index - 1]];
+            } else if (direction === 'down' && index < bookmarksData.length - 1) {
+                [bookmarksData[index + 1], bookmarksData[index]] = [bookmarksData[index], bookmarksData[index + 1]];
+            }
+            saveBookmarks();
+            renderBookmarks(); // Update frontend display
+            renderSettings(); // Update backend display to reflect new order
+        }
+
+        // Function to move bookmark up/down within its group
+        function moveBookmark(groupId, bookmarkId, direction) {
+            const group = bookmarksData.find(g => g.id === groupId);
+            if (!group) return;
+
+            const index = group.bookmarks.findIndex(b => b.id === bookmarkId);
+            if (index === -1) return;
+
+            if (direction === 'up' && index > 0) {
+                [group.bookmarks[index - 1], group.bookmarks[index]] = [group.bookmarks[index], group.bookmarks[index - 1]];
+            } else if (direction === 'down' && index < group.bookmarks.length - 1) {
+                [group.bookmarks[index + 1], group.bookmarks[index]] = [group.bookmarks[index], group.bookmarks[index + 1]];
+            }
+            saveBookmarks();
+            renderBookmarks();
+            renderSettings();
+        }
+
+        // Initial render of the frontend page when the script loads
+        renderBookmarks();
+
+        // Ensure the modal is hidden on initial load, overriding any potential CSS issues
+        settingsModal.style.display = 'none';
+    </script>
+</body>
+</html>
