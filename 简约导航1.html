@@ -94,6 +94,8 @@
             transition: transform 0.3s ease-in-out;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
             transform: translateX(0); /* 默认在桌面端是可见的 */
+            padding-top: 8px; /* 添加内边距，确保内容不紧贴顶部 */
+            padding-bottom: 8px; /* 添加内边距，确保底部内容可见 */
         }
 
         nav.active {
@@ -103,10 +105,7 @@
         nav ul {
             list-style: none;
             padding: 0;
-            margin: 0;
-            margin-top: 8px;
-            /* height: calc(100% - 8px); <-- 移除此行 */
-            /* overflow-y: auto; <-- 移除此行 */
+            margin: 0; /* 移除 margin-top */
         }
 
         nav li {
@@ -648,7 +647,7 @@
         const adminContent = document.getElementById('admin-content');
 
         const bookmarkIdInput = document.getElementById('bookmarkId');
-        const bookmarkNameInput = document = document.getElementById('bookmarkName');
+        const bookmarkNameInput = document.getElementById('bookmarkName');
         const bookmarkUrlInput = document.getElementById('bookmarkUrl');
         const bookmarkFaviconInput = document.getElementById('bookmarkFavicon');
         const bookmarkCategorySelect = document.getElementById('bookmarkCategory');
@@ -889,27 +888,7 @@
         adminToggle.addEventListener('click', () => {
             if (adminView.classList.contains('active')) {
                 // 如果当前是后台管理页面，则切换回主页
-                adminView.classList.remove('active');
-                mainContent.style.display = 'block'; // 显示主内容
-
-                // 重新渲染主内容和导航分类
-                renderMainContent();
-                renderNavCategories();
-
-                // 根据屏幕尺寸处理导航栏显示
-                if (window.innerWidth <= 768) {
-                    nav.classList.remove('active'); // 移动端返回主页时导航默认隐藏
-                    mainContent.style.display = 'none'; // 移动端主页默认隐藏主内容，等待菜单点击
-                } else {
-                    nav.style.display = 'block'; // 桌面端导航栏始终显示
-                    // 桌面端默认显示第一个分类
-                    const categories = Object.keys(getBookmarks());
-                    if(categories.length > 0) {
-                       showCategory(categories[0]);
-                    }
-                }
-
-
+                location.reload(); // 返回前端页面时刷新
             } else {
                 // 切换到后台管理页面
                 mainContent.style.display = 'none'; // 隐藏主内容
