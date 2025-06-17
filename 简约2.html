@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的书签导航</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            min-height: 98vh; /* Reduce min-height slightly */
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            margin: 15px auto; /* Slightly reduced top/bottom margin */
+            background-color: #fff;
+            padding: 20px; /* Slightly reduced padding */
+            border-radius: 15px; /* Adjusted to be consistent with cards */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: relative; /* For settings icon positioning */
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px; /* Reduced margin */
+            position: relative;
+        }
+
+        h1 {
+            color: #0056b3;
+            margin-bottom: 8px; /* Reduced margin */
+            font-size: 2.2em; /* Slightly smaller */
+        }
+
+        .search-bar {
+            margin-bottom: 20px; /* Reduced margin */
+            text-align: center;
+        }
+
+        .search-bar input {
+            width: 80%;
+            max-width: 500px;
+            padding: 10px 18px; /* Slightly reduced padding */
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 1em; /* Slightly smaller font */
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .search-bar input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.25);
+        }
+
+        .groups-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* Slightly reduced gap between groups */
+            justify-content: center;
+        }
+
+        .group {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 15px; /* Consistent with container */
+            padding: 15px; /* Reduced padding */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            width: 100%; /* Default to full width for small screens */
+            box-sizing: border-box;
+        }
+
+        .group-title {
+            font-size: 1.5em; /* Slightly smaller */
+            color: #0056b3;
+            margin-top: 0;
+            margin-bottom: 12px; /* Reduced margin */
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 8px; /* Reduced padding */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bookmark-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px; /* Reduced gap between bookmarks */
+            justify-content: flex-start; /* Align to start for left-to-right flow */
+        }
+
+        .bookmark-card {
+            background-color: rgba(200, 200, 200, 0.7); /* Darker initial background */
+            border-radius: 10px; /* Slightly less oval */
+            padding: 10px; /* Reduced padding */
+            text-align: center;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+            display: flex; /* Keep flex for centering content */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 60px; /* Reduced height */
+            text-decoration: none; /* Remove underline from links */
+            color: inherit; /* Inherit text color */
+            width: auto; /* Allow width to adapt */
+            min-width: 120px; /* Minimum width for small names */
+            max-width: 180px; /* Maximum width for long names */
+            box-sizing: border-box;
+            word-wrap: break-word; /* Allow long words to break */
+            overflow: hidden; /* Hide overflow to keep cards compact */
+            white-space: normal; /* Allow text to wrap naturally */
+        }
+
+        .bookmark-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            background-color: rgba(150, 150, 150, 0.8); /* Even darker on hover */
+        }
+
+        .bookmark-name {
+            font-size: 0.95em; /* Smaller font size */
+            font-weight: 500;
+            color: #333; /* Keep text color for readability */
+            display: block; /* Ensure it takes full width */
+            margin-top: 3px; /* Reduced margin */
+            text-align: center; /* Center the bookmark name */
+            word-break: break-word; /* Break words to prevent overflow */
+            line-height: 1.2; /* Tighter line height */
+            max-height: 3.6em; /* Limit to 3 lines (1.2 * 3) */
+            overflow: hidden; /* Hide overflow text */
+            text-overflow: ellipsis; /* Add ellipsis for overflow */
+        }
+
+        .settings-icon {
+            position: absolute;
+            top: 15px; /* Adjusted to be less intrusive */
+            right: 15px; /* Adjusted to be less intrusive */
+            font-size: 1.6em; /* Slightly smaller icon */
+            cursor: pointer;
+            color: #0056b3;
+            transition: transform 0.2s ease;
+        }
+
+        .settings-icon:hover {
+            transform: rotate(30deg);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.6); /* Black w/ opacity */
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 25px; /* Slightly reduced padding */
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 550px; /* Slightly reduced max-width */
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+            position: relative;
+        }
+
+        @keyframes animatetop {
+            from { top: -300px; opacity: 0 }
+            to { top: 0; opacity: 1 }
+        }
+
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 8px; /* Adjusted */
+            right: 15px; /* Adjusted */
+            font-size: 26px; /* Slightly smaller */
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal h2 {
+            text-align: center;
+            color: #0056b3;
+            margin-bottom: 20px; /* Slightly reduced margin */
+            font-size: 1.8em; /* Slightly smaller */
+        }
+
+        .password-input-container {
+            text-align: center;
+            margin-bottom: 15px; /* Slightly reduced margin */
+        }
+
+        .password-input-container input {
+            padding: 8px 12px; /* Reduced padding */
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1em; /* Slightly smaller font */
+            width: calc(100% - 24px); /* Adjust width for padding */
+            max-width: 280px; /* Slightly reduced max-width */
+        }
+
+        .password-input-container button {
+            padding: 8px 15px; /* Reduced padding */
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em; /* Slightly smaller font */
+            margin-left: 8px; /* Reduced margin */
+            transition: background-color 0.2s ease;
+        }
+
+        .password-input-container button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Settings page specific styles */
+        #settings-page h3 {
+            color: #0056b3;
+            margin-top: 25px; /* Slightly reduced margin */
+            margin-bottom: 12px; /* Slightly reduced margin */
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+            font-size: 1.3em; /* Slightly smaller */
+        }
+
+        #settings-page .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px; /* Reduced gap */
+            margin-bottom: 15px; /* Reduced margin */
+            justify-content: center;
+        }
+
+        #settings-page button {
+            padding: 6px 12px; /* Further reduced padding */
+            border: none;
+            border-radius: 6px; /* Slightly smaller border-radius */
+            cursor: pointer;
+            font-size: 0.85em; /* Further smaller font size */
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+
+        #settings-page button:hover {
+            transform: translateY(-2px);
+        }
+
+        .small-button {
+            padding: 6px 12px; /* Consistent with settings buttons */
+            font-size: 0.85em;
+        }
+
+        .colored-button {
+            background-color: #28a745; /* Green */
+            color: white;
+        }
+        .colored-button:hover {
+            background-color: #218838;
+        }
+
+        .warning-button {
+            background-color: #ffc107; /* Yellow */
+            color: #333;
+        }
+        .warning-button:hover {
+            background-color: #e0a800;
+        }
+
+        .danger-button {
+            background-color: #dc3545; /* Red */
+            color: white;
+        }
+        .danger-button:hover {
+            background-color: #c82333;
+        }
+
+        .primary-button {
+            background-color: #007bff; /* Blue */
+            color: white;
+        }
+        .primary-button:hover {
+            background-color: #0056b3;
+        }
+
+        .group-settings, .bookmark-settings {
+            background-color: #f0f0f0;
+            padding: 12px; /* Reduced padding */
+            margin-bottom: 12px; /* Reduced margin */
+            border-radius: 8px; /* Slightly smaller border-radius */
+            border: 1px solid #ddd;
+        }
+
+        .group-settings label, .bookmark-settings label {
+            display: block;
+            margin-bottom: 6px; /* Reduced margin */
+            font-weight: 500;
+            color: #555;
+        }
+
+        .group-settings input[type="text"],
+        .bookmark-settings input[type="text"],
+        .bookmark-settings input[type="url"],
+        .group-settings input[type="color"] {
+            width: calc(100% - 16px); /* Adjusted width for padding */
+            padding: 8px; /* Reduced padding */
+            margin-bottom: 8px; /* Reduced margin */
+            border: 1px solid #ccc;
+            border-radius: 4px; /* Slightly smaller border-radius */
+            font-size: 0.95em; /* Slightly smaller font */
+        }
+
+        .group-settings input[type="color"] {
+            width: 70px; /* Smaller width for color input */
+            height: 30px; /* Smaller height */
+            vertical-align: middle;
+            margin-left: 8px; /* Reduced margin */
+            padding: 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        .group-settings .group-header-settings,
+        .bookmark-settings .bookmark-header-settings {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px; /* Reduced margin */
+        }
+
+        .group-settings .group-name-input {
+            flex-grow: 1;
+            margin-right: 8px; /* Reduced margin */
+        }
+
+        .group-settings .group-buttons,\
+        .bookmark-settings .bookmark-buttons {
+            display: flex;
+            gap: 4px; /* Reduced gap */
+            margin-top: 8px; /* Reduced margin */
+            flex-wrap: wrap; /* Allow buttons to wrap */
+        }
+
+        .group-settings .bookmark-section {
+            margin-top: 15px; /* Reduced margin */
+            padding-top: 12px; /* Reduced padding */
+            border-top: 1px dashed #ccc;
+        }
+
+        .group-settings .bookmark-section h4 {
+            color: #0056b3;
+            margin-top: 0;
+            margin-bottom: 8px; /* Reduced margin */
+            font-size: 1.1em; /* Slightly smaller */
+        }
+
+        .group-settings .add-bookmark-button {
+            display: block;
+            width: fit-content;
+            margin: 12px auto 0; /* Reduced margin */
+            background-color: #6c757d; /* Grey */
+            color: white;
+            padding: 6px 15px; /* Reduced padding */
+        }
+        .group-settings .add-bookmark-button:hover {
+            background-color: #5a6268;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                width: 98%;
+                margin: 10px auto;
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .search-bar input {
+                width: 90%;
+            }
+
+            .group {
+                padding: 15px;
+            }
+
+            .group-title {
+                font-size: 1.4em;
+            }
+
+            .bookmark-card {
+                min-width: 100px; /* Adjust min-width for mobile */
+                max-width: 150px; /* Adjust max-width for mobile */
+                padding: 8px; /* Further reduced padding */
+                min-height: 55px; /* Further reduced height */
+            }
+
+            .bookmark-name {
+                font-size: 0.9em; /* Further smaller font */
+            }
+
+            .settings-icon {
+                font-size: 1.4em; /* Further smaller icon */
+                top: 10px;
+                right: 10px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 15px; /* Further reduced padding */
+            }
+            #settings-page button {
+                font-size: 0.8em; /* Further smaller font */
+                padding: 5px 10px; /* Further reduced padding */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="settings-icon" id="settings-icon" title="设置">&#9881;</div> <!-- Unicode Gear Icon -->
+
+        <header>
+            <h1>我的书签导航</h1>
+        </header>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="搜索书签...">
+        </div>
+
+        <div class="groups-container" id="groups-container">
+            <!-- Bookmarks will be loaded here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-modal-button">&times;</span>
+            <div id="password-prompt" class="password-input-container">
+                <h2>请输入密码</h2>
+                <input type="password" id="password-input" placeholder="密码">
+                <button id="password-submit" class="primary-button">确定</button>
+                <p id="password-error" style="color: red; margin-top: 10px; display: none;">密码错误，请重试。</p>
+            </div>
+            <div id="settings-page" style="display: none;">
+                <h2>后台管理</h2>
+
+                <div class="button-group">
+                    <button id="addGroupBtn" class="colored-button small-button">添加分组</button>
+                    <button id="exportDataBtn" class="primary-button small-button">导出数据</button>
+                    <button id="importDataOverwriteBtn" class="warning-button small-button">覆盖导入</button>
+                    <button id="importDataAppendBtn" class="primary-button small-button">追加导入</button>
+                    <button id="restoreDefaultBtn" class="colored-button small-button">恢复默认</button>
+                    <button id="clearAllDataBtn" class="danger-button small-button">清空所有数据</button>
+                </div>
+
+                <div id="settings-groups-container">
+                    <!-- Groups settings will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let bookmarksData = [];
+        const localStorageKey = 'bookmarksData';
+        const password = 'baoge888';
+        let isAuthenticated = false; // Track authentication status for session
+
+        // Define a set of default colors for groups
+        const defaultGroupColors = [
+            "#B0E0E6", // PowderBlue
+            "#FFDAB9", // PeachPuff
+            "#ADD8E6", // LightBlue
+            "#F0E68C", // Khaki
+            "#98FB98", // PaleGreen
+            "#FFB6C1", // LightPink
+            "#D8BFD8", // Thistle
+            "#C0C0C0", // Silver
+            "#FFFACD"  // LemonChiffon
+        ];
+        let colorIndex = 0;
+
+        // Function to get the next default color
+        function getNextDefaultColor() {
+            const color = defaultGroupColors[colorIndex % defaultGroupColors.length];
+            colorIndex++;
+            return color;
+        }
+
+        // Default bookmarks data
+        const defaultBookmarksData = [
+            {
+                id: generateId(),
+                name: "常用工具",
+                color: getNextDefaultColor(),
+                bookmarks: [
+                    { id: generateId(), name: "站长之家", url: "https://tool.chinaz.com/", favicon: "" },
+                    { id: generateId(), name: "阿里图标", url: "https://www.iconfont.cn/", favicon: "" },
+                    { id: generateId(), name: "CSS渐变", url: "https://www.grabient.com/", favicon: "" },
+                    { id: generateId(), name: "站长素材", url: "https://sc.chinaz.com/", favicon: "" }
+                ]
+            },
+            {
+                id: generateId(),
+                name: "搜索引擎",
+                color: getNextDefaultColor(),
+                bookmarks: [
+                    { id: generateId(), name: "百度", url: "https://www.baidu.com/", favicon: "" },
+                    { id: generateId(), name: "谷歌", url: "https://www.google.com/", favicon: "" }
+                ]
+            }
+        ];
+
+        // Utility to generate unique IDs
+        function generateId() {
+            return Date.now().toString() + Math.floor(Math.random() * 1e9).toString();
+        }
+
+        // Load data from localStorage or use default
+        function loadBookmarks() {
+            const data = localStorage.getItem(localStorageKey);
+            if (data) {
+                try {
+                    bookmarksData = JSON.parse(data);
+                    // Ensure IDs and colors are present for old data structure or new imports
+                    bookmarksData.forEach(group => {
+                        if (!group.id) group.id = generateId();
+                        if (!group.color) group.color = getNextDefaultColor(); // Assign color if missing
+                        group.bookmarks.forEach(bookmark => {
+                            if (!bookmark.id) bookmark.id = generateId();
+                        });
+                    });
+                } catch (e) {
+                    console.error("Error parsing localStorage data, using default.", e);
+                    bookmarksData = JSON.parse(JSON.stringify(defaultBookmarksData)); // Deep copy
+                    saveBookmarks();
+                }
+            } else {
+                bookmarksData = JSON.parse(JSON.stringify(defaultBookmarksData)); // Deep copy
+                saveBookmarks();
+            }
+        }
+
+        // Save data to localStorage
+        function saveBookmarks() {
+            localStorage.setItem(localStorageKey, JSON.stringify(bookmarksData));
+            renderBookmarks(); // Re-render front-end
+            if (document.getElementById('settings-page').style.display !== 'none') {
+                 renderSettings(); // Re-render settings if open
+            }
+        }
+
+        // Render bookmarks on the main page
+        function renderBookmarks(filter = '') {
+            const groupsContainer = document.getElementById('groups-container');
+            groupsContainer.innerHTML = ''; // Clear existing bookmarks
+
+            const lowerCaseFilter = filter.toLowerCase();
+
+            bookmarksData.forEach(group => {
+                const groupElement = document.createElement('div');
+                groupElement.className = 'group';
+
+                const groupTitleElement = document.createElement('h3');
+                groupTitleElement.className = 'group-title';
+                groupTitleElement.textContent = group.name;
+                groupElement.appendChild(groupTitleElement);
+
+                const bookmarkListElement = document.createElement('div');
+                bookmarkListElement.className = 'bookmark-list';
+
+                const filteredBookmarks = group.bookmarks.filter(bookmark =>
+                    bookmark.name.toLowerCase().includes(lowerCaseFilter) ||
+                    bookmark.url.toLowerCase().includes(lowerCaseFilter)
+                );
+
+                filteredBookmarks.forEach(bookmark => {
+                    const bookmarkCard = document.createElement('a');
+                    bookmarkCard.href = bookmark.url;
+                    bookmarkCard.className = 'bookmark-card';
+                    bookmarkCard.target = '_blank';
+                    bookmarkCard.rel = 'noopener noreferrer';
+                    // Set background color based on group color, with adjusted opacity
+                    bookmarkCard.style.backgroundColor = adjustColorOpacity(group.color || getNextDefaultColor(), 0.7); // Use group color or default
+
+                    const bookmarkName = document.createElement('span');
+                    bookmarkName.className = 'bookmark-name';
+                    bookmarkName.textContent = bookmark.name;
+                    bookmarkCard.appendChild(bookmarkName);
+
+                    bookmarkListElement.appendChild(bookmarkCard);
+                });
+
+                if (filteredBookmarks.length > 0 || filter === '') { // Only show group if it has matching bookmarks or no filter
+                    groupElement.appendChild(bookmarkListElement);
+                    groupsContainer.appendChild(groupElement);
+                }
+            });
+        }
+
+        // Helper to adjust color opacity
+        function adjustColorOpacity(hex, opacity) {
+            let c;
+            if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
+                c= hex.substring(1).split('');
+                if(c.length===3){
+                    c= [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c= '0x'+c.join('');
+                return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+opacity+')';
+            }
+            return hex; // Return original if not a valid hex
+        }
+
+        // --- Settings Modal Logic ---
+        const settingsIcon = document.getElementById('settings-icon');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeModalButton = document.getElementById('close-modal-button');
+        const passwordPrompt = document.getElementById('password-prompt');
+        const passwordInput = document.getElementById('password-input');
+        const passwordSubmit = document.getElementById('password-submit');
+        const passwordError = document.getElementById('password-error');
+        const settingsPage = document.getElementById('settings-page');
+
+        settingsIcon.onclick = () => {
+            settingsModal.style.display = 'flex'; // Use flex to center
+            if (isAuthenticated) {
+                passwordPrompt.style.display = 'none';
+                settingsPage.style.display = 'block';
+                renderSettings();
+            } else {
+                passwordPrompt.style.display = 'block';
+                settingsPage.style.display = 'none';
+                passwordInput.value = ''; // Clear password field
+                passwordInput.focus();
+            }
+        };
+
+        closeModalButton.onclick = () => {
+            settingsModal.style.display = 'none';
+        };
+
+        window.onclick = (event) => {
+            if (event.target == settingsModal) {
+                settingsModal.style.display = 'none';
+            }
+        };
+
+        passwordSubmit.onclick = () => {
+            if (passwordInput.value === password) {
+                isAuthenticated = true;
+                passwordPrompt.style.display = 'none';
+                settingsPage.style.display = 'block';
+                passwordError.style.display = 'none';
+                renderSettings();
+            } else {
+                passwordError.style.display = 'block';
+            }
+        };
+
+        passwordInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                passwordSubmit.click();
+            }
+        });
+
+        // --- Settings Page Rendering and Actions ---
+        function renderSettings() {
+            const settingsGroupsContainer = document.getElementById('settings-groups-container');
+            settingsGroupsContainer.innerHTML = ''; // Clear existing settings
+
+            bookmarksData.forEach((group, groupIndex) => {
+                const groupSettingsDiv = document.createElement('div');
+                groupSettingsDiv.className = 'group-settings';
+
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'group-header-settings';
+
+                const groupNameInput = document.createElement('input');
+                groupNameInput.type = 'text';
+                groupNameInput.className = 'group-name-input';
+                groupNameInput.value = group.name;
+                groupNameInput.placeholder = '分组名称';
+                groupNameInput.oninput = (e) => {
+                    group.name = e.target.value;
+                    saveBookmarks();
+                };
+                groupHeader.appendChild(groupNameInput);
+
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.value = group.color || '#cccccc';
+                colorInput.oninput = (e) => {
+                    group.color = e.target.value;
+                    saveBookmarks();
+                };
+                groupHeader.appendChild(colorInput);
+
+                const groupButtons = document.createElement('div');
+                groupButtons.className = 'group-buttons';
+
+                const moveUpGroupBtn = document.createElement('button');
+                moveUpGroupBtn.className = 'small-button primary-button';
+                moveUpGroupBtn.textContent = '上移';
+                moveUpGroupBtn.onclick = () => moveGroup(groupIndex, -1);
+                if (groupIndex === 0) moveUpGroupBtn.disabled = true;
+                groupButtons.appendChild(moveUpGroupBtn);
+
+                const moveDownGroupBtn = document.createElement('button');
+                moveDownGroupBtn.className = 'small-button primary-button';
+                moveDownGroupBtn.textContent = '下移';
+                moveDownGroupBtn.onclick = () => moveGroup(groupIndex, 1);
+                if (groupIndex === bookmarksData.length - 1) moveDownGroupBtn.disabled = true;
+                groupButtons.appendChild(moveDownGroupBtn);
+
+                const deleteGroupBtn = document.createElement('button');
+                deleteGroupBtn.className = 'small-button danger-button';
+                deleteGroupBtn.textContent = '删除分组';
+                deleteGroupBtn.onclick = () => deleteGroup(group.id);
+                groupButtons.appendChild(deleteGroupBtn);
+
+                groupHeader.appendChild(groupButtons);
+                groupSettingsDiv.appendChild(groupHeader);
+
+                // Bookmarks in this group
+                const bookmarkSection = document.createElement('div');
+                bookmarkSection.className = 'bookmark-section';
+                const bookmarkSectionTitle = document.createElement('h4');
+                bookmarkSectionTitle.textContent = '书签列表';
+                bookmarkSection.appendChild(bookmarkSectionTitle);
+
+                group.bookmarks.forEach((bookmark, bookmarkIndex) => {
+                    const bookmarkSettingsDiv = document.createElement('div');
+                    bookmarkSettingsDiv.className = 'bookmark-settings';
+
+                    const bookmarkHeader = document.createElement('div');
+                    bookmarkHeader.className = 'bookmark-header-settings';
+
+                    const bookmarkNameInput = document.createElement('input');
+                    bookmarkNameInput.type = 'text';
+                    bookmarkNameInput.value = bookmark.name;
+                    bookmarkNameInput.placeholder = '书签名称';
+                    bookmarkNameInput.oninput = (e) => {
+                        bookmark.name = e.target.value;
+                        saveBookmarks();
+                    };
+                    bookmarkHeader.appendChild(bookmarkNameInput);
+
+                    const bookmarkUrlInput = document.createElement('input');
+                    bookmarkUrlInput.type = 'url';
+                    bookmarkUrlInput.value = bookmark.url;
+                    bookmarkUrlInput.placeholder = '书签链接 (URL)';
+                    bookmarkUrlInput.oninput = (e) => {
+                        bookmark.url = e.target.value;
+                        saveBookmarks();
+                    };
+                    bookmarkHeader.appendChild(bookmarkUrlInput);
+
+                    const bookmarkFaviconInput = document.createElement('input');
+                    bookmarkFaviconInput.type = 'url';
+                    bookmarkFaviconInput.value = bookmark.favicon || '';
+                    bookmarkFaviconInput.placeholder = '图标链接 (可选)';
+                    bookmarkFaviconInput.oninput = (e) => {
+                        bookmark.favicon = e.target.value;
+                        saveBookmarks();
+                    };
+                    bookmarkHeader.appendChild(bookmarkFaviconInput);
+
+                    const bookmarkButtons = document.createElement('div');
+                    bookmarkButtons.className = 'bookmark-buttons';
+
+                    const moveUpBookmarkBtn = document.createElement('button');
+                    moveUpBookmarkBtn.className = 'small-button primary-button';
+                    moveUpBookmarkBtn.textContent = '上移';
+                    moveUpBookmarkBtn.onclick = () => moveBookmark(group.id, bookmark.id, -1);
+                    if (bookmarkIndex === 0) moveUpBookmarkBtn.disabled = true;
+                    bookmarkButtons.appendChild(moveUpBookmarkBtn);
+
+                    const moveDownBookmarkBtn = document.createElement('button');
+                    moveDownBookmarkBtn.className = 'small-button primary-button';
+                    moveDownBookmarkBtn.textContent = '下移';
+                    moveDownBookmarkBtn.onclick = () => moveBookmark(group.id, bookmark.id, 1);
+                    if (bookmarkIndex === group.bookmarks.length - 1) moveDownBookmarkBtn.disabled = true;
+                    bookmarkButtons.appendChild(moveDownBookmarkBtn);
+
+                    const deleteBookmarkBtn = document.createElement('button');
+                    deleteBookmarkBtn.className = 'small-button danger-button';
+                    deleteBookmarkBtn.textContent = '删除书签';
+                    deleteBookmarkBtn.onclick = () => deleteBookmark(group.id, bookmark.id);
+                    bookmarkButtons.appendChild(deleteBookmarkBtn);
+
+                    bookmarkSettingsDiv.appendChild(bookmarkHeader);
+                    bookmarkSettingsDiv.appendChild(bookmarkButtons);
+                    bookmarkSection.appendChild(bookmarkSettingsDiv);
+                });
+
+                const addBookmarkBtn = document.createElement('button');
+                addBookmarkBtn.className = 'add-bookmark-button small-button colored-button';
+                addBookmarkBtn.textContent = '添加书签';
+                addBookmarkBtn.onclick = () => addBookmark(group.id);
+                bookmarkSection.appendChild(addBookmarkBtn);
+
+                groupSettingsDiv.appendChild(bookmarkSection);
+                settingsGroupsContainer.appendChild(groupSettingsDiv);
+            });
+        }
+
+        // --- Data Management Functions ---
+        document.getElementById('addGroupBtn').onclick = () => {
+            const newGroup = {
+                id: generateId(),
+                name: "新分组",
+                color: getNextDefaultColor(), // Assign a default color
+                bookmarks: []
+            };
+            bookmarksData.push(newGroup);
+            saveBookmarks();
+        };
+
+        function deleteGroup(groupId) {
+            bookmarksData = bookmarksData.filter(group => group.id !== groupId);
+            saveBookmarks();
+        }
+
+        function addBookmark(groupId) {
+            const group = bookmarksData.find(g => g.id === groupId);
+            if (group) {
+                const newBookmark = {
+                    id: generateId(),
+                    name: "新书签",
+                    url: "https://",
+                    favicon: ""
+                };
+                group.bookmarks.push(newBookmark);
+                saveBookmarks();
+            }
+        }
+
+        function deleteBookmark(groupId, bookmarkId) {
+            const group = bookmarksData.find(g => g.id === groupId);
+            if (group) {
+                group.bookmarks = group.bookmarks.filter(b => b.id !== bookmarkId);
+                saveBookmarks();
+            }
+        }
+
+        function moveGroup(index, direction) {
+            if (index + direction >= 0 && index + direction < bookmarksData.length) {
+                const [movedGroup] = bookmarksData.splice(index, 1);
+                bookmarksData.splice(index + direction, 0, movedGroup);
+                saveBookmarks();
+            }
+        }
+
+        function moveBookmark(groupId, bookmarkId, direction) {
+            const group = bookmarksData.find(g => g.id === groupId);
+            if (group) {
+                const bookmarkIndex = group.bookmarks.findIndex(b => b.id === bookmarkId);
+                if (bookmarkIndex !== -1 && bookmarkIndex + direction >= 0 && bookmarkIndex + direction < group.bookmarks.length) {
+                    const [movedBookmark] = group.bookmarks.splice(bookmarkIndex, 1);
+                    group.bookmarks.splice(bookmarkIndex + direction, 0, movedBookmark);
+                    saveBookmarks();
+                }
+            }
+        }
+
+        document.getElementById('exportDataBtn').onclick = () => {
+            const dataToExport = bookmarksData.map(group => ({
+                name: group.name,
+                color: group.color,
+                bookmarks: group.bookmarks.map(bookmark => ({
+                    name: bookmark.name,
+                    url: bookmark.url,
+                    favicon: bookmark.favicon
+                }))
+            }));
+            const dataStr = JSON.stringify(dataToExport, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bookmarks.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+
+        document.getElementById('importDataOverwriteBtn').onclick = () => {
+            triggerImport(false); // false for overwrite
+        };
+
+        document.getElementById('importDataAppendBtn').onclick = () => {
+            triggerImport(true); // true for append
+        };
+
+        function triggerImport(appendMode) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const rawImportedData = JSON.parse(e.target.result);
+                            let processedData = [];
+
+                            if (Array.isArray(rawImportedData)) {
+                                // Existing array format
+                                processedData = rawImportedData.map(group => {
+                                    if (!group.id) group.id = generateId();
+                                    if (!group.color) group.color = getNextDefaultColor(); // Assign color if missing
+                                    group.bookmarks = group.bookmarks.map(bookmark => {
+                                        if (!bookmark.id) bookmark.id = generateId();
+                                        return bookmark;
+                                    });
+                                    return group;
+                                });
+                            } else if (typeof rawImportedData === 'object' && rawImportedData !== null) {
+                                // New object format: { "Group Name": [{name, url, favicon}] }
+                                for (const groupName in rawImportedData) {
+                                    if (rawImportedData.hasOwnProperty(groupName) && Array.isArray(rawImportedData[groupName])) {
+                                        const bookmarks = rawImportedData[groupName].map(bookmark => ({
+                                            id: generateId(),
+                                            name: bookmark.name || 'Unnamed Bookmark',
+                                            url: bookmark.url || '',
+                                            favicon: bookmark.favicon || ''
+                                        }));
+                                        processedData.push({
+                                            id: generateId(),
+                                            name: groupName,
+                                            color: getNextDefaultColor(), // Assign a default color for newly imported groups
+                                            bookmarks: bookmarks
+                                        });
+                                    }
+                                }
+                            } else {
+                                throw new Error("Invalid JSON structure. Expected an array or an object of groups.");
+                            }
+
+
+                            if (appendMode) {
+                                // For append mode, deduplicate groups by name and bookmarks by URL within groups
+                                processedData.forEach(importedGroup => {
+                                    let existingGroup = bookmarksData.find(g => g.name === importedGroup.name);
+
+                                    if (existingGroup) {
+                                        // Group exists, append bookmarks and deduplicate by URL
+                                        importedGroup.bookmarks.forEach(importedBookmark => {
+                                            const isDuplicate = existingGroup.bookmarks.some(b => b.url === importedBookmark.url);
+                                            if (!isDuplicate) {
+                                                existingGroup.bookmarks.push(importedBookmark);
+                                            }
+                                        });
+                                    } else {
+                                        // Group does not exist, add it
+                                        bookmarksData.push(importedGroup);
+                                    }
+                                });
+                            } else {
+                                // Overwrite mode
+                                bookmarksData = processedData;
+                            }
+                            saveBookmarks();
+                            alert('数据导入成功！');
+                        } catch (error) {
+                            alert('导入数据失败: ' + error.message);
+                            console.error('导入数据失败:', error);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        document.getElementById('restoreDefaultBtn').onclick = () => {
+            if (confirm('确定要恢复到默认书签数据吗？这将覆盖所有现有数据。')) {
+                bookmarksData = JSON.parse(JSON.stringify(defaultBookmarksData)); // Deep copy
+                saveBookmarks();
+                alert('已恢复默认数据！');
+            }
+        };
+
+        document.getElementById('clearAllDataBtn').onclick = () => {
+            if (confirm('确定要清空所有书签数据吗？此操作不可逆！')) {
+                bookmarksData = [];
+                saveBookmarks();
+                alert('所有数据已清空！');
+            }
+        };
+
+
+        // Search functionality
+        document.getElementById('searchInput').onkeyup = (event) => {
+            renderBookmarks(event.target.value);
+        };
+
+        // Initial load
+        loadBookmarks();
+        renderBookmarks();
+
+        // Ensure settings modal is hidden on initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            settingsModal.style.display = 'none';
+            // Fallback for Font Awesome, if it was used and failed to load
+            if (document.getElementById('settings-icon').textContent.trim() === '') {
+                console.warn("Font Awesome script (https://kit.fontawesome.com/a076d05399.js) might not be loaded. Please ensure your internet connection is stable or consider embedding the icon directly if persistent issues occur.");
+            }
+        });
+
+    </script>
+</body>
+</html>
