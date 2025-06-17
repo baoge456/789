@@ -32,6 +32,7 @@
             margin: 20px auto; /* Center the container */
             box-sizing: border-box;
             backdrop-filter: blur(5px); /* Frosted glass effect */
+            position: relative; /* Added for positioning settings icon inside */
         }
 
         h1 {
@@ -43,9 +44,9 @@
         }
 
         .settings-icon {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+            position: absolute; /* Changed from fixed to absolute */
+            top: 15px; /* Adjusted to fit within panel padding */
+            right: 15px; /* Adjusted to fit within panel padding */
             font-size: 2em;
             cursor: pointer;
             color: #666;
@@ -66,7 +67,7 @@
 
         .group {
             background-color: #ffffff;
-            border-radius: 12px;
+            border-radius: 25px; /* Adjusted to match bookmark card radius */
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
             padding: 20px;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -97,37 +98,44 @@
             list-style: none;
             padding: 0;
             margin: 0;
+            display: grid; /* Added for two-column layout */
+            grid-template-columns: repeat(2, 1fr); /* Two columns */
+            gap: 15px; /* Gap between bookmarks */
         }
 
         .bookmark-card {
             display: flex;
             align-items: center;
-            background-color: rgba(var(--group-color-rgb, 0, 123, 255), 0.08); /* Semi-transparent background */
+            background-color: rgba(var(--group-color-rgb, 0, 123, 255), 0.15); /* Darkened background */
             border-radius: 25px; /* Oval shape */
-            margin-bottom: 10px;
+            margin-bottom: 0; /* Adjusted for grid gap */
             padding: 10px 15px;
             transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
         .bookmark-card:hover {
-            background-color: rgba(var(--group-color-rgb, 0, 123, 255), 0.15);
+            background-color: rgba(var(--group-color-rgb, 0, 123, 255), 0.25); /* Darkened hover background */
             transform: translateX(5px);
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
         .bookmark-card a {
             display: flex;
-            align-items: center;
+            flex-direction: column; /* Changed to column for vertical alignment of image and text */
+            align-items: center; /* Center items in column */
             text-decoration: none;
             color: #333;
             flex-grow: 1;
+            width: 100%; /* Ensure the link takes full width to center content */
         }
 
         .bookmark-card img {
+            display: none; /* Hidden - Not showing thumbnails on frontend */
             width: 24px;
             height: 24px;
-            margin-right: 10px;
+            margin-right: 0;
+            margin-bottom: 5px;
             border-radius: 4px;
             object-fit: contain;
         }
@@ -135,9 +143,12 @@
         .bookmark-card span {
             font-size: 1.1em;
             font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal; /* Allow text wrapping */
+            overflow: hidden; /* Keep hidden to contain text within boundary */
+            text-overflow: ellipsis; /* Keep ellipsis for potential overflow when wrapping is not enough or for single line display if it becomes one */
+            text-align: center; /* Centered text */
+            width: 100%; /* Ensure text takes full width to center properly */
+            word-break: break-word; /* Added to break long words that might overflow */
         }
 
         /* Modal Styles */
@@ -397,7 +408,11 @@
             }
 
             .group-grid {
-                grid-template-columns: 1fr; /* Single column on small screens */
+                grid-template-columns: 1fr; /* Single column for groups on small screens */
+            }
+
+            .bookmark-list {
+                grid-template-columns: 1fr; /* Single column for bookmarks on small screens */
             }
 
             .modal-content {
@@ -432,10 +447,10 @@
     </style>
 </head>
 <body>
-    <!-- Replaced Font Awesome with a Unicode character for the settings icon -->
-    <div class="settings-icon" id="settingsIcon">⚙️</div>
-
     <div class="container">
+        <!-- Moved settings icon inside the container -->
+        <div class="settings-icon" id="settingsIcon">⚙️</div>
+
         <h1>我的书签导航</h1>
         <div id="groupGrid" class="group-grid">
             <!-- Bookmarks will be dynamically loaded here -->
@@ -625,7 +640,7 @@
                     bookmarkItem.style.setProperty('--group-color-rgb', getColorRgb(group.color));
                     bookmarkItem.innerHTML = `
                         <a href="${bookmark.url}" target="_blank">
-                            <img src="${bookmark.thumbnail || getFaviconUrl(bookmark.url)}" alt="favicon" onerror="this.onerror=null;this.src='https://www.google.com/s2/favicons?domain=default';">
+                            <!-- img tag for thumbnail display is intentionally removed in frontend -->
                             <span>${bookmark.name}</span>
                         </a>
                     `;
@@ -881,7 +896,20 @@
 
         // Export Data
         exportBtn.addEventListener('click', () => {
-            const dataStr = JSON.stringify(bookmarksData, null, 4); // Pretty print JSON
+            // Create a new data structure for export, excluding 'id' properties and renaming 'thumbnail' to 'favicon'
+            const exportableData = bookmarksData.map(group => {
+                return {
+                    name: group.name,
+                    color: group.color, // Keep color for groups
+                    bookmarks: group.bookmarks.map(bookmark => ({
+                        name: bookmark.name,
+                        url: bookmark.url,
+                        favicon: bookmark.thumbnail // Renamed thumbnail to favicon for export
+                    }))
+                };
+            });
+
+            const dataStr = JSON.stringify(exportableData, null, 4); // Pretty print JSON
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -891,7 +919,7 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            alert('数据已导出为 bookmarks.json');
+            // Removed the alert message here
         });
 
         // Helper function to convert older flat bookmark structure or ensure new structure has IDs/colors
@@ -906,7 +934,8 @@
                         id: b.id || Date.now() + Math.random().toString().substring(2, 8) + b.url.length,
                         name: b.name,
                         url: b.url,
-                        thumbnail: b.thumbnail || getFaviconUrl(b.url) // Ensure thumbnail is set
+                        // Convert 'favicon' from old imported data to 'thumbnail' for internal use
+                        thumbnail: b.thumbnail || b.favicon || getFaviconUrl(b.url) // Prefer thumbnail, then favicon, then generate
                     }))
                 }));
             }
@@ -923,7 +952,7 @@
                                 id: Date.now().toString() + Math.random().toString().substring(2, 8) + b.url.length,
                                 name: b.name,
                                 url: b.url,
-                                thumbnail: b.thumbnail || getFaviconUrl(b.url)
+                                thumbnail: b.thumbnail || b.favicon || getFaviconUrl(b.url) // Prefer thumbnail, then favicon, then generate
                             }))
                         });
                     }
