@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简约导航</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        /* CSS样式 */
+        :root {
+            --primary-bg: #000000;
+            --secondary-bg: #1b1b1b;
+            --hover-bg: #272727;
+            --text-color: #ffffff;
+            --accent-color: #ff9000;
+            --card-bg: #f5f5dc;
+            /* 奶白色 */
+            --purple-hover: purple;
+            /* Define the purple hover color */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Roboto", Arial, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--secondary-bg);
+            padding: 12px 16px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            /* Make position relative for the popup menu */
+        }
+
+        .logo span {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 24px;
+            cursor: pointer;
+            display: none;
+        }
+
+        nav {
+            background-color: var(--secondary-bg);
+            width: 240px;
+            height: calc(100vh - 56px);
+            position: fixed;
+            top: 56px;
+            left: 0;
+            overflow-y: auto;
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            margin-top: 8px;
+        }
+
+        nav li {
+            margin: 0;
+            padding: 0;
+        }
+
+        nav li a {
+            display: block;
+            /* Make the entire link clickable */
+            padding: 6px 10px;
+            /* Reduced padding */
+            color: black;
+            /* Black font color */
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-radius: 5px;
+            margin: 4px 8px;
+            /* Reduced margin */
+            background-color: var(--card-bg);
+            /* Card background */
+            text-align: center;
+            font-size: 13px;
+            /* Reduced font size */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            /* Add shadow */
+        }
+
+        nav li a:hover {
+            background-color: var(--purple-hover);
+            color: var(--text-color);
+            /* White text color on hover */
+        }
+
+        main {
+            margin-left: 240px;
+            margin-top: 56px;
+            padding: 24px;
+        }
+
+        .category-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 32px 0 20px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .category-title::after {
+            content: "";
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background-color: var(--accent-color);
+        }
+
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Adjusted for smaller cards */
+            gap: 12px; /* Reduced gap */
+            margin-bottom: 32px;
+        }
+
+        .link-card {
+            will-change: transform;
+            transform: translateY(0);
+            transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+            background-color: var(--card-bg);
+            border-radius: 50%;
+            width: 100px; /* Fixed width for consistent size */
+            height: 100px; /* Fixed height for consistent size and circular shape */
+            padding: 12px; /* Reduced padding */
+            text-align: center;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .link-card:hover {
+            background-color: var(--purple-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .link-card:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        .link-card img {
+            width: 40px; /* Reduced image size */
+            height: 40px; /* Reduced image size */
+            margin-bottom: 8px; /* Reduced margin */
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .link-card h3 {
+            font-size: 14px; /* Reduced font size */
+            margin-top: 8px; /* Reduced margin */
+            color: #000;
+        }
+
+        /* 修改为统一的ID */
+        .category-section {
+            display: block; /* 默认显示所有分组内容 */
+        }
+
+        .category-section.hidden {
+            display: none; /* 用于隐藏分组 */
+        }
+
+        /* Style for the popup menu */
+        .popup-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: var(--secondary-bg);
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            display: none; /* Hidden by default */
+        }
+
+        .logo.show-popup .popup-menu {
+            display: block; /* Show when logo has 'show-popup' class */
+        }
+
+        .popup-menu a {
+            display: block;
+            color: var(--text-color);
+            padding: 8px 12px;
+            text-decoration: none;
+            border-radius: 3px;
+            transition: background-color 0.3s ease;
+        }
+
+        .popup-menu a:hover {
+            background-color: var(--hover-bg);
+        }
+
+        #toggleCategories {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 3px;
+            transition: background-color 0.3s ease;
+        }
+
+        #toggleCategories:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .hidden-title .category-title {
+            display: none; /* 隐藏分组标题 */
+        }
+
+
+        @media (max-width: 1024px) {
+            nav {
+                width: 72px;
+            }
+
+            main {
+                margin-left: 72px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            nav {
+                transform: translateX(-100%);
+                width: 240px;
+            }
+
+            nav.active {
+                transform: translateX(0);
+            }
+
+            main {
+                margin-left: 0;
+            }
+
+            .link-grid {
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* Adjusted for smaller cards on mobile */
+                gap: 8px; /* Even smaller gap */
+            }
+
+            .link-card {
+                width: 70px; /* Fixed width for consistent size on mobile */
+                height: 70px; /* Fixed height for consistent size and circular shape on mobile */
+                padding: 8px; /* Further reduced padding */
+                min-height: unset;
+            }
+
+            .link-card img {
+                width: 28px; /* Smaller image */
+                height: 28px; /* Smaller image */
+                margin-bottom: 4px;
+                margin-top: 0;
+            }
+
+            .link-card h3 {
+                font-size: 0.7rem; /* Smaller font size */
+                margin: 0 auto;
+                text-align: center;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .link-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); /* Adjusted for even smaller cards on mobile */
+                gap: 6px; /* Smallest gap */
+            }
+
+            .link-card {
+                width: 60px; /* Fixed width for consistent size on smallest mobile */
+                height: 60px; /* Fixed height for consistent size and circular shape on smallest mobile */
+                padding: 6px; /* Smallest padding */
+                min-height: unset;
+            }
+
+            .link-card img {
+                width: 20px; /* Smallest image */
+                height: 20px; /* Smallest image */
+                margin-bottom: 2px;
+            }
+
+            .link-card h3 {
+                font-size: 0.6rem; /* Smallest font size */
+                margin: 0;
+                line-height: 1.2;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <span>简约导航</span>
+            <div class="popup-menu">
+                <a href="#" id="exportBookmarks">导出书签</a>
+                <a href="#" id="importBookmarks">导入书签</a>
+                <a href="#" id="clearBookmarks">清空书签</a>
+            </div>
+        </div>
+        <button class="menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <button id="toggleCategories"></button>
+    </header>
+    <nav>
+        <ul id="nav-links">
+            <li><a href="#" data-category="AI搜索">AI搜索</a></li>
+            <li><a href="#" data-category="社交">社交</a></li>
+            <li><a href="#" data-category="工具">工具</a></li>
+        </ul>
+    </nav>
+    <main id="main-content">
+        <section id="AI搜索" class="category-section">
+            <h2 class="category-title">AI搜索</h2>
+            <div class="link-grid">
+                <a class="link-card" href="https://www.google.com">
+                    <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="Google" />
+                    <h3>谷歌</h3>
+                </a>
+                <a class="link-card" href="https://www.bing.com">
+                    <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="Bing" />
+                    <h3>必应</h3>
+                </a>
+                <a class="link-card" href="https://websim.ai/">
+                    <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="Websim" />
+                    <h3>Websim</h3>
+                </a>
+            </div>
+        </section>
+
+        <section id="社交" class="category-section">
+            <h2 class="category-title">社交</h2>
+            <div class="link-grid">
+                <a class="link-card" href="https://www.facebook.com">
+                    <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="Facebook" />
+                    <h3>脸书</h3>
+                </a>
+                <a class="link-card" href="https://twitter.com">
+                    <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="Twitter" />
+                    <h3>推特</h3>
+                </a>
+                <a class="link-card" href="https://www.instagram.com">
+                    <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="Instagram" />
+                    <h3>照片墙</h3>
+                </a>
+            </div>
+        </section>
+
+        <section id="工具" class="category-section">
+            <h2 class="category-title">工具</h2>
+            <div class="link-grid">
+                <a class="link-card" href="https://translate.google.com">
+                    <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="Google 翻译" />
+                    <h3>谷歌翻译</h3>
+                </a>
+                <a class="link-card" href="https://d.186404.xyz/">
+                    <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="短链" />
+                    <h3>短链</h3>
+                </a>
+                <a class="link-card" href="https://dynv6.com/">
+                    <img src="https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png" alt="dynv6" />
+                    <h3>dynv6</h3>
+                </a>
+            </div>
+        </section>
+
+        <!-- Third-party bookmarks will be added here -->
+        <section id="无分组书签" class="category-section">
+            <h2 class="category-title">无分组书签</h2>
+            <div class="link-grid">
+                <!-- Bookmarks will be dynamically added here -->
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const menuToggle = document.querySelector(".menu-toggle");
+            const nav = document.querySelector("nav");
+            const navLinks = document.querySelectorAll("nav a");
+            const mainContent = document.getElementById("main-content");
+            let categorySections = document.querySelectorAll(".category-section");
+            const logo = document.querySelector(".logo");
+            const popupMenu = document.querySelector('.popup-menu');
+            const exportBookmarksBtn = document.getElementById("exportBookmarks");
+            const importBookmarksBtn = document.getElementById("importBookmarks");
+            const clearBookmarksBtn = document.getElementById("clearBookmarks");
+            const toggleCategoriesBtn = document.getElementById("toggleCategories");
+            let longPressTimer;
+            const longPressDuration = 500; // milliseconds
+            let isLongPress = false;
+
+            // 内置分组
+            const defaultCategories = ["AI搜索", "社交", "工具"];
+
+            // -------------------- Popup Menu --------------------
+            logo.addEventListener('mousedown', function (e) {
+                isLongPress = false;
+                longPressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    logo.classList.add('show-popup'); // Add class to show popup
+                    e.preventDefault(); // Prevent default click on long press
+                }, longPressDuration);
+            });
+
+            logo.addEventListener('mouseup', function (e) {
+                clearTimeout(longPressTimer);
+                if (!isLongPress) {
+                    // If it was a short click, perform the default logo action
+                    categorySections.forEach(section => section.classList.remove("hidden"));
+                }
+            });
+
+            // Prevent default context menu on long press/right click
+            logo.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+            });
+
+            document.addEventListener('click', function (event) {
+                // Hide the popup if clicked outside the logo and popup menu
+                if (!logo.contains(event.target) && !popupMenu.contains(event.target)) {
+                    logo.classList.remove('show-popup');
+                }
+            });
+
+
+            // -------------------- Menu Toggle --------------------
+            menuToggle.addEventListener("click", toggleMenu);
+
+            function toggleMenu(e) {
+                e.preventDefault();
+                nav.classList.toggle("active");
+            }
+
+            // -------------------- Navigation Links --------------------
+            function attachNavLinkListeners() {
+                const navLinks = document.querySelectorAll("#nav-links li a");
+
+                navLinks.forEach(link => {
+                    link.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        const category = this.dataset.category;
+
+                        // 隐藏所有分组
+                        categorySections.forEach(section => section.classList.add("hidden"));
+
+                        // 显示当前分组
+                        document.getElementById(category).classList.remove("hidden");
+
+                        if (window.innerWidth <= 768) {
+                            nav.classList.remove("active");
+                        }
+                    });
+                });
+            }
+
+            attachNavLinkListeners();
+
+            window.addEventListener("resize", function () {
+                if (window.innerWidth > 768) {
+                    nav.classList.remove("active");
+                }
+            });
+
+            // --------------- Export Bookmarks Function --------------------
+            exportBookmarksBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                exportBookmarks(); // Call export function
+                logo.classList.remove('show-popup'); // Hide popup after action
+            });
+
+            function exportBookmarks() {
+                let bookmarks = [];
+
+                categorySections.forEach(section => {
+                    if (!defaultCategories.includes(section.id)) {
+                        const category = section.id;
+                        const linkCards = section.querySelectorAll('.link-card');
+
+                        linkCards.forEach(card => {
+                            bookmarks.push({
+                                category: category,
+                                title: card.querySelector('h3').innerText,
+                                url: card.href,
+                                img: card.querySelector('img').src
+                            });
+                        });
+                    }
+                });
+
+                const jsonString = JSON.stringify(bookmarks, null, 2);
+                const blob = new Blob([jsonString], {
+                    type: 'application/json'
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'bookmarks.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            // -------------------- Import Bookmarks --------------------
+            importBookmarksBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                importBookmarks(); // Call import function
+                logo.classList.remove('show-popup'); // Hide popup after action
+            });
+
+            // -------------------- Clear Bookmarks Function --------------------
+            clearBookmarksBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                clearBookmarks(); // Call clear function
+                logo.classList.remove('show-popup'); // Hide popup after action
+            });
+
+            // -------------------- Import Bookmarks Function --------------------
+            function importBookmarks() {
+                // 创建一个 input 元素，type="file"
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json'; // 限制只接受 JSON 文件
+
+                // 添加一个 onchange 事件监听器
+                fileInput.onchange = function (event) {
+                    const file = event.target.files[0];
+
+                    if (file) {
+                        const reader = new FileReader();
+
+                        reader.onload = function (e) {
+                            try {
+                                const jsonString = e.target.result;
+                                let bookmarks;
+
+                                // 尝试将文件内容解析为 JSON
+                                try {
+                                    bookmarks = JSON.parse(jsonString);
+                                } catch (err) {
+                                    alert("文件格式不正确，导入失败!");
+                                    return;
+                                }
+
+                                // 根据不同的 JSON 结构处理书签
+                                if (Array.isArray(bookmarks)) {
+                                    // 处理不带分组的 JSON 格式
+                                    processBookmarks('无分组书签', bookmarks);
+                                } else if (typeof bookmarks === 'object' && bookmarks !== null) {
+                                    // 处理带分组的 JSON 格式
+                                    for (const category in bookmarks) {
+                                        if (bookmarks.hasOwnProperty(category)) {
+                                            processBookmarks(category, bookmarks[category]);
+                                        }
+                                    }
+                                } else {
+                                    alert("JSON 文件内容格式不正确，导入失败!");
+                                    return;
+                                }
+
+                                // 重新获取 categorySections，确保包含新添加的分组
+                                categorySections = document.querySelectorAll(".category-section");
+
+                                // 保存书签到 localStorage
+                                saveBookmarksToLocalStorage();
+
+                                alert('成功导入书签!');
+                            } catch (error) {
+                                alert('导入书签失败: ' + error);
+                            }
+                        }
+
+                        reader.readAsText(file);
+                    }
+                };
+
+                // 触发文件选择
+                fileInput.click();
+            }
+
+            function processBookmarks(category, bookmarks) {
+                // 检查是否定义了书签分组
+                let section = document.getElementById(category);
+                if (!section) {
+                    // 创建书签分组
+                    section = document.createElement('section');
+                    section.id = category;
+                    section.className = 'category-section';
+                    section.innerHTML = `
+                            <h2 class="category-title">${category}</h2>
+                            <div class="link-grid"></div>
+                        `;
+                    document.getElementById('main-content').appendChild(section);
+
+                    // 添加到导航栏
+                    const navLi = document.createElement('li');
+                    navLi.innerHTML = `<a href="#" data-category="${category}">${category}</a>`;
+                    document.getElementById('nav-links').appendChild(navLi);
+
+                    // 重新绑定事件
+                    attachNavLinkListeners();
+                }
+                if (!Array.isArray(bookmarks)) {
+                    alert("JSON 文件内容格式不正确，导入失败!");
+                    return;
+                }
+                // 遍历导入的书签
+                bookmarks.forEach(bookmark => {
+                    const title = bookmark.name;
+                    const url = bookmark.url;
+
+                    if (!title || !url) {
+                        console.warn("Invalid bookmark format. Skipping.");
+                        return; // Skip this bookmark if it's invalid
+                    }
+
+                    // 创建书签卡片
+                    const linkGrid = section.querySelector('.link-grid');
+                    if (linkGrid) {
+                        const linkCard = document.createElement('a');
+                        linkCard.className = 'link-card';
+                        linkCard.href = url;
+                        linkCard.target = '_blank'; // 在新标签页中打开
+                        linkCard.innerHTML = `
+                                <img src="${bookmark.img || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png'}" alt="${title}" />
+                                <h3>${title}</h3>
+                            `;
+                        linkGrid.appendChild(linkCard);
+                    }
+                });
+
+            }
+
+            // -------------------- Clear Bookmarks Function --------------------
+            function clearBookmarks() {
+                if (confirm("确定要清除所有第三方书签吗？")) {
+                    // 获取所有动态添加的分类 section，排除内置分类
+                    const dynamicCategorySections = document.querySelectorAll('.category-section:not(#AI搜索):not(#社交):not(#工具)');
+
+                    // 遍历每个动态添加的 category-section
+                    dynamicCategorySections.forEach(section => {
+                        // 获取 link-grid 元素
+                        const linkGrid = section.querySelector('.link-grid');
+
+                        // 如果 link-grid 存在，则清空它的内容
+                        if (linkGrid) {
+                            linkGrid.innerHTML = ''; // 清空 link-grid 的内容
+                        }
+
+                        // 如果分类是动态添加的，从 DOM 中删除
+                        if (!defaultCategories.includes(section.id)) {
+                            section.remove();
+
+                            // 同时从导航栏中删除
+                            const navLink = document.querySelector(`a[data-category="${section.id}"]`).parentNode;
+                            if (navLink) {
+                                navLink.remove();
+                            }
+                        }
+                    });
+
+                    // 清除 localStorage 中的书签
+                    localStorage.removeItem('bookmarks');
+
+                    alert("所有第三方书签已清除!");
+                }
+            }
+
+            // -------------------- Load Bookmarks from LocalStorage --------------------
+            function loadBookmarksFromLocalStorage() {
+                const bookmarksString = localStorage.getItem('bookmarks');
+                if (bookmarksString) {
+                    const bookmarks = JSON.parse(bookmarksString);
+
+                    // 遍历书签
+                    bookmarks.forEach(bookmark => {
+                        let category = bookmark.category || '无分组书签'; // 使用无分组书签作为默认分类
+                        const title = bookmark.title;
+                        const url = bookmark.url;
+                        const img = bookmark.img;
+
+                        // 查找或创建分类
+                        let section = document.getElementById(category);
+                        if (!section) {
+                            section = document.createElement('section');
+                            section.id = category;
+                            section.className = 'category-section';
+                            section.innerHTML = `
+                                <h2 class="category-title">${category}</h2>
+                                <div class="link-grid"></div>
+                            `;
+                            document.getElementById('main-content').appendChild(section);
+
+                            // 添加到导航栏
+                            const navLi = document.createElement('li');
+                            navLi.innerHTML = `<a href="#" data-category="${category}">${category}</a>`;
+                            document.getElementById('nav-links').appendChild(navLi);
+
+                            // 重新绑定事件
+                            attachNavLinkListeners();
+                        }
+
+                        // 创建书签卡片
+                        const linkGrid = section.querySelector('.link-grid');
+                        if (linkGrid) {
+                            const linkCard = document.createElement('a');
+                            linkCard.className = 'link-card';
+                            linkCard.href = url;
+                            linkCard.target = '_blank'; // 在新标签页中打开
+                            linkCard.innerHTML = `
+                                <img src="${img || 'https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png'}" alt="${title}" />
+                                <h3>${title}</h3>
+                            `;
+                            linkGrid.appendChild(linkCard);
+                        }
+                    });
+
+                    // 重新获取 categorySections，确保包含新添加的分组
+                    categorySections = document.querySelectorAll(".category-section");
+                }
+            }
+
+            // -------------------- Save Bookmarks to LocalStorage --------------------
+            function saveBookmarksToLocalStorage() {
+                let bookmarks = [];
+
+                categorySections.forEach(section => {
+                    if (!defaultCategories.includes(section.id)) {
+                        const category = section.id;
+                        const linkCards = section.querySelectorAll('.link-card');
+
+                        linkCards.forEach(card => {
+                            bookmarks.push({
+                                category: category,
+                                title: card.querySelector('h3').innerText,
+                                url: card.href,
+                                img: card.querySelector('img').src
+                            });
+                        });
+                    }
+                });
+
+                localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+            }
+
+            // -------------------- Toggle Category Titles --------------------
+            let categoryTitlesVisible = false;
+
+            toggleCategoriesBtn.addEventListener('click', function() {
+                categoryTitlesVisible = !categoryTitlesVisible;
+                mainContent.classList.toggle('hidden-title', !categoryTitlesVisible);
+
+                // 更新按钮文本
+                toggleCategoriesBtn.textContent = categoryTitlesVisible ? '隐藏分组' : '显示分组';
+            });
+
+            // -------------------- Initial Load --------------------
+            // 页面加载时，加载 localStorage 中的书签
+            loadBookmarksFromLocalStorage();
+             // 初始状态所有分组内容都显示
+             categorySections.forEach(section => section.classList.remove('hidden'));
+
+             // 将“无分组书签”移动到 main-content 的末尾
+             const noCategorySection = document.getElementById('无分组书签');
+             if (noCategorySection) {
+                 document.getElementById('main-content').appendChild(noCategorySection);
+             }
+        });
+    </script>
+</body>
+
+</html>
