@@ -86,7 +86,7 @@
         nav {
             background-color: var(--secondary-bg);
             width: 240px;
-            height: calc(100vh - 56px); /* 减去头部高度 */
+            height: calc(100vh - 56px); /* 减去头部高度，此为桌面端默认，移动端由JS控制 */
             position: fixed;
             top: 56px; /* 紧随头部 */
             left: 0;
@@ -1253,11 +1253,25 @@
             }
         });
 
+        // Function to adjust nav height for mobile
+        function adjustNavHeight() {
+            const headerHeight = document.querySelector('header').offsetHeight;
+            if (window.innerWidth <= 768) {
+                // For mobile, calculate height based on innerHeight (visible viewport height)
+                // Subtract header height from actual visible viewport height
+                nav.style.height = `${window.innerHeight - headerHeight}px`;
+            } else {
+                // For desktop, revert to CSS calculated height (or default)
+                nav.style.height = ''; // Clear inline style to let CSS take over
+            }
+        }
+
 
         // --- 初始化 ---
         document.addEventListener('DOMContentLoaded', () => {
             renderMainContent();
             renderNavCategories();
+            adjustNavHeight(); // 页面加载时调整导航栏高度
 
             // 根据屏幕尺寸初始化显示状态
             if (window.innerWidth <= 768) {
@@ -1277,6 +1291,8 @@
 
         // 监听屏幕尺寸变化，调整主内容区显示
         window.addEventListener('resize', () => {
+            adjustNavHeight(); // 窗口大小改变时调整导航栏高度
+
             if (window.innerWidth > 768) {
                 // 切换到桌面模式
                 mainContent.style.display = 'block'; // 桌面端始终显示主内容
