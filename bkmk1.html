@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书签管理系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background-color: #FFFACD;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        @media (min-width: 600px) {
+            body {
+                align-items: center;
+            }
+        }
+        #bookmark-manager {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #836FFF;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            min-height: 100vh;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .header-buttons {
+            position: relative;
+            top: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+            width: 100%;
+            justify-content: flex-end;
+            background: transparent;
+        }
+        .header-buttons button {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.5em;
+            background: #FFFACD;
+            border: none;
+            cursor: pointer;
+        }
+        #helper-buttons {
+            display: none;
+            position: static;
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+            z-index: 1;
+            flex-direction: row;
+            gap: 8px;
+            margin-top: 10px;
+            width: auto;
+            justify-content: flex-end;
+        }
+        #helper-buttons button {
+            width: 40px;
+            height: 40px;
+            margin: 0 5px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            background: #FFFACD;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="text"], input[type="password"], select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 5px;
+            cursor: pointer;
+            background-color: #FFFACD;
+            color: black;
+            border: none;
+            border-radius: 5px; 
+            margin: 2px;
+            font-size: 0.9em; 
+            width: 80px; 
+            height: 30px; 
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            white-space: nowrap; 
+            text-align: center;
+        }
+        .controls {
+            display: flex;
+            flex-direction: row; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+            margin-bottom: 20px;
+        }
+        .bookmark-container {
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            margin-top: 10px; 
+        }
+        .bookmark-card {
+            border-radius: 5px; 
+            padding: 8px; 
+            margin: 5px; 
+            width: calc(45% - 10px); 
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1); 
+            text-align: center; 
+            background-color: #FFFACD; 
+            font-size: 1.1em; 
+            cursor: pointer; 
+        }
+        .bookmark-card:hover { 
+            background-color: #7D26CD; 
+        }
+        .group { 
+            margin-top: 20px; 
+            text-align: left; 
+            background-color: #008B8B; 
+            border-radius: 5px; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+        }
+        .group-title { 
+            font-weight: bold; 
+            color: #FFD700; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            cursor: pointer; 
+        }
+        .scrollable { 
+            flex: 1 1 auto;
+            overflow-y: auto;
+            min-height: 0;
+        }
+        .quote-display { 
+            font-size: 1.2em; 
+            margin-bottom: 15px; 
+            color: #FFFACD; 
+        }
+        .date-time {
+            color: #FFFACD; 
+        }
+        #username-display {
+            margin-bottom: 20px;
+            color: #FFFACD; 
+        }
+        .active-button {
+            background-color: #FFA500; 
+            color: white; 
+        }
+        .edit-bookmark-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        .edit-bookmark-modal input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .edit-bookmark-modal button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #00796b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .edit-bookmark-modal button:hover {
+            background-color: #005b4f;
+        }
+        @media (max-width: 600px) {
+            body {
+                align-items: flex-start;
+            }
+            #bookmark-manager {
+                width: 100vw;
+                max-width: 100vw;
+                border-radius: 0;
+                padding: 10px;
+                height: 100vh;
+                min-height: 100vh;
+            }
+            .header-buttons {
+                width: 100vw;
+                padding-right: 0;
+            }
+            #helper-buttons {
+                width: 100vw;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="bookmark-manager">
+        <div class="header-buttons">
+            <button onclick="toggleSettings()">⚙</button>
+            <button id="helper-toggle" onclick="toggleHelper()">≡</button>
+        </div>
+        <div id="helper-buttons">
+            <button onclick="toggleSettings()">⚙</button>
+            <button onclick="showHelp()">✌</button>
+            <button onclick="freeSort()">⇅</button>
+            <button id="logoutButton" onclick="logout()">❌</button>
+        </div>
+        <h2 id="username-display">书签管理系统</h2>
+        <div class="date-time" id="dateTime"></div>
+        <div class="quote-display" id="quoteDisplay"></div>
+        <div class="controls" id="admin-controls" style="display:none;">
+            <button onclick="toggleBookmarkInput(this)">添加书签</button>
+            <div id="bookmark-input" style="display:none;">
+                <input type="text" id="bookmark-name" placeholder="书签名称">
+                <input type="text" id="bookmark-url" placeholder="书签链接">
+                <select id="group-select"></select>
+                <button onclick="addBookmark()">确认添加</button>
+            </div>
+            <button onclick="toggleDeleteBookmark(this)">删除书签</button>
+            <div id="delete-bookmark" style="display:none;">
+                <select id="delete-bookmark-select"></select>
+                <button onclick="deleteBookmark()">删除</button>
+            </div>
+            <button onclick="toggleGroupInput(this)">添加分组</button>
+            <div id="group-input" style="display:none;">
+                <input type="text" id="group-name" placeholder="分组名称">
+                <button onclick="addGroup()">确认添加</button>
+            </div>
+            <button onclick="toggleDeleteGroup(this)">删除分组</button>
+            <div id="delete-group" style="display:none;">
+                <select id="delete-group-select"></select>
+                <button onclick="deleteGroup()">删除</button>
+            </div>
+            <button onclick="importBookmarks()">导入书签</button>
+            <button onclick="exportBookmarks()">导出书签</button>
+            <button id="clearAllBookmarksButton" onclick="confirmClearAllBookmarks()">清空书签</button>
+        </div>
+        <div id="groups" class="scrollable"></div>
+    </div>
+    <div class="edit-bookmark-modal" id="editModal">
+        <input type="text" id="edit-bookmark-name" placeholder="书签名称">
+        <input type="text" id="edit-bookmark-url" placeholder="书签链接">
+        <button onclick="saveBookmarkEdit()">保存</button>
+    </div>
+    <script>
+        // 三道杠菜单展开/收起
+        function toggleHelper() {
+            const helperButtons = document.getElementById('helper-buttons');
+            helperButtons.style.display = helperButtons.style.display === 'none' || helperButtons.style.display === '' ? 'flex' : 'none';
+            helperButtons.style.flexDirection = 'row';
+        }
+        // 点击空白处自动收起菜单
+        document.addEventListener('click', function(e) {
+            const toggle = document.getElementById('helper-toggle');
+            const menu = document.getElementById('helper-buttons');
+            if (!toggle.contains(e.target) && !menu.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+
+        // 书签管理系统全部功能
+        const users = {
+            "admin": "wsb123456",
+            "baoge": "wsb123456",
+            "gui": "gui",
+        };
+        let currentUser = localStorage.getItem('lastUser') || null;
+        let groups = {};
+        let quotes = [
+            "生活中只有一种英雄主义，那就是在认清生活真相之后依然热爱生活。 — 罗曼·罗兰",
+            "成功的秘诀在于坚持自己的目标和信念。 — 乔治·华盛顿",
+            "不要为小事而烦恼，生活本来就充满挑战。 — 乔治·华盛顿",
+            "未来属于那些相信自己梦想之美的人。 — 埃莉诺·罗斯福",
+            "用心去做，才能真正创造出属于自己的价值。 — 巴尔扎克",
+            "人生不是等待风暴过去，而是学会在风暴中翩翩起舞。 — 维维安·格林",
+            "每一次失败都是离成功更近一步。 — 迈克尔·乔丹",
+            "生活的意义在于追求，你的目标是什么？ — 赫尔曼·黑塞",
+            "真正的强者不是没有眼泪的人，而是含着泪水奔跑的人。 — 朱德庸",
+            "只要路是对的，就不怕路远。 — 佚名",
+            "成功是克服恐惧和不安的结果。 — 佚名",
+            "伟大的成就不是来自于力量，而是来自于坚持。 — 佚名",
+            "时间会告诉你，简单的喜欢和复杂的爱，哪一种更值得珍惜。 — 佚名",
+            "生活的美好在于它的不可预知性，正因为如此，才让我们充满期待。 — 佚名",
+            "勇敢并不意味着没有恐惧，而是面对恐惧时选择继续前行。 — 佚名",
+            "每一天都是一个新的开始，重新书写自己的故事。 — 佚名",
+            "每一天都是一个新的开始，勇敢去追逐梦想。 — 佚名",
+            "真正的强者不是没有眼泪的人，而是含着泪水奔跑的人。 — 佚名",
+            "只要路是对的，就不怕路远。 — 佚名",
+            "生活中只有一种英雄主义，那就是在认清生活真相之后依然热爱生活。 — 佚名",
+            "成功的秘诀在于坚持自己的目标和信念。 — 佚名",
+            "不要为小事而烦恼，生活本来就充满挑战。 — 佚名",
+            "每一次失败都是离成功更近一步。 — 佚名",
+            "生活的意义在于追求，你的目标是什么？ — 佚名",
+            "真正的强者不是没有眼泪的人，而是含着泪水奔跑的人。 — 佚名",
+            "只要路是对的，就不怕路远。 — 佚名",
+            "成功是克服恐惧和不安的结果。 — 佚名",
+            "伟大的成就不是来自于力量，而是来自于坚持。 — 佚名",
+            "人生的每一次经历都是一次成长。 — 佚名",
+            "保持微笑，面对生活中的每一个挑战。 — 佚名",
+            "你所做的每一件小事，都会影响到未来。 — 佚名",
+            "努力不一定成功，但放弃一定失败。 — 佚名",
+            "最好的时光是现在。 — 佚名",
+            "生命中最重要的不是胜利，而是战斗。 — 佚名",
+            "勇敢并不是没有恐惧，而是面对恐惧。 — 佚名",
+            "机会只留给有准备的人。 — 佚名",
+            "成功的关键在于付出努力。 — 佚名",
+            "只有经历过，才能懂得。 — 佚名",
+            "人生如棋，落子无悔。 — 佚名",
+            "不怕慢，就怕站。 — 佚名",
+            "改变自己，才能改变世界。 — 佚名",
+            "梦想是指路明灯。 — 佚名",
+            "读书使人明智，文艺使人灵动。 — 佚名",
+            "心中有梦，脚下有路。 — 佚名",
+            "每个人都是自己命运的建筑师。 — 佚名",
+            "不积跬步，无以至千里。 — 佚名",
+            "行动是成功的开始。 — 佚名",
+            "活在当下，珍惜每一刻。 — 佚名",
+            "努力不一定成功，但不努力一定会失败。 — 佚名",
+            "人生就像一杯茶，不会苦一辈子，但总会苦一阵子。 — 佚名",
+            "走自己的路，让别人去说吧。 — 达·芬奇",
+            "人生没有彩排，每一天都是现场直播。 — 佚名",
+            "相信自己，你就已经成功了一半。 — 佚名",
+            "失败是成功之母。 — 佚名",
+            "乐观的人在每个危机中看到机会。 — 温斯顿·丘吉尔",
+            "逆境是成功的催化剂。 — 佚名",
+            "心态决定人生。 — 佚名",
+            "不怕你慢，只怕你停。 — 佚名",
+            "时光流逝，唯有努力不变。 — 佚名",
+            "生活就像骑自行车，要保持平衡就得向前走。 — 爱因斯坦",
+            "成功源于坚持不懈的努力。 — 佚名",
+            "生活的真谛在于追求，而不是结果。 — 佚名",
+            "失败是成功的必经之路。 — 佚名",
+            "每一天都是一个新的开始。 — 佚名",
+            "没有什么比坚持更重要。 — 佚名",
+            "只要你愿意，任何时候都是新开始。 — 佚名",
+            "以诚待人，方能得人心。 — 佚名",
+            "乐观的人看见机会，悲观的人看见困难。 — 佚名",
+            "知识改变命运，学习成就未来。 — 佚名",
+            "成功是努力的结果。 — 佚名",
+            "人生如逆旅，我亦是行人。 — 佚名",
+            "无论你在何处，努力就能看到希望。 — 佚名",
+            "自信是成功的第一秘诀。 — 佚名",
+            "不经历风雨，怎么见彩虹。 — 佚名",
+            "相信自己，勇敢追梦。 — 佚名",
+            "心有多大，舞台就有多大。 — 佚名",
+            "今天的努力，决定明天的成绩。 — 佚名",
+            "把握现在，就是把握未来。 — 佚名",
+            "人生的旅程，要勇敢地走下去。 — 佚名",
+            "每一次努力，都是幸运的伏笔。 — 佚名",
+            "坚持就是胜利。 — 佚名",
+            "理想是指路明灯。 — 佚名",
+            "不要让昨天占据了今天。 — 佚名",
+            "生活不是等待暴风雨过去，而是要学会在雨中跳舞。 — 佚名",
+            "心态决定一切，态度决定高度。 — 佚名",
+            "每一天都是新的开始，珍惜每一刻。 — 佚名",
+            "强者不是没有眼泪的人，而是含着泪水奔跑的人。 — 佚名",
+            "成功没有捷径，只有努力。 — 佚名",
+            "努力是成功的阶梯。 — 佚名",
+            "每一次失败，都是向成功迈出的一步。 — 佚名",
+            "用心去做，才能成就非凡。 — 佚名",
+            "人生是一场马拉松，耐力比速度更重要。 — 佚名",
+            "给自己一个微笑，给生活一个机会。 — 佚名",
+            "你不能改变风的方向，但你可以调整帆的角度。 — 佚名",
+            "人生的意义在于追求，而不是结果。 — 佚名",
+            "将来的你，一定会感谢现在拼命的自己。 — 佚名",
+            "只要心中有梦，脚下的路就会更宽。 — 佚名",
+            "成功的关键在于付出努力。 — 佚名",
+            "勇敢面对每一个挑战。 — 佚名",
+            "不怕失败，怕的是不敢尝试。 — 佚名",
+            "人生是一本书，愚蠢的人只看到封面。 — 佚名",
+            "记住，今天的努力，换来明天的成功。 — 佚名",
+            "生活的意义在于追求你所热爱的事物。 — 佚名",
+            "机会总是留给有准备的人。 — 佚名",
+            "每一次尝试，都是一次成长。 — 佚名",
+            "生活的乐趣在于不断挑战自己。 — 佚名",
+            "只要你努力，就一定能成功。 — 佚名",
+            "梦想不会被时间抹去，努力会让它实现。 — 佚名",
+            "生活是自己的，何必在乎他人的眼光。 — 佚名",
+            "心态决定高度，态度决定成败。 — 佚名",
+            "无论多远的路，只要走下去，就能到达目的地。 — 佚名",
+            "生活总会有起伏，关键是如何面对。 — 佚名",
+            "坚持你所信仰的，成功就会来到。 — 佚名",
+            "做事要讲究方法，做人要讲究原则。 — 佚名",
+            "每一次努力，都是向成功迈出的一步。 — 佚名",
+            "人生没有剧本，所有的台词都是即兴。 — 佚名",
+            "把每一天都当作最后一天去生活。 — 佚名",
+            "每一个成功者都有一个开始，勇于开始，才能找到成功的路。 — 佚名",
+            "努力不一定成功，但放弃一定失败。 — 佚名"
+        ];
+        let currentQuoteIndex = parseInt(localStorage.getItem('currentQuoteIndex')) || 0;
+        let editBookmarkData = null; // 存储当前编辑的书签数据
+
+        window.onload = function () {
+            document.getElementById('bookmark-manager').style.display = 'block';
+            updateQuote();
+            setInterval(updateQuote, 8000);
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            if (currentUser) {
+                document.getElementById('username-display').textContent = `在线用户: ${currentUser}`;
+                groups = JSON.parse(localStorage.getItem(`groups_${currentUser}`)) || {};
+                loadGroups();
+                document.getElementById('logoutButton').style.display = 'inline';
+                document.getElementById('clearAllBookmarksButton').style.display = 'inline';
+            }
+        };
+
+        function freeSort() {
+            const password = prompt("请输入口令以访问自由排序功能（如需口令请联系宝哥）");
+            const correctPassword = "baoge888"; 
+            if (password === correctPassword) {
+                window.open("https://file.baoge.rr.nu/paixu"); 
+            } else {
+                alert("口令错误！");
+            }
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const formattedDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+            document.getElementById('dateTime').textContent = formattedDate;
+        }
+
+        function updateQuote() {
+            const quoteDisplay = document.getElementById('quoteDisplay');
+            quoteDisplay.textContent = quotes[currentQuoteIndex];
+            localStorage.setItem('currentQuoteIndex', currentQuoteIndex);
+            currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
+        }
+
+        function toggleSettings() {
+            if (!currentUser) {
+                const username = prompt("请输入用户名");
+                const password = prompt("请输入密码");
+
+                if (users[username] && users[username] === password) {
+                    currentUser = username;
+                    localStorage.setItem('lastUser', username);
+                    groups = JSON.parse(localStorage.getItem(`groups_${currentUser}`)) || {};
+                    loadGroups();
+                    document.getElementById('username-display').textContent = `在线用户: ${username}`;
+                    document.getElementById('logoutButton').style.display = 'inline';
+                    document.getElementById('clearAllBookmarksButton').style.display = 'inline';
+                } else {
+                    alert("用户名或密码错误");
+                }
+            } else {
+                const adminControls = document.getElementById('admin-controls');
+                adminControls.style.display = adminControls.style.display === 'none' ? 'block' : 'none';
+                if (adminControls.style.display === 'none') {
+                    location.reload();
+                }
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('lastUser');
+            document.getElementById('admin-controls').style.display = 'none';
+            document.getElementById('username-display').textContent = "书签管理系统";
+            groups = {};
+            loadGroups();
+            document.getElementById('logoutButton').style.display = 'none';
+            document.getElementById('clearAllBookmarksButton').style.display = 'none';
+        }
+
+        function toggleBookmarkInput(button) {
+            const bookmarkInput = document.getElementById("bookmark-input");
+            bookmarkInput.style.display = bookmarkInput.style.display === "none" ? "block" : "none";
+            button.classList.toggle('active-button');
+            const groupSelect = document.getElementById("group-select");
+            groupSelect.innerHTML = '';
+
+            for (const group in groups) {
+                const option = document.createElement("option");
+                option.value = group;
+                option.textContent = group;
+                groupSelect.appendChild(option);
+            }
+        }
+
+        function addBookmark() {
+            const name = document.getElementById("bookmark-name").value;
+            const url = document.getElementById("bookmark-url").value;
+            const group = document.getElementById("group-select").value;
+
+            if (name && url && group) {
+                if (!groups[group]) {
+                    groups[group] = [];
+                }
+                groups[group].push({ name: name, url: url });
+                localStorage.setItem(`groups_${currentUser}`, JSON.stringify(groups));
+                loadGroups();
+                document.getElementById("bookmark-name").value = '';
+                document.getElementById("bookmark-url").value = '';
+                toggleBookmarkInput(document.querySelector("#admin-controls button:nth-child(1)"));
+            } else {
+                alert("请填写书签名称、链接和选择分组");
+            }
+        }
+
+        function toggleDeleteBookmark(button) {
+            const deleteBookmarkDiv = document.getElementById("delete-bookmark");
+            deleteBookmarkDiv.style.display = deleteBookmarkDiv.style.display === "none" ? "block" : "none";
+            button.classList.toggle('active-button');
+            const deleteBookmarkSelect = document.getElementById("delete-bookmark-select");
+            deleteBookmarkSelect.innerHTML = '';
+
+            for (const group in groups) {
+                for (let i = 0; i < groups[group].length; i++) {
+                    const bookmark = groups[group][i];
+                    const option = document.createElement("option");
+                    option.value = `${group}-${i}`;
+                    option.textContent = `${group} - ${bookmark.name}`;
+                    deleteBookmarkSelect.appendChild(option);
+                }
+            }
+        }
+
+        function deleteBookmark() {
+            const selectedValue = document.getElementById("delete-bookmark-select").value;
+            if (selectedValue) {
+                const [group, index] = selectedValue.split('-');
+                groups[group].splice(index, 1);
+                if (groups[group].length === 0) {
+                    delete groups[group];
+                }
+                localStorage.setItem(`groups_${currentUser}`, JSON.stringify(groups));
+                loadGroups();
+                toggleDeleteBookmark(document.querySelector("#admin-controls button:nth-child(3)"));
+            } else {
+                alert("请选择要删除的书签");
+            }
+        }
+
+        function toggleGroupInput(button) {
+            const groupInputDiv = document.getElementById("group-input");
+            groupInputDiv.style.display = groupInputDiv.style.display === "none" ? "block" : "none";
+            button.classList.toggle('active-button');
+        }
+
+        function addGroup() {
+            const groupName = document.getElementById("group-name").value;
+            if (groupName) {
+                groups[groupName] = [];
+                localStorage.setItem(`groups_${currentUser}`, JSON.stringify(groups));
+                loadGroups();
+                document.getElementById("group-name").value = '';
+                toggleGroupInput(document.querySelector("#admin-controls button:nth-child(5)"));
+            } else {
+                alert("请输入分组名称");
+            }
+        }
+
+        function toggleDeleteGroup(button) {
+            const deleteGroupDiv = document.getElementById("delete-group");
+            deleteGroupDiv.style.display = deleteGroupDiv.style.display === "none" ? "block" : "none";
+            button.classList.toggle('active-button');
+            const deleteGroupSelect = document.getElementById("delete-group-select");
+            deleteGroupSelect.innerHTML = '';
+
+            for (const group in groups) {
+                const option = document.createElement("option");
+                option.value = group;
+                option.textContent = group;
+                deleteGroupSelect.appendChild(option);
+            }
+        }
+
+        function deleteGroup() {
+            const selectedGroup = document.getElementById("delete-group-select").value;
+            if (selectedGroup) {
+                delete groups[selectedGroup];
+                localStorage.setItem(`groups_${currentUser}`, JSON.stringify(groups));
+                loadGroups();
+                toggleDeleteGroup(document.querySelector("#admin-controls button:nth-child(7)"));
+            } else {
+                alert("请选择要删除的分组");
+            }
+        }
+
+        function loadGroups() {
+            const groupsDiv = document.getElementById("groups");
+            groupsDiv.innerHTML = '';
+
+            for (const group in groups) {
+                const groupDiv = document.createElement("div");
+                groupDiv.className = "group";
+                const groupTitle = document.createElement("div");
+                groupTitle.className = "group-title";
+                groupTitle.textContent = group;
+                groupDiv.appendChild(groupTitle);
+
+                const bookmarkContainer = document.createElement("div");
+                bookmarkContainer.className = "bookmark-container";
+
+                for (let i = 0; i < groups[group].length; i++) {
+                    const bookmark = groups[group][i];
+                    const bookmarkCard = document.createElement("div");
+                    bookmarkCard.className = "bookmark-card";
+                    bookmarkCard.textContent = bookmark.name;
+                    bookmarkCard.onclick = () => window.open(bookmark.url, '_blank');
+                    bookmarkCard.addEventListener('contextmenu', (event) => {
+                        event.preventDefault();
+                        editBookmarkData = { group: group, index: i, bookmark: bookmark };
+                        openEditModal(bookmark);
+                    });
+
+                    bookmarkContainer.appendChild(bookmarkCard);
+                }
+                groupDiv.appendChild(bookmarkContainer);
+                groupsDiv.appendChild(groupDiv);
+            }
+        }
+
+        function openEditModal(bookmark) {
+            const editModal = document.getElementById("editModal");
+            document.getElementById("edit-bookmark-name").value = bookmark.name;
+            document.getElementById("edit-bookmark-url").value = bookmark.url;
+            editModal.style.display = "block";
+        }
+
+        function closeEditModal() {
+            const editModal = document.getElementById("editModal");
+            editModal.style.display = "none";
+        }
+
+        function saveBookmarkEdit() {
+            if (editBookmarkData) {
+                const newName = document.getElementById("edit-bookmark-name").value;
+                const newUrl = document.getElementById("edit-bookmark-url").value;
+                groups[editBookmarkData.group][editBookmarkData.index].name = newName;
+                groups[editBookmarkData.group][editBookmarkData.index].url = newUrl;
+                localStorage.setItem(`groups_${currentUser}`, JSON.stringify(groups));
+                loadGroups();
+                closeEditModal();
+                editBookmarkData = null;
+            }
+        }
+
+        function importBookmarks() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json';
+
+            fileInput.onchange = event => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        try {
+                            const importedGroups = JSON.parse(e.target.result);
+                            for (const group in importedGroups) {
+                                if (groups[group]) {
+                                    if (confirm(`同名分组 \"${group}\" 已存在，是否合并？选择取消将跳过此分组。`)) {
+                                        groups[group] = groups[group].concat(importedGroups[group]);
+                                    }
+                                } else {
+                                    groups[group] = importedGroups[group];
+                                }
+                            }
+                            localStorage.setItem(`groups_${currentUser}`, JSON.stringify(groups));
+                            loadGroups();
+                            alert('书签导入成功！');
+                        } catch (error) {
+                            alert('导入失败：文件格式不正确。');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            fileInput.click();
+        }
+
+        function exportBookmarks() {
+            const dataStr = JSON.stringify(groups, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            const exportFileName = 'bookmarks.json';
+
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileName);
+            document.body.appendChild(linkElement);
+            linkElement.click();
+            document.body.removeChild(linkElement);
+        }
+
+        function clearAllBookmarks() {
+            localStorage.removeItem(`groups_${currentUser}`);
+            groups = {};
+            loadGroups();
+        }
+
+        function confirmClearAllBookmarks() {
+            if (confirm("确认要删除所有书签吗？此操作不可撤销！")) {
+                clearAllBookmarks();
+            }
+        }
+
+        function showHelp() {
+            alert("1、初始界面点开右上角'≡'图标，展开四个选项，分别是：设置（⚙）、帮助文档（✌），排序工具（⇅）、退出按键（❌），再次点击'≡'图标，收回所有展开图标。 2、未登录状态时，点开设置（⚙）图标按键，跳出用户名/密码输入框，输入正确后进入在线用户模式。使用设置按键即可轻松切换管理模式与用户模式，也就是通过点击设置（⚙）按键可以展开/隐藏功能键。3、管理模式下，可通过各个功能键来实现分组和书签的添加删除操作，支持导入导出书签列表至本地存储。4、20250216新增加两个功能：a、右键点击（PC端）或长按（手机端）书签可以修改书签名称和链接。b、长按三道杠'≡'图标或者点击设置按键（⚙）后跳出清空书签按键，点击后确认可实现清空所有书签列表。5、此书签管理系统，仅提供了最轻量级的部署支持，加之为了实现电脑端跟手机端屏幕自适应特性，不方便在管理模式下直接部署排序功能，为此增加了一个排序按键。排序按键使用站外工具面板（作者自建）方式实现自由排序功能，通过导入本地书签列表文件，解析还原分组和书签列表文件，轻松实现分组整体拖动排序，分组内书签拖动排序，书签还可以实现跨分组排序。排序完成后一键导出排序列表，书签管理系统通过调用排序工具，导入排序书签文件，解决自由排序问题。当然，你也可以不调用排序工具，通过右键点击修改功能实现排序。排序功能在电脑通过鼠标实现自由拖动，手机上使用不太方便。6、关于退出按键的部署，一是为了加设密码，增加私密性。二是为了实现一人多账号登录。通过输入不同的用户名/密码来使用不同的书签列表。输入用户名/密码登录到用户模式后，不点击退出（红色叉号），默认保存当前用户，下次打开，不用重新输入用户名/密码。7、此系统仅支持本终端本浏览器部署使用，不同终端，不同浏览器，使用同一套账户资料均可登录，但登录后都是空白内容，各书签列表内容可以自由部署，编辑整理完成后，及时导出书签列表文件至本地存储，此格式文件不论手机电脑，均支持导入。导入时自动检测是否存在同名分组，可自主选择分组导入。8、本系统纯粹为了个人使用方便部署，不建议推广，如需账号资料，联系作者，通过修改库文件增加账号。账号最好是单人使用最佳，禁止滥用，后台发现某个账号被超多终端使用，随时在后台行使超管权限，所以，且用且珍惜。9、欢迎提出宝贵意见，帮助作者升级优化，希望自定义样式的，联系作者为你单独部署，可以提供三种以上其他类书签导航站的部署，最后，祝各位大佬体验愉快！");
+        }
+
+        // 编辑模态框关闭
+        window.onclick = function(event) {
+            const editModal = document.getElementById('editModal');
+            if (event.target === editModal) {
+                closeEditModal();
+            }
+        };
+    </script>
+</body>
+</html>
