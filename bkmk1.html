@@ -227,15 +227,14 @@
 <body>
     <div id="bookmark-manager">
         <div class="header-buttons">
-            <button onclick="toggleSettings()">⚙</button>
-            <button id="helper-toggle" onclick="toggleHelper()">≡</button>
-        </div>
-        <div id="helper-buttons">
-            <button onclick="toggleSettings()">⚙</button>
-            <button onclick="showHelp()">✌</button>
-            <button onclick="freeSort()">⇅</button>
-            <button id="logoutButton" onclick="logout()">❌</button>
-        </div>
+    <button id="helper-toggle" onclick="toggleHelper()">≡</button>
+</div>
+<div id="helper-buttons" style="display: none;">
+    <button onclick="toggleSettings()">⚙</button>
+    <button onclick="showHelp()">✌</button>
+    <button onclick="freeSort()">⇅</button>
+    <button id="logoutButton" onclick="logout()">❌</button>
+</div>
         <h2 id="username-display">书签管理系统</h2>
         <div class="date-time" id="dateTime"></div>
         <div class="quote-display" id="quoteDisplay"></div>
@@ -632,10 +631,42 @@
                     bookmarkCard.className = "bookmark-card";
                     bookmarkCard.textContent = bookmark.name;
                     bookmarkCard.onclick = () => window.open(bookmark.url, '_blank');
+
+                    // 右键编辑
                     bookmarkCard.addEventListener('contextmenu', (event) => {
                         event.preventDefault();
                         editBookmarkData = { group: group, index: i, bookmark: bookmark };
                         openEditModal(bookmark);
+                    });
+
+                    // 左键长按编辑（移动端/PC端都支持）
+                    let pressTimer = null;
+                    bookmarkCard.addEventListener('mousedown', function (e) {
+                        if (e.button === 0) { // 只响应左键
+                            pressTimer = setTimeout(() => {
+                                editBookmarkData = { group: group, index: i, bookmark: bookmark };
+                                openEditModal(bookmark);
+                            }, 500);
+                        }
+                    });
+                    bookmarkCard.addEventListener('mouseup', function (e) {
+                        clearTimeout(pressTimer);
+                    });
+                    bookmarkCard.addEventListener('mouseleave', function (e) {
+                        clearTimeout(pressTimer);
+                    });
+                    // 移动端长按
+                    bookmarkCard.addEventListener('touchstart', function (e) {
+                        pressTimer = setTimeout(() => {
+                            editBookmarkData = { group: group, index: i, bookmark: bookmark };
+                            openEditModal(bookmark);
+                        }, 500);
+                    });
+                    bookmarkCard.addEventListener('touchend', function (e) {
+                        clearTimeout(pressTimer);
+                    });
+                    bookmarkCard.addEventListener('touchmove', function (e) {
+                        clearTimeout(pressTimer);
                     });
 
                     bookmarkContainer.appendChild(bookmarkCard);
@@ -667,6 +698,7 @@
                 loadGroups();
                 closeEditModal();
                 editBookmarkData = null;
+                location.reload(); // 保存后刷新页面
             }
         }
 
@@ -694,6 +726,7 @@
                             localStorage.setItem(`groups_${currentUser}`, JSON.stringify(groups));
                             loadGroups();
                             alert('书签导入成功！');
+                            location.reload(); // 导入成功后刷新页面
                         } catch (error) {
                             alert('导入失败：文件格式不正确。');
                         }
