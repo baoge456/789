@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝哥博客</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        :root {
+            --main-bg: #f9f9f9;
+            --main-radius: 12px;
+            --main-shadow: 0 2px 8px #0001;
+            --accent: #7c3aed;
+            --accent-light: #f3e9e1;
+            --text-main: #333;
+            --text-sub: #888;
+            --brand: #4b3d3d;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f3f6fb 0%, #e9e4f0 100%);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: var(--text-main);
+        }
+        .navbar {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            background: #fff;
+            box-shadow: var(--main-shadow);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            height: 56px;
+        }
+        .navbar-logo {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--brand);
+            margin-right: 32px;
+        }
+        .navbar-menu {
+            display: flex;
+            flex: 1;
+            gap: 18px;
+        }
+        .navbar-menu .dropdown {
+            position: relative;
+            user-select: none;
+        }
+        .navbar-menu .dropbtn {
+            color: var(--brand);
+            background: none;
+            border: none;
+            font-size: 1.05em;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .navbar-menu .dropbtn.active,
+        .navbar-menu .dropbtn:hover {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+        .navbar-menu .dropdown-content {
+            display: none;
+            position: absolute;
+            left: 0;
+            top: 110%;
+            min-width: 180px;
+            background: #fff;
+            box-shadow: 0 2px 8px #0002;
+            border-radius: 8px;
+            z-index: 200;
+            padding: 8px 0;
+        }
+        .navbar-menu .dropdown.open .dropdown-content {
+            display: block;
+        }
+        .navbar-menu .dropdown-content a {
+            display: block;
+            color: var(--brand);
+            padding: 8px 20px;
+            text-decoration: none;
+            font-size: 1em;
+            border-radius: 0;
+            transition: background 0.2s, color 0.2s;
+        }
+        .navbar-menu .dropdown-content a:hover {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+        .navbar-hamburger {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            margin-left: 12px;
+            cursor: pointer;
+        }
+        .navbar-hamburger span {
+            display: block;
+            height: 4px;
+            width: 28px;
+            background: var(--brand);
+            margin: 3px 0;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+        .navbar-hamburger:hover span {
+            background: var(--accent);
+        }
+        .main-content, .admin-panel-outer {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: calc(100vh - 56px);
+            padding: 32px 8px 32px 8px;
+        }
+        .container, .admin-panel {
+            width: 100%;
+            max-width: 640px; /* 使内容更集中 */
+            background: var(--main-bg);
+            border-radius: var(--main-radius);
+            box-shadow: var(--main-shadow);
+            padding: 0;
+            margin: 0 auto;
+        }
+        .content-wrapper {
+            padding: 18px 10px 10px 10px;
+            border-radius: 8px;
+            background-color: #f7f7f7;
+            min-height: 300px;
+        }
+        .blog-list {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-top: 24px;
+        }
+        .blog-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: var(--main-shadow);
+            display: flex;
+            align-items: flex-start;
+            padding: 20px;
+            gap: 18px;
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+        .blog-card:hover {
+            box-shadow: 0 4px 16px #0002;
+        }
+        .blog-card-img {
+            width: 90px;
+            height: 90px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #eee;
+            flex-shrink: 0;
+        }
+        .blog-card-content {
+            flex: 1;
+            text-align: left;
+        }
+        .blog-card-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 0 0 8px 0;
+            color: var(--text-main);
+        }
+        .blog-card-date {
+            color: var(--text-sub);
+            font-size: 0.95em;
+            margin-bottom: 8px;
+        }
+        .blog-card-summary {
+            color: #444;
+            font-size: 1em;
+            line-height: 1.7;
+            margin-bottom: 0;
+        }
+        .article {
+            display: none;
+        }
+        .article.expanded {
+            display: flex;
+            flex-direction: column;
+            max-width: 640px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: var(--main-shadow);
+            padding: 0;
+            margin-top: 0;
+            min-height: calc(100vh - 56px - 32px - 32px);
+            position: relative;
+            justify-content: center;
+        }
+        .article .back-btn {
+            position: absolute;
+            left: 24px;
+            top: 24px;
+            background: #fff;
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--brand);
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 2px 8px #0001;
+            z-index: 10;
+            transition: background 0.2s, color 0.2s;
+        }
+        .article .back-btn:hover {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+        .article .date {
+            font-style: italic;
+            color: var(--text-sub);
+            margin: 80px 0 12px 0;
+            text-align: center;
+        }
+        .article .content {
+            margin: 0 auto;
+            flex: 1;
+            overflow-y: auto;
+            max-width: 540px;
+            min-height: 40vh;
+            white-space: pre-wrap;
+            padding: 0 24px 32px 24px;
+            word-break: break-all;
+            font-size: 1.1em;
+            color: #333;
+        }
+        .article .content a {
+            word-break: break-all;
+            color: #007bff;
+            text-decoration: underline;
+        }
+        .article .content a:hover {
+            text-decoration: underline;
+        }
+        .article img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+            display: block;
+        }
+        #main-title, #article-title {
+            font-size: 1.5em;
+            margin: 0;
+            padding: 0;
+            line-height: 1.2;
+        }
+        #main-title { display: block; }
+        #article-title { display: none; }
+        #password-prompt {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 32px 24px 24px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 32px #0003;
+            z-index: 1001;
+            min-width: 260px;
+            max-width: 90vw;
+        }
+        #password-prompt h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+        }
+        #password-prompt input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 16px 0 12px 0;
+            font-size: 1.1em;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        #password-prompt button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 24px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        #password-prompt button:hover {
+            background: #5c3ab7;
+        }
+        .admin-panel-outer {
+            display: none;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: calc(100vh - 56px);
+            padding: 32px 8px 32px 8px;
+        }
+        .admin-panel {
+            width: 100%;
+            max-width: 520px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 32px #0002;
+            padding: 32px 18px 24px 18px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .admin-panel h2 {
+            margin-top: 0;
+            font-size: 1.3em;
+            text-align: center;
+        }
+        .admin-panel label {
+            margin-top: 12px;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        .admin-panel input[type="text"], .admin-panel input[type="url"], .admin-panel textarea, .admin-panel input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        .admin-panel button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 0;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 8px 0;
+        }
+        .admin-panel button:hover {
+            background: #5c3ab7;
+        }
+        .admin-panel .admin-tools {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .admin-panel .admin-tools i {
+            font-size: 1.3em;
+            color: var(--brand);
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .admin-panel ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .admin-panel ul li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .admin-panel ul li:last-child {
+            border-bottom: none;
+        }
+        .admin-panel ul li button {
+            margin-left: 8px;
+            padding: 4px 10px;
+            font-size: 0.95em;
+        }
+        @media (max-width: 900px) {
+            .container, .article.expanded {
+                max-width: 100vw;
+                border-radius: 0;
+            }
+        }
+        @media (max-width: 700px) {
+            .container, .article.expanded {
+                max-width: 100vw;
+            }
+            .main-content {
+                padding: 12px 0 12px 0;
+            }
+            .content-wrapper {
+                padding: 8px 2vw 8px 2vw;
+            }
+            .article.expanded {
+                padding: 0;
+            }
+            .article .back-btn {
+                left: 10px;
+                top: 10px;
+                width: 38px;
+                height: 38px;
+                font-size: 1.2em;
+            }
+            .article .date {
+                margin-top: 60px;
+            }
+            .article .content {
+                padding: 0 2vw 18px 2vw;
+            }
+            .admin-panel {
+                max-width: 100%;
+                border-radius: 0;
+                padding: 18px 2vw 12px 2vw;
+            }
+        }
+        @media (max-width: 500px) {
+            .admin-panel {
+                padding: 8px 0 8px 0;
+            }
+            #password-prompt {
+                padding: 18px 4vw 12px 4vw;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏，分组下拉菜单 -->
+    <div class="navbar">
+        <div class="navbar-logo">宝哥博客</div>
+        <nav class="navbar-menu" id="navbar-menu">
+            <!-- AI 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">AI</button>
+                <div class="dropdown-content">
+                    <a href="https://www.aidh.cn/" target="_blank">AI导航</a>
+                    <a href="https://aiproducthome.top/" target="_blank">AI工具箱</a>
+                    <a href="https://ai-cangku.com/" target="_blank">AI仓库</a>
+                </div>
+            </div>
+            <!-- 新闻 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">新闻</button>
+                <div class="dropdown-content">
+                    <a href="https://xw.653827.xyz/" target="_blank">新闻汇聚</a>
+                    <a href="https://feedly.com/i/my/me" target="_blank">Feedly</a>
+                    <a href="https://app.follow.is/timeline/view-0/all/pending" target="_blank">FOLO</a>
+                    <a href="https://sina-news.vercel.app/" target="_blank">财经新闻</a>
+                </div>
+            </div>
+            <!-- 天气 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">天气</button>
+                <div class="dropdown-content">
+                    <a href="https://www.qweather.com/weather/tai'an-101120801.html" target="_blank">泰安天气</a>
+                    <a href="https://tianqi.moji.com/weather/china/shandong/daiyue-district" target="_blank">岱岳天气</a>
+                    <a href="https://tianqi.qq.com/index.htm" target="_blank">泰安天气</a>
+                </div>
+            </div>
+            <!-- 图床 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">图床</button>
+                <div class="dropdown-content">
+                    <a href="https://www.imgurl.org/vip/manage/upload" target="_blank">ImgURL</a>
+                    <a href="https://wp-cdn.4ce.cn/" target="_blank">骤雨重山</a>
+                </div>
+            </div>
+            <!-- 视听 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">视听</button>
+                <div class="dropdown-content">
+                    <a href="https://www.bilibili.com/video/BV1564y1m7Mu?spm_id_from=333.788.videopod.sections&vd_source=954e725e91c1c3621a8a51c91cb1da04" target="_blank">Bilibili音乐</a>
+                    <a href="https://weread.qq.com/web/category/100000" target="_blank">微信读书</a>
+                </div>
+            </div>
+            <!-- 影院 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">影院</button>
+                <div class="dropdown-content">
+                    <a href="https://ys.baoge.wang/" target="_blank">LibreTV-ys</a>
+                    <a href="https://libretv.baoge.wang/" target="_blank">LibreTV</a>
+                    <a href="https://libretv-x.baoge.wang/" target="_blank">LibreTV-x</a>
+                    <a href="https://ys.001315.xyz/" target="_blank">LibreTV-aizrf</a>
+                    <a href="https://vd.ruo.my/" target="_blank">影视</a>
+                    <a href="https://laowang.co/" target="_blank">老王电影</a>
+                </div>
+            </div>
+            <!-- 其它 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">其它</button>
+                <div class="dropdown-content">
+                    <a href="https://tool.cccyun.cc/" target="_blank">彩虹工具网</a>
+                    <a href="https://blog.anheyu.com/" target="_blank">安知鱼博客</a>
+                </div>
+            </div>
+            <!-- 导航页 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">导航页</button>
+                <div class="dropdown-content">
+                    <a href="https://sq.baoge.wang" target="_blank">书签导航一</a>
+                    <a href="https://sqdh.653827.xyz" target="_blank">书签导航二</a>
+                    <a href="https://jsqdh.653827.xyz" target="_blank">jsqdh</a>
+                    <a href="https://nav.baoge.wang/" target="_blank">网址导航</a>
+                    <a href="https://dhz.baoge.wang/" target="_blank">宝哥导航站</a>
+                    <a href="https://file.baoge.wang/bkmk2" target="_blank">书签管理系统</a>
+                    <a href="https://dfile.baoge.wang/sunpanel.html" target="_blank">我的书签</a>
+                    <a href="https://dfile.baoge.wang/%E7%AE%80%E7%BA%A6%E5%AF%BC%E8%88%AA1.html" target="_blank">简约导航1</a>
+                    <a href="https://dfile.baoge.wang/%E7%AE%80%E7%BA%A62.html" target="_blank">简约2</a>
+                    <a href="https://dfile.baoge.wang/jianyue2.html" target="_blank">jianyue2</a>
+                </div>
+            </div>
+            <!-- 博客 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">博客</button>
+                <div class="dropdown-content">
+                    <a href="https://bk.baoge.wang/" target="_blank">Gridea博客</a>
+                    <a href="https://xampp.baoge.wang/" target="_blank">XAMPP博客</a>
+                    <a href="https://blog.baoge.wang/" target="_blank">RIN博客</a>
+                    <a href="https://www.653827.xyz/" target="_blank">Notion博客</a>
+                    <a href="https://cfblog.baoge888.ddns-ip.net" target="_blank">CF-Blog</a>
+                    <a href="http://baoge.ugu.pl/" target="_blank">宝哥论坛</a>
+                    <a href="https://baoge666.blogspot.com/" target="_blank">Blogger</a>
+                </div>
+            </div>
+            <!-- 工具页一 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">工具页一</button>
+                <div class="dropdown-content">
+                    <a href="https://file.baoge.wang" target="_blank">github文件管理器</a>
+                    <a href="https://file.baoge.wang/ipjc" target="_blank">IP检测工具汇总</a>
+                    <a href="https://js.653827.xyz/" target="_blank">网址加速器</a>
+                    <a href="https://cp.653827.xyz/" target="_blank">在线粘贴板</a>
+                    <a href="https://tz.baoge.wang/" target="_blank">跳转浏览器</a>
+                    <a href="https://cftg.653827.xyz/" target="_blank">电报文件管理</a>
+                    <a href="https://b2.notpeppa.ggff.net/notpeppa" target="_blank">webp图床</a>
+                    <a href="https://slt.baoge.wang/" target="_blank">缩略图</a>
+                    <a href="https://file.baoge.wang/lianjiejiance" target="_blank">链接检测面板</a>
+                    <a href="https://ncewm.baoge.wang/" target="_blank">挪车二维码生成器一</a>
+                    <a href="https://dfile.baoge.wang/%E6%8C%AA%E8%BD%A6%E4%BA%8C%E7%BB%B4%E7%A0%81/ncewm.html" target="_blank">挪车二维码生成器二</a>
+                </div>
+            </div>
+            <!-- 工具页二 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">工具页二</button>
+                <div class="dropdown-content">
+                    <a href="https://xugou.653827.xyz/monitors" target="_blank">xugou监控</a>
+                    <a href="https://ym.baoge.wang/" target="_blank">域名监控</a>
+                    <a href="https://vps.shorten.dpdns.org/" target="_blank">VPS到期监控</a>
+                    <a href="https://fx.baoge.wang" target="_blank">网页分析</a>
+                    <a href="https://file.baoge.wang/j2-h2" target="_blank">书签导航页自动生成</a>
+                    <a href="https://text.imageonline.co/cn/" target="_blank">文本到图像生成器</a>
+                    <a href="https://www.remove.bg/zh" target="_blank">在线抠图</a>
+                    <a href="https://cron.qqe2.com/" target="_blank">Cron表达式生成器</a>
+                    <a href="https://mail.tm/zh/" target="_blank">Temp临时邮件</a>
+                </div>
+            </div>
+            <!-- 工具箱 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">工具箱</button>
+                <div class="dropdown-content">
+                    <a href="https://tool.cccyun.cc/" target="_blank">彩虹工具箱</a>
+                    <a href="https://tool.lu/" target="_blank">在线工具箱</a>
+                    <a href="https://toolonline.net/" target="_blank">在线工具</a>
+                    <a href="https://www.toolhelper.cn/" target="_blank">锤子在线工具网</a>
+                    <a href="https://www.hamstertools.org/zh" target="_blank">仓鼠工具箱</a>
+                    <a href="https://www.y3pm.com/" target="_blank">锦时.产品工具箱</a>
+                    <a href="https://xpdf.cn/" target="_blank">超级PDF</a>
+                    <a href="https://www.toolnb.com/" target="_blank">爱资料工具</a>
+                    <a href="https://heeee.com/" target="_blank">资源网</a>
+                    <a href="https://szsyw.cn/book" target="_blank">数字素养网</a>
+                </div>
+            </div>
+            <!-- Markdown 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">Markdown</button>
+                <div class="dropdown-content">
+                    <a href="https://toolonline.net/markdown" target="_blank">Tool On lion</a>
+                    <a href="https://markdown.lovejade.cn/" target="_blank">Arya</a>
+                    <a href="https://www.toolhelper.cn/Code/Markdown" target="_blank">锤子在线</a>
+                    <a href="https://tool.lu/markdown/" target="_blank">在线工具</a>
+                    <a href="https://devtool.tech/html-md" target="_blank">HTML转换Markdown</a>
+                    <a href="https://markdown.com.cn/hacks.html#%E6%A6%82%E8%BF%B0" target="_blank">Markdown 语法</a>
+                </div>
+            </div>
+            <!-- 代码混淆 分组 -->
+            <div class="dropdown">
+                <button class="dropbtn" type="button">代码混淆</button>
+                <div class="dropdown-content">
+                    <a href="https://toolonline.net/js-obfuscator" target="_blank">toolonline</a>
+                    <a href="https://tool.aoaostar.com/code_js" target="_blank">傲星工具箱</a>
+                    <a href="https://fairysoftware.com/html_jia_mi.html" target="_blank">Html加密</a>
+                    <a href="https://tophix.com/zh-cn/development-tools/encrypt-text" target="_blank">在线文本加密</a>
+                    <a href="https://javascriptobfuscator.com/Javascript-Obfuscator.aspx" target="_blank">Online Obfuscator</a>
+                </div>
+            </div>
+        </nav>
+        <div class="navbar-hamburger" onclick="showPasswordPrompt()" title="管理">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <!-- 前台内容区 -->
+    <div class="main-content" id="main-content">
+        <div class="container">
+            <div class="content-wrapper">
+                <h1 id="main-title">宝哥博客</h1>
+                <h1 id="article-title" style="display: none;"></h1>
+                <div id="article-list" class="blog-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 密码弹窗 -->
+    <div id="password-prompt">
+        <h2>请输入管理员密码</h2>
+        <input type="password" id="admin-password" autocomplete="off" onfocus="this.removeAttribute('readonly');" readonly onkeydown="handlePasswordEnter(event)" />
+        <button onclick="checkPassword()">确认</button>
+    </div>
+
+    <!-- 后台管理面板 -->
+    <div class="admin-panel-outer" id="admin-panel-outer">
+        <div class="admin-panel">
+            <div class="admin-tools">
+                <i id="admin-return" class="fa fa-arrow-left" onclick="exitAdminPanel()" aria-hidden="true" title="返回前台"></i>
+            </div>
+            <h2>管理面板</h2>
+            <button onclick="toggleAddArticleForm()">添加文章</button>
+            <button onclick="toggleArticleManagement()">管理文章</button>
+            <button onclick="exportArticles()">导出文章</button>
+            <button onclick="importArticles()">导入文章</button>
+            <button onclick="clearAllArticles()">清空全部</button>
+            <div id="add-article-form" style="display:none;">
+                <label for="new-article-title">文章标题:</label>
+                <input type="text" id="new-article-title" name="new-article-title">
+                <label for="new-article-image">图片链接:</label>
+                <input type="url" id="new-article-image" name="new-article-image">
+                <label for="new-article-content">文章内容:</label>
+                <textarea id="new-article-content" name="new-article-content" rows="5"></textarea>
+                <button onclick="addArticle()">添加</button>
+            </div>
+            <ul id="article-management-list" style="display:none;">
+                <!-- 文章管理列表在此生成 -->
+            </ul>
+            <div id="edit-article-form" style="display:none;">
+                <h2>编辑文章</h2>
+                <label for="edit-article-title">文章标题:</label>
+                <input type="text" id="edit-article-title" name="edit-article-title">
+                <label for="edit-article-image">图片链接:</label>
+                <input type="url" id="edit-article-image" name="edit-article-image">
+                <label for="edit-article-content">文章内容:</label>
+                <textarea id="edit-article-content" name="edit-article-content" rows="5"></textarea>
+                <button onclick="saveArticle()">保存</button>
+                <button onclick="cancelEdit()">取消</button>
+            </div>
+            <div id="change-password-panel" style="display:none;">
+                <h2>修改管理员密码</h2>
+                <label for="old-password">旧密码:</label>
+                <input type="password" id="old-password" autocomplete="off">
+                <label for="new-password">新密码:</label>
+                <input type="password" id="new-password" autocomplete="new-password">
+                <label for="confirm-password">确认新密码:</label>
+                <input type="password" id="confirm-password" autocomplete="new-password">
+                <button onclick="changePassword()">确认修改</button>
+                <button onclick="closeChangePasswordPanel()">取消</button>
+            </div>
+            <input type="file" id="import-file" style="display:none;" accept=".json">
+        </div>
+    </div>
+    <script>
+        // 下拉菜单点击展开/收起，点击外部关闭
+        document.addEventListener('DOMContentLoaded', function() {
+            const nav = document.getElementById('navbar-menu');
+            nav.querySelectorAll('.dropbtn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const parent = btn.parentElement;
+                    nav.querySelectorAll('.dropdown').forEach(d => {
+                        if (d !== parent) {
+                            d.classList.remove('open');
+                            d.querySelector('.dropbtn').classList.remove('active');
+                        }
+                    });
+                    parent.classList.toggle('open');
+                    btn.classList.toggle('active');
+                });
+            });
+            // 点击外部关闭
+            document.addEventListener('click', function() {
+                nav.querySelectorAll('.dropdown').forEach(d => {
+                    d.classList.remove('open');
+                    d.querySelector('.dropbtn').classList.remove('active');
+                });
+            });
+            // 防止点击下拉内容时关闭
+            nav.querySelectorAll('.dropdown-content').forEach(menu => {
+                menu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
+        });
+
+        // 文章数据和全局变量
+        let articles = JSON.parse(localStorage.getItem('articles')) || [
+            {
+                "id": "1",
+                "title": "示例文章 1",
+                "image": "https://via.placeholder.com/90",
+                "content": "这是示例文章 1 的内容。\n支持多行文本和超链接：https://www.example.com",
+                "date": new Date().toISOString()
+            },
+            {
+                "id": "2",
+                "title": "示例文章 2",
+                "image": "https://via.placeholder.com/90",
+                "content": "这是示例文章 2 的内容。\n你可以继续添加更多文章。",
+                "date": new Date().toISOString()
+            }
+        ];
+        let adminPassword = 'admin';
+        let currentArticleIndex = null;
+        const articleListDiv = document.getElementById('article-list');
+        const adminPanelOuter = document.getElementById('admin-panel-outer');
+        const mainContent = document.getElementById('main-content');
+        const articleManagementList = document.getElementById('article-management-list');
+        const changePasswordPanel = document.getElementById('change-password-panel');
+        const passwordPrompt = document.getElementById('password-prompt');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const importFile = document.getElementById('import-file');
+
+        // 渲染文章列表
+        function initializeArticleList() {
+            articleListDiv.innerHTML = '';
+            articles.forEach((article, index) => {
+                let summary = article.content.replace(/<[^>]+>/g, '').slice(0, 80);
+                if (article.content.length > 80) summary += '...';
+                const card = document.createElement('div');
+                card.className = 'blog-card';
+                card.onclick = () => showArticle(index);
+                card.innerHTML = `
+                  <img src="${article.image}" alt="${article.title}" class="blog-card-img">
+                  <div class="blog-card-content">
+                    <div class="blog-card-title">${article.title}</div>
+                    <div class="blog-card-date">${new Date(article.date).toLocaleDateString()}</div>
+                    <div class="blog-card-summary">${summary}</div>
+                  </div>
+                `;
+                articleListDiv.appendChild(card);
+            });
+        }
+
+        // 初始化文章管理列表
+        function initializeArticleManagementList() {
+            articleManagementList.innerHTML = '';
+            articles.forEach((article, index) => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <span>${article.title}</span>
+                    <button onclick="editArticle(${index})">编辑</button>
+                    <button onclick="deleteArticle(${index})">删除</button>
+                    <button class="move-up" onclick="moveArticle(${index},-1)">↑</button>
+                    <button class="move-down" onclick="moveArticle(${index},1)">↓</button>
+                `;
+                listItem.setAttribute('data-index', index);
+                articleManagementList.appendChild(listItem);
+            });
+        }
+
+        // 拖拽排序
+        let dragSrcIndex = null;
+        articleManagementList.addEventListener('dragstart', function(e) {
+            if (e.target.tagName === 'LI') {
+                dragSrcIndex = Number(e.target.getAttribute('data-index'));
+                e.dataTransfer.effectAllowed = 'move';
+            }
+        });
+        articleManagementList.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+        articleManagementList.addEventListener('drop', function(e) {
+            if (e.target.tagName === 'LI') {
+                const targetIndex = Number(e.target.getAttribute('data-index'));
+                if (dragSrcIndex !== null && dragSrcIndex !== targetIndex) {
+                    const moved = articles.splice(dragSrcIndex, 1)[0];
+                    articles.splice(targetIndex, 0, moved);
+                    localStorage.setItem('articles', JSON.stringify(articles));
+                    initializeArticleManagementList();
+                    initializeArticleList();
+                }
+                dragSrcIndex = null;
+            }
+        });
+        articleManagementList.addEventListener('dragend', function() {
+            dragSrcIndex = null;
+        });
+        // 使li可拖拽
+        function makeListDraggable() {
+            articleManagementList.querySelectorAll('li').forEach(li => {
+                li.setAttribute('draggable', 'true');
+            });
+        }
+
+        // 上下按钮排序
+        function moveArticle(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= articles.length) return;
+            const moved = articles.splice(index, 1)[0];
+            articles.splice(newIndex, 0, moved);
+            localStorage.setItem('articles', JSON.stringify(articles));
+            initializeArticleManagementList();
+            initializeArticleList();
+            makeListDraggable();
+        }
+        window.moveArticle = moveArticle;
+
+        // 清空全部
+        function clearAllArticles() {
+            if (confirm('确定要清空所有文章吗？')) {
+                articles = [];
+                localStorage.setItem('articles', JSON.stringify(articles));
+                initializeArticleList();
+                initializeArticleManagementList();
+            }
+        }
+        window.clearAllArticles = clearAllArticles;
+
+        // 前后台切换
+        function showPasswordPrompt() {
+            passwordPrompt.style.display = 'block';
+            adminPasswordInput.value = '';
+            adminPasswordInput.focus();
+        }
+        function hidePasswordPrompt() {
+            passwordPrompt.style.display = 'none';
+        }
+        function checkPassword() {
+            var enteredPassword = adminPasswordInput.value;
+            if (enteredPassword === adminPassword) {
+                hidePasswordPrompt();
+                mainContent.style.display = 'none';
+                adminPanelOuter.style.display = 'flex';
+                initializeArticleManagementList();
+                makeListDraggable();
+            } else {
+                alert('密码错误，请重试。');
+            }
+        }
+        function handlePasswordEnter(event) {
+            if (event.key === 'Enter') checkPassword();
+        }
+        function exitAdminPanel() {
+            adminPanelOuter.style.display = 'none';
+            mainContent.style.display = 'flex';
+        }
+
+        // 文章展示与返回
+        function showArticle(index) {
+            currentArticleIndex = index;
+            const article = articles[index];
+            const mainTitle = document.getElementById('main-title');
+            const articleTitle = document.getElementById('article-title');
+            articleListDiv.style.display = 'none';
+            mainTitle.style.display = 'none';
+            articleTitle.style.display = 'block';
+            articleTitle.textContent = article.title;
+            // 移除旧详情
+            const oldDetail = document.querySelector('.article.expanded');
+            if (oldDetail) oldDetail.remove();
+            // 新详情
+            const articleContentDiv = document.createElement('div');
+            articleContentDiv.className = 'article expanded';
+            articleContentDiv.innerHTML = `
+                <div class="back-btn" onclick="showAllArticles()" title="返回首页">&#8592;</div>
+                <div class="date">${new Date(article.date).toLocaleDateString()}</div>
+                <div class="content">${convertLinks(article.content)}</div>
+            `;
+            document.querySelector('.content-wrapper').appendChild(articleContentDiv);
+        }
+        function showAllArticles() {
+            articleListDiv.style.display = 'flex';
+            document.getElementById('main-title').style.display = 'block';
+            document.getElementById('article-title').style.display = 'none';
+            const articleContentDiv = document.querySelector('.article.expanded');
+            if (articleContentDiv) articleContentDiv.remove();
+        }
+
+        // 添加、编辑、删除文章
+        function addArticle() {
+            const newTitle = document.getElementById('new-article-title').value;
+            const newImage = document.getElementById('new-article-image').value;
+            const newContent = document.getElementById('new-article-content').value;
+            const newArticle = {
+                id: String(Date.now()),
+                title: newTitle,
+                image: newImage,
+                content: newContent,
+                date: new Date().toISOString()
+            };
+            articles.push(newArticle);
+            localStorage.setItem('articles', JSON.stringify(articles));
+            toggleAddArticleForm();
+            initializeArticleList();
+            initializeArticleManagementList();
+            makeListDraggable();
+        }
+        function editArticle(index) {
+            currentArticleIndex = index;
+            const article = articles[index];
+            document.getElementById('edit-article-title').value = article.title;
+            document.getElementById('edit-article-image').value = article.image;
+            document.getElementById('edit-article-content').value = article.content;
+            document.getElementById('edit-article-form').style.display = 'block';
+            document.getElementById('add-article-form').style.display = 'none';
+        }
+        function saveArticle() {
+            if (currentArticleIndex === null) return;
+            articles[currentArticleIndex].title = document.getElementById('edit-article-title').value;
+            articles[currentArticleIndex].image = document.getElementById('edit-article-image').value;
+            articles[currentArticleIndex].content = document.getElementById('edit-article-content').value;
+            localStorage.setItem('articles', JSON.stringify(articles));
+            document.getElementById('edit-article-form').style.display = 'none';
+            initializeArticleList();
+            initializeArticleManagementList();
+            makeListDraggable();
+        }
+        function deleteArticle(index) {
+            if (confirm('确定要删除这篇文章吗？')) {
+                articles.splice(index, 1);
+                localStorage.setItem('articles', JSON.stringify(articles));
+                initializeArticleList();
+                initializeArticleManagementList();
+                makeListDraggable();
+            }
+        }
+        function cancelEdit() {
+            document.getElementById('edit-article-form').style.display = 'none';
+        }
+
+        // 显示/隐藏添加文章表单和管理列表
+        function toggleAddArticleForm() {
+            const addArticleForm = document.getElementById('add-article-form');
+            addArticleForm.style.display = addArticleForm.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('edit-article-form').style.display = 'none';
+        }
+        function toggleArticleManagement() {
+            const articleManagementList = document.getElementById('article-management-list');
+            articleManagementList.style.display = articleManagementList.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('add-article-form').style.display = 'none';
+            document.getElementById('edit-article-form').style.display = 'none';
+        }
+
+        // 导入导出
+        function exportArticles() {
+            const jsonStr = JSON.stringify(articles);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'articles.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        function importArticles() {
+            importFile.click();
+            importFile.onchange = function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            articles = JSON.parse(e.target.result);
+                            localStorage.setItem('articles', JSON.stringify(articles));
+                            initializeArticleList();
+                            initializeArticleManagementList();
+                            makeListDraggable();
+                        } catch (error) {
+                            alert('文件读取错误: ' + error);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+        }
+
+        // 链接转换
+        function convertLinks(content) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return content.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank">' + url + '</a>';
+            });
+        }
+
+        // 修改密码
+        function changePassword() {
+            var oldPassword = document.getElementById('old-password').value;
+            var newPassword = document.getElementById('new-password').value;
+            var confirmPassword = document.getElementById('confirm-password').value;
+            if (oldPassword !== adminPassword) {
+                alert('旧密码不正确。');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                alert('新密码和确认密码不匹配。');
+                return;
+            }
+            adminPassword = newPassword;
+            alert('密码已成功更改！');
+            closeChangePasswordPanel();
+        }
+        function closeChangePasswordPanel() {
+            document.getElementById('change-password-panel').style.display = 'none';
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeArticleList();
+            makeListDraggable();
+        });
+    </script>
+</body>
+</html>
