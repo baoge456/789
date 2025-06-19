@@ -6,18 +6,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <style>
+    body { background: #f8fafc; }
+    .container { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 20px 10px 30px 10px; }
     .search-form .form-control, .search-form .form-select { height: 32px; font-size: 0.95rem; }
     .search-form .btn { padding: 2px 12px; font-size: 0.95rem; }
+    .table th { background: #e9ecef; color: #333; }
     .table td, .table th { vertical-align: middle !important; }
+    .pagination { flex-wrap: wrap; }
+    @media (max-width: 768px) {
+      .container { padding: 5px 2px 20px 2px; }
+      .table-responsive { font-size: 0.95rem; }
+      .nav-tabs .nav-link { font-size: 1rem; padding: 6px 8px; }
+    }
+    .btn-outline-primary, .btn-outline-danger { min-width: 48px; }
   </style>
 </head>
 <body>
-<div class="container my-4">
-  <h2 class="mb-4">购销存记录（本地版）</h2>
-  <div class="mb-3">
+<div class="container my-3">
+  <h2 class="mb-3 text-center">购销存记录（本地版）</h2>
+  <div class="mb-3 d-flex flex-wrap gap-2">
     <button class="btn btn-secondary btn-sm" onclick="exportAll()">导出全部数据</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAll(event)">
     <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importFile').click()">导入数据</button>
+    <button class="btn btn-warning btn-sm" onclick="archiveOldData()">归档一年以前数据</button>
   </div>
   <ul class="nav nav-tabs" id="mainTabs" role="tablist">
     <li class="nav-item" role="presentation">
@@ -37,178 +48,151 @@
     <!-- 商品管理 -->
     <div class="tab-pane fade show active" id="product" role="tabpanel">
       <form class="row g-2 mb-2 search-form" id="productSearchForm" onsubmit="searchProduct(event)">
-        <div class="col-md-2"><input type="text" class="form-control" id="searchProductName" placeholder="名称"></div>
-        <div class="col-md-2"><input type="text" class="form-control" id="searchProductSpec" placeholder="规格"></div>
-        <div class="col-md-2"><input type="text" class="form-control" id="searchProductUnit" placeholder="单位"></div>
-        <div class="col-md-2"><input type="number" class="form-control" id="searchProductPrice" placeholder="单价"></div>
-        <div class="col-md-2"><button class="btn btn-outline-primary" type="submit">检索</button></div>
-        <div class="col-md-2"><button class="btn btn-outline-secondary" type="button" onclick="resetProductSearch()">重置</button></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchProductName" placeholder="名称"></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchProductSpec" placeholder="规格"></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchProductUnit" placeholder="单位"></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchProductPrice" placeholder="单价"></div>
+        <div class="col-6 col-md-2"><button class="btn btn-outline-primary" type="submit">检索</button></div>
+        <div class="col-6 col-md-2"><button class="btn btn-outline-secondary" type="button" onclick="resetProductSearch()">重置</button></div>
       </form>
-      <div class="mb-3">
-        <form id="productForm" class="row g-2">
-          <input type="hidden" id="productEditId">
-          <div class="col-md-3">
-            <input type="text" class="form-control" id="productName" placeholder="商品名称" required>
-          </div>
-          <div class="col-md-2">
-            <input type="text" class="form-control" id="productSpec" placeholder="规格" required>
-          </div>
-          <div class="col-md-2">
-            <input type="text" class="form-control" id="productUnit" placeholder="单位" required>
-          </div>
-          <div class="col-md-2">
-            <input type="number" class="form-control" id="productPrice" placeholder="单价" min="0" step="0.01" required>
-          </div>
-          <div class="col-md-2">
-            <button type="submit" class="btn btn-primary" id="productSubmitBtn">添加商品</button>
-            <button type="button" class="btn btn-secondary d-none" id="productCancelBtn" onclick="resetProductForm()">取消编辑</button>
-          </div>
-        </form>
+      <form id="productForm" class="row g-2 mb-2">
+        <input type="hidden" id="productEditId">
+        <div class="col-6 col-md-3"><input type="text" class="form-control" id="productName" placeholder="商品名称" required></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="productSpec" placeholder="规格" required></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="productUnit" placeholder="单位" required></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="productPrice" placeholder="单价" min="0" step="0.01" required></div>
+        <div class="col-6 col-md-2"><button type="submit" class="btn btn-primary w-100">保存</button></div>
+      </form>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle">
+          <thead>
+            <tr>
+              <th onclick="sortProduct('id')" style="cursor:pointer">编号</th>
+              <th onclick="sortProduct('name')" style="cursor:pointer">名称</th>
+              <th onclick="sortProduct('spec')" style="cursor:pointer">规格</th>
+              <th onclick="sortProduct('unit')" style="cursor:pointer">单位</th>
+              <th onclick="sortProduct('price')" style="cursor:pointer">单价</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="productTableBody"></tbody>
+        </table>
       </div>
-      <table class="table table-bordered table-sm align-middle">
-        <thead>
-          <tr>
-            <th>商品编号</th>
-            <th>名称</th>
-            <th>规格</th>
-            <th>单位</th>
-            <th>单价</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody id="productTableBody"></tbody>
-      </table>
+      <div id="productPagination" class="mt-2"></div>
     </div>
     <!-- 采购管理 -->
     <div class="tab-pane fade" id="purchase" role="tabpanel">
       <form class="row g-2 mb-2 search-form" id="purchaseSearchForm" onsubmit="searchPurchase(event)">
-        <div class="col-md-2"><input type="text" class="form-control" id="searchPurchaseProduct" placeholder="商品"></div>
-        <div class="col-md-2"><input type="text" class="form-control" id="searchPurchaseSupplier" placeholder="供应商"></div>
-        <div class="col-md-2"><input type="number" class="form-control" id="searchPurchaseQty" placeholder="数量"></div>
-        <div class="col-md-2"><input type="number" class="form-control" id="searchPurchasePrice" placeholder="单价"></div>
-        <div class="col-md-2"><input type="text" class="form-control" id="searchPurchaseDate" placeholder="日期"></div>
-        <div class="col-md-1"><button class="btn btn-outline-primary" type="submit">检索</button></div>
-        <div class="col-md-1"><button class="btn btn-outline-secondary" type="button" onclick="resetPurchaseSearch()">重置</button></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchPurchaseProduct" placeholder="商品"></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchPurchaseSupplier" placeholder="供应商"></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchPurchaseQty" placeholder="数量"></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchPurchasePrice" placeholder="单价"></div>
+        <div class="col-6 col-md-2"><input type="date" class="form-control" id="searchPurchaseDate" placeholder="日期"></div>
+        <div class="col-6 col-md-1"><button class="btn btn-outline-primary" type="submit">检索</button></div>
+        <div class="col-6 col-md-1"><button class="btn btn-outline-secondary" type="button" onclick="resetPurchaseSearch()">重置</button></div>
       </form>
-      <div class="mb-3">
-        <form id="purchaseForm" class="row g-2">
-          <input type="hidden" id="purchaseEditId">
-          <div class="col-md-3">
-            <select class="form-select" id="purchaseProduct" required></select>
-          </div>
-          <div class="col-md-2">
-            <input type="number" class="form-control" id="purchaseQty" placeholder="采购数量" min="1" required>
-          </div>
-          <div class="col-md-2">
-            <input type="number" class="form-control" id="purchasePrice" placeholder="采购单价" min="0" step="0.01" required>
-          </div>
-          <div class="col-md-3">
-            <input type="text" class="form-control" id="purchaseSupplier" placeholder="供应商" required>
-          </div>
-          <div class="col-md-2">
-            <button type="submit" class="btn btn-success" id="purchaseSubmitBtn">录入采购</button>
-            <button type="button" class="btn btn-secondary d-none" id="purchaseCancelBtn" onclick="resetPurchaseForm()">取消编辑</button>
-          </div>
-        </form>
+      <form id="purchaseForm" class="row g-2 mb-2">
+        <input type="hidden" id="purchaseEditId">
+        <div class="col-6 col-md-3"><select class="form-select" id="purchaseProduct" required></select></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="purchaseSupplier" placeholder="供应商" required></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="purchaseQty" placeholder="采购数量" min="1" required></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="purchasePrice" placeholder="单价" min="0" step="0.01" required></div>
+        <div class="col-6 col-md-2"><input type="date" class="form-control" id="purchaseDate" required></div>
+        <div class="col-6 col-md-1"><button type="submit" class="btn btn-primary w-100">保存</button></div>
+      </form>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle">
+          <thead>
+            <tr>
+              <th onclick="sortPurchase('id')" style="cursor:pointer">编号</th>
+              <th>商品</th>
+              <th onclick="sortPurchase('supplier')" style="cursor:pointer">供应商</th>
+              <th onclick="sortPurchase('qty')" style="cursor:pointer">数量</th>
+              <th onclick="sortPurchase('price')" style="cursor:pointer">单价</th>
+              <th onclick="sortPurchase('date')" style="cursor:pointer">日期</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="purchaseTableBody"></tbody>
+        </table>
       </div>
-      <table class="table table-bordered table-sm align-middle">
-        <thead>
-          <tr>
-            <th>采购单号</th>
-            <th>商品</th>
-            <th>数量</th>
-            <th>单价</th>
-            <th>金额</th>
-            <th>供应商</th>
-            <th>日期</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody id="purchaseTableBody"></tbody>
-      </table>
+      <div id="purchasePagination" class="mt-2"></div>
     </div>
     <!-- 销售管理 -->
     <div class="tab-pane fade" id="sale" role="tabpanel">
       <form class="row g-2 mb-2 search-form" id="saleSearchForm" onsubmit="searchSale(event)">
-        <div class="col-md-2"><input type="text" class="form-control" id="searchSaleProduct" placeholder="商品"></div>
-        <div class="col-md-2"><input type="text" class="form-control" id="searchSaleCustomer" placeholder="客户"></div>
-        <div class="col-md-2"><input type="number" class="form-control" id="searchSaleQty" placeholder="数量"></div>
-        <div class="col-md-2"><input type="number" class="form-control" id="searchSalePrice" placeholder="单价"></div>
-        <div class="col-md-2"><input type="text" class="form-control" id="searchSaleDate" placeholder="日期"></div>
-        <div class="col-md-1"><button class="btn btn-outline-primary" type="submit">检索</button></div>
-        <div class="col-md-1"><button class="btn btn-outline-secondary" type="button" onclick="resetSaleSearch()">重置</button></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchSaleProduct" placeholder="商品"></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchSaleCustomer" placeholder="客户"></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchSaleQty" placeholder="数量"></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchSalePrice" placeholder="单价"></div>
+        <div class="col-6 col-md-2"><input type="date" class="form-control" id="searchSaleDate" placeholder="日期"></div>
+        <div class="col-6 col-md-1"><button class="btn btn-outline-primary" type="submit">检索</button></div>
+        <div class="col-6 col-md-1"><button class="btn btn-outline-secondary" type="button" onclick="resetSaleSearch()">重置</button></div>
       </form>
-      <div class="mb-3">
-        <form id="saleForm" class="row g-2">
-          <input type="hidden" id="saleEditId">
-          <div class="col-md-3">
-            <select class="form-select" id="saleProduct" required></select>
-          </div>
-          <div class="col-md-2">
-            <input type="number" class="form-control" id="saleQty" placeholder="销售数量" min="1" required>
-          </div>
-          <div class="col-md-2">
-            <input type="number" class="form-control" id="salePrice" placeholder="销售单价" min="0" step="0.01" required>
-          </div>
-          <div class="col-md-3">
-            <input type="text" class="form-control" id="saleCustomer" placeholder="客户" required>
-          </div>
-          <div class="col-md-2">
-            <button type="submit" class="btn btn-danger" id="saleSubmitBtn">录入销售</button>
-            <button type="button" class="btn btn-secondary d-none" id="saleCancelBtn" onclick="resetSaleForm()">取消编辑</button>
-          </div>
-        </form>
+      <form id="saleForm" class="row g-2 mb-2">
+        <input type="hidden" id="saleEditId">
+        <div class="col-6 col-md-3"><select class="form-select" id="saleProduct" required></select></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="saleCustomer" placeholder="客户" required></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="saleQty" placeholder="销售数量" min="1" required></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="salePrice" placeholder="单价" min="0" step="0.01" required></div>
+        <div class="col-6 col-md-2"><input type="date" class="form-control" id="saleDate" required></div>
+        <div class="col-6 col-md-1"><button type="submit" class="btn btn-primary w-100">保存</button></div>
+      </form>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle">
+          <thead>
+            <tr>
+              <th onclick="sortSale('id')" style="cursor:pointer">编号</th>
+              <th>商品</th>
+              <th onclick="sortSale('customer')" style="cursor:pointer">客户</th>
+              <th onclick="sortSale('qty')" style="cursor:pointer">数量</th>
+              <th onclick="sortSale('price')" style="cursor:pointer">单价</th>
+              <th onclick="sortSale('date')" style="cursor:pointer">日期</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="saleTableBody"></tbody>
+        </table>
       </div>
-      <table class="table table-bordered table-sm align-middle">
-        <thead>
-          <tr>
-            <th>销售单号</th>
-            <th>商品</th>
-            <th>数量</th>
-            <th>单价</th>
-            <th>金额</th>
-            <th>客户</th>
-            <th>日期</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody id="saleTableBody"></tbody>
-      </table>
+      <div id="salePagination" class="mt-2"></div>
     </div>
     <!-- 库存查询 -->
     <div class="tab-pane fade" id="stock" role="tabpanel">
       <form class="row g-2 mb-2 search-form" id="stockSearchForm" onsubmit="searchStock(event)">
-        <div class="col-md-2"><input type="text" class="form-control" id="searchStockProduct" placeholder="商品"></div>
-        <div class="col-md-2"><input type="text" class="form-control" id="searchStockSpec" placeholder="规格"></div>
-        <div class="col-md-2"><input type="text" class="form-control" id="searchStockUnit" placeholder="单位"></div>
-        <div class="col-md-2"><input type="number" class="form-control" id="searchStockPrice" placeholder="单价"></div>
-        <div class="col-md-2"><input type="number" class="form-control" id="searchStockQty" placeholder="库存"></div>
-        <div class="col-md-1"><button class="btn btn-outline-primary" type="submit">检索</button></div>
-        <div class="col-md-1"><button class="btn btn-outline-secondary" type="button" onclick="resetStockSearch()">重置</button></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchStockName" placeholder="名称"></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchStockSpec" placeholder="规格"></div>
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchStockUnit" placeholder="单位"></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchStockMin" placeholder="最小库存"></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchStockMax" placeholder="最大库存"></div>
+        <div class="col-6 col-md-1"><button class="btn btn-outline-primary" type="submit">检索</button></div>
+        <div class="col-6 col-md-1"><button class="btn btn-outline-secondary" type="button" onclick="resetStockSearch()">重置</button></div>
       </form>
-      <table class="table table-bordered table-sm align-middle">
-        <thead>
-          <tr>
-            <th>商品编号</th>
-            <th>名称</th>
-            <th>规格</th>
-            <th>单位</th>
-            <th>单价</th>
-            <th>当前库存</th>
-          </tr>
-        </thead>
-        <tbody id="stockTableBody"></tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle">
+          <thead>
+            <tr>
+              <th onclick="sortStock('id')" style="cursor:pointer">编号</th>
+              <th onclick="sortStock('name')" style="cursor:pointer">名称</th>
+              <th onclick="sortStock('spec')" style="cursor:pointer">规格</th>
+              <th onclick="sortStock('unit')" style="cursor:pointer">单位</th>
+              <th onclick="sortStock('price')" style="cursor:pointer">单价</th>
+              <th>入库</th>
+              <th>出库</th>
+              <th onclick="sortStock('stock')" style="cursor:pointer">库存</th>
+            </tr>
+          </thead>
+          <tbody id="stockTableBody"></tbody>
+        </table>
+      </div>
+      <div id="stockPagination" class="mt-2"></div>
     </div>
-  </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </div> <!-- tab-content -->
+</div> <!-- container -->
 <script>
 let products = JSON.parse(localStorage.getItem('products') || '[]');
 let purchases = JSON.parse(localStorage.getItem('purchases') || '[]');
 let sales = JSON.parse(localStorage.getItem('sales') || '[]');
 
-// 工具函数
 function saveAll() {
   localStorage.setItem('products', JSON.stringify(products));
   localStorage.setItem('purchases', JSON.stringify(purchases));
@@ -220,93 +204,49 @@ function genId(prefix) {
 function findProductById(pid) {
   return products.find(p => p.id === pid);
 }
-// 商品管理
-let productSearchResult = null;
+
+// ========== 商品管理 ==========
+let productSearchResult = null, productPage = 1, productPageSize = 10, productSortKey = 'name', productSortAsc = true;
+
 function renderProductTable() {
   const tbody = document.getElementById('productTableBody');
   tbody.innerHTML = '';
-  const data = productSearchResult || products;
-  data.forEach(p => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${p.id}</td>
-      <td>${p.name}</td>
-      <td>${p.spec}</td>
-      <td>${p.unit}</td>
-      <td>${p.price}</td>
-      <td>
-        <button class="btn btn-sm btn-warning me-1" onclick="editProduct('${p.id}')">编辑</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteProduct('${p.id}')">删除</button>
-      </td>
+  let data = productSearchResult || products;
+  data = [...data].sort((a, b) => {
+    let v1 = a[productSortKey], v2 = b[productSortKey];
+    if (typeof v1 === 'string') v1 = v1.toLowerCase();
+    if (typeof v2 === 'string') v2 = v2.toLowerCase();
+    if (v1 < v2) return productSortAsc ? -1 : 1;
+    if (v1 > v2) return productSortAsc ? 1 : -1;
+    return 0;
+  });
+  const total = data.length, pageCount = Math.ceil(total / productPageSize);
+  if (productPage > pageCount) productPage = pageCount || 1;
+  const start = (productPage - 1) * productPageSize;
+  const pageData = data.slice(start, start + productPageSize);
+  for (const p of pageData) {
+    tbody.innerHTML += `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.name}</td>
+        <td>${p.spec}</td>
+        <td>${p.unit}</td>
+        <td>${p.price}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary" onclick="editProduct('${p.id}')">编辑</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${p.id}')">删除</button>
+        </td>
+      </tr>
     `;
-    tbody.appendChild(tr);
-  });
-  renderProductSelects();
-  renderStockTable();
-}
-function renderProductSelects() {
-  const purchaseSel = document.getElementById('purchaseProduct');
-  const saleSel = document.getElementById('saleProduct');
-  purchaseSel.innerHTML = '';
-  saleSel.innerHTML = '';
-  products.forEach(p => {
-    const opt1 = document.createElement('option');
-    opt1.value = p.id;
-    opt1.textContent = `${p.name}（${p.spec}）`;
-    purchaseSel.appendChild(opt1);
-    const opt2 = opt1.cloneNode(true);
-    saleSel.appendChild(opt2);
-  });
-}
-function deleteProduct(pid) {
-  if (!confirm('确定要删除该商品吗？')) return;
-  products = products.filter(p => p.id !== pid);
-  saveAll();
-  renderProductTable();
-}
-function editProduct(pid) {
-  const p = findProductById(pid);
-  if (!p) return;
-  document.getElementById('productEditId').value = p.id;
-  document.getElementById('productName').value = p.name;
-  document.getElementById('productSpec').value = p.spec;
-  document.getElementById('productUnit').value = p.unit;
-  document.getElementById('productPrice').value = p.price;
-  document.getElementById('productSubmitBtn').textContent = '保存修改';
-  document.getElementById('productCancelBtn').classList.remove('d-none');
-}
-function resetProductForm() {
-  document.getElementById('productForm').reset();
-  document.getElementById('productEditId').value = '';
-  document.getElementById('productSubmitBtn').textContent = '添加商品';
-  document.getElementById('productCancelBtn').classList.add('d-none');
-}
-document.getElementById('productForm').onsubmit = function(e) {
-  e.preventDefault();
-  const id = document.getElementById('productEditId').value;
-  const name = document.getElementById('productName').value.trim();
-  const spec = document.getElementById('productSpec').value.trim();
-  const unit = document.getElementById('productUnit').value.trim();
-  const price = parseFloat(document.getElementById('productPrice').value);
-  if (!name || !spec || !unit || isNaN(price)) return alert('请填写完整');
-  if (id) {
-    const p = findProductById(id);
-    if (p) {
-      p.name = name;
-      p.spec = spec;
-      p.unit = unit;
-      p.price = price;
-    }
-  } else {
-    products.push({id: genId('P'), name, spec, unit, price});
   }
-  saveAll();
-  this.reset();
-  resetProductForm();
+  document.getElementById('productPagination').innerHTML = renderPagination(productPage, pageCount, 'product');
+}
+function resetProductSearch() {
+  document.getElementById('productSearchForm').reset();
+  productSearchResult = null;
+  productPage = 1;
   renderProductTable();
-};
-
-// 商品检索
+}
 function searchProduct(e) {
   e.preventDefault();
   const name = document.getElementById('searchProductName').value.trim();
@@ -314,48 +254,137 @@ function searchProduct(e) {
   const unit = document.getElementById('searchProductUnit').value.trim();
   const price = document.getElementById('searchProductPrice').value.trim();
   productSearchResult = products.filter(p =>
-    (name === '' || p.name.includes(name)) &&
-    (spec === '' || p.spec.includes(spec)) &&
-    (unit === '' || p.unit.includes(unit)) &&
-    (price === '' || Number(p.price) == Number(price))
+    (!name || p.name.includes(name)) &&
+    (!spec || p.spec.includes(spec)) &&
+    (!unit || p.unit.includes(unit)) &&
+    (!price || Number(p.price) === Number(price))
   );
+  productPage = 1;
   renderProductTable();
 }
-function resetProductSearch() {
-  document.getElementById('productSearchForm').reset();
-  productSearchResult = null;
-  renderProductTable();
+function editProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('productEditId').value = p.id;
+  document.getElementById('productName').value = p.name;
+  document.getElementById('productSpec').value = p.spec;
+  document.getElementById('productUnit').value = p.unit;
+  document.getElementById('productPrice').value = p.price;
 }
-// 采购管理
-let purchaseSearchResult = null;
+function deleteProduct(id) {
+  if (!confirm('确定要删除该商品吗？')) return;
+  products = products.filter(x => x.id !== id);
+  purchases = purchases.filter(x => x.productId !== id);
+  sales = sales.filter(x => x.productId !== id);
+  saveAll();
+  renderProductTable();
+  renderPurchaseProductOptions();
+  renderSaleProductOptions();
+  renderPurchaseTable();
+  renderSaleTable();
+  renderStockTable();
+}
+document.getElementById('productForm').onsubmit = function(e) {
+  e.preventDefault();
+  const id = document.getElementById('productEditId').value;
+  const name = document.getElementById('productName').value.trim();
+  const spec = document.getElementById('productSpec').value.trim();
+  const unit = document.getElementById('productUnit').value.trim();
+  const price = Number(document.getElementById('productPrice').value);
+  if (!name || !spec || !unit || isNaN(price)) return alert('请填写完整信息');
+  if (id) {
+    const p = products.find(x => x.id === id);
+    if (p) Object.assign(p, { name, spec, unit, price });
+  } else {
+    products.push({ id: genId('prod'), name, spec, unit, price });
+  }
+  saveAll();
+  this.reset();
+  document.getElementById('productEditId').value = '';
+  renderProductTable();
+  renderPurchaseProductOptions();
+  renderSaleProductOptions();
+  renderPurchaseTable();
+  renderSaleTable();
+  renderStockTable();
+};
+function renderPurchaseProductOptions() {
+  const sel = document.getElementById('purchaseProduct');
+  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+function renderSaleProductOptions() {
+  const sel = document.getElementById('saleProduct');
+  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+window.editProduct = editProduct;
+window.deleteProduct = deleteProduct;
+window.sortProduct = sortProduct;
+window.productPageTo = productPageTo;
+window.resetProductSearch = resetProductSearch;
+
+// ========== 采购管理 ==========
+let purchaseSearchResult = null, purchasePage = 1, purchasePageSize = 10, purchaseSortKey = 'date', purchaseSortAsc = false;
+
 function renderPurchaseTable() {
   const tbody = document.getElementById('purchaseTableBody');
   tbody.innerHTML = '';
-  const data = purchaseSearchResult || purchases;
-  data.forEach(p => {
-    const prod = findProductById(p.productId);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${p.id}</td>
-      <td>${prod ? prod.name : '已删除'}</td>
-      <td>${p.qty}</td>
-      <td>${p.price}</td>
-      <td>${(p.qty * p.price).toFixed(2)}</td>
-      <td>${p.supplier}</td>
-      <td>${p.date}</td>
-      <td>
-        <button class="btn btn-sm btn-warning me-1" onclick="editPurchase('${p.id}')">编辑</button>
-        <button class="btn btn-sm btn-danger" onclick="deletePurchase('${p.id}')">删除</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+  let data = purchaseSearchResult || purchases;
+  data = [...data].sort((a, b) => {
+    let v1 = a[purchaseSortKey], v2 = b[purchaseSortKey];
+    if (purchaseSortKey === 'date') {
+      v1 = new Date(v1); v2 = new Date(v2);
+    }
+    if (typeof v1 === 'string') v1 = v1.toLowerCase();
+    if (typeof v2 === 'string') v2 = v2.toLowerCase();
+    if (v1 < v2) return purchaseSortAsc ? -1 : 1;
+    if (v1 > v2) return purchaseSortAsc ? 1 : -1;
+    return 0;
   });
-  renderStockTable();
+  const total = data.length, pageCount = Math.ceil(total / purchasePageSize);
+  if (purchasePage > pageCount) purchasePage = pageCount || 1;
+  const start = (purchasePage - 1) * purchasePageSize;
+  const pageData = data.slice(start, start + purchasePageSize);
+  for (const p of pageData) {
+    const prod = findProductById(p.productId) || {};
+    tbody.innerHTML += `
+      <tr>
+        <td>${p.id}</td>
+        <td>${prod.name || ''}</td>
+        <td>${p.supplier || ''}</td>
+        <td>${p.qty}</td>
+        <td>${p.price}</td>
+        <td>${p.date}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary" onclick="editPurchase('${p.id}')">编辑</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deletePurchase('${p.id}')">删除</button>
+        </td>
+      </tr>
+    `;
+  }
+  document.getElementById('purchasePagination').innerHTML = renderPagination(purchasePage, pageCount, 'purchase');
 }
-function deletePurchase(id) {
-  if (!confirm('确定要删除该采购单吗？')) return;
-  purchases = purchases.filter(p => p.id !== id);
-  saveAll();
+function resetPurchaseSearch() {
+  document.getElementById('purchaseSearchForm').reset();
+  purchaseSearchResult = null;
+  purchasePage = 1;
+  renderPurchaseTable();
+}
+function searchPurchase(e) {
+  e.preventDefault();
+  const prod = document.getElementById('searchPurchaseProduct').value.trim();
+  const supplier = document.getElementById('searchPurchaseSupplier').value.trim();
+  const qty = document.getElementById('searchPurchaseQty').value.trim();
+  const price = document.getElementById('searchPurchasePrice').value.trim();
+  const date = document.getElementById('searchPurchaseDate').value.trim();
+  purchaseSearchResult = purchases.filter(p => {
+    const prodName = (findProductById(p.productId)?.name || '');
+    return (!prod || prodName.includes(prod)) &&
+      (!supplier || (p.supplier || '').includes(supplier)) &&
+      (!qty || Number(p.qty) === Number(qty)) &&
+      (!price || Number(p.price) === Number(price)) &&
+      (!date || p.date === date);
+  });
+  purchasePage = 1;
   renderPurchaseTable();
 }
 function editPurchase(id) {
@@ -363,102 +392,108 @@ function editPurchase(id) {
   if (!p) return;
   document.getElementById('purchaseEditId').value = p.id;
   document.getElementById('purchaseProduct').value = p.productId;
+  document.getElementById('purchaseSupplier').value = p.supplier;
   document.getElementById('purchaseQty').value = p.qty;
   document.getElementById('purchasePrice').value = p.price;
-  document.getElementById('purchaseSupplier').value = p.supplier;
-  document.getElementById('purchaseSubmitBtn').textContent = '保存修改';
-  document.getElementById('purchaseCancelBtn').classList.remove('d-none');
+  document.getElementById('purchaseDate').value = p.date;
 }
-function resetPurchaseForm() {
-  document.getElementById('purchaseForm').reset();
-  document.getElementById('purchaseEditId').value = '';
-  document.getElementById('purchaseSubmitBtn').textContent = '录入采购';
-  document.getElementById('purchaseCancelBtn').classList.add('d-none');
+function deletePurchase(id) {
+  if (!confirm('确定要删除该采购记录吗？')) return;
+  purchases = purchases.filter(x => x.id !== id);
+  saveAll();
+  renderPurchaseTable();
+  renderStockTable();
 }
 document.getElementById('purchaseForm').onsubmit = function(e) {
   e.preventDefault();
   const id = document.getElementById('purchaseEditId').value;
   const productId = document.getElementById('purchaseProduct').value;
-  const qty = parseFloat(document.getElementById('purchaseQty').value);
-  const price = parseFloat(document.getElementById('purchasePrice').value);
   const supplier = document.getElementById('purchaseSupplier').value.trim();
-  if (!productId || isNaN(qty) || isNaN(price) || !supplier) return alert('请填写完整');
+  const qty = Number(document.getElementById('purchaseQty').value);
+  const price = Number(document.getElementById('purchasePrice').value);
+  const date = document.getElementById('purchaseDate').value;
+  if (!productId || !supplier || isNaN(qty) || isNaN(price) || !date) return alert('请填写完整信息');
   if (id) {
     const p = purchases.find(x => x.id === id);
-    if (p) {
-      p.productId = productId;
-      p.qty = qty;
-      p.price = price;
-      p.supplier = supplier;
-    }
+    if (p) Object.assign(p, { productId, supplier, qty, price, date });
   } else {
-    purchases.push({
-      id: genId('CGRK'),
-      productId, qty, price, supplier,
-      date: new Date().toLocaleDateString()
-    });
+    purchases.push({ id: genId('pur'), productId, supplier, qty, price, date });
   }
   saveAll();
   this.reset();
-  resetPurchaseForm();
+  document.getElementById('purchaseEditId').value = '';
   renderPurchaseTable();
+  renderStockTable();
 };
+window.editPurchase = editPurchase;
+window.deletePurchase = deletePurchase;
+window.sortPurchase = sortPurchase;
+window.purchasePageTo = purchasePageTo;
+window.resetPurchaseSearch = resetPurchaseSearch;
 
-// 采购检索
-function searchPurchase(e) {
-  e.preventDefault();
-  const pname = document.getElementById('searchPurchaseProduct').value.trim();
-  const supplier = document.getElementById('searchPurchaseSupplier').value.trim();
-  const qty = document.getElementById('searchPurchaseQty').value.trim();
-  const price = document.getElementById('searchPurchasePrice').value.trim();
-  const date = document.getElementById('searchPurchaseDate').value.trim();
-  purchaseSearchResult = purchases.filter(p => {
-    const prod = findProductById(p.productId);
-    return (
-      (pname === '' || (prod && prod.name.includes(pname))) &&
-      (supplier === '' || p.supplier.includes(supplier)) &&
-      (qty === '' || Number(p.qty) == Number(qty)) &&
-      (price === '' || Number(p.price) == Number(price)) &&
-      (date === '' || p.date.includes(date))
-    );
-  });
-  renderPurchaseTable();
-}
-function resetPurchaseSearch() {
-  document.getElementById('purchaseSearchForm').reset();
-  purchaseSearchResult = null;
-  renderPurchaseTable();
-}
-// 销售管理
-let saleSearchResult = null;
+// ========== 销售管理 ==========
+let saleSearchResult = null, salePage = 1, salePageSize = 10, saleSortKey = 'date', saleSortAsc = false;
+
 function renderSaleTable() {
   const tbody = document.getElementById('saleTableBody');
   tbody.innerHTML = '';
-  const data = saleSearchResult || sales;
-  data.forEach(s => {
-    const prod = findProductById(s.productId);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${s.id}</td>
-      <td>${prod ? prod.name : '已删除'}</td>
-      <td>${s.qty}</td>
-      <td>${s.price}</td>
-      <td>${(s.qty * s.price).toFixed(2)}</td>
-      <td>${s.customer}</td>
-      <td>${s.date}</td>
-      <td>
-        <button class="btn btn-sm btn-warning me-1" onclick="editSale('${s.id}')">编辑</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteSale('${s.id}')">删除</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+  let data = saleSearchResult || sales;
+  data = [...data].sort((a, b) => {
+    let v1 = a[saleSortKey], v2 = b[saleSortKey];
+    if (saleSortKey === 'date') {
+      v1 = new Date(v1); v2 = new Date(v2);
+    }
+    if (typeof v1 === 'string') v1 = v1.toLowerCase();
+    if (typeof v2 === 'string') v2 = v2.toLowerCase();
+    if (v1 < v2) return saleSortAsc ? -1 : 1;
+    if (v1 > v2) return saleSortAsc ? 1 : -1;
+    return 0;
   });
-  renderStockTable();
+  const total = data.length, pageCount = Math.ceil(total / salePageSize);
+  if (salePage > pageCount) salePage = pageCount || 1;
+  const start = (salePage - 1) * salePageSize;
+  const pageData = data.slice(start, start + salePageSize);
+  for (const s of pageData) {
+    const prod = findProductById(s.productId) || {};
+    tbody.innerHTML += `
+      <tr>
+        <td>${s.id}</td>
+        <td>${prod.name || ''}</td>
+        <td>${s.customer || ''}</td>
+        <td>${s.qty}</td>
+        <td>${s.price}</td>
+        <td>${s.date}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary" onclick="editSale('${s.id}')">编辑</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteSale('${s.id}')">删除</button>
+        </td>
+      </tr>
+    `;
+  }
+  document.getElementById('salePagination').innerHTML = renderPagination(salePage, pageCount, 'sale');
 }
-function deleteSale(id) {
-  if (!confirm('确定要删除该销售单吗？')) return;
-  sales = sales.filter(s => s.id !== id);
-  saveAll();
+function resetSaleSearch() {
+  document.getElementById('saleSearchForm').reset();
+  saleSearchResult = null;
+  salePage = 1;
+  renderSaleTable();
+}
+function searchSale(e) {
+  e.preventDefault();
+  const prod = document.getElementById('searchSaleProduct').value.trim();
+  const customer = document.getElementById('searchSaleCustomer').value.trim();
+  const qty = document.getElementById('searchSaleQty').value.trim();
+  const price = document.getElementById('searchSalePrice').value.trim();
+  const date = document.getElementById('searchSaleDate').value.trim();
+  saleSearchResult = sales.filter(s => {
+    const prodName = (findProductById(s.productId)?.name || '');
+    return (!prod || prodName.includes(prod)) &&
+      (!customer || (s.customer || '').includes(customer)) &&
+      (!qty || Number(s.qty) === Number(qty)) &&
+      (!price || Number(s.price) === Number(price)) &&
+      (!date || s.date === date);
+  });
+  salePage = 1;
   renderSaleTable();
 }
 function editSale(id) {
@@ -466,181 +501,238 @@ function editSale(id) {
   if (!s) return;
   document.getElementById('saleEditId').value = s.id;
   document.getElementById('saleProduct').value = s.productId;
+  document.getElementById('saleCustomer').value = s.customer;
   document.getElementById('saleQty').value = s.qty;
   document.getElementById('salePrice').value = s.price;
-  document.getElementById('saleCustomer').value = s.customer;
-  document.getElementById('saleSubmitBtn').textContent = '保存修改';
-  document.getElementById('saleCancelBtn').classList.remove('d-none');
+  document.getElementById('saleDate').value = s.date;
 }
-function resetSaleForm() {
-  document.getElementById('saleForm').reset();
-  document.getElementById('saleEditId').value = '';
-  document.getElementById('saleSubmitBtn').textContent = '录入销售';
-  document.getElementById('saleCancelBtn').classList.add('d-none');
+function deleteSale(id) {
+  if (!confirm('确定要删除该销售记录吗？')) return;
+  sales = sales.filter(x => x.id !== id);
+  saveAll();
+  renderSaleTable();
+  renderStockTable();
 }
 document.getElementById('saleForm').onsubmit = function(e) {
   e.preventDefault();
   const id = document.getElementById('saleEditId').value;
   const productId = document.getElementById('saleProduct').value;
-  const qty = parseFloat(document.getElementById('saleQty').value);
-  const price = parseFloat(document.getElementById('salePrice').value);
   const customer = document.getElementById('saleCustomer').value.trim();
-  if (!productId || isNaN(qty) || isNaN(price) || !customer) return alert('请填写完整');
-  if (qty > calcStock(productId) && (!id || sales.find(x => x.id === id).qty !== qty)) return alert('库存不足，当前库存：' + calcStock(productId));
+  const qty = Number(document.getElementById('saleQty').value);
+  const price = Number(document.getElementById('salePrice').value);
+  const date = document.getElementById('saleDate').value;
+  if (!productId || !customer || isNaN(qty) || isNaN(price) || !date) return alert('请填写完整信息');
   if (id) {
     const s = sales.find(x => x.id === id);
-    if (s) {
-      s.productId = productId;
-      s.qty = qty;
-      s.price = price;
-      s.customer = customer;
-    }
+    if (s) Object.assign(s, { productId, customer, qty, price, date });
   } else {
-    sales.push({
-      id: genId('XSCK'),
-      productId, qty, price, customer,
-      date: new Date().toLocaleDateString()
-    });
+    sales.push({ id: genId('sale'), productId, customer, qty, price, date });
   }
   saveAll();
   this.reset();
-  resetSaleForm();
+  document.getElementById('saleEditId').value = '';
   renderSaleTable();
+  renderStockTable();
 };
+window.editSale = editSale;
+window.deleteSale = deleteSale;
+window.sortSale = sortSale;
+window.salePageTo = salePageTo;
+window.resetSaleSearch = resetSaleSearch;
 
-// 销售检索
-function searchSale(e) {
-  e.preventDefault();
-  const pname = document.getElementById('searchSaleProduct').value.trim();
-  const customer = document.getElementById('searchSaleCustomer').value.trim();
-  const qty = document.getElementById('searchSaleQty').value.trim();
-  const price = document.getElementById('searchSalePrice').value.trim();
-  const date = document.getElementById('searchSaleDate').value.trim();
-  saleSearchResult = sales.filter(s => {
-    const prod = findProductById(s.productId);
-    return (
-      (pname === '' || (prod && prod.name.includes(pname))) &&
-      (customer === '' || s.customer.includes(customer)) &&
-      (qty === '' || Number(s.qty) == Number(qty)) &&
-      (price === '' || Number(s.price) == Number(price)) &&
-      (date === '' || s.date.includes(date))
-    );
+// ========== 库存统计与渲染 ==========
+function calcStock() {
+  const stockMap = {};
+  products.forEach(p => stockMap[p.id] = { ...p, stock: 0, inQty: 0, outQty: 0 });
+  purchases.forEach(p => {
+    if (stockMap[p.productId]) {
+      stockMap[p.productId].inQty += Number(p.qty);
+      stockMap[p.productId].stock += Number(p.qty);
+    }
   });
-  renderSaleTable();
+  sales.forEach(s => {
+    if (stockMap[s.productId]) {
+      stockMap[s.productId].outQty += Number(s.qty);
+      stockMap[s.productId].stock -= Number(s.qty);
+    }
+  });
+  return Object.values(stockMap);
 }
-function resetSaleSearch() {
-  document.getElementById('saleSearchForm').reset();
-  saleSearchResult = null;
-  renderSaleTable();
-}
-// 库存管理
-let stockSearchResult = null;
-function calcStock(productId) {
-  const inQty = purchases.filter(p => p.productId === productId).reduce((a, b) => a + b.qty, 0);
-  const outQty = sales.filter(s => s.productId === productId).reduce((a, b) => a + b.qty, 0);
-  return inQty - outQty;
-}
+let stockSearchResult = null, stockPage = 1, stockPageSize = 10, stockSortKey = 'name', stockSortAsc = true;
 function renderStockTable() {
   const tbody = document.getElementById('stockTableBody');
   tbody.innerHTML = '';
-  const data = stockSearchResult || products;
-  data.forEach(p => {
-    const stock = calcStock(p.id);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${p.id}</td>
-      <td>${p.name}</td>
-      <td>${p.spec}</td>
-      <td>${p.unit}</td>
-      <td>${p.price}</td>
-      <td>${stock}</td>
+  let data = stockSearchResult || calcStock();
+  data = [...data].sort((a, b) => {
+    let v1 = a[stockSortKey], v2 = b[stockSortKey];
+    if (typeof v1 === 'string') v1 = v1.toLowerCase();
+    if (typeof v2 === 'string') v2 = v2.toLowerCase();
+    if (v1 < v2) return stockSortAsc ? -1 : 1;
+    if (v1 > v2) return stockSortAsc ? 1 : -1;
+    return 0;
+  });
+  const total = data.length, pageCount = Math.ceil(total / stockPageSize);
+  if (stockPage > pageCount) stockPage = pageCount || 1;
+  const start = (stockPage - 1) * stockPageSize;
+  const pageData = data.slice(start, start + stockPageSize);
+  for (const s of pageData) {
+    tbody.innerHTML += `
+      <tr>
+        <td>${s.id}</td>
+        <td>${s.name}</td>
+        <td>${s.spec}</td>
+        <td>${s.unit}</td>
+        <td>${s.price}</td>
+        <td>${s.inQty}</td>
+        <td>${s.outQty}</td>
+        <td>${s.stock}</td>
+      </tr>
     `;
-    tbody.appendChild(tr);
-  });
-}
-// 库存检索
-function searchStock(e) {
-  e.preventDefault();
-  const pname = document.getElementById('searchStockProduct').value.trim();
-  const spec = document.getElementById('searchStockSpec').value.trim();
-  const unit = document.getElementById('searchStockUnit').value.trim();
-  const price = document.getElementById('searchStockPrice').value.trim();
-  const qty = document.getElementById('searchStockQty').value.trim();
-  stockSearchResult = products.filter(p => {
-    const stock = calcStock(p.id);
-    return (
-      (pname === '' || p.name.includes(pname)) &&
-      (spec === '' || p.spec.includes(spec)) &&
-      (unit === '' || p.unit.includes(unit)) &&
-      (price === '' || Number(p.price) == Number(price)) &&
-      (qty === '' || stock == Number(qty))
-    );
-  });
-  renderStockTable();
+  }
+  document.getElementById('stockPagination').innerHTML = renderPagination(stockPage, pageCount, 'stock');
 }
 function resetStockSearch() {
   document.getElementById('stockSearchForm').reset();
   stockSearchResult = null;
+  stockPage = 1;
+  renderStockTable();
+}
+function searchStock(e) {
+  e.preventDefault();
+  const name = document.getElementById('searchStockName').value.trim();
+  const spec = document.getElementById('searchStockSpec').value.trim();
+  const unit = document.getElementById('searchStockUnit').value.trim();
+  const minStock = document.getElementById('searchStockMin').value.trim();
+  const maxStock = document.getElementById('searchStockMax').value.trim();
+  stockSearchResult = calcStock().filter(s =>
+    (!name || s.name.includes(name)) &&
+    (!spec || s.spec.includes(spec)) &&
+    (!unit || s.unit.includes(unit)) &&
+    (!minStock || s.stock >= Number(minStock)) &&
+    (!maxStock || s.stock <= Number(maxStock))
+  );
+  stockPage = 1;
+  renderStockTable();
+}
+window.sortStock = sortStock;
+window.stockPageTo = stockPageTo;
+window.resetStockSearch = resetStockSearch;
+
+// ========== 分页控件渲染 ==========
+function renderPagination(page, pageCount, type) {
+  if (pageCount <= 1) return '';
+  let html = `<nav><ul class="pagination pagination-sm mb-0">`;
+  html += `<li class="page-item${page === 1 ? ' disabled' : ''}"><a class="page-link" href="#" onclick="${type}PageTo(${page - 1});return false;">«</a></li>`;
+  for (let i = 1; i <= pageCount; i++) {
+    if (i === 1 || i === pageCount || Math.abs(i - page) <= 1) {
+      html += `<li class="page-item${i === page ? ' active' : ''}"><a class="page-link" href="#" onclick="${type}PageTo(${i});return false;">${i}</a></li>`;
+    } else if (i === page - 2 || i === page + 2) {
+      html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+    }
+  }
+  html += `<li class="page-item${page === pageCount ? ' disabled' : ''}"><a class="page-link" href="#" onclick="${type}PageTo(${page + 1});return false;">»</a></li>`;
+  html += `</ul></nav>`;
+  return html;
+}
+function productPageTo(p) { productPage = p; renderProductTable(); }
+function purchasePageTo(p) { purchasePage = p; renderPurchaseTable(); }
+function salePageTo(p) { salePage = p; renderSaleTable(); }
+function stockPageTo(p) { stockPage = p; renderStockTable(); }
+function sortProduct(key) {
+  if (productSortKey === key) productSortAsc = !productSortAsc;
+  else { productSortKey = key; productSortAsc = true; }
+  renderProductTable();
+}
+function sortPurchase(key) {
+  if (purchaseSortKey === key) purchaseSortAsc = !purchaseSortAsc;
+  else { purchaseSortKey = key; purchaseSortAsc = true; }
+  renderPurchaseTable();
+}
+function sortSale(key) {
+  if (saleSortKey === key) saleSortAsc = !saleSortAsc;
+  else { saleSortKey = key; saleSortAsc = true; }
+  renderSaleTable();
+}
+function sortStock(key) {
+  if (stockSortKey === key) stockSortAsc = !stockSortAsc;
+  else { stockSortKey = key; stockSortAsc = true; }
   renderStockTable();
 }
 
-// 导出导入
+// ========== 数据导入导出与归档 ==========
 function exportAll() {
   const data = { products, purchases, sales };
-  const ts = new Date().toISOString().replace(/[-:T]/g,'').slice(0,14);
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
+  const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
-  a.href = url;
-  a.download = `gouxiaocun_data_${ts}.json`;
-  document.body.appendChild(a);
+  a.href = URL.createObjectURL(blob);
+  a.download = `购销存数据_${ts}.json`;
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 function importAll(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (data.products && data.purchases && data.sales) {
-        const mode = prompt('请选择导入方式：1-覆盖导入，2-追加导入', '2');
-        if (mode === '1') {
-          products = data.products;
-          purchases = data.purchases;
-          sales = data.sales;
-        } else if (mode === '2') {
-          products = products.concat(data.products.filter(np => !products.some(p => p.id === np.id)));
-          purchases = purchases.concat(data.purchases.filter(np => !purchases.some(p => p.id === np.id)));
-          sales = sales.concat(data.sales.filter(ns => !sales.some(s => s.id === ns.id)));
-        } else {
-          alert('导入已取消');
-          return;
-        }
-        saveAll();
-        renderProductTable();
-        renderPurchaseTable();
-        renderSaleTable();
-        renderStockTable();
-        alert('导入成功！');
-      } else {
-        alert('文件格式不正确');
-      }
-    } catch (err) {
-      alert('导入失败：' + err.message);
+    let data;
+    try { data = JSON.parse(e.target.result); } catch { return alert('文件格式错误'); }
+    if (!data.products || !data.purchases || !data.sales) return alert('数据结构不正确');
+    if (confirm('导入数据时请选择“确定”覆盖，或“取消”追加。')) {
+      products = data.products;
+      purchases = data.purchases;
+      sales = data.sales;
+    } else {
+      products = products.concat(data.products.filter(p => !products.some(x => x.id === p.id)));
+      purchases = purchases.concat(data.purchases.filter(p => !purchases.some(x => x.id === p.id)));
+      sales = sales.concat(data.sales.filter(s => !sales.some(x => x.id === s.id)));
     }
+    saveAll();
+    renderProductTable();
+    renderPurchaseProductOptions();
+    renderSaleProductOptions();
+    renderPurchaseTable();
+    renderSaleTable();
+    renderStockTable();
+    alert('导入成功！');
   };
   reader.readAsText(file);
+  event.target.value = '';
+}
+function archiveOldData() {
+  const yearAgo = new Date();
+  yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+  const oldPurchases = purchases.filter(p => new Date(p.date) < yearAgo);
+  const oldSales = sales.filter(s => new Date(s.date) < yearAgo);
+  if (!oldPurchases.length && !oldSales.length) return alert('没有可归档的数据');
+  const data = { purchases: oldPurchases, sales: oldSales };
+  const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `归档数据_${ts}.json`;
+  a.click();
+  purchases = purchases.filter(p => new Date(p.date) >= yearAgo);
+  sales = sales.filter(s => new Date(s.date) >= yearAgo);
+  saveAll();
+  renderPurchaseTable();
+  renderSaleTable();
+  renderStockTable();
+  alert('归档并清理完成！');
 }
 
-// 初始化
-renderProductTable();
-renderPurchaseTable();
-renderSaleTable();
-renderStockTable();
-
+// ========== 页面初始化 ==========
+document.addEventListener('DOMContentLoaded', function() {
+  renderProductTable();
+  renderPurchaseProductOptions();
+  renderPurchaseTable();
+  renderSaleProductOptions();
+  renderSaleTable();
+  renderStockTable();
+});
 </script>
+</script>
+</script>
+<!-- 这里加上Bootstrap的JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
