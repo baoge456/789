@@ -60,13 +60,36 @@
       margin-bottom: 18px;
       width: 100%;
     }
-    label {
+    /* 用户名居中突出样式 */
+    .username-label {
+      width: 100%;
+      text-align: center;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #6366f1;
+      letter-spacing: 2px;
       display: block;
-      margin-bottom: 6px;
-      color: #555;
-      font-size: 1em;
+      margin-bottom: 12px;
     }
-    input[type="text"], input[type="password"], input[type="tel"] {
+    .username-input-wrapper {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .username-input {
+      background: #f5f6fa;
+      color: #6366f1;
+      font-size: 1.4em;
+      font-weight: bold;
+      text-align: center;
+      border: none;
+      box-shadow: none;
+      outline: none;
+      width: 80%;
+      margin-bottom: 0.5em;
+    }
+    input[type="password"], input[type="tel"] {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid #bfc4d1;
@@ -76,7 +99,7 @@
       transition: border 0.2s;
       color: #22223b;
     }
-    input[type="text"]:focus, input[type="password"]:focus, input[type="tel"]:focus {
+    input[type="password"]:focus, input[type="tel"]:focus {
       border-color: #6366f1;
       outline: none;
     }
@@ -107,6 +130,39 @@
       margin-top: 18px;
       width: 100%;
     }
+    .main-content {
+      display: flex;
+      flex-direction: row;
+      gap: 2.5rem;
+      align-items: flex-start;
+      justify-content: center;
+      margin-top: 2.5rem;
+      padding: 0 1rem;
+    }
+    .form-container {
+      flex: 1;
+      max-width: 420px;
+      background: #fff;
+      padding: 2rem 2rem 1.5rem 2rem;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px #6366f11a;
+      border: 1.5px solid #e0e7ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card-preview-container {
+      flex: 1;
+      max-width: 350px;
+      min-width: 260px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #inputForm {
+      width: 100%;
+      max-width: 320px;
+    }
     .card {
       margin: 0 auto;
       border-radius: 14px;
@@ -114,9 +170,12 @@
       background: #fff;
       border: 2px solid #e0e7ff;
       padding: 0;
-      margin-top: 2.5rem;
-      width: 22rem !important;
-      max-width: 96vw;
+      width: 100% !important;
+      min-height: 200px;
+      min-width: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .card-body {
       display: flex;
@@ -164,7 +223,7 @@
     .action-group {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
       margin-top: 1.5em;
       width: 100%;
       gap: 1em;
@@ -175,33 +234,22 @@
       font-weight: 500;
       box-shadow: 0 2px 8px #6366f11a;
       transition: background 0.2s, box-shadow 0.2s;
-      width: 80%;
-      max-width: 320px;
+      width: 100%;
       padding: 12px 0;
-      margin: 0 auto;
+      margin: 0;
       display: block;
       border: none;
+      text-align: center;
     }
-    .btn-primary {
-      background: #6366f1 !important;
-      color: #fff !important;
-    }
-    .btn-primary:hover {
-      background: #4f46e5 !important;
-    }
-    .btn-success {
-      background: #10b981 !important;
-      color: #fff !important;
-    }
-    .btn-success:hover {
-      background: #059669 !important;
-    }
-    .btn-info {
-      background: #0ea5e9 !important;
-      color: #fff !important;
-    }
-    .btn-info:hover {
-      background: #0369a1 !important;
+    .btn-primary { background: #6366f1 !important; color: #fff !important; }
+    .btn-primary:hover { background: #4f46e5 !important; }
+    .btn-success { background: #10b981 !important; color: #fff !important; }
+    .btn-success:hover { background: #059669 !important; }
+    .btn-info { background: #0ea5e9 !important; color: #fff !important; }
+    .btn-info:hover { background: #0369a1 !important; }
+    @media (max-width: 900px) {
+      .main-content { flex-direction: column; align-items: center; gap: 1.5rem; }
+      .form-container, .card-preview-container { max-width: 98vw; width: 100%; }
     }
     @media (max-width: 500px) {
       .panda-box, .login-container, .card { width: 96vw !important; min-width: 0; max-width: 98vw; }
@@ -210,10 +258,8 @@
     }
     @media print {
       body { background: #fff !important; }
-      .card, .login-container { box-shadow: none !important; }
-      .btn-primary, .btn-success, .btn-info, .login-btn { display: none !important; }
-      .action-group { display: none !important; }
-      #mainPage, #cardContent { border: none !important; }
+      .card, .login-container, .form-container { box-shadow: none !important; border: none !important; }
+      .btn, .action-group, .login-btn { display: none !important; }
     }
   </style>
 </head>
@@ -247,8 +293,10 @@
         <div class="login-title">登录</div>
         <form id="loginForm" style="width:100%;">
           <div class="form-group">
-            <label for="username">用户名</label>
-            <input type="text" id="username" name="username" value="baoge" readonly style="background:#f5f6fa;color:#888;">
+            <label for="username" class="username-label">   </label>
+            <div class="username-input-wrapper">
+              <input type="text" id="username" name="username" value="宝哥专用" readonly class="username-input">
+            </div>
           </div>
           <div class="form-group">
             <label for="password">密码</label>
@@ -267,30 +315,38 @@
   <!-- 主页面 -->
   <div id="mainPage" style="display: none;">
     <div class="container">
-      <h1 class="mt-5" style="color:#22223b;font-weight:700;">快点挪车二维码生成器</h1>
-      <form id="inputForm" class="mt-4">
-        <div class="mb-3">
-          <label for="plateNumber" class="form-label">车牌号:</label>
-          <input type="text" class="form-control" id="plateNumber" name="plateNumber" required placeholder="京A88888">
-          <div id="plateNumberError" class="error"></div>
+      <h1 class="mt-5 text-center" style="color:#22223b;font-weight:700;">快点挪车二维码生成器</h1>
+      <div class="main-content">
+        <!-- 左侧表单 -->
+        <div class="form-container">
+          <form id="inputForm">
+            <div class="mb-3">
+              <label for="plateNumber" class="form-label">车牌号:</label>
+              <input type="text" class="form-control" id="plateNumber" name="plateNumber" required placeholder="京A88888">
+              <div id="plateNumberError" class="error"></div>
+            </div>
+            <div class="mb-3">
+              <label for="phoneNumber" class="form-label">手机号:</label>
+              <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" required placeholder="13888888888">
+              <div id="phoneNumberError" class="error"></div>
+            </div>
+            <button type="submit" class="btn btn-primary">生成二维码</button>
+            <div class="action-group" id="actionGroup" style="display:none;">
+              <button id="downloadButton" class="btn btn-success" type="button">下载图片</button>
+              <a id="previewLink" class="btn btn-info" href="" target="_blank">车辆信息预览</a>
+            </div>
+          </form>
         </div>
-        <div class="mb-3">
-          <label for="phoneNumber" class="form-label">手机号:</label>
-          <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" required placeholder="13888888888">
-          <div id="phoneNumberError" class="error"></div>
-        </div>
-        <button type="submit" class="btn btn-primary">生成二维码</button>
-        <div class="action-group" id="actionGroup" style="display:none;">
-          <button id="downloadButton" class="btn btn-success" type="button">下载图片</button>
-          <a id="previewLink" class="btn btn-info" href="" target="_blank">车辆信息预览</a>
-        </div>
-      </form>
-      <div class="card" id="cardContent">
-        <div class="card-body" id="cardBody">
-          <div class="card-title">临时停靠，请多关照</div>
-          <div class="card-subtitle">手机扫码，呼叫挪车</div>
-          <div id="qrcode"></div>
-          <div id="infoPlate" class="info-row" style="display:none;"></div>
+        <!-- 右侧卡片/图片预览 -->
+        <div class="card-preview-container">
+          <div class="card" id="cardContent">
+            <div class="card-body" id="cardBody">
+              <div class="card-title">临时停靠，请多关照</div>
+              <div class="card-subtitle">手机扫码，呼叫挪车</div>
+              <div id="qrcode"></div>
+              <div id="infoPlate" class="info-row" style="display:none;"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -337,11 +393,9 @@
       link.href = url;
       document.getElementById('actionGroup').style.display = 'flex';
 
-      // 只显示车牌号，不显示手机号
       document.getElementById('infoPlate').textContent = '车牌号：' + plateNumber;
       document.getElementById('infoPlate').style.display = 'inline-block';
 
-      // 生成适合打印的深灰色二维码
       var qrCodeDiv = document.getElementById('qrcode');
       qrCodeDiv.innerHTML = "";
       new QRCode(qrCodeDiv, {
