@@ -5,9 +5,10 @@
   <title>购销存记录</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { background: #f8fafc; }
-    .container { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 20px 10px 30px 10px; }
+    .container { background: #f0f8ff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 20px 10px 30px 10px; }
     .search-form .form-control, .search-form .form-select { height: 32px; font-size: 0.95rem; }
     .search-form .btn { padding: 2px 12px; font-size: 0.95rem; }
     .table th { background: #e9ecef; color: #333; }
@@ -18,7 +19,11 @@
       .table-responsive { font-size: 0.95rem; }
       .nav-tabs .nav-link { font-size: 1rem; padding: 6px 8px; }
     }
-    .btn-outline-primary, .btn-outline-danger { min-width: 48px; }
+    .btn-primary { background-color: #0d6efd; border-color: #0d6efd; }
+    .btn-outline-primary { border-color: #0d6efd; color: #0d6efd; }
+    .btn-outline-danger { min-width: 48px; }
+    .card { backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.85); }
+    #analysisChartContainer { position: relative; height: 300px; }
   </style>
 </head>
 <body>
@@ -51,20 +56,20 @@
     <!-- 商品管理 -->
     <div class="tab-pane fade show active" id="product" role="tabpanel">
       <form class="row g-2 mb-2 search-form" id="productSearchForm" onsubmit="searchProduct(event)">
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchProductId" placeholder="编号"></div>
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchProductName" placeholder="名称"></div>
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchProductSpec" placeholder="规格"></div>
-        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchProductUnit" placeholder="单位"></div>
-        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchProductPrice" placeholder="单价"></div>
         <div class="col-6 col-md-2"><button class="btn btn-outline-primary" type="submit">检索</button></div>
         <div class="col-6 col-md-2"><button class="btn btn-outline-secondary" type="button" onclick="resetProductSearch()">重置</button></div>
       </form>
-      <form id="productForm" class="row g-2 mb-2">
-        <input type="hidden" id="productEditId">
+      <form id="productForm" class="row g-2 mb-2 align-items-end">
+        <input type="hidden" id="productEditMode">
+        <div class="col-6 col-md-2"><input type="text" class="form-control" id="productId" placeholder="商品编号" required></div>
         <div class="col-6 col-md-3"><input type="text" class="form-control" id="productName" placeholder="商品名称" required></div>
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="productSpec" placeholder="规格" required></div>
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="productUnit" placeholder="单位" required></div>
-        <div class="col-6 col-md-2"><input type="number" class="form-control" id="productPrice" placeholder="单价" min="0" step="0.01" required></div>
-        <div class="col-6 col-md-2"><button type="submit" class="btn btn-primary w-100">保存</button></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="productPrice" placeholder="建议零售价" min="0" step="0.01" required></div>
+        <div class="col-12 col-md-1"><button type="submit" class="btn btn-primary w-100">保存</button></div>
       </form>
       <div class="table-responsive">
         <table class="table table-bordered table-sm align-middle">
@@ -74,7 +79,7 @@
               <th onclick="sortProduct('name')" style="cursor:pointer">名称</th>
               <th onclick="sortProduct('spec')" style="cursor:pointer">规格</th>
               <th onclick="sortProduct('unit')" style="cursor:pointer">单位</th>
-              <th onclick="sortProduct('price')" style="cursor:pointer">单价</th>
+              <th onclick="sortProduct('price')" style="cursor:pointer">建议零售价</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -85,29 +90,27 @@
     </div>
     <!-- 采购管理 -->
     <div class="tab-pane fade" id="purchase" role="tabpanel">
-      <form class="row g-2 mb-2 search-form" id="purchaseSearchForm" onsubmit="searchPurchase(event)">
+       <form class="row g-2 mb-2 search-form" id="purchaseSearchForm" onsubmit="searchPurchase(event)">
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchPurchaseProduct" placeholder="商品"></div>
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchPurchaseSupplier" placeholder="供应商"></div>
-        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchPurchaseQty" placeholder="数量"></div>
-        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchPurchasePrice" placeholder="单价"></div>
         <div class="col-6 col-md-2"><input type="date" class="form-control" id="searchPurchaseDate" placeholder="日期"></div>
         <div class="col-6 col-md-1"><button class="btn btn-outline-primary" type="submit">检索</button></div>
         <div class="col-6 col-md-1"><button class="btn btn-outline-secondary" type="button" onclick="resetPurchaseSearch()">重置</button></div>
       </form>
-      <form id="purchaseForm" class="row g-2 mb-2">
+      <form id="purchaseForm" class="row g-2 mb-2 align-items-end">
         <input type="hidden" id="purchaseEditId">
         <div class="col-6 col-md-3"><select class="form-select" id="purchaseProduct" required></select></div>
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="purchaseSupplier" placeholder="供应商" required></div>
         <div class="col-6 col-md-2"><input type="number" class="form-control" id="purchaseQty" placeholder="采购数量" min="1" required></div>
-        <div class="col-6 col-md-2"><input type="number" class="form-control" id="purchasePrice" placeholder="单价" min="0" step="0.01" required></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="purchasePrice" placeholder="采购单价" min="0" step="0.01" required></div>
         <div class="col-6 col-md-2"><input type="date" class="form-control" id="purchaseDate" required></div>
-        <div class="col-6 col-md-1"><button type="submit" class="btn btn-primary w-100">保存</button></div>
+        <div class="col-12 col-md-1"><button type="submit" class="btn btn-primary w-100">保存</button></div>
       </form>
       <div class="table-responsive">
         <table class="table table-bordered table-sm align-middle">
           <thead>
             <tr>
-              <th onclick="sortPurchase('id')" style="cursor:pointer">编号</th>
+              <th onclick="sortPurchase('id')" style="cursor:pointer">记录ID</th>
               <th>商品</th>
               <th onclick="sortPurchase('supplier')" style="cursor:pointer">供应商</th>
               <th onclick="sortPurchase('qty')" style="cursor:pointer">数量</th>
@@ -126,26 +129,24 @@
       <form class="row g-2 mb-2 search-form" id="saleSearchForm" onsubmit="searchSale(event)">
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchSaleProduct" placeholder="商品"></div>
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchSaleCustomer" placeholder="客户"></div>
-        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchSaleQty" placeholder="数量"></div>
-        <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchSalePrice" placeholder="单价"></div>
         <div class="col-6 col-md-2"><input type="date" class="form-control" id="searchSaleDate" placeholder="日期"></div>
         <div class="col-6 col-md-1"><button class="btn btn-outline-primary" type="submit">检索</button></div>
         <div class="col-6 col-md-1"><button class="btn btn-outline-secondary" type="button" onclick="resetSaleSearch()">重置</button></div>
       </form>
-      <form id="saleForm" class="row g-2 mb-2">
+      <form id="saleForm" class="row g-2 mb-2 align-items-end">
         <input type="hidden" id="saleEditId">
         <div class="col-6 col-md-3"><select class="form-select" id="saleProduct" required></select></div>
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="saleCustomer" placeholder="客户" required></div>
         <div class="col-6 col-md-2"><input type="number" class="form-control" id="saleQty" placeholder="销售数量" min="1" required></div>
-        <div class="col-6 col-md-2"><input type="number" class="form-control" id="salePrice" placeholder="单价" min="0" step="0.01" required></div>
+        <div class="col-6 col-md-2"><input type="number" class="form-control" id="salePrice" placeholder="销售单价" min="0" step="0.01" required></div>
         <div class="col-6 col-md-2"><input type="date" class="form-control" id="saleDate" required></div>
-        <div class="col-6 col-md-1"><button type="submit" class="btn btn-primary w-100">保存</button></div>
+        <div class="col-12 col-md-1"><button type="submit" class="btn btn-primary w-100">保存</button></div>
       </form>
       <div class="table-responsive">
         <table class="table table-bordered table-sm align-middle">
           <thead>
             <tr>
-              <th onclick="sortSale('id')" style="cursor:pointer">编号</th>
+              <th onclick="sortSale('id')" style="cursor:pointer">记录ID</th>
               <th>商品</th>
               <th onclick="sortSale('customer')" style="cursor:pointer">客户</th>
               <th onclick="sortSale('qty')" style="cursor:pointer">数量</th>
@@ -164,7 +165,6 @@
       <form class="row g-2 mb-2 search-form" id="stockSearchForm" onsubmit="searchStock(event)">
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchStockName" placeholder="名称"></div>
         <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchStockSpec" placeholder="规格"></div>
-        <div class="col-6 col-md-2"><input type="text" class="form-control" id="searchStockUnit" placeholder="单位"></div>
         <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchStockMin" placeholder="最小库存"></div>
         <div class="col-6 col-md-2"><input type="number" class="form-control" id="searchStockMax" placeholder="最大库存"></div>
         <div class="col-6 col-md-1"><button class="btn btn-outline-primary" type="submit">检索</button></div>
@@ -178,7 +178,7 @@
               <th onclick="sortStock('name')" style="cursor:pointer">名称</th>
               <th onclick="sortStock('spec')" style="cursor:pointer">规格</th>
               <th onclick="sortStock('unit')" style="cursor:pointer">单位</th>
-              <th onclick="sortStock('price')" style="cursor:pointer">单价</th>
+              <th onclick="sortStock('price')" style="cursor:pointer">建议零售价</th>
               <th>入库</th>
               <th>出库</th>
               <th onclick="sortStock('stock')" style="cursor:pointer">库存</th>
@@ -192,64 +192,48 @@
     <!-- 数据分析 -->
     <div class="tab-pane fade" id="analysis" role="tabpanel">
       <div class="row mb-3 g-3">
-        <div class="col-sm-6 col-md-4 col-lg-3">
-          <div class="card h-100">
-            <div class="card-body">
-              <h5 class="card-title">总采购额</h5>
-              <p class="card-text fs-4" id="totalPurchaseAmount">0</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-sm-6 col-md-4 col-lg-3">
-          <div class="card h-100">
-            <div class="card-body">
-              <h5 class="card-title">总销售额</h5>
-              <p class="card-text fs-4" id="totalSaleAmount">0</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-sm-6 col-md-4 col-lg-3">
+        <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-body">
+                <div class="card-body text-center">
+                    <h5 class="card-title">总采购额</h5>
+                    <p class="card-text fs-4" id="totalPurchaseAmount">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">总销售额</h5>
+                    <p class="card-text fs-4" id="totalSaleAmount">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
                     <h5 class="card-title">总利润</h5>
                     <p class="card-text fs-4" id="totalProfit">0</p>
                 </div>
             </div>
         </div>
       </div>
-    
-      <div class="row mb-3 g-3 align-items-end">
-          <div class="col-md-3">
-              <label for="analysisMonth" class="form-label">选择月份</label>
-              <input type="month" class="form-control" id="analysisMonth" onchange="renderAnalysis()">
-          </div>
-          <div class="col-sm-6 col-md-3">
-              <div class="card h-100">
-                  <div class="card-body">
-                      <h5 class="card-title">月采购额</h5>
-                      <p class="card-text fs-4" id="monthlyPurchaseAmount">0</p>
-                  </div>
-              </div>
-          </div>
-          <div class="col-sm-6 col-md-3">
-              <div class="card h-100">
-                  <div class="card-body">
-                      <h5 class="card-title">月销售额</h5>
-                      <p class="card-text fs-4" id="monthlySaleAmount">0</p>
-                  </div>
-              </div>
-          </div>
-          <div class="col-sm-6 col-md-3">
-              <div class="card h-100">
-                  <div class="card-body">
-                      <h5 class="card-title">月利润</h5>
-                      <p class="card-text fs-4" id="monthlyProfit">0</p>
-                  </div>
-              </div>
-          </div>
+
+      <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="card-title mb-0">可视化分析</h5>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-primary active" id="showPieChartBtn" onclick="showChart('pie')">销售贡献</button>
+                    <button type="button" class="btn btn-outline-primary" id="showBarChartBtn" onclick="showChart('bar')">月度趋势</button>
+                </div>
+            </div>
+            <div id="analysisChartContainer">
+                <canvas id="analysisChart"></canvas>
+            </div>
+        </div>
       </div>
-    
-      <h4 class="mt-4">商品分析</h4>
+      
+      <h4 class="mt-4">商品分析详情</h4>
       <div class="table-responsive">
         <table class="table table-bordered table-sm">
           <thead>
@@ -271,9 +255,11 @@
   </div> <!-- tab-content -->
 </div> <!-- container -->
 <script>
+// ========== 数据模型与存储 ==========
 let products = JSON.parse(localStorage.getItem('products') || '[]');
 let purchases = JSON.parse(localStorage.getItem('purchases') || '[]');
 let sales = JSON.parse(localStorage.getItem('sales') || '[]');
+let analysisChart = null; // 用于存储Chart.js实例
 
 function saveAll() {
   localStorage.setItem('products', JSON.stringify(products));
@@ -323,6 +309,13 @@ function renderProductTable() {
   }
   document.getElementById('productPagination').innerHTML = renderPagination(productPage, pageCount, 'product');
 }
+function resetProductForm() {
+    document.getElementById('productForm').reset();
+    document.getElementById('productEditMode').value = '';
+    const idInput = document.getElementById('productId');
+    idInput.readOnly = false;
+    idInput.classList.remove('is-valid', 'is-invalid');
+}
 function resetProductSearch() {
   document.getElementById('productSearchForm').reset();
   productSearchResult = null;
@@ -331,15 +324,13 @@ function resetProductSearch() {
 }
 function searchProduct(e) {
   e.preventDefault();
+  const id = document.getElementById('searchProductId').value.trim();
   const name = document.getElementById('searchProductName').value.trim();
   const spec = document.getElementById('searchProductSpec').value.trim();
-  const unit = document.getElementById('searchProductUnit').value.trim();
-  const price = document.getElementById('searchProductPrice').value.trim();
   productSearchResult = products.filter(p =>
+    (!id || p.id.includes(id)) &&
     (!name || p.name.includes(name)) &&
-    (!spec || p.spec.includes(spec)) &&
-    (!unit || p.unit.includes(unit)) &&
-    (!price || Number(p.price) === Number(price))
+    (!spec || p.spec.includes(spec))
   );
   productPage = 1;
   renderProductTable();
@@ -347,14 +338,18 @@ function searchProduct(e) {
 function editProduct(id) {
   const p = products.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('productEditId').value = p.id;
+  resetProductForm();
+  document.getElementById('productEditMode').value = 'edit';
+  const idInput = document.getElementById('productId');
+  idInput.value = p.id;
+  idInput.readOnly = true; // 编辑时编号不可修改
   document.getElementById('productName').value = p.name;
   document.getElementById('productSpec').value = p.spec;
   document.getElementById('productUnit').value = p.unit;
   document.getElementById('productPrice').value = p.price;
 }
 function deleteProduct(id) {
-  if (!confirm('确定要删除该商品吗？此操作将一并删除所有相关的采购和销售记录。')) return;
+  if (!confirm(`确定要删除商品【${id}】吗？这将一并删除所有相关的采购和销售记录。`)) return;
   products = products.filter(x => x.id !== id);
   purchases = purchases.filter(x => x.productId !== id);
   sales = sales.filter(x => x.productId !== id);
@@ -363,53 +358,56 @@ function deleteProduct(id) {
 }
 document.getElementById('productForm').onsubmit = function(e) {
   e.preventDefault();
-  const id = document.getElementById('productEditId').value;
+  const isEditMode = document.getElementById('productEditMode').value === 'edit';
+  const id = document.getElementById('productId').value.trim();
   const name = document.getElementById('productName').value.trim();
   const spec = document.getElementById('productSpec').value.trim();
   const unit = document.getElementById('productUnit').value.trim();
   const price = Number(document.getElementById('productPrice').value);
-  if (!name || !spec || !unit || isNaN(price)) return alert('请填写完整信息');
-  if (id) {
+  
+  if (!id || !name || !spec || !unit || isNaN(price)) return alert('请填写完整信息');
+
+  if (isEditMode) {
     const p = products.find(x => x.id === id);
     if (p) Object.assign(p, { name, spec, unit, price });
   } else {
-    products.push({ id: genId('prod'), name, spec, unit, price });
+    if (products.some(p => p.id === id)) {
+        alert(`商品编号【${id}】已存在，请使用其他编号。`);
+        return;
+    }
+    products.push({ id, name, spec, unit, price });
   }
   saveAll();
-  this.reset();
-  document.getElementById('productEditId').value = '';
+  resetProductForm();
   updateAllRender();
 };
-function renderPurchaseProductOptions() {
-  const sel = document.getElementById('purchaseProduct');
-  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.spec})</option>`).join('');
-}
-function renderSaleProductOptions() {
-  const sel = document.getElementById('saleProduct');
-  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.spec})</option>`).join('');
-}
 window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
 window.sortProduct = sortProduct;
 window.productPageTo = productPageTo;
 window.resetProductSearch = resetProductSearch;
 
+// ========== 采购与销售通用 ==========
+function renderPurchaseProductOptions() {
+  const sel = document.getElementById('purchaseProduct');
+  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.spec})</option>`).join('') || '<option>请先添加商品</option>';
+}
+function renderSaleProductOptions() {
+  const sel = document.getElementById('saleProduct');
+  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.spec})</option>`).join('') || '<option>请先添加商品</option>';
+}
+
 // ========== 采购管理 ==========
 let purchaseSearchResult = null, purchasePage = 1, purchasePageSize = 10, purchaseSortKey = 'date', purchaseSortAsc = false;
-
 function renderPurchaseTable() {
   const tbody = document.getElementById('purchaseTableBody');
   tbody.innerHTML = '';
   let data = purchaseSearchResult || purchases;
   data = [...data].sort((a, b) => {
     let v1 = a[purchaseSortKey], v2 = b[purchaseSortKey];
-    if (purchaseSortKey === 'date') {
-      v1 = new Date(v1); v2 = new Date(v2);
-    }
-    if (typeof v1 === 'string') v1 = v1.toLowerCase();
-    if (typeof v2 === 'string') v2 = v2.toLowerCase();
-    if (v1 < v2) return purchaseSortAsc ? -1 : 1;
-    if (v1 > v2) return purchaseSortAsc ? 1 : -1;
+    if (purchaseSortKey === 'date') { v1 = new Date(v1); v2 = new Date(v2); }
+    if (typeof v1 === 'string') v1 = v1.toLowerCase(); if (typeof v2 === 'string') v2 = v2.toLowerCase();
+    if (v1 < v2) return purchaseSortAsc ? -1 : 1; if (v1 > v2) return purchaseSortAsc ? 1 : -1;
     return 0;
   });
   const total = data.length, pageCount = Math.ceil(total / purchasePageSize);
@@ -421,7 +419,7 @@ function renderPurchaseTable() {
     tbody.innerHTML += `
       <tr>
         <td>${p.id}</td>
-        <td>${prod.name || ''} ${prod.spec || ''}</td>
+        <td>${prod.name || '商品已删除'} ${prod.spec || ''}</td>
         <td>${p.supplier || ''}</td>
         <td>${p.qty}</td>
         <td>${p.price}</td>
@@ -445,15 +443,11 @@ function searchPurchase(e) {
   e.preventDefault();
   const prod = document.getElementById('searchPurchaseProduct').value.trim();
   const supplier = document.getElementById('searchPurchaseSupplier').value.trim();
-  const qty = document.getElementById('searchPurchaseQty').value.trim();
-  const price = document.getElementById('searchPurchasePrice').value.trim();
   const date = document.getElementById('searchPurchaseDate').value.trim();
   purchaseSearchResult = purchases.filter(p => {
     const prodName = (findProductById(p.productId)?.name || '');
     return (!prod || prodName.includes(prod)) &&
       (!supplier || (p.supplier || '').includes(supplier)) &&
-      (!qty || Number(p.qty) === Number(qty)) &&
-      (!price || Number(p.price) === Number(price)) &&
       (!date || p.date === date);
   });
   purchasePage = 1;
@@ -503,20 +497,15 @@ window.resetPurchaseSearch = resetPurchaseSearch;
 
 // ========== 销售管理 ==========
 let saleSearchResult = null, salePage = 1, salePageSize = 10, saleSortKey = 'date', saleSortAsc = false;
-
 function renderSaleTable() {
   const tbody = document.getElementById('saleTableBody');
   tbody.innerHTML = '';
   let data = saleSearchResult || sales;
   data = [...data].sort((a, b) => {
     let v1 = a[saleSortKey], v2 = b[saleSortKey];
-    if (saleSortKey === 'date') {
-      v1 = new Date(v1); v2 = new Date(v2);
-    }
-    if (typeof v1 === 'string') v1 = v1.toLowerCase();
-    if (typeof v2 === 'string') v2 = v2.toLowerCase();
-    if (v1 < v2) return saleSortAsc ? -1 : 1;
-    if (v1 > v2) return saleSortAsc ? 1 : -1;
+    if (saleSortKey === 'date') { v1 = new Date(v1); v2 = new Date(v2); }
+    if (typeof v1 === 'string') v1 = v1.toLowerCase(); if (typeof v2 === 'string') v2 = v2.toLowerCase();
+    if (v1 < v2) return saleSortAsc ? -1 : 1; if (v1 > v2) return saleSortAsc ? 1 : -1;
     return 0;
   });
   const total = data.length, pageCount = Math.ceil(total / salePageSize);
@@ -528,7 +517,7 @@ function renderSaleTable() {
     tbody.innerHTML += `
       <tr>
         <td>${s.id}</td>
-        <td>${prod.name || ''} ${prod.spec || ''}</td>
+        <td>${prod.name || '商品已删除'} ${prod.spec || ''}</td>
         <td>${s.customer || ''}</td>
         <td>${s.qty}</td>
         <td>${s.price}</td>
@@ -552,15 +541,11 @@ function searchSale(e) {
   e.preventDefault();
   const prod = document.getElementById('searchSaleProduct').value.trim();
   const customer = document.getElementById('searchSaleCustomer').value.trim();
-  const qty = document.getElementById('searchSaleQty').value.trim();
-  const price = document.getElementById('searchSalePrice').value.trim();
   const date = document.getElementById('searchSaleDate').value.trim();
   saleSearchResult = sales.filter(s => {
     const prodName = (findProductById(s.productId)?.name || '');
     return (!prod || prodName.includes(prod)) &&
       (!customer || (s.customer || '').includes(customer)) &&
-      (!qty || Number(s.qty) === Number(qty)) &&
-      (!price || Number(s.price) === Number(price)) &&
       (!date || s.date === date);
   });
   salePage = 1;
@@ -633,10 +618,8 @@ function renderStockTable() {
   let data = stockSearchResult || calcStock();
   data = [...data].sort((a, b) => {
     let v1 = a[stockSortKey], v2 = b[stockSortKey];
-    if (typeof v1 === 'string') v1 = v1.toLowerCase();
-    if (typeof v2 === 'string') v2 = v2.toLowerCase();
-    if (v1 < v2) return stockSortAsc ? -1 : 1;
-    if (v1 > v2) return stockSortAsc ? 1 : -1;
+    if (typeof v1 === 'string') v1 = v1.toLowerCase(); if (typeof v2 === 'string') v2 = v2.toLowerCase();
+    if (v1 < v2) return stockSortAsc ? -1 : 1; if (v1 > v2) return stockSortAsc ? 1 : -1;
     return 0;
   });
   const total = data.length, pageCount = Math.ceil(total / stockPageSize);
@@ -669,13 +652,11 @@ function searchStock(e) {
   e.preventDefault();
   const name = document.getElementById('searchStockName').value.trim();
   const spec = document.getElementById('searchStockSpec').value.trim();
-  const unit = document.getElementById('searchStockUnit').value.trim();
   const minStock = document.getElementById('searchStockMin').value.trim();
   const maxStock = document.getElementById('searchStockMax').value.trim();
   stockSearchResult = calcStock().filter(s =>
     (!name || s.name.includes(name)) &&
     (!spec || s.spec.includes(spec)) &&
-    (!unit || s.unit.includes(unit)) &&
     (!minStock || s.stock >= Number(minStock)) &&
     (!maxStock || s.stock <= Number(maxStock))
   );
@@ -706,138 +687,85 @@ function productPageTo(p) { productPage = p; renderProductTable(); }
 function purchasePageTo(p) { purchasePage = p; renderPurchaseTable(); }
 function salePageTo(p) { salePage = p; renderSaleTable(); }
 function stockPageTo(p) { stockPage = p; renderStockTable(); }
-function sortProduct(key) {
-  if (productSortKey === key) productSortAsc = !productSortAsc;
-  else { productSortKey = key; productSortAsc = true; }
-  renderProductTable();
+
+function sortGeneric(state, key) {
+    if (state.key === key) {
+        state.asc = !state.asc;
+    } else {
+        state.key = key;
+        state.asc = true;
+    }
 }
-function sortPurchase(key) {
-  if (purchaseSortKey === key) purchaseSortAsc = !purchaseSortAsc;
-  else { purchaseSortKey = key; purchaseSortAsc = true; }
-  renderPurchaseTable();
-}
-function sortSale(key) {
-  if (saleSortKey === key) saleSortAsc = !saleSortAsc;
-  else { saleSortKey = key; saleSortAsc = true; }
-  renderSaleTable();
-}
-function sortStock(key) {
-  if (stockSortKey === key) stockSortAsc = !stockSortAsc;
-  else { stockSortKey = key; stockSortAsc = true; }
-  renderStockTable();
-}
+function sortProduct(key) { sortGeneric({key: productSortKey, asc: productSortAsc}, key); productSortKey = key; renderProductTable(); }
+function sortPurchase(key) { sortGeneric({key: purchaseSortKey, asc: purchaseSortAsc}, key); purchaseSortKey = key; renderPurchaseTable(); }
+function sortSale(key) { sortGeneric({key: saleSortKey, asc: saleSortAsc}, key); saleSortKey = key; renderSaleTable(); }
+function sortStock(key) { sortGeneric({key: stockSortKey, asc: stockSortAsc}, key); stockSortKey = key; renderStockTable(); }
 
 // ========== 数据分析 ==========
 let analysisData = [];
-let analysisSortKey = 'salesRank';
-let analysisSortAsc = true;
+let analysisSortKey = 'salesRank', analysisSortAsc = true;
+let currentChartType = 'pie';
 
 function calculateAnalysisData() {
   const analysisMap = {};
-
-  products.forEach(product => {
-    analysisMap[product.id] = {
-      ...product,
-      totalPurchaseQty: 0,
-      totalPurchaseAmount: 0,
-      totalSaleQty: 0,
-      totalSaleAmount: 0,
-    };
+  products.forEach(p => {
+    analysisMap[p.id] = { ...p, totalPurchaseQty: 0, totalPurchaseAmount: 0, totalSaleQty: 0, totalSaleAmount: 0 };
   });
-
   purchases.forEach(p => {
     if (analysisMap[p.productId]) {
       analysisMap[p.productId].totalPurchaseQty += Number(p.qty);
       analysisMap[p.productId].totalPurchaseAmount += Number(p.qty) * Number(p.price);
     }
   });
-
   sales.forEach(s => {
     if (analysisMap[s.productId]) {
       analysisMap[s.productId].totalSaleQty += Number(s.qty);
       analysisMap[s.productId].totalSaleAmount += Number(s.qty) * Number(s.price);
     }
   });
-
   const analysisResult = Object.values(analysisMap).map(item => {
     const avgPurchasePrice = item.totalPurchaseQty > 0 ? item.totalPurchaseAmount / item.totalPurchaseQty : 0;
     const avgSalePrice = item.totalSaleQty > 0 ? item.totalSaleAmount / item.totalSaleQty : 0;
     const grossProfitMargin = avgSalePrice > 0 ? ((avgSalePrice - avgPurchasePrice) / avgSalePrice) * 100 : 0;
-    const stock = item.totalPurchaseQty - item.totalSaleQty;
-    
-    return {
-      ...item,
-      avgPurchasePrice: avgPurchasePrice.toFixed(2),
-      avgSalePrice: avgSalePrice.toFixed(2),
-      grossProfitMargin: grossProfitMargin.toFixed(2),
-      stock,
-    };
+    return { ...item, avgPurchasePrice: avgPurchasePrice.toFixed(2), avgSalePrice: avgSalePrice.toFixed(2), grossProfitMargin: grossProfitMargin.toFixed(2), stock: item.totalPurchaseQty - item.totalSaleQty };
   });
-
   analysisResult.sort((a, b) => b.totalSaleQty - a.totalSaleQty);
   analysisResult.forEach((d, index) => d.salesRank = index + 1);
-
   return analysisResult;
 }
 
 function renderAnalysis() {
-  const monthInput = document.getElementById('analysisMonth');
-  if (!monthInput.value) {
-    const today = new Date();
-    monthInput.value = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2);
-  }
-  const selectedMonth = monthInput.value;
+  analysisData = calculateAnalysisData();
+  const productAvgPurchasePrice = analysisData.reduce((acc, item) => {
+    acc[item.id] = parseFloat(item.avgPurchasePrice); return acc;
+  }, {});
 
   const totalPurchaseAmount = purchases.reduce((sum, p) => sum + Number(p.qty) * Number(p.price), 0);
   const totalSaleAmount = sales.reduce((sum, s) => sum + Number(s.qty) * Number(s.price), 0);
-  
-  const tempAnalysisData = calculateAnalysisData();
-  const productAvgPurchasePrice = tempAnalysisData.reduce((acc, item) => {
-    acc[item.id] = parseFloat(item.avgPurchasePrice);
-    return acc;
-  }, {});
-
   const totalCostOfGoodsSold = sales.reduce((sum, s) => sum + Number(s.qty) * (productAvgPurchasePrice[s.productId] || 0), 0);
   const totalProfit = totalSaleAmount - totalCostOfGoodsSold;
   
-  document.getElementById('totalPurchaseAmount').textContent = totalPurchaseAmount.toFixed(2);
-  document.getElementById('totalSaleAmount').textContent = totalSaleAmount.toFixed(2);
-  document.getElementById('totalProfit').textContent = totalProfit.toFixed(2);
+  document.getElementById('totalPurchaseAmount').textContent = '¥ ' + totalPurchaseAmount.toFixed(2);
+  document.getElementById('totalSaleAmount').textContent = '¥ ' + totalSaleAmount.toFixed(2);
+  document.getElementById('totalProfit').textContent = '¥ ' + totalProfit.toFixed(2);
 
-  const monthlyPurchases = purchases.filter(p => p.date.startsWith(selectedMonth));
-  const monthlySales = sales.filter(s => s.date.startsWith(selectedMonth));
-  const monthlyPurchaseAmount = monthlyPurchases.reduce((sum, p) => sum + Number(p.qty) * Number(p.price), 0);
-  const monthlySaleAmount = monthlySales.reduce((sum, s) => sum + Number(s.qty) * Number(s.price), 0);
-  const monthlyCostOfGoodsSold = monthlySales.reduce((sum, s) => sum + Number(s.qty) * (productAvgPurchasePrice[s.productId] || 0), 0);
-  const monthlyProfit = monthlySaleAmount - monthlyCostOfGoodsSold;
-
-  document.getElementById('monthlyPurchaseAmount').textContent = monthlyPurchaseAmount.toFixed(2);
-  document.getElementById('monthlySaleAmount').textContent = monthlySaleAmount.toFixed(2);
-  document.getElementById('monthlyProfit').textContent = monthlyProfit.toFixed(2);
-
-  analysisData = tempAnalysisData;
   renderAnalysisTable();
+  showChart(currentChartType);
 }
 
 function renderAnalysisTable() {
     const tbody = document.getElementById('analysisTableBody');
     tbody.innerHTML = '';
-    
     const sortedData = [...analysisData].sort((a, b) => {
         let v1 = a[analysisSortKey], v2 = b[analysisSortKey];
         if (['name'].includes(analysisSortKey)) {
-             v1 = (v1 || '').toLowerCase();
-             v2 = (v2 || '').toLowerCase();
+             v1 = (v1 || '').toLowerCase(); v2 = (v2 || '').toLowerCase();
         } else {
-            v1 = Number(v1);
-            v2 = Number(v2);
+            v1 = Number(v1); v2 = Number(v2);
         }
-
-        if (v1 < v2) return analysisSortAsc ? -1 : 1;
-        if (v1 > v2) return analysisSortAsc ? 1 : -1;
+        if (v1 < v2) return analysisSortAsc ? -1 : 1; if (v1 > v2) return analysisSortAsc ? 1 : -1;
         return 0;
     });
-
     for (const item of sortedData) {
         tbody.innerHTML += `
             <tr>
@@ -853,17 +781,101 @@ function renderAnalysisTable() {
         `;
     }
 }
-
 function sortAnalysis(key) {
-    if (analysisSortKey === key) {
-        analysisSortAsc = !analysisSortAsc;
-    } else {
-        analysisSortKey = key;
-        analysisSortAsc = true;
-    }
+    if (analysisSortKey === key) analysisSortAsc = !analysisSortAsc;
+    else { analysisSortKey = key; analysisSortAsc = true; }
     renderAnalysisTable();
 }
 window.sortAnalysis = sortAnalysis;
+window.showChart = showChart;
+
+function showChart(type) {
+    currentChartType = type;
+    document.getElementById('showPieChartBtn').classList.toggle('active', type === 'pie');
+    document.getElementById('showBarChartBtn').classList.toggle('active', type === 'bar');
+    const ctx = document.getElementById('analysisChart').getContext('2d');
+    if (analysisChart) analysisChart.destroy();
+
+    if (type === 'pie') {
+        const pieData = analysisData.filter(d => d.totalSaleAmount > 0);
+        analysisChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: pieData.map(d => d.name),
+                datasets: [{
+                    data: pieData.map(d => d.totalSaleAmount),
+                    backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40', '#c9cbcf'],
+                    borderColor: '#fff',
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'right' } } }
+        });
+    } else if (type === 'bar') {
+        const productAvgPurchasePrice = analysisData.reduce((acc, item) => {
+            acc[item.id] = parseFloat(item.avgPurchasePrice); return acc;
+        }, {});
+        
+        const last6Months = [...Array(6)].map((_, i) => {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+        }).reverse();
+        
+        const monthlyData = last6Months.map(month => {
+            const monthlyPurchases = purchases.filter(p => p.date.startsWith(month)).reduce((sum, p) => sum + p.qty * p.price, 0);
+            
+            const monthlySalesRecords = sales.filter(s => s.date.startsWith(month));
+            const monthlySaleAmount = monthlySalesRecords.reduce((sum, s) => sum + s.qty * s.price, 0);
+            const monthlyCostOfGoodsSold = monthlySalesRecords.reduce((sum, s) => sum + Number(s.qty) * (productAvgPurchasePrice[s.productId] || 0), 0);
+            const monthlyProfit = monthlySaleAmount - monthlyCostOfGoodsSold;
+
+            return { month, purchases: monthlyPurchases, sales: monthlySaleAmount, profit: monthlyProfit };
+        });
+
+        analysisChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: monthlyData.map(d => d.month),
+                datasets: [
+                    {
+                        label: '采购额',
+                        data: monthlyData.map(d => d.purchases),
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    },
+                    {
+                        label: '销售额',
+                        data: monthlyData.map(d => d.sales),
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                    },
+                    {
+                        label: '月利润',
+                        data: monthlyData.map(d => d.profit),
+                        borderColor: '#4bc0c0',
+                        backgroundColor: '#4bc0c0',
+                        tension: 0.1,
+                        fill: false,
+                        type: 'line'
+                    }
+                ]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                scales: { 
+                    y: { 
+                        beginAtZero: true 
+                    } 
+                }, 
+                plugins: { 
+                    legend: { 
+                        display: true, 
+                        position: 'top' 
+                    } 
+                } 
+            }
+        });
+    }
+}
 
 // ========== 数据导入导出与归档 ==========
 function exportAll() {
@@ -882,18 +894,13 @@ function importAll(event) {
   reader.onload = function(e) {
     let data;
     try { data = JSON.parse(e.target.result); } catch { return alert('文件格式错误'); }
-    if (!data.products || !data.purchases || !data.sales) return alert('数据结构不正确');
+    if (typeof data.products === 'undefined' || typeof data.purchases === 'undefined' || typeof data.sales === 'undefined') return alert('数据结构不正确，必须包含products, purchases, sales数组');
     if (confirm('导入数据时请选择“确定”覆盖，或“取消”追加。\n覆盖：将完全替换现有数据。\n追加：将新增数据，ID相同的数据不会被覆盖。')) {
-      products = data.products || [];
-      purchases = data.purchases || [];
-      sales = data.sales || [];
+      products = data.products || []; purchases = data.purchases || []; sales = data.sales || [];
     } else {
-      const existingProductIds = new Set(products.map(p => p.id));
-      const existingPurchaseIds = new Set(purchases.map(p => p.id));
-      const existingSaleIds = new Set(sales.map(s => s.id));
-      products.push(...(data.products || []).filter(p => !existingProductIds.has(p.id)));
-      purchases.push(...(data.purchases || []).filter(p => !existingPurchaseIds.has(p.id)));
-      sales.push(...(data.sales || []).filter(s => !existingSaleIds.has(s.id)));
+      const existingPids = new Set(products.map(p=>p.id)); (data.products||[]).forEach(p=>{if(!existingPids.has(p.id))products.push(p);});
+      const existingPuids = new Set(purchases.map(p=>p.id)); (data.purchases||[]).forEach(p=>{if(!existingPuids.has(p.id))purchases.push(p);});
+      const existingSids = new Set(sales.map(s=>s.id)); (data.sales||[]).forEach(s=>{if(!existingSids.has(s.id))sales.push(s);});
     }
     saveAll();
     updateAllRender();
@@ -909,15 +916,10 @@ function archiveOldData() {
   const oldSales = sales.filter(s => new Date(s.date) < yearAgo);
   if (!oldPurchases.length && !oldSales.length) return alert('没有可归档的数据（一年以前的记录）');
   if (!confirm(`将归档 ${oldPurchases.length} 条采购记录和 ${oldSales.length} 条销售记录。归档后数据将从当前应用中移除并下载为文件。确定吗？`)) return;
-
   const archiveData = { purchases: oldPurchases, sales: oldSales };
   const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
   const blob = new Blob([JSON.stringify(archiveData, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `归档数据_${ts}.json`;
-  a.click();
-  
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `归档数据_${ts}.json`; a.click();
   purchases = purchases.filter(p => new Date(p.date) >= yearAgo);
   sales = sales.filter(s => new Date(s.date) >= yearAgo);
   saveAll();
@@ -937,7 +939,6 @@ function updateAllRender() {
     renderAnalysis();
   }
 }
-
 document.addEventListener('DOMContentLoaded', function() {
   updateAllRender();
   document.getElementById('analysis-tab').addEventListener('shown.bs.tab', renderAnalysis);
