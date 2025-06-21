@@ -266,22 +266,25 @@
             }
         }
 
-        // HTML模板转义（只转义反斜杠和反引号）
+        // HTML模板转义
         function escapeHtmlForTemplate(html) {
             return html
-                .replace(/\\/g, "\\\\")
-                .replace(/`/g, "\\`");
+                .replace(/\\/g, "\\\\")  // 必须先转义反斜杠
+                .replace(/`/g, "\\`")   // 转义反引号
+                .replace(/\$\{/g, "\\${"); // 转义模板字符串的插值语法
         }
 
         // 反转义还原HTML
         function unescapeHtmlFromTemplate(str) {
-            // 提取 Worker 代码中的模板字符串内容
-            const match = str.match(/return new Response\(\s*`([\s\S]*?)`\s*,/);
-            if (!match) return '';
+            // 使用更健壮的贪婪模式正则来提取模板字符串内容
+            const match = str.match(/return new Response\(\s*`([\s\S]*)`\s*,\s*\{\s*headers:/);
+            if (!match) return null;
             let html = match[1];
-            // 反转义
-            html = html.replace(/\\`/g, "`").replace(/\\\\/g, "\\");
-            return html;
+            // 反转义，顺序很重要
+            return html
+                .replace(/\\\$\{/g, "${") // 还原模板字符串插值语法
+                .replace(/\\`/g, "`")   // 还原反引号
+                .replace(/\\\\/g, "\\");  // 最后还原反斜杠
         }
 
         // 还原HTML到输入区
@@ -292,34 +295,27 @@
                 return;
             }
             const html = unescapeHtmlFromTemplate(code);
-            if (html) {
+            if (html !== null) {
                 elements.htmlInput.value = html;
-                showStatus("HTML 已还原", "success");
-                generateCode();
+                showStatus("HTML 已成功还原!", "success");
+                updatePreview(); // 只更新预览，不重新生成代码
             } else {
-                showStatus("未能识别 Worker 代码中的 HTML", "error");
+                showStatus("未能从此 Worker 代码中识别出 HTML 内容", "error");
             }
         }
 
         // 增强版复制功能
         function copyCode() {
             const textToCopy = elements.workerOutput.value;
-            if (!textToCopy.trim()) {
+            if (!textToCopy.trim() || textToCopy === "// Worker 代码将在这里生成...") {
                 showStatus("没有可复制的代码", "error");
                 return;
             }
-            elements.workerOutput.focus();
-            elements.workerOutput.select();
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showStatus("代码已成功复制到剪贴板!", "success");
-                } else {
-                    showStatus("复制失败，请手动选择复制", "error");
-                }
-            } catch (err) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showStatus("代码已成功复制到剪贴板!", "success");
+            }, (err) => {
                 showStatus("复制失败: " + err, "error");
-            }
+            });
         }
 
         // 切换标签页
