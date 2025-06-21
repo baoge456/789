@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>购销存及生产管理</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background-color: #f0f2f5; }
+    .container { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 20px 10px 30px 10px; }
+    .search-form .form-control, .search-form .form-select { height: 32px; font-size: 0.95rem; }
+    .search-form .btn { padding: 2px 12px; font-size: 0.95rem; }
+    .table th { background: #e9ecef; color: #333; }
+    .table td, .table th { vertical-align: middle !important; }
+    .pagination { flex-wrap: wrap; }
+    .nav-tabs .nav-link { color: #495057; }
+    .nav-tabs .nav-link.active { color: #0d6efd; font-weight: 500; }
+    .btn-primary { background-color: #0d6efd; border-color: #0d6efd; }
+    .btn-danger { background-color: #dc3545; border-color: #dc3545; }
+    .btn-secondary { background-color: #6c757d; border-color: #6c757d; }
+    .btn-warning { background-color: #ffc107; border-color: #ffc107; }
+    #bomList .input-group-text { min-width: 120px; }
+    #bomList .form-control { text-align: right; }
+    .form-label { font-weight: 500; }
+    .stat-card { border: 1px solid #dee2e6; border-radius: .375rem; padding: 1.25rem; text-align: center; }
+    .stat-card h5 { color: #6c757d; font-size: 1rem; margin-bottom: 0.5rem; }
+    .stat-card p { font-size: 1.75rem; font-weight: 500; color: #212529; }
+    @media (max-width: 768px) {
+      .container { padding: 5px 2px 20px 2px; }
+      .table-responsive { font-size: 0.95rem; }
+      .nav-tabs .nav-link { font-size: 1rem; padding: 6px 8px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container my-3">
+  <h2 class="mb-3 text-center">购销存及生产管理系统</h2>
+  <div class="mb-3 d-flex flex-wrap gap-2">
+    <button class="btn btn-secondary btn-sm" onclick="exportAll()">导出全部数据</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAll(event)">
+    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importFile').click()">导入数据</button>
+    <button class="btn btn-danger btn-sm" onclick="if(confirm('确定要清空所有数据吗？此操作不可恢复！')) clearAllData()">清空所有数据</button>
+  </div>
+  <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="product-tab" data-bs-toggle="tab" data-bs-target="#product" type="button" role="tab">产品管理</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="purchase-tab" data-bs-toggle="tab" data-bs-target="#purchase" type="button" role="tab">采购管理</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="production-tab" data-bs-toggle="tab" data-bs-target="#production" type="button" role="tab">生产管理</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="sale-tab" data-bs-toggle="tab" data-bs-target="#sale" type="button" role="tab">销售管理</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button" role="tab">库存查询</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button" role="tab">数据分析</button>
+    </li>
+  </ul>
+  <div class="tab-content mt-3" id="mainTabsContent">
+    <!-- 产品管理 -->
+    <div class="tab-pane fade show active" id="product" role="tabpanel">
+      <form id="productForm" onsubmit="saveProduct(event)">
+        <input type="hidden" id="productEditId">
+        <div class="row g-3">
+          <div class="col-md-3"><label class="form-label">产品编号</label><input type="text" class="form-control" id="productId" required></div>
+          <div class="col-md-3"><label class="form-label">产品名称</label><input type="text" class="form-control" id="productName" required></div>
+          <div class="col-md-3"><label class="form-label">类型</label><select class="form-select" id="productType" onchange="toggleBomSection()" required><option value="原材料">原材料</option><option value="成品">成品</option></select></div>
+          <div class="col-md-3"><label class="form-label">规格</label><input type="text" class="form-control" id="productSpec"></div>
+          <div class="col-md-3"><label class="form-label">单位</label><input type="text" class="form-control" id="productUnit"></div>
+          <div class="col-md-3"><label class="form-label">建议零售价</label><input type="number" step="0.01" class="form-control" id="productPrice"></div>
+        </div>
+        <div id="bomSection" class="mt-3" style="display:none;">
+          <h5>物料清单 (BOM)</h5>
+          <div id="bomList" class="vstack gap-2"></div>
+          <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addBomItem()">添加原材料</button>
+        </div>
+        <div class="mt-3"><button type="submit" class="btn btn-primary">保存产品</button> <button type="button" class="btn btn-secondary" onclick="clearProductForm()">清空</button></div>
+      </form>
+      <hr>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead><tr><th>编号</th><th>名称</th><th>类型</th><th>规格</th><th>单位</th><th>建议零售价</th><th>操作</th></tr></thead>
+          <tbody id="productTable"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- 采购管理 -->
+    <div class="tab-pane fade" id="purchase" role="tabpanel">
+      <form id="purchaseForm" class="row g-2 mb-3" onsubmit="addPurchase(event)">
+        <div class="col-md-4"><select class="form-select" id="purchaseProductName" required><option value="">选择原材料...</option></select></div>
+        <div class="col-md-2"><input type="number" class="form-control" id="purchaseQuantity" placeholder="数量" required></div>
+        <div class="col-md-2"><input type="number" step="0.01" class="form-control" id="purchasePrice" placeholder="单价" required></div>
+        <div class="col-md-2"><input type="date" class="form-control" id="purchaseDate" required></div>
+        <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">添加入库</button></div>
+      </form>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead><tr><th>日期</th><th>产品名称</th><th>数量</th><th>单价</th><th>总价</th><th>操作</th></tr></thead>
+          <tbody id="purchaseTable"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- 生产管理 -->
+    <div class="tab-pane fade" id="production" role="tabpanel">
+        <form id="productionForm" onsubmit="addProduction(event)">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">选择成品</label>
+                    <select class="form-select" id="productionProductName" onchange="handleProductionSelect()" required><option value="">选择要生产的产品...</option></select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">计划生产数量</label>
+                    <input type="number" class="form-control" id="productionQuantity" placeholder="数量" required>
+                </div>
+                 <div class="col-md-2">
+                    <label class="form-label">生产日期</label>
+                    <input type="date" class="form-control" id="productionDate" required>
+                </div>
+            </div>
+            <div id="productionBomContainer" class="mt-4" style="display:none;">
+                <h5>生产消耗清单</h5>
+                 <div class="row g-2 mb-3 align-items-end">
+                    <div class="col-md-3">
+                         <label class="form-label fw-bold text-success">实际产出数量</label>
+                         <input type="number" step="1" class="form-control" id="productionActualOutput" placeholder="最终产出数量">
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>原材料</th><th>库存可用</th><th style="width: 150px;">计划消耗</th><th style="width: 150px;" class="text-success fw-bold">实际消耗</th></tr></thead>
+                        <tbody id="productionBomList"></tbody>
+                    </table>
+                </div>
+                 <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">确认生产</button>
+                </div>
+            </div>
+        </form>
+        <hr>
+        <h5>生产记录</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead><tr><th>日期</th><th>产成品</th><th>计划产出</th><th>实际产出</th><th>成本</th><th>操作</th></tr></thead>
+                <tbody id="productionTable"></tbody>
+            </table>
+        </div>
+    </div>
+    <!-- 销售管理 -->
+    <div class="tab-pane fade" id="sale" role="tabpanel">
+      <form id="saleForm" class="row g-2 mb-3" onsubmit="addSale(event)">
+        <div class="col-md-4"><select class="form-select" id="saleProductName" required><option value="">选择成品...</option></select></div>
+        <div class="col-md-2"><input type="number" class="form-control" id="saleQuantity" placeholder="数量" required></div>
+        <div class="col-md-2"><input type="number" step="0.01" class="form-control" id="salePrice" placeholder="售价" required></div>
+        <div class="col-md-2"><input type="date" class="form-control" id="saleDate" required></div>
+        <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">添加销售</button></div>
+      </form>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead><tr><th>日期</th><th>产品名称</th><th>数量</th><th>售价</th><th>总价</th><th>操作</th></tr></thead>
+          <tbody id="saleTable"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- 库存查询 -->
+    <div class="tab-pane fade" id="stock" role="tabpanel">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead><tr><th>编号</th><th>名称</th><th>类型</th><th>规格</th><th>单位</th><th>库存数量</th><th>平均成本</th><th>库存总成本</th></tr></thead>
+          <tbody id="stockTable"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- 数据分析 -->
+    <div class="tab-pane fade" id="analysis" role="tabpanel">
+      <div class="row g-3 mb-3">
+        <div class="col-md-4"><div class="stat-card"><h5>总采购额</h5><p id="totalPurchaseValue">0.00</p></div></div>
+        <div class="col-md-4"><div class="stat-card"><h5>总销售额</h5><p id="totalSaleValue">0.00</p></div></div>
+        <div class="col-md-4"><div class="stat-card"><h5>总利润</h5><p id="totalProfitValue">0.00</p></div></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-center gap-2 mb-2">
+                <button class="btn btn-sm btn-outline-primary active" onclick="switchChart('sales')">销售贡献图</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="switchChart('trends')">月度趋势图</button>
+            </div>
+            <canvas id="analysisChart" style="max-height: 350px;"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+let products = [];
+let purchases = [];
+let sales = [];
+let productions = [];
+let stock = {};
+
+let myChart;
+let currentChartType = 'sales';
+
+// --- Core Data & UI Logic ---
+document.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    updateAllSelects(); 
+    refreshActiveTabContent(); 
+
+    const allTabs = document.querySelectorAll('#mainTabs .nav-link');
+    allTabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', refreshActiveTabContent);
+    });
+});
+
+function onDataChanged() {
+    saveData();
+    calculateStock(); 
+    updateAllSelects();
+    refreshActiveTabContent();
+}
+
+function refreshActiveTabContent() {
+    const activeTabEl = document.querySelector('#mainTabs .nav-link.active');
+    if (!activeTabEl) return;
+
+    // FIX: Use the standard data-bs-target attribute to reliably get the active pane.
+    const activePaneID = activeTabEl.getAttribute('data-bs-target').substring(1);
+
+    switch (activePaneID) {
+        case 'product':
+            renderProductTable();
+            populateBomRawMaterialSelect();
+            break;
+        case 'purchase':
+            renderPurchaseTable();
+            break;
+        case 'sale':
+            renderSaleTable();
+            break;
+        case 'production':
+            renderProductionTable();
+            break;
+        case 'stock':
+            renderStockTable();
+            break;
+        case 'analysis':
+            renderAnalysisData();
+            break;
+    }
+}
+
+
+function updateAllSelects() {
+    populatePurchaseProductSelect();
+    populateSaleProductSelect();
+    populateProductionProductSelect();
+    populateBomRawMaterialSelect();
+}
+
+// --- Product Management ---
+
+function toggleBomSection() {
+    const type = document.getElementById('productType').value;
+    const bomSection = document.getElementById('bomSection');
+    bomSection.style.display = type === '成品' ? 'block' : 'none';
+    if (type === '成品' && document.querySelectorAll('#bomList .input-group').length === 0) {
+        addBomItem();
+    }
+}
+
+function populateBomRawMaterialSelect() {
+    const rawMaterials = products.filter(p => p.type === '原材料');
+    const allSelects = document.querySelectorAll('.bom-item-select');
+    allSelects.forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">选择原材料...</option>';
+        rawMaterials.forEach(rm => {
+            const option = document.createElement('option');
+            option.value = rm.id;
+            option.textContent = `${rm.name} (${rm.spec || rm.id})`;
+            select.appendChild(option);
+        });
+        if (rawMaterials.some(rm => rm.id === currentVal)) {
+          select.value = currentVal;
+        }
+    });
+}
+
+function addBomItem(item = { productId: '', quantity: '' }) {
+    const list = document.getElementById('bomList');
+    const div = document.createElement('div');
+    div.className = 'input-group input-group-sm';
+    div.innerHTML = `
+        <select class="form-select bom-item-select" required>
+            <option value="">选择原材料...</option>
+        </select>
+        <input type="number" step="0.001" class="form-control bom-item-quantity" placeholder="需要数量" value="${item.quantity}" required>
+        <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">删除</button>
+    `;
+    list.appendChild(div);
+    const newSelect = div.querySelector('.bom-item-select');
+    populateBomRawMaterialSelect(); 
+    newSelect.value = item.productId;
+}
+
+function saveProduct(event) {
+    event.preventDefault();
+    const editId = document.getElementById('productEditId').value;
+    const newId = document.getElementById('productId').value;
+
+    if (!editId && products.some(p => p.id === newId)) {
+        alert('产品编号已存在，请使用唯一的编号。');
+        return;
+    }
+
+    const bomItems = [];
+    if (document.getElementById('productType').value === '成品') {
+        const bomNodes = document.querySelectorAll('#bomList .input-group');
+        for (const node of bomNodes) {
+            const productId = node.querySelector('.bom-item-select').value;
+            const quantity = parseFloat(node.querySelector('.bom-item-quantity').value);
+            if (!productId || !(quantity > 0)) {
+                alert('BOM清单中的原材料和数量均为必填项且数量需大于0。');
+                return;
+            }
+            bomItems.push({ productId, quantity });
+        }
+    }
+
+    const productData = {
+        id: newId,
+        name: document.getElementById('productName').value,
+        type: document.getElementById('productType').value,
+        spec: document.getElementById('productSpec').value,
+        unit: document.getElementById('productUnit').value,
+        price: parseFloat(document.getElementById('productPrice').value) || 0,
+        bom: bomItems,
+    };
+
+    if (editId) {
+        const index = products.findIndex(p => p.id === editId);
+        products[index] = { ...products[index], ...productData, id: editId }; 
+    } else {
+        products.push(productData);
+    }
+
+    clearProductForm();
+    onDataChanged();
+}
+
+function editProduct(id) {
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+    
+    document.getElementById('productEditId').value = product.id;
+    document.getElementById('productId').value = product.id;
+    document.getElementById('productId').readOnly = true; 
+    document.getElementById('productName').value = product.name;
+    document.getElementById('productType').value = product.type;
+    document.getElementById('productSpec').value = product.spec;
+    document.getElementById('productUnit').value = product.unit;
+    document.getElementById('productPrice').value = product.price;
+
+    toggleBomSection();
+    const bomList = document.getElementById('bomList');
+    bomList.innerHTML = '';
+    if (product.type === '成品' && product.bom) {
+        product.bom.forEach(item => addBomItem(item));
+    }
+}
+
+function deleteProduct(id) {
+    if (purchases.some(p => p.productId === id) || sales.some(s => s.productId === id) || productions.some(p => p.productId === id) || productions.some(p => p.materials.some(m => m.id === id)) || products.some(p => p.bom && p.bom.some(b => b.productId === id))) {
+        alert('该产品已被引用（采购、销售、生产或BOM），无法删除。');
+        return;
+    }
+    if (confirm(`确定要删除产品 ${id} 吗？`)) {
+        products = products.filter(p => p.id !== id);
+        onDataChanged();
+    }
+}
+
+function clearProductForm() {
+    document.getElementById('productForm').reset();
+    document.getElementById('productEditId').value = '';
+    document.getElementById('productId').readOnly = false;
+    document.getElementById('bomList').innerHTML = '';
+    toggleBomSection();
+}
+
+function renderProductTable() {
+    const tbody = document.getElementById('productTable');
+    tbody.innerHTML = '';
+    products.forEach(p => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.id}</td>
+                <td>${p.name}</td>
+                <td>${p.type}</td>
+                <td>${p.spec || ''}</td>
+                <td>${p.unit || ''}</td>
+                <td>${(p.price || 0).toFixed(2)}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editProduct('${p.id}')">编辑</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${p.id}')">删除</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// --- Purchase Management ---
+
+function populatePurchaseProductSelect() {
+    const select = document.getElementById('purchaseProductName');
+    if (!select) return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">选择原材料...</option>';
+    const rawMaterials = products.filter(p => p.type === '原材料');
+    rawMaterials.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `${p.name} (${p.spec || p.id})`;
+        select.appendChild(option);
+    });
+    if (rawMaterials.some(p => p.id === currentVal)) {
+      select.value = currentVal;
+    }
+}
+
+function addPurchase(event) {
+    event.preventDefault();
+    const purchase = {
+        id: Date.now(),
+        productId: document.getElementById('purchaseProductName').value,
+        quantity: parseFloat(document.getElementById('purchaseQuantity').value),
+        price: parseFloat(document.getElementById('purchasePrice').value),
+        date: document.getElementById('purchaseDate').value,
+    };
+    purchases.push(purchase);
+    document.getElementById('purchaseForm').reset();
+    onDataChanged();
+}
+
+function deletePurchase(id) {
+    if (confirm('确定要删除这条采购记录吗？')) {
+        purchases = purchases.filter(p => p.id != id);
+        onDataChanged();
+    }
+}
+
+function renderPurchaseTable() {
+    const tbody = document.getElementById('purchaseTable');
+    tbody.innerHTML = '';
+    purchases.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(p => {
+        const product = products.find(prod => prod.id === p.productId);
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.date}</td>
+                <td>${product?.name || '未知产品'}</td>
+                <td>${p.quantity}</td>
+                <td>${p.price.toFixed(2)}</td>
+                <td>${(p.quantity * p.price).toFixed(2)}</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="deletePurchase(${p.id})">删除</button></td>
+            </tr>
+        `;
+    });
+}
+
+// --- Production Management ---
+
+function populateProductionProductSelect() {
+    const select = document.getElementById('productionProductName');
+    if (!select) return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">选择要生产的产品...</option>';
+    const finishedGoods = products.filter(p => p.type === '成品');
+    finishedGoods.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `${p.name} (${p.spec || p.id})`;
+        select.appendChild(option);
+    });
+    if (finishedGoods.some(p => p.id === currentVal)) {
+      select.value = currentVal;
+    }
+}
+
+function handleProductionSelect() {
+    const productId = document.getElementById('productionProductName').value;
+    const quantity = parseFloat(document.getElementById('productionQuantity').value);
+    const container = document.getElementById('productionBomContainer');
+    const list = document.getElementById('productionBomList');
+    
+    list.innerHTML = '';
+    if (!productId || !(quantity > 0)) {
+        container.style.display = 'none';
+        return;
+    }
+
+    const product = products.find(p => p.id === productId);
+    if (!product || !product.bom) {
+        container.style.display = 'none';
+        return;
+    }
+
+    product.bom.forEach(item => {
+        const rawMaterial = products.find(p => p.id === item.productId);
+        const stockQty = stock[item.productId]?.quantity || 0;
+        const requiredQty = item.quantity * quantity;
+        const isSufficient = stockQty >= requiredQty;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${rawMaterial?.name || '未知原料'}</td>
+            <td class="${isSufficient ? 'text-success' : 'text-danger fw-bold'}">${stockQty.toFixed(3)} ${rawMaterial?.unit || ''}</td>
+            <td>${requiredQty.toFixed(3)} ${rawMaterial?.unit || ''}</td>
+            <td><input type="number" step="0.001" class="form-control form-control-sm production-actual-consumption" data-product-id="${item.productId}" value="${requiredQty.toFixed(3)}" required></td>
+        `;
+        list.appendChild(row);
+    });
+
+    document.getElementById('productionActualOutput').value = quantity;
+    container.style.display = 'block';
+}
+
+document.getElementById('productionQuantity').addEventListener('input', handleProductionSelect);
+
+function addProduction(event) {
+    event.preventDefault();
+    const productId = document.getElementById('productionProductName').value;
+    const plannedQty = parseFloat(document.getElementById('productionQuantity').value);
+    const actualQty = parseFloat(document.getElementById('productionActualOutput').value);
+    const date = document.getElementById('productionDate').value;
+
+    if (!(actualQty > 0)) {
+        alert('实际产出数量必须大于0。');
+        return;
+    }
+    
+    const product = products.find(p => p.id === productId);
+    
+    let totalCostOfRun = 0;
+    const materialsConsumed = [];
+    const consumptionInputs = document.querySelectorAll('.production-actual-consumption');
+
+    for (const input of consumptionInputs) {
+        const materialId = input.dataset.productId;
+        const actualConsumption = parseFloat(input.value);
+        const materialStock = stock[materialId];
+
+        if (!materialStock || materialStock.quantity < actualConsumption) {
+            alert(`原材料 ${materialStock?.name || materialId} 库存不足！`);
+            return;
+        }
+        if (actualConsumption < 0) {
+             alert('实际消耗数量不能为负数。');
+            return;
+        }
+
+        totalCostOfRun += actualConsumption * materialStock.avgCost;
+        const plannedConsumption = (product.bom.find(b => b.productId === materialId)?.quantity || 0) * plannedQty;
+        materialsConsumed.push({
+            id: materialId,
+            plannedQty: plannedConsumption,
+            actualQty: actualConsumption,
+            costAtTime: materialStock.avgCost
+        });
+    }
+
+    const production = {
+        id: Date.now(),
+        productId,
+        date,
+        plannedQty,
+        actualQty,
+        materials: materialsConsumed,
+        totalCost: totalCostOfRun,
+        unitCost: actualQty > 0 ? totalCostOfRun / actualQty : 0
+    };
+
+    productions.push(production);
+    document.getElementById('productionForm').reset();
+    document.getElementById('productionBomContainer').style.display = 'none';
+    onDataChanged();
+}
+
+function deleteProduction(id) {
+     if (confirm('确定要删除这条生产记录吗？此操作会回滚库存和成本，请谨慎操作！')) {
+        productions = productions.filter(p => p.id != id);
+        onDataChanged();
+    }
+}
+
+function renderProductionTable() {
+    const tbody = document.getElementById('productionTable');
+    tbody.innerHTML = '';
+    productions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(p => {
+        const product = products.find(prod => prod.id === p.productId);
+        const efficiency = p.plannedQty > 0 ? (p.actualQty / p.plannedQty * 100).toFixed(1) + '%' : 'N/A';
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.date}</td>
+                <td>${product?.name || '未知产品'}</td>
+                <td>${p.plannedQty}</td>
+                <td>${p.actualQty} <span class="badge bg-secondary">${efficiency}</span></td>
+                <td>${p.totalCost.toFixed(2)}</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="deleteProduction(${p.id})">删除</button></td>
+            </tr>
+        `;
+    });
+}
+
+
+// --- Sale Management ---
+
+function populateSaleProductSelect() {
+    const select = document.getElementById('saleProductName');
+    if (!select) return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">选择成品...</option>';
+    const finishedGoods = products.filter(p => p.type === '成品');
+    finishedGoods.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `${p.name} (${p.spec || p.id})`;
+        select.appendChild(option);
+    });
+    if (finishedGoods.some(p => p.id === currentVal)) {
+      select.value = currentVal;
+    }
+}
+
+function addSale(event) {
+    event.preventDefault();
+    const productId = document.getElementById('saleProductName').value;
+    const quantity = parseFloat(document.getElementById('saleQuantity').value);
+    
+    const productStock = stock[productId];
+    if (!productStock || productStock.quantity < quantity) {
+        alert('成品库存不足！');
+        return;
+    }
+
+    const sale = {
+        id: Date.now(),
+        productId,
+        quantity,
+        price: parseFloat(document.getElementById('salePrice').value),
+        date: document.getElementById('saleDate').value,
+        costAtTime: productStock.avgCost 
+    };
+    sales.push(sale);
+    document.getElementById('saleForm').reset();
+    onDataChanged();
+}
+
+function deleteSale(id) {
+    if (confirm('确定要删除这条销售记录吗？')) {
+        sales = sales.filter(s => s.id != id);
+        onDataChanged();
+    }
+}
+
+function renderSaleTable() {
+    const tbody = document.getElementById('saleTable');
+    tbody.innerHTML = '';
+    sales.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(s => {
+        const product = products.find(prod => prod.id === s.productId);
+        tbody.innerHTML += `
+            <tr>
+                <td>${s.date}</td>
+                <td>${product?.name || '未知产品'}</td>
+                <td>${s.quantity}</td>
+                <td>${s.price.toFixed(2)}</td>
+                <td>${(s.quantity * s.price).toFixed(2)}</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="deleteSale(${s.id})">删除</button></td>
+            </tr>
+        `;
+    });
+}
+
+
+// --- Stock & Analysis Calculation ---
+
+function calculateStock() {
+    stock = {};
+    products.forEach(p => {
+        stock[p.id] = { quantity: 0, totalCost: 0, avgCost: 0 };
+    });
+
+    const transactions = [
+        ...purchases.map(t => ({ date: t.date, type: 'PURCHASE', data: t })),
+        ...productions.map(t => ({ date: t.date, type: 'PRODUCTION', data: t })),
+        ...sales.map(t => ({ date: t.date, type: 'SALE', data: t }))
+    ].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    transactions.forEach(tx => {
+        const data = tx.data;
+        if (tx.type === 'PURCHASE') {
+            const s = stock[data.productId];
+            if(s) {
+                s.totalCost += data.quantity * data.price;
+                s.quantity += data.quantity;
+            }
+        } else if (tx.type === 'PRODUCTION') {
+            data.materials.forEach(m => {
+                const s = stock[m.id];
+                if(s) {
+                    const avgCostBeforeConsumption = s.quantity > 0 ? s.totalCost / s.quantity : 0;
+                    const costOfMaterialConsumed = m.actualQty * avgCostBeforeConsumption;
+                    s.totalCost -= costOfMaterialConsumed;
+                    s.quantity -= m.actualQty;
+                }
+            });
+            const s = stock[data.productId];
+            if(s) {
+                s.totalCost += data.totalCost;
+                s.quantity += data.actualQty;
+            }
+        } else if (tx.type === 'SALE') {
+            const s = stock[data.productId];
+            if(s) {
+                const avgCostBeforeSale = s.quantity > 0 ? s.totalCost / s.quantity : 0;
+                const costOfGoodsSold = data.quantity * avgCostBeforeSale;
+                data.costAtTime = avgCostBeforeSale; // Update sale record with accurate cost
+                s.totalCost -= costOfGoodsSold;
+                s.quantity -= data.quantity;
+            }
+        }
+    });
+
+    for (const id in stock) {
+        if (stock[id].quantity < 0.00001) {
+            stock[id].quantity = 0;
+            stock[id].totalCost = 0;
+        }
+        stock[id].avgCost = stock[id].quantity > 0 ? stock[id].totalCost / stock[id].quantity : 0;
+    }
+}
+
+
+function renderStockTable() {
+    const tbody = document.getElementById('stockTable');
+    tbody.innerHTML = '';
+    products.sort((a,b) => a.id.localeCompare(b.id)).forEach(p => {
+        const s = stock[p.id] || { quantity: 0, avgCost: 0 };
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.id}</td>
+                <td>${p.name}</td>
+                <td>${p.type}</td>
+                <td>${p.spec || ''}</td>
+                <td>${p.unit || ''}</td>
+                <td>${s.quantity.toFixed(3)}</td>
+                <td>${s.avgCost.toFixed(2)}</td>
+                <td>${(s.quantity * s.avgCost).toFixed(2)}</td>
+            </tr>
+        `;
+    });
+}
+
+function renderAnalysisData() {
+    let totalPurchaseValue = purchases.reduce((sum, p) => sum + p.quantity * p.price, 0);
+    let totalSaleValue = sales.reduce((sum, s) => sum + s.quantity * s.price, 0);
+    let totalCostOfGoodsSold = sales.reduce((sum, s) => sum + s.quantity * s.costAtTime, 0);
+    let totalProfit = totalSaleValue - totalCostOfGoodsSold;
+
+    document.getElementById('totalPurchaseValue').textContent = totalPurchaseValue.toFixed(2);
+    document.getElementById('totalSaleValue').textContent = totalSaleValue.toFixed(2);
+    document.getElementById('totalProfitValue').textContent = totalProfit.toFixed(2);
+    
+    renderChart();
+}
+
+function switchChart(type) {
+    currentChartType = type;
+    document.querySelectorAll('#analysis .btn-outline-primary').forEach(b => b.classList.remove('active'));
+    document.querySelector(`button[onclick="switchChart('${type}')"]`).classList.add('active');
+    renderChart();
+}
+
+function renderChart() {
+    const ctx = document.getElementById('analysisChart').getContext('2d');
+    if (myChart) {
+        myChart.destroy();
+    }
+
+    if (currentChartType === 'sales') {
+        const salesByProduct = {};
+        sales.forEach(s => {
+            const saleValue = s.quantity * s.price;
+            salesByProduct[s.productId] = (salesByProduct[s.productId] || 0) + saleValue;
+        });
+        const labels = Object.keys(salesByProduct).map(id => products.find(p => p.id === id)?.name || '未知产品');
+        const data = Object.values(salesByProduct);
+
+        myChart = new Chart(ctx, {
+            type: 'pie',
+            data: { labels, datasets: [{ data, backgroundColor: ['#0d6efd', '#ffc107', '#198754', '#dc3545', '#6c757d', '#0dcaf0'] }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, title: { display: true, text: '各产品销售额贡献图' } } }
+        });
+    } else if (currentChartType === 'trends') {
+        const monthlyData = {};
+        const today = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            monthlyData[key] = { purchase: 0, sale: 0, profit: 0 };
+        }
+
+        purchases.forEach(p => {
+            const key = p.date.substring(0, 7);
+            if (monthlyData[key]) {
+                monthlyData[key].purchase += p.quantity * p.price;
+            }
+        });
+        sales.forEach(s => {
+            const key = s.date.substring(0, 7);
+            if (monthlyData[key]) {
+                const saleValue = s.quantity * s.price;
+                const costValue = s.quantity * s.costAtTime;
+                monthlyData[key].sale += saleValue;
+                monthlyData[key].profit += (saleValue - costValue);
+            }
+        });
+
+        const labels = Object.keys(monthlyData);
+        const purchaseData = labels.map(key => monthlyData[key].purchase);
+        const saleData = labels.map(key => monthlyData[key].sale);
+        const profitData = labels.map(key => monthlyData[key].profit);
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { type: 'bar', label: '月采购额', data: purchaseData, backgroundColor: '#6c757d' },
+                    { type: 'bar', label: '月销售额', data: saleData, backgroundColor: '#0d6efd' },
+                    { type: 'line', label: '月利润', data: profitData, borderColor: '#198754', fill: false, tension: 0.1 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: '近6个月购销与利润趋势' } }, scales: { y: { beginAtZero: true } } }
+        });
+    }
+}
+
+
+// --- Data Persistence ---
+
+function saveData() {
+    localStorage.setItem('products', JSON.stringify(products));
+    localStorage.setItem('purchases', JSON.stringify(purchases));
+    localStorage.setItem('sales', JSON.stringify(sales));
+    localStorage.setItem('productions', JSON.stringify(productions));
+}
+
+function loadData() {
+    products = JSON.parse(localStorage.getItem('products')) || [];
+    purchases = JSON.parse(localStorage.getItem('purchases')) || [];
+    sales = JSON.parse(localStorage.getItem('sales')) || [];
+    productions = JSON.parse(localStorage.getItem('productions')) || [];
+    calculateStock(); 
+}
+
+function exportAll() {
+    const data = { products, purchases, sales, productions };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `inventory_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+function importAll(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (confirm('这将覆盖所有现有数据，确定要导入吗？')) {
+                products = data.products || [];
+                purchases = data.purchases || [];
+                sales = data.sales || [];
+                productions = data.productions || [];
+                onDataChanged();
+                alert('数据导入成功！');
+            }
+        } catch (error) {
+            alert('导入失败，文件格式错误。');
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function clearAllData() {
+    products = [];
+    purchases = [];
+    sales = [];
+    productions = [];
+    onDataChanged();
+    alert('所有数据已清除。');
+}
+
+</script>
+</body>
+</html>
