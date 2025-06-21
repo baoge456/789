@@ -43,6 +43,9 @@
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button" role="tab">库存查询</button>
     </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button" role="tab">数据分析</button>
+    </li>
   </ul>
   <div class="tab-content mt-3" id="mainTabsContent">
     <!-- 商品管理 -->
@@ -186,6 +189,85 @@
       </div>
       <div id="stockPagination" class="mt-2"></div>
     </div>
+    <!-- 数据分析 -->
+    <div class="tab-pane fade" id="analysis" role="tabpanel">
+      <div class="row mb-3 g-3">
+        <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">总采购额</h5>
+              <p class="card-text fs-4" id="totalPurchaseAmount">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">总销售额</h5>
+              <p class="card-text fs-4" id="totalSaleAmount">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">总利润</h5>
+                    <p class="card-text fs-4" id="totalProfit">0</p>
+                </div>
+            </div>
+        </div>
+      </div>
+    
+      <div class="row mb-3 g-3 align-items-end">
+          <div class="col-md-3">
+              <label for="analysisMonth" class="form-label">选择月份</label>
+              <input type="month" class="form-control" id="analysisMonth" onchange="renderAnalysis()">
+          </div>
+          <div class="col-sm-6 col-md-3">
+              <div class="card h-100">
+                  <div class="card-body">
+                      <h5 class="card-title">月采购额</h5>
+                      <p class="card-text fs-4" id="monthlyPurchaseAmount">0</p>
+                  </div>
+              </div>
+          </div>
+          <div class="col-sm-6 col-md-3">
+              <div class="card h-100">
+                  <div class="card-body">
+                      <h5 class="card-title">月销售额</h5>
+                      <p class="card-text fs-4" id="monthlySaleAmount">0</p>
+                  </div>
+              </div>
+          </div>
+          <div class="col-sm-6 col-md-3">
+              <div class="card h-100">
+                  <div class="card-body">
+                      <h5 class="card-title">月利润</h5>
+                      <p class="card-text fs-4" id="monthlyProfit">0</p>
+                  </div>
+              </div>
+          </div>
+      </div>
+    
+      <h4 class="mt-4">商品分析</h4>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+          <thead>
+            <tr>
+              <th onclick="sortAnalysis('name')" style="cursor:pointer">商品名称</th>
+              <th onclick="sortAnalysis('totalPurchaseQty')" style="cursor:pointer">总采购数</th>
+              <th onclick="sortAnalysis('avgPurchasePrice')" style="cursor:pointer">平均采购价</th>
+              <th onclick="sortAnalysis('totalSaleQty')" style="cursor:pointer">总销售数</th>
+              <th onclick="sortAnalysis('avgSalePrice')" style="cursor:pointer">平均销售价</th>
+              <th onclick="sortAnalysis('grossProfitMargin')" style="cursor:pointer">毛利率</th>
+              <th onclick="sortAnalysis('stock')" style="cursor:pointer">当前库存</th>
+              <th onclick="sortAnalysis('salesRank')" style="cursor:pointer">畅销排名</th>
+            </tr>
+          </thead>
+          <tbody id="analysisTableBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div> <!-- tab-content -->
 </div> <!-- container -->
 <script>
@@ -272,17 +354,12 @@ function editProduct(id) {
   document.getElementById('productPrice').value = p.price;
 }
 function deleteProduct(id) {
-  if (!confirm('确定要删除该商品吗？')) return;
+  if (!confirm('确定要删除该商品吗？此操作将一并删除所有相关的采购和销售记录。')) return;
   products = products.filter(x => x.id !== id);
   purchases = purchases.filter(x => x.productId !== id);
   sales = sales.filter(x => x.productId !== id);
   saveAll();
-  renderProductTable();
-  renderPurchaseProductOptions();
-  renderSaleProductOptions();
-  renderPurchaseTable();
-  renderSaleTable();
-  renderStockTable();
+  updateAllRender();
 }
 document.getElementById('productForm').onsubmit = function(e) {
   e.preventDefault();
@@ -301,20 +378,15 @@ document.getElementById('productForm').onsubmit = function(e) {
   saveAll();
   this.reset();
   document.getElementById('productEditId').value = '';
-  renderProductTable();
-  renderPurchaseProductOptions();
-  renderSaleProductOptions();
-  renderPurchaseTable();
-  renderSaleTable();
-  renderStockTable();
+  updateAllRender();
 };
 function renderPurchaseProductOptions() {
   const sel = document.getElementById('purchaseProduct');
-  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.spec})</option>`).join('');
 }
 function renderSaleProductOptions() {
   const sel = document.getElementById('saleProduct');
-  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.spec})</option>`).join('');
 }
 window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
@@ -349,7 +421,7 @@ function renderPurchaseTable() {
     tbody.innerHTML += `
       <tr>
         <td>${p.id}</td>
-        <td>${prod.name || ''}</td>
+        <td>${prod.name || ''} ${prod.spec || ''}</td>
         <td>${p.supplier || ''}</td>
         <td>${p.qty}</td>
         <td>${p.price}</td>
@@ -401,8 +473,7 @@ function deletePurchase(id) {
   if (!confirm('确定要删除该采购记录吗？')) return;
   purchases = purchases.filter(x => x.id !== id);
   saveAll();
-  renderPurchaseTable();
-  renderStockTable();
+  updateAllRender();
 }
 document.getElementById('purchaseForm').onsubmit = function(e) {
   e.preventDefault();
@@ -422,8 +493,7 @@ document.getElementById('purchaseForm').onsubmit = function(e) {
   saveAll();
   this.reset();
   document.getElementById('purchaseEditId').value = '';
-  renderPurchaseTable();
-  renderStockTable();
+  updateAllRender();
 };
 window.editPurchase = editPurchase;
 window.deletePurchase = deletePurchase;
@@ -458,7 +528,7 @@ function renderSaleTable() {
     tbody.innerHTML += `
       <tr>
         <td>${s.id}</td>
-        <td>${prod.name || ''}</td>
+        <td>${prod.name || ''} ${prod.spec || ''}</td>
         <td>${s.customer || ''}</td>
         <td>${s.qty}</td>
         <td>${s.price}</td>
@@ -510,8 +580,7 @@ function deleteSale(id) {
   if (!confirm('确定要删除该销售记录吗？')) return;
   sales = sales.filter(x => x.id !== id);
   saveAll();
-  renderSaleTable();
-  renderStockTable();
+  updateAllRender();
 }
 document.getElementById('saleForm').onsubmit = function(e) {
   e.preventDefault();
@@ -531,8 +600,7 @@ document.getElementById('saleForm').onsubmit = function(e) {
   saveAll();
   this.reset();
   document.getElementById('saleEditId').value = '';
-  renderSaleTable();
-  renderStockTable();
+  updateAllRender();
 };
 window.editSale = editSale;
 window.deleteSale = deleteSale;
@@ -659,6 +727,144 @@ function sortStock(key) {
   renderStockTable();
 }
 
+// ========== 数据分析 ==========
+let analysisData = [];
+let analysisSortKey = 'salesRank';
+let analysisSortAsc = true;
+
+function calculateAnalysisData() {
+  const analysisMap = {};
+
+  products.forEach(product => {
+    analysisMap[product.id] = {
+      ...product,
+      totalPurchaseQty: 0,
+      totalPurchaseAmount: 0,
+      totalSaleQty: 0,
+      totalSaleAmount: 0,
+    };
+  });
+
+  purchases.forEach(p => {
+    if (analysisMap[p.productId]) {
+      analysisMap[p.productId].totalPurchaseQty += Number(p.qty);
+      analysisMap[p.productId].totalPurchaseAmount += Number(p.qty) * Number(p.price);
+    }
+  });
+
+  sales.forEach(s => {
+    if (analysisMap[s.productId]) {
+      analysisMap[s.productId].totalSaleQty += Number(s.qty);
+      analysisMap[s.productId].totalSaleAmount += Number(s.qty) * Number(s.price);
+    }
+  });
+
+  const analysisResult = Object.values(analysisMap).map(item => {
+    const avgPurchasePrice = item.totalPurchaseQty > 0 ? item.totalPurchaseAmount / item.totalPurchaseQty : 0;
+    const avgSalePrice = item.totalSaleQty > 0 ? item.totalSaleAmount / item.totalSaleQty : 0;
+    const grossProfitMargin = avgSalePrice > 0 ? ((avgSalePrice - avgPurchasePrice) / avgSalePrice) * 100 : 0;
+    const stock = item.totalPurchaseQty - item.totalSaleQty;
+    
+    return {
+      ...item,
+      avgPurchasePrice: avgPurchasePrice.toFixed(2),
+      avgSalePrice: avgSalePrice.toFixed(2),
+      grossProfitMargin: grossProfitMargin.toFixed(2),
+      stock,
+    };
+  });
+
+  analysisResult.sort((a, b) => b.totalSaleQty - a.totalSaleQty);
+  analysisResult.forEach((d, index) => d.salesRank = index + 1);
+
+  return analysisResult;
+}
+
+function renderAnalysis() {
+  const monthInput = document.getElementById('analysisMonth');
+  if (!monthInput.value) {
+    const today = new Date();
+    monthInput.value = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2);
+  }
+  const selectedMonth = monthInput.value;
+
+  const totalPurchaseAmount = purchases.reduce((sum, p) => sum + Number(p.qty) * Number(p.price), 0);
+  const totalSaleAmount = sales.reduce((sum, s) => sum + Number(s.qty) * Number(s.price), 0);
+  
+  const tempAnalysisData = calculateAnalysisData();
+  const productAvgPurchasePrice = tempAnalysisData.reduce((acc, item) => {
+    acc[item.id] = parseFloat(item.avgPurchasePrice);
+    return acc;
+  }, {});
+
+  const totalCostOfGoodsSold = sales.reduce((sum, s) => sum + Number(s.qty) * (productAvgPurchasePrice[s.productId] || 0), 0);
+  const totalProfit = totalSaleAmount - totalCostOfGoodsSold;
+  
+  document.getElementById('totalPurchaseAmount').textContent = totalPurchaseAmount.toFixed(2);
+  document.getElementById('totalSaleAmount').textContent = totalSaleAmount.toFixed(2);
+  document.getElementById('totalProfit').textContent = totalProfit.toFixed(2);
+
+  const monthlyPurchases = purchases.filter(p => p.date.startsWith(selectedMonth));
+  const monthlySales = sales.filter(s => s.date.startsWith(selectedMonth));
+  const monthlyPurchaseAmount = monthlyPurchases.reduce((sum, p) => sum + Number(p.qty) * Number(p.price), 0);
+  const monthlySaleAmount = monthlySales.reduce((sum, s) => sum + Number(s.qty) * Number(s.price), 0);
+  const monthlyCostOfGoodsSold = monthlySales.reduce((sum, s) => sum + Number(s.qty) * (productAvgPurchasePrice[s.productId] || 0), 0);
+  const monthlyProfit = monthlySaleAmount - monthlyCostOfGoodsSold;
+
+  document.getElementById('monthlyPurchaseAmount').textContent = monthlyPurchaseAmount.toFixed(2);
+  document.getElementById('monthlySaleAmount').textContent = monthlySaleAmount.toFixed(2);
+  document.getElementById('monthlyProfit').textContent = monthlyProfit.toFixed(2);
+
+  analysisData = tempAnalysisData;
+  renderAnalysisTable();
+}
+
+function renderAnalysisTable() {
+    const tbody = document.getElementById('analysisTableBody');
+    tbody.innerHTML = '';
+    
+    const sortedData = [...analysisData].sort((a, b) => {
+        let v1 = a[analysisSortKey], v2 = b[analysisSortKey];
+        if (['name'].includes(analysisSortKey)) {
+             v1 = (v1 || '').toLowerCase();
+             v2 = (v2 || '').toLowerCase();
+        } else {
+            v1 = Number(v1);
+            v2 = Number(v2);
+        }
+
+        if (v1 < v2) return analysisSortAsc ? -1 : 1;
+        if (v1 > v2) return analysisSortAsc ? 1 : -1;
+        return 0;
+    });
+
+    for (const item of sortedData) {
+        tbody.innerHTML += `
+            <tr>
+                <td>${item.name} (${item.spec})</td>
+                <td>${item.totalPurchaseQty}</td>
+                <td>${item.avgPurchasePrice}</td>
+                <td>${item.totalSaleQty}</td>
+                <td>${item.avgSalePrice}</td>
+                <td>${item.grossProfitMargin}%</td>
+                <td>${item.stock}</td>
+                <td>${item.salesRank}</td>
+            </tr>
+        `;
+    }
+}
+
+function sortAnalysis(key) {
+    if (analysisSortKey === key) {
+        analysisSortAsc = !analysisSortAsc;
+    } else {
+        analysisSortKey = key;
+        analysisSortAsc = true;
+    }
+    renderAnalysisTable();
+}
+window.sortAnalysis = sortAnalysis;
+
 // ========== 数据导入导出与归档 ==========
 function exportAll() {
   const data = { products, purchases, sales };
@@ -677,22 +883,20 @@ function importAll(event) {
     let data;
     try { data = JSON.parse(e.target.result); } catch { return alert('文件格式错误'); }
     if (!data.products || !data.purchases || !data.sales) return alert('数据结构不正确');
-    if (confirm('导入数据时请选择“确定”覆盖，或“取消”追加。')) {
-      products = data.products;
-      purchases = data.purchases;
-      sales = data.sales;
+    if (confirm('导入数据时请选择“确定”覆盖，或“取消”追加。\n覆盖：将完全替换现有数据。\n追加：将新增数据，ID相同的数据不会被覆盖。')) {
+      products = data.products || [];
+      purchases = data.purchases || [];
+      sales = data.sales || [];
     } else {
-      products = products.concat(data.products.filter(p => !products.some(x => x.id === p.id)));
-      purchases = purchases.concat(data.purchases.filter(p => !purchases.some(x => x.id === p.id)));
-      sales = sales.concat(data.sales.filter(s => !sales.some(x => x.id === s.id)));
+      const existingProductIds = new Set(products.map(p => p.id));
+      const existingPurchaseIds = new Set(purchases.map(p => p.id));
+      const existingSaleIds = new Set(sales.map(s => s.id));
+      products.push(...(data.products || []).filter(p => !existingProductIds.has(p.id)));
+      purchases.push(...(data.purchases || []).filter(p => !existingPurchaseIds.has(p.id)));
+      sales.push(...(data.sales || []).filter(s => !existingSaleIds.has(s.id)));
     }
     saveAll();
-    renderProductTable();
-    renderPurchaseProductOptions();
-    renderSaleProductOptions();
-    renderPurchaseTable();
-    renderSaleTable();
-    renderStockTable();
+    updateAllRender();
     alert('导入成功！');
   };
   reader.readAsText(file);
@@ -703,36 +907,42 @@ function archiveOldData() {
   yearAgo.setFullYear(yearAgo.getFullYear() - 1);
   const oldPurchases = purchases.filter(p => new Date(p.date) < yearAgo);
   const oldSales = sales.filter(s => new Date(s.date) < yearAgo);
-  if (!oldPurchases.length && !oldSales.length) return alert('没有可归档的数据');
-  const data = { purchases: oldPurchases, sales: oldSales };
+  if (!oldPurchases.length && !oldSales.length) return alert('没有可归档的数据（一年以前的记录）');
+  if (!confirm(`将归档 ${oldPurchases.length} 条采购记录和 ${oldSales.length} 条销售记录。归档后数据将从当前应用中移除并下载为文件。确定吗？`)) return;
+
+  const archiveData = { purchases: oldPurchases, sales: oldSales };
   const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(archiveData, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `归档数据_${ts}.json`;
   a.click();
+  
   purchases = purchases.filter(p => new Date(p.date) >= yearAgo);
   sales = sales.filter(s => new Date(s.date) >= yearAgo);
   saveAll();
-  renderPurchaseTable();
-  renderSaleTable();
-  renderStockTable();
+  updateAllRender();
   alert('归档并清理完成！');
 }
 
 // ========== 页面初始化 ==========
-document.addEventListener('DOMContentLoaded', function() {
+function updateAllRender() {
   renderProductTable();
   renderPurchaseProductOptions();
-  renderPurchaseTable();
   renderSaleProductOptions();
+  renderPurchaseTable();
   renderSaleTable();
   renderStockTable();
+  if (document.getElementById('analysis-tab').classList.contains('active')) {
+    renderAnalysis();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  updateAllRender();
+  document.getElementById('analysis-tab').addEventListener('shown.bs.tab', renderAnalysis);
 });
 </script>
-</script>
-</script>
-<!-- 这里加上Bootstrap的JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
