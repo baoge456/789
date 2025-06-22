@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>书签卡片</title>
+  <title>本地书签管理系统（单行名称优化）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
@@ -100,22 +100,30 @@
       display: flex;
       flex-direction: row;
       align-items: center;
-      gap: 0.5rem;
       min-width: 0;
+      min-height: 48px;
       box-sizing: border-box;
-      word-break: break-all;
+      word-break: normal;
       transition: box-shadow 0.2s, border 0.2s;
       position: relative;
-      aspect-ratio: 2.8/1;
-      justify-content: flex-start;
       max-width: 100%;
+      justify-content: flex-start;
     }
     .bookmark-item:hover {
       border: 1.5px solid var(--main-purple);
       box-shadow: 0 4px 16px #a259ff33;
     }
+    .bookmark-item a {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      width: 100%;
+      gap: 0.7rem;
+      text-decoration: none;
+      min-width: 0;
+    }
     .bookmark-favicon {
-      width: 28px; height: 28px; border-radius: 50%; background: #f0f4ff; object-fit: cover; margin-right: 0.2rem;
+      width: 28px; height: 28px; border-radius: 50%; background: #f0f4ff; object-fit: cover;
       box-shadow: 0 2px 8px #b3c6ff22;
       display: block;
       flex-shrink: 0;
@@ -123,15 +131,16 @@
     .bookmark-title {
       font-weight: 500;
       color: #333;
-      text-decoration: none;
       font-size: 1.02rem;
       text-align: left;
-      max-width: 110px;
+      max-width: 90%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       display: block;
       flex: 1 1 auto;
+      margin: 0 0 0 0;
+      line-height: 1.3;
     }
     .bookmark-actions {
       margin-left: 0.3rem;
@@ -155,24 +164,23 @@
     .modal input { width: 100%; margin-top: 1rem; }
     @media (max-width: 800px) {
       .bookmark-list { grid-template-columns: repeat(2, 1fr);}
-      .settings-btn { right: 12px; top: 12px;}
-      .bookmark-title { max-width: 80px; font-size: 0.98rem;}
+      .bookmark-title { font-size: 0.98rem; max-width: 80%; }
       .bookmark-favicon { width: 22px; height: 22px;}
-      .bookmark-item { padding: 0.25rem 0.4rem 0.25rem 0.3rem; }
+      .bookmark-item { min-height: 44px; }
     }
     @media (max-width: 500px) {
       .bookmark-list { grid-template-columns: repeat(2, 1fr);}
       .group-tabs { min-width: 0; }
       main { padding: 0.5rem; }
-      .bookmark-title { max-width: 60px; font-size: 0.95rem;}
+      .bookmark-title { font-size: 0.95rem; max-width: 70%; }
       .bookmark-favicon { width: 18px; height: 18px;}
-      .bookmark-item { padding: 0.18rem 0.2rem 0.18rem 0.2rem; }
+      .bookmark-item { min-height: 38px; }
     }
   </style>
 </head>
 <body>
   <header>
-    <span>书签卡片</span>
+    <span>本地书签管理系统（单行名称优化）</span>
     <button class="settings-btn" id="settingsBtn" title="后台管理/返回前台"><span>⚙️</span></button>
   </header>
   <main>
@@ -270,7 +278,7 @@
       html += `<ul class="bookmark-list">`;
       (data[cat] || []).forEach((bm, idx) => {
         html += `<li class="bookmark-item">
-          <a href="${bm.url}" target="_blank" title="${bm.name}" style="display:flex;align-items:center;gap:0.7rem;width:100%;">
+          <a href="${bm.url}" target="_blank" title="${bm.name}">
             <img class="bookmark-favicon" src="${bm.favicon || `https://www.google.com/s2/favicons?domain=${bm.url}`}" onerror="this.src='https://www.google.com/s2/favicons?domain=default'">
             <span class="bookmark-title">${bm.name}</span>
           </a>`;
