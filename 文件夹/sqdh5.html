@@ -301,76 +301,98 @@
             }
         }
 
-        function createBookmark(name, url, idx, icon) {
-            const bookmarkList = document.getElementById('bookmark-list');
-            const bookmark = document.createElement('div');
-            bookmark.className = 'bookmark';
-            bookmark.setAttribute('data-title', name);
-            bookmark.setAttribute('data-url', url);
-            bookmark.setAttribute('data-index', idx);
-            bookmark.setAttribute('data-icon', icon || '');
-            let iconUrls = icon ? [icon] : getFavicon(url);
-            let imgHtml = `<img class="bookmark-icon" src="${iconUrls[0]}" alt="icon" onerror="this.onerror=null;this.src='${iconUrls[1] || iconUrls[0]}';setTimeout(()=>{if(this.src!=='${iconUrls[2] || iconUrls[0]}'){this.src='${iconUrls[2] || iconUrls[0]}'}},100)">`;
-            bookmark.innerHTML = `
-                ${imgHtml}
-                <h2><a href="${url}" target="_blank">${name}</a></h2>
-                <div class="bookmark-menu">
-                    <button onclick="addBookmarkFromMenu(this)">添加</button>
-                    <button onclick="editBookmarkFromMenu(this)">修改</button>
-                    <button onclick="deleteBookmarkFromMenu(this)">删除</button>
-                </div>
-            `;
-            // 绑定长按和右键菜单
-            let pressTimer = null;
-            let menuVisible = false;
-            function toggleMenu() {
-                if (menuVisible) {
-                    bookmark.classList.remove('show-menu');
-                    menuVisible = false;
-                } else {
-                    hideAllBookmarkMenus();
-                    bookmark.classList.add('show-menu');
-                    menuVisible = true;
-                }
-            }
-            // 支持移动端长按弹出菜单
-            bookmark.addEventListener('touchstart', function(e) {
-                if (e.touches.length === 1) {
-                    pressTimer = setTimeout(() => {
-                        toggleMenu();
-                    }, 500);
-                }
-            });
-            bookmark.addEventListener('touchend', function() {
-                clearTimeout(pressTimer);
-            });
-            bookmark.addEventListener('touchmove', function() {
-                clearTimeout(pressTimer);
-            });
-            // PC端长按
-            bookmark.addEventListener('mousedown', function(e) {
-                if (e.button === 2) return; // 右键单独处理
-                pressTimer = setTimeout(toggleMenu, 500);
-            });
-            bookmark.addEventListener('mouseup', function() {
-                clearTimeout(pressTimer);
-            });
-            bookmark.addEventListener('mouseleave', function() {
-                clearTimeout(pressTimer);
-            });
-            // 右键菜单
-            bookmark.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                toggleMenu();
-            });
-            document.addEventListener('mousedown', function(event) {
-                if (!bookmark.contains(event.target)) {
-                    bookmark.classList.remove('show-menu');
-                    menuVisible = false;
-                }
-            });
-            bookmarkList.appendChild(bookmark);
+      function createBookmark(name, url, idx, icon) {
+    const bookmarkList = document.getElementById('bookmark-list');
+    const bookmark = document.createElement('div');
+    bookmark.className = 'bookmark';
+    bookmark.setAttribute('data-title', name);
+    bookmark.setAttribute('data-url', url);
+    bookmark.setAttribute('data-index', idx);
+    bookmark.setAttribute('data-icon', icon || '');
+    let iconUrls = icon ? [icon] : getFavicon(url);
+    let imgHtml = `<img class="bookmark-icon" src="${iconUrls[0]}" alt="icon" onerror="this.onerror=null;this.src='${iconUrls[1] || iconUrls[0]}';setTimeout(()=>{if(this.src!=='${iconUrls[2] || iconUrls[0]}'){this.src='${iconUrls[2] || iconUrls[0]}'}},100)">`;
+    bookmark.innerHTML = `
+        ${imgHtml}
+        <h2><a href="${url}" target="_blank">${name}</a></h2>
+        <div class="bookmark-menu">
+            <button onclick="addBookmarkFromMenu(this)">添加</button>
+            <button onclick="editBookmarkFromMenu(this)">修改</button>
+            <button onclick="deleteBookmarkFromMenu(this)">删除</button>
+        </div>
+    `;
+    // 绑定长按和右键菜单
+    let pressTimer = null;
+    let menuVisible = false;
+    let longPressTriggered = false;
+
+    function toggleMenu() {
+        if (menuVisible) {
+            bookmark.classList.remove('show-menu');
+            menuVisible = false;
+        } else {
+            hideAllBookmarkMenus();
+            bookmark.classList.add('show-menu');
+            menuVisible = true;
         }
+    }
+
+    // 移动端长按
+    bookmark.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+            longPressTriggered = false;
+            pressTimer = setTimeout(() => {
+                toggleMenu();
+                longPressTriggered = true;
+            }, 500);
+        }
+    }, {passive: false});
+    bookmark.addEventListener('touchend', function(e) {
+        clearTimeout(pressTimer);
+        if (longPressTriggered) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+    bookmark.addEventListener('touchmove', function() {
+        clearTimeout(pressTimer);
+    });
+    bookmark.addEventListener('touchcancel', function() {
+        clearTimeout(pressTimer);
+    });
+
+    // PC端长按
+    bookmark.addEventListener('mousedown', function(e) {
+        if (e.button === 2) return; // 右键单独处理
+        pressTimer = setTimeout(() => {
+            toggleMenu();
+        }, 500);
+    });
+    bookmark.addEventListener('mouseup', function() {
+        clearTimeout(pressTimer);
+    });
+    bookmark.addEventListener('mouseleave', function() {
+        clearTimeout(pressTimer);
+    });
+    // 右键菜单
+    bookmark.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        toggleMenu();
+    });
+    // 点击其它地方关闭菜单
+    document.addEventListener('touchstart', function(event) {
+        if (!bookmark.contains(event.target)) {
+            bookmark.classList.remove('show-menu');
+            menuVisible = false;
+        }
+    });
+    document.addEventListener('mousedown', function(event) {
+        if (!bookmark.contains(event.target)) {
+            bookmark.classList.remove('show-menu');
+            menuVisible = false;
+        }
+    });
+    bookmarkList.appendChild(bookmark);
+}
         function hideAllBookmarkMenus() {
             document.querySelectorAll('.bookmark').forEach(b => b.classList.remove('show-menu'));
         }
