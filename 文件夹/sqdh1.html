@@ -129,6 +129,7 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
+            flex-direction: row;
         }
         .bookmark .bookmark-icon {
             width: 32px;
@@ -145,10 +146,12 @@
             color: #5CAF50;
             word-wrap: break-word;
             flex: 1;
-            text-align: left;
-            transition: text-align 0.2s;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            height: 32px;
         }
-        .bookmark h2 a { text-decoration: none; color: #5CAF50; }
+        .bookmark h2 a { text-decoration: none; color: #5CAF50; width: 100%; }
         .bookmark h2 a:hover { color: #388E3C; }
         .bookmark:hover, .bookmark.selected { background-color: purple; color: white; }
         .bookmark:hover h2 a, .bookmark.selected h2 a { color: white; }
@@ -218,6 +221,30 @@
         }
         #group-add-modal button.cancel, #bookmark-edit-modal button.cancel { background: #aaa; }
         #group-add-modal button:hover:not(.cancel), #bookmark-edit-modal button:hover:not(.cancel) { background: #4B006E; }
+        @media (max-width: 600px) {
+            #bookmark-list {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 6px;
+                padding-right: 0;
+            }
+            .bookmark {
+                padding: 6px 6px 6px 6px;
+                border-radius: 18px;
+                font-size: 0.95em;
+                min-width: 0;
+                margin: 2px 0;
+            }
+            .bookmark .bookmark-icon {
+                width: 24px;
+                height: 24px;
+                border-radius: 5px;
+                margin-right: 6px;
+            }
+            .bookmark h2 {
+                font-size: 1em;
+                height: 24px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -273,6 +300,11 @@
         <footer></footer>
     </div>
     <script>
+        // 判断是否为移动端
+        function isMobile() {
+            return /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
         // 菜单长按切换显示/隐藏
         const bookmarkTitle = document.getElementById('bookmark-title');
         const customMenu = document.getElementById('custom-menu');
@@ -413,6 +445,7 @@
                     menuVisible = true;
                 }
             }
+            // 支持移动端长按弹出菜单
             bookmark.addEventListener('touchstart', function(e) {
                 if (e.touches.length === 1) {
                     pressTimer = setTimeout(toggleMenu, 500);
@@ -473,7 +506,6 @@
             }
             hideAllBookmarkMenus();
         }
-
         // 书签编辑弹窗相关
         let editingBookmarkIndex = null;
         function editBookmarkFromMenu(btn) {
