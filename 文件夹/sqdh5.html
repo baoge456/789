@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书签导航</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: green;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background-color: #FFFFBB;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #bookmark-title {
+            text-align: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        #custom-menu {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #fff;
+            border: 2px solid #4B006E;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(75,0,110,0.10);
+            padding: 6px 10px 4px 10px;
+            display: none;
+            z-index: 1000;
+            min-width: 180px;
+            font-size: 15px;
+        }
+        #custom-menu .menu-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        #custom-menu .menu-row:last-child {
+            margin-bottom: 0;
+        }
+        #custom-menu .menu-label {
+            font-weight: bold;
+            margin-right: 4px;
+            color: #4B006E;
+            min-width: 36px;
+            font-size: 14px;
+        }
+        #custom-menu button {
+            margin-right: 4px;
+            padding: 3px 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #7c3aed;
+            color: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        #custom-menu button:last-child {
+            margin-right: 0;
+        }
+        #custom-menu button:hover {
+            background-color: #4B006E;
+        }
+        #group-selector {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        #group-select {
+            padding: 7px 30px 7px 12px;
+            border-radius: 18px;
+            border: 2px solid #4B006E;
+            background: linear-gradient(90deg, #f3eaff 60%, #e6e6fa 100%);
+            color: #4B006E;
+            font-size: 1em;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(75,0,110,0.08);
+            appearance: none;
+            outline: none;
+            position: relative;
+            min-width: 110px;
+            margin-right: 8px;
+        }
+        #group-selector .arrow {
+            pointer-events: none;
+            margin-left: -28px;
+            color: #4B006E;
+            font-size: 1.1em;
+            z-index: 2;
+        }
+        #bookmark-list {
+            overflow-y: auto;
+            max-height: 80vh;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            padding-right: 10px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        #bookmark-list::-webkit-scrollbar { display: none; }
+        .bookmark {
+            padding: 10px 10px 10px 10px;
+            margin: 5px 0;
+            background-color: #FFFFDD;
+            border: 1px solid #ddd;
+            border-radius: 50px;
+            position: relative;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .bookmark .bookmark-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            margin-right: 12px;
+            background: #eee;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .bookmark h2 {
+            margin: 0;
+            font-size: 1.2em;
+            color: #5CAF50;
+            word-wrap: break-word;
+            flex: 1;
+            text-align: left;
+            transition: text-align 0.2s;
+        }
+        .bookmark h2 a { text-decoration: none; color: #5CAF50; }
+        .bookmark h2 a:hover { color: #388E3C; }
+        .bookmark:hover, .bookmark.selected { background-color: purple; color: white; }
+        .bookmark:hover h2 a, .bookmark.selected h2 a { color: white; }
+        .bookmark-menu {
+            display: none;
+            flex-direction: row;
+            gap: 4px;
+            margin-left: 10px;
+        }
+        .bookmark.show-menu .bookmark-menu {
+            display: flex;
+        }
+        .bookmark-menu button {
+            padding: 2px 8px;
+            border: none;
+            border-radius: 5px;
+            background-color: #7c3aed;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        .bookmark-menu button:hover { background: #4B006E; }
+        footer { text-align: center; padding: 10px; font-size: 0.8em; color: #555; }
+        #file-input { display: none; }
+        #current-user { text-align: center; margin-top: 10px; font-style: italic; color: #333; }
+        #group-add-modal, #bookmark-edit-modal {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.25);
+            align-items: center;
+            justify-content: center;
+        }
+        #group-add-modal .modal-content, #bookmark-edit-modal .modal-content {
+            background: #fff;
+            border-radius: 10px;
+            padding: 24px 20px 20px 20px;
+            min-width: 260px;
+            box-shadow: 0 4px 16px rgba(75,0,110,0.18);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        #group-add-modal label, #bookmark-edit-modal label { font-weight: bold; color: #4B006E; }
+        #group-add-modal input, #bookmark-edit-modal input {
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: 1.5px solid #4B006E;
+            font-size: 1em;
+        }
+        #group-add-modal .modal-actions, #bookmark-edit-modal .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        #group-add-modal button, #bookmark-edit-modal button {
+            padding: 6px 18px;
+            border-radius: 6px;
+            border: none;
+            background: #7c3aed;
+            color: #fff;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #group-add-modal button.cancel, #bookmark-edit-modal button.cancel { background: #aaa; }
+        #group-add-modal button:hover:not(.cancel), #bookmark-edit-modal button:hover:not(.cancel) { background: #4B006E; }
+        @media (max-width: 600px) {
+            #bookmark-list {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 6px;
+                padding-right: 0;
+            }
+            .bookmark {
+                padding: 6px 6px 6px 6px;
+                border-radius: 18px;
+                font-size: 0.95em;
+                min-width: 0;
+                margin: 2px 0;
+            }
+            .bookmark .bookmark-icon {
+                width: 24px;
+                height: 24px;
+                border-radius: 5px;
+                margin-right: 6px;
+            }
+            .bookmark h2 {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="bookmark-title" style="text-align:center; margin-bottom:20px;">书签导航</h1>
+        <div id="custom-menu">
+            <div class="menu-row">
+                <span class="menu-label">书签：</span>
+                <button onclick="triggerFileInput()">导入</button>
+                <button onclick="showExportOptions()">导出</button>
+                <button onclick="clearAllBookmarks()">清空</button>
+                <input type="file" id="file-input" accept=".json, .txt, .html" onchange="importBookmarksFromFile(this)">
+            </div>
+            <div class="menu-row">
+                <span class="menu-label">分组：</span>
+                <button onclick="showAddGroupModal()">添加</button>
+                <button onclick="renameGroup()">修改</button>
+                <button onclick="deleteGroup()">删除</button>
+            </div>
+        </div>
+        <div id="group-selector">
+            <select id="group-select" onchange="onGroupChange()"></select>
+            <span class="arrow">&#9660;</span>
+        </div>
+        <div id="bookmark-list"></div>
+        <div id="current-user"></div>
+        <!-- 分组添加弹窗 -->
+        <div id="group-add-modal">
+            <div class="modal-content">
+                <label for="new-group-name">新分组名称</label>
+                <input id="new-group-name" type="text" placeholder="请输入分组名称">
+                <div class="modal-actions">
+                    <button class="cancel" onclick="hideAddGroupModal()">取消</button>
+                    <button onclick="addGroupWithPosition()">确定</button>
+                </div>
+            </div>
+        </div>
+        <!-- 书签编辑弹窗 -->
+        <div id="bookmark-edit-modal">
+            <div class="modal-content">
+                <label for="edit-bookmark-name">书签名称</label>
+                <input id="edit-bookmark-name" type="text" placeholder="请输入书签名称">
+                <label for="edit-bookmark-url">书签链接</label>
+                <input id="edit-bookmark-url" type="text" placeholder="请输入书签链接">
+                <label for="edit-bookmark-icon">缩略图链接</label>
+                <input id="edit-bookmark-icon" type="text" placeholder="留空自动获取favicon">
+                <div class="modal-actions">
+                    <button class="cancel" onclick="hideBookmarkEditModal()">取消</button>
+                    <button onclick="saveBookmarkEdit()">确定</button>
+                </div>
+            </div>
+        </div>
+        <footer></footer>
+    </div>
+    <script>
+        // 判断是否为移动端
+        function isMobile() {
+            return /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // 菜单长按切换显示/隐藏
+        const bookmarkTitle = document.getElementById('bookmark-title');
+        const customMenu = document.getElementById('custom-menu');
+        let menuTimer = null;
+        let menuVisible = false;
+
+        function showCustomMenu() {
+            customMenu.style.display = 'block';
+            menuVisible = true;
+        }
+        function hideCustomMenu() {
+            customMenu.style.display = 'none';
+            menuVisible = false;
+        }
+        function toggleCustomMenu() {
+            if (menuVisible) {
+                hideCustomMenu();
+            } else {
+                showCustomMenu();
+            }
+        }
+        bookmarkTitle.addEventListener('mousedown', function(event) {
+            menuTimer = setTimeout(toggleCustomMenu, 500);
+        });
+        bookmarkTitle.addEventListener('mouseup', function(event) {
+            clearTimeout(menuTimer);
+        });
+        bookmarkTitle.addEventListener('mouseleave', function(event) {
+            clearTimeout(menuTimer);
+        });
+        bookmarkTitle.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+            toggleCustomMenu();
+        });
+        document.addEventListener('mousedown', function(event) {
+            if (!customMenu.contains(event.target) && event.target !== bookmarkTitle) {
+                hideCustomMenu();
+            }
+        });
+
+        // 默认书签和分组
+        const defaultBookmark = {
+            name: "默认书签",
+            url: "https://bookmark.baoge.rr.nu/",
+            icon: getFavicon("https://bookmark.baoge.rr.nu/")[0]
+        };
+        const defaultBookmarks = {
+            "默认分组": [defaultBookmark]
+        };
+        const bookmarksKey = 'bookmarks';
+        const groupKey = 'selectedGroup';
+        const groupOrderKey = 'bookmarks_order'; // 新增，用于存储分组顺序
+
+        // 新增：获取并同步书签和分组顺序
+        function getBookmarkData() {
+            let bookmarks = JSON.parse(localStorage.getItem(bookmarksKey));
+            let groupOrder = JSON.parse(localStorage.getItem(groupOrderKey));
+
+            if (!bookmarks) {
+                bookmarks = defaultBookmarks;
+                localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+            }
+
+            const bookmarkKeys = Object.keys(bookmarks);
+            // 如果顺序不存在或与书签不同步，则重新生成
+            if (!groupOrder || groupOrder.length !== bookmarkKeys.length || !groupOrder.every(key => bookmarks.hasOwnProperty(key)) || !bookmarkKeys.every(key => groupOrder.includes(key))) {
+                groupOrder = bookmarkKeys;
+                localStorage.setItem(groupOrderKey, JSON.stringify(groupOrder));
+            }
+
+            return { bookmarks, groupOrder };
+        }
+
+        // 多源favicon
+        function getFavicon(url) {
+            try {
+                const u = new URL(url);
+                const domain = u.hostname;
+                return [
+                    `https://www.google.com/s2/favicons?domain=${domain}`,
+                    `https://favicon.cccyun.cc/${u.origin}`,
+                    `https://favicon.im/${domain}`
+                ];
+            } catch {
+                return [''];
+            }
+        }
+
+        function onGroupChange() {
+            const groupSelect = document.getElementById('group-select');
+            const selectedGroup = groupSelect.value;
+            localStorage.setItem(groupKey, selectedGroup);
+            loadBookmarks();
+        }
+
+        function loadBookmarks() {
+            let { bookmarks } = getBookmarkData(); // 修改
+            const groupSelect = document.getElementById('group-select');
+            const selectedGroup = groupSelect.value;
+            const bookmarkList = document.getElementById('bookmark-list');
+            bookmarkList.innerHTML = '';
+            if (bookmarks[selectedGroup]) {
+                bookmarks[selectedGroup].forEach((bookmark, idx) => {
+                    createBookmark(bookmark.name, bookmark.url, idx, bookmark.icon);
+                });
+            }
+        }
+        function createBookmark(name, url, idx, icon) {
+            const bookmarkList = document.getElementById('bookmark-list');
+            const bookmark = document.createElement('div');
+            bookmark.className = 'bookmark';
+            bookmark.setAttribute('data-title', name);
+            bookmark.setAttribute('data-url', url);
+            bookmark.setAttribute('data-index', idx);
+            bookmark.setAttribute('data-icon', icon || '');
+            // 多源favicon
+            let iconUrls = icon ? [icon] : getFavicon(url);
+            let imgHtml = `<img class="bookmark-icon" src="${iconUrls[0]}" alt="icon" onerror="this.onerror=null;this.src='${iconUrls[1] || iconUrls[0]}';setTimeout(()=>{if(this.src!=='${iconUrls[2] || iconUrls[0]}'){this.src='${iconUrls[2] || iconUrls[0]}'}},100)">`;
+            bookmark.innerHTML = `
+                ${imgHtml}
+                <h2><a href="${url}" target="_blank">${name}</a></h2>
+                <div class="bookmark-menu">
+                    <button onclick="addBookmarkFromMenu(this)">添加</button>
+                    <button onclick="editBookmarkFromMenu(this)">修改</button>
+                    <button onclick="deleteBookmarkFromMenu(this)">删除</button>
+                </div>
+            `;
+            // 绑定长按和右键菜单
+            let pressTimer = null;
+            let menuVisible = false;
+            function toggleMenu() {
+                if (isMobile()) return; // 移动端不弹出菜单
+                if (menuVisible) {
+                    bookmark.classList.remove('show-menu');
+                    menuVisible = false;
+                } else {
+                    hideAllBookmarkMenus();
+                    bookmark.classList.add('show-menu');
+                    menuVisible = true;
+                }
+            }
+            // 移除移动端长按弹出菜单
+            // bookmark.addEventListener('touchstart', function(e) {
+            //     if (e.touches.length === 1) {
+            //         pressTimer = setTimeout(toggleMenu, 500);
+            //     }
+            // });
+            // bookmark.addEventListener('touchend', function() {
+            //     clearTimeout(pressTimer);
+            // });
+            // bookmark.addEventListener('touchmove', function() {
+            //     clearTimeout(pressTimer);
+            // });
+            bookmark.addEventListener('mousedown', function(e) {
+                if (e.button === 2) return; // 右键单独处理
+                pressTimer = setTimeout(toggleMenu, 500);
+            });
+            bookmark.addEventListener('mouseup', function() {
+                clearTimeout(pressTimer);
+            });
+            bookmark.addEventListener('mouseleave', function() {
+                clearTimeout(pressTimer);
+            });
+            bookmark.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                toggleMenu();
+            });
+            document.addEventListener('mousedown', function(event) {
+                if (!bookmark.contains(event.target)) {
+                    bookmark.classList.remove('show-menu');
+                    menuVisible = false;
+                }
+            });
+            bookmarkList.appendChild(bookmark);
+        }
+        function hideAllBookmarkMenus() {
+            document.querySelectorAll('.bookmark').forEach(b => b.classList.remove('show-menu'));
+        }
+        function addBookmarkFromMenu(btn) {
+            const bookmark = btn.closest('.bookmark');
+            const groupName = document.getElementById('group-select').value;
+            const name = prompt('输入书签名称');
+            const url = prompt('输入书签链接');
+            let icon = '';
+            if (url) icon = getFavicon(url)[0];
+            if (name && url) {
+                let bookmarks = JSON.parse(localStorage.getItem(bookmarksKey)) || defaultBookmarks;
+                if (!bookmarks[groupName]) {
+                    bookmarks[groupName] = [];
+                }
+                const newBookmark = { name: name, url: url, icon: icon };
+                if (!isDuplicateBookmark(bookmarks[groupName], newBookmark)) {
+                    const idx = parseInt(bookmark.getAttribute('data-index'));
+                    bookmarks[groupName].splice(idx + 1, 0, newBookmark); // 核心：插入到指定位置
+                    localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+                    loadBookmarks();
+                } else {
+                    alert("该书签已存在!");
+                }
+            }
+            hideAllBookmarkMenus();
+        }
+        // 书签编辑弹窗相关
+        let editingBookmarkIndex = null;
+        function editBookmarkFromMenu(btn) {
+            const bookmark = btn.closest('.bookmark');
+            const groupName = document.getElementById('group-select').value;
+            editingBookmarkIndex = parseInt(bookmark.getAttribute('data-index'));
+            let bookmarks = JSON.parse(localStorage.getItem(bookmarksKey)) || defaultBookmarks;
+            const b = bookmarks[groupName][editingBookmarkIndex];
+            document.getElementById('edit-bookmark-name').value = b.name;
+            document.getElementById('edit-bookmark-url').value = b.url;
+            document.getElementById('edit-bookmark-icon').value = b.icon || '';
+            document.getElementById('bookmark-edit-modal').style.display = 'flex';
+        }
+        function hideBookmarkEditModal() {
+            document.getElementById('bookmark-edit-modal').style.display = 'none';
+        }
+        function saveBookmarkEdit() {
+            const name = document.getElementById('edit-bookmark-name').value.trim();
+            const url = document.getElementById('edit-bookmark-url').value.trim();
+            let icon = document.getElementById('edit-bookmark-icon').value.trim();
+            if (!name || !url) {
+                alert('书签名称和链接不能为空');
+                return;
+            }
+            if (!icon) icon = getFavicon(url)[0];
+            const groupName = document.getElementById('group-select').value;
+            let bookmarks = JSON.parse(localStorage.getItem(bookmarksKey)) || defaultBookmarks;
+            const idx = editingBookmarkIndex;
+            if (idx !== -1) {
+                const newBookmark = { name: name, url: url, icon: icon };
+                // 允许同名同链接的原书签
+                if (!isDuplicateBookmark(bookmarks[groupName], newBookmark) ||
+                    (bookmarks[groupName][idx].name === name && bookmarks[groupName][idx].url === url)) {
+                    bookmarks[groupName][idx] = newBookmark;
+                    localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+                    loadBookmarks();
+                    hideBookmarkEditModal();
+                } else {
+                    alert("该书签已存在!");
+                }
+            }
+        }
+
+        function deleteBookmarkFromMenu(btn) {
+            const bookmark = btn.closest('.bookmark');
+            const groupName = document.getElementById('group-select').value;
+            const idx = parseInt(bookmark.getAttribute('data-index'));
+            let bookmarks = JSON.parse(localStorage.getItem(bookmarksKey)) || defaultBookmarks;
+            if (confirm(`确定要删除书签 "${bookmarks[groupName][idx].name}" 吗？`)) {
+                bookmarks[groupName].splice(idx, 1);
+                localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+                loadBookmarks();
+            }
+            hideAllBookmarkMenus();
+        }
+        function isDuplicateBookmark(bookmarks, newBookmark) {
+            return bookmarks.some(bookmark => bookmark.name === newBookmark.name && bookmark.url === newBookmark.url);
+        }
+
+        // 分组添加弹窗
+        function showAddGroupModal() {
+            document.getElementById('new-group-name').value = '';
+            document.getElementById('group-add-modal').style.display = 'flex';
+        }
+        function hideAddGroupModal() {
+            document.getElementById('group-add-modal').style.display = 'none';
+        }
+        function addGroupWithPosition() {
+            const newGroupName = document.getElementById('new-group-name').value.trim();
+            if (!newGroupName) {
+                alert('请输入分组名称');
+                return;
+            }
+            let { bookmarks, groupOrder } = getBookmarkData(); // 修改
+            if (bookmarks[newGroupName]) {
+                alert('分组已存在!');
+                return;
+            }
+            bookmarks[newGroupName] = [Object.assign({}, defaultBookmark)];
+
+            // 核心：插入到当前分组的后面
+            const currentGroup = document.getElementById('group-select').value;
+            const currentIndex = groupOrder.indexOf(currentGroup);
+            if (currentIndex > -1) {
+                groupOrder.splice(currentIndex + 1, 0, newGroupName);
+            } else {
+                groupOrder.push(newGroupName); // Fallback
+            }
+
+            localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+            localStorage.setItem(groupOrderKey, JSON.stringify(groupOrder)); // 保存顺序
+            localStorage.setItem(groupKey, newGroupName); // 选中新分组
+
+            hideAddGroupModal();
+            loadGroups();
+        }
+
+        function loadGroups() {
+            const { bookmarks, groupOrder } = getBookmarkData(); // 修改
+            const groupSelect = document.getElementById('group-select');
+            groupSelect.innerHTML = '';
+
+            groupOrder.forEach(group => { // 按顺序加载
+                const option = document.createElement('option');
+                option.value = group;
+                option.textContent = group;
+                groupSelect.appendChild(option);
+            });
+            // 记忆分组
+            let remembered = localStorage.getItem(groupKey);
+            if (remembered && bookmarks[remembered]) {
+                groupSelect.value = remembered;
+            }
+            loadBookmarks();
+        }
+        function showExportOptions() {
+            const exportType = prompt("选择导出类型：\n1. 全部书签\n2. 当前分组书签\n请输入 1 或 2");
+            if (exportType === '1') {
+                exportBookmarks('all');
+            } else if (exportType === '2') {
+                exportBookmarks('current');
+            } else if (exportType != null) {
+                alert("无效选择");
+            }
+        }
+        function exportBookmarks(exportType) {
+            let bookmarks = JSON.parse(localStorage.getItem(bookmarksKey)) || defaultBookmarks;
+            let dataStr;
+            let fileName;
+            if (exportType === 'all') {
+                dataStr = JSON.stringify(bookmarks, null, 2);
+                fileName = 'all_bookmarks.json';
+            } else if (exportType === 'current') {
+                const selectedGroup = document.getElementById('group-select').value;
+                dataStr = JSON.stringify({
+                    [selectedGroup]: bookmarks[selectedGroup] || []
+                }, null, 2);
+                fileName = `${selectedGroup}_bookmarks.json`;
+            } else {
+                return;
+            }
+            const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', fileName);
+            document.body.appendChild(linkElement);
+            linkElement.click();
+            document.body.removeChild(linkElement);
+        }
+        // 直接清空所有书签
+        function clearAllBookmarks() {
+            if (confirm("确定要清空所有书签吗？")) {
+                localStorage.removeItem(bookmarksKey);
+                localStorage.removeItem(groupKey);
+                localStorage.removeItem(groupOrderKey); // 清空顺序
+                loadGroups();
+            }
+        }
+        function triggerFileInput() {
+            document.getElementById('file-input').click();
+        }
+        function importBookmarksFromFile(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedBookmarks = JSON.parse(e.target.result);
+                        let { bookmarks, groupOrder } = getBookmarkData(); // 修改
+                        if (Array.isArray(importedBookmarks)) {
+                            if (!bookmarks["默认分组"]) {
+                                bookmarks["默认分组"] = [];
+                                if (!groupOrder.includes("默认分组")) groupOrder.push("默认分组");
+                            }
+                            bookmarks["默认分组"] = bookmarks["默认分组"].concat(importedBookmarks);
+                        } else {
+                            for (let groupName in importedBookmarks) {
+                                if (bookmarks[groupName]) {
+                                    bookmarks[groupName] = bookmarks[groupName].concat(importedBookmarks[groupName]);
+                                } else {
+                                    bookmarks[groupName] = importedBookmarks[groupName];
+                                    if (!groupOrder.includes(groupName)) groupOrder.push(groupName);
+                                }
+                            }
+                        }
+                        localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+                        localStorage.setItem(groupOrderKey, JSON.stringify(groupOrder)); // 保存顺序
+                        loadGroups();
+                        alert("导入成功！");
+                    } catch (error) {
+                        alert("导入失败，文件格式不正确！");
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+        function renameGroup() {
+            const groupSelect = document.getElementById('group-select');
+            const oldGroupName = groupSelect.value;
+            const newGroupName = prompt('请输入新的分组名称', oldGroupName);
+            if (!newGroupName || newGroupName.trim() === '' || newGroupName === oldGroupName) return;
+            let { bookmarks, groupOrder } = getBookmarkData(); // 修改
+            if (bookmarks[newGroupName]) {
+                alert('分组已存在!');
+                return;
+            }
+            // 重命名书签对象中的键
+            bookmarks[newGroupName] = bookmarks[oldGroupName];
+            delete bookmarks[oldGroupName];
+            // 重命名顺序数组中的项
+            const index = groupOrder.indexOf(oldGroupName);
+            if (index > -1) {
+                groupOrder[index] = newGroupName;
+            }
+            localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+            localStorage.setItem(groupOrderKey, JSON.stringify(groupOrder)); // 保存顺序
+            // 更新选中分组
+            localStorage.setItem(groupKey, newGroupName);
+            loadGroups();
+        }
+        function deleteGroup() {
+            const groupSelect = document.getElementById('group-select');
+            const groupName = groupSelect.value;
+            let { bookmarks, groupOrder } = getBookmarkData(); // 修改
+            if (groupOrder.length === 1) { // 修改
+                alert('至少保留一个分组！');
+                return;
+            }
+            if (confirm(`确定要删除分组 "${groupName}" 吗？该分组下所有书签也会被删除。`)) {
+                delete bookmarks[groupName];
+                // 从顺序中移除
+                const index = groupOrder.indexOf(groupName);
+                if (index > -1) {
+                    groupOrder.splice(index, 1);
+                }
+                localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+                localStorage.setItem(groupOrderKey, JSON.stringify(groupOrder)); // 保存顺序
+                // 选中列表中的第一个分组
+                const firstGroup = groupOrder[0];
+                localStorage.setItem(groupKey, firstGroup);
+                loadGroups();
+            }
+        }
+        // 初始化
+        loadGroups();
+    </script>
+</body>
+</html>
