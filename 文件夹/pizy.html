@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Network 资源导航中心</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        /* Password Overlay Styles */
+        #password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        #password-box {
+            background: #ffffff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            text-align: center;
+            width: 100%;
+            max-width: 350px;
+        }
+        #password-box h2 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+        #password-input {
+            padding: 12px 15px;
+            font-size: 1em;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #password-input:focus {
+            outline: none;
+            border-color: #3f51b5;
+            box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2);
+        }
+        #login-button {
+            padding: 12px 20px;
+            font-size: 1em;
+            color: #fff;
+            background-color: #3f51b5;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        #login-button:hover {
+            background-color: #303f9f;
+            transform: translateY(-2px);
+        }
+        #main-content {
+            display: none;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            color: #2c2c2c;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        /* --- Section Styles --- */
+        .tree {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .tree > li {
+            margin-bottom: 30px;
+        }
+
+        .tree-branch {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #3f51b5;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        /* --- Grid layout for links --- */
+        .links-container {
+            list-style-type: none;
+            padding-left: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .tree-leaf {
+            flex: 1 1 calc(50% - 7.5px);
+            padding: 12px;
+            border-radius: 8px;
+            background-color: #f9faff;
+            border: 1px solid #e0e6f0;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .tree-leaf:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+        }
+
+        /* Leaf node styling */
+        .tree-leaf a {
+            text-decoration: none;
+            color: #0d6efd;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            transition: color 0.2s ease;
+        }
+        .tree-leaf a:hover {
+            color: #0a58ca;
+        }
+        .tree-leaf .favicon {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+        }
+        .tree-leaf p {
+            margin: 8px 0 0 0;
+            font-size: 0.85em;
+            color: #666;
+            flex-grow: 1;
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 768px) {
+            #main-content {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px 20px;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            .links-container {
+                gap: 15px;
+            }
+            .tree-leaf {
+                flex-basis: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="password-overlay">
+        <div id="password-box">
+            <h2>请输入密码</h2>
+            <form id="password-form" onsubmit="login(event)">
+                <input type="password" id="password-input" placeholder="密码" autofocus>
+                <button type="submit" id="login-button">登 录</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div class="container">
+            <h1>Pi Network 资源导航中心</h1>
+            
+            <ul class="tree">
+                <li>
+                    <span class="tree-branch">官方渠道</span>
+                    <ul class="links-container">
+                        <li class="tree-leaf">
+                            <a href="https://minepi.com/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=minepi.com" class="favicon" alt=""><strong>Pi Network 官网</strong></a>
+                            <p>官方主站，提供Pi币下载、项目信息及最新公告。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://minepi.com/blog" target="_blank"><img src="https://www.google.com/s2/favicons?domain=minepi.com" class="favicon" alt=""><strong>官方博客</strong></a>
+                            <p>发布节点技术更新、主网进展及未来计划的权威来源。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://twitter.com/PiNetworkUpdate" target="_blank"><img src="https://www.google.com/s2/favicons?domain=twitter.com" class="favicon" alt=""><strong>官方 Twitter/X 账号</strong></a>
+                            <p>获取关于节点奖励、主网动态等实时信息的最佳渠道。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://minepi.com/white-paper/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=minepi.com" class="favicon" alt=""><strong>Pi 白皮书</strong></a>
+                            <p>详细阐述了Pi Network的愿景、技术架构和经济模型。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://blockexplorer.minepi.com/mainnet/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=blockexplorer.minepi.com" class="favicon" alt=""><strong>Pi 主网区块浏览器</strong></a>
+                            <p>用于探索Pi主网区块链、查询交易和账户信息的官方工具。</p>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <span class="tree-branch">🎓 社区与资讯</span>
+                    <ul class="links-container">
+                        <li class="tree-leaf">
+                            <a href="https://www.reddit.com/r/PiNetwork" target="_blank"><img src="https://www.google.com/s2/favicons?domain=reddit.com" class="favicon" alt=""><strong>Reddit 社区</strong></a>
+                            <p>全球用户分享节点设置经验、讨论奖励机制和解决常见问题的平台。</p>
+                        </li>
+                         <li class="tree-leaf">
+                            <a href="https://www.picn.cc/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=picn.cc" class="favicon" alt=""><strong>Pi币中文网</strong></a>
+                            <p>一个面向中文用户的Pi币资讯和社区网站。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://www.hokanews.com/?m=1" target="_blank"><img src="https://www.google.com/s2/favicons?domain=hokanews.com" class="favicon" alt=""><strong>HokaNews</strong></a>
+                            <p>一个提供Pi Network相关新闻和分析的海外资讯站。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://www.forbes.com/digital-assets/assets/pi-network-pi/?sh=2c09255e341b" target="_blank"><img src="https://www.google.com/s2/favicons?domain=forbes.com" class="favicon" alt=""><strong>福布斯数字资产: Pi</strong></a>
+                            <p>福布斯网站对Pi Network的介绍及相关信息。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://haokan.baidu.com/author/1651166394255964" target="_blank"><img src="https://www.google.com/s2/favicons?domain=baidu.com" class="favicon" alt=""><strong>智狐网络 (好看视频)</strong></a>
+                            <p>提供Pi Network相关视频资讯的中文内容创作者。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="http://info.pi-node.cn/?id=387" target="_blank"><img src="https://www.google.com/s2/favicons?domain=info.pi-node.cn" class="favicon" alt=""><strong>Pi Network 发展历程</strong></a>
+                            <p>一个按时间线整理的Pi Network官方动态和发展历史的中文网站。</p>
+                        </li>
+                         <li class="tree-leaf">
+                            <a href="http://question.pi-node.cn/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=pi-node.cn" class="favicon" alt=""><strong>Pi 社区自助问答</strong></a>
+                            <p>一个由社区驱动的自助问答平台，帮助解决常见问题。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://bk.baoge.wang/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=bk.baoge.wang" class="favicon" alt=""><strong>宝哥博客</strong></a>
+                            <p>博主关于Pi Network的个人见解、资讯和分析。 [https://bk.baoge.wang/](https://bk.baoge.wang/)</p>
+                        </li>
+                    </ul>
+                </li>
+                 <li>
+                    <span class="tree-branch">💻 节点工具与教程</span>
+                    <ul class="links-container">
+                        <li class="tree-leaf">
+                            <a href="http://node.pi-node.cn/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=node.pi-node.cn" class="favicon" alt=""><strong>pi节点搭建维护导引图</strong></a>
+                            <p>一个提供全方位Pi节点服务的导航网站。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="http://pi-node.cn/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=pi-node.cn" class="favicon" alt=""><strong>节点端口在线检测</strong></a>
+                            <p>经典的端口检测工具，用于检测节点端口 (31400-31409) 是否开放。</p>
+                        </li>
+                         <li class="tree-leaf">
+                            <a href="http://jk.pi-node.cn/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=jk.pi-node.cn" class="favicon" alt=""><strong>节点实时信息</strong></a>
+                            <p>云端检测工具，帮助分析您的节点实时数据和状态。</p>
+                        </li>
+                         <li class="tree-leaf">
+                            <a href="https://dashboard.pi-blockchain.net/dashboard/mainnet/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=pi-blockchain.net" class="favicon" alt=""><strong>Pi仪表板</strong></a>
+                            <p>一个提供Pi主网各项数据统计的仪表板。</p>
+                        </li>
+                         <li class="tree-leaf">
+                            <a href="https://github.com/pi-node/instructions/wiki/(CN)-win10%E4%B8%8A%E5%A6%82%E4%BD%95%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E5%81%9A%E8%8A%82%E7%82%B9%EF%BC%88%E8%87%AA%E5%AD%A6%E7%AF%87%EF%BC%89" target="_blank"><img src="https://www.google.com/s2/favicons?domain=github.com" class="favicon" alt=""><strong>GitHub 节点自学教程</strong></a>
+                            <p>Pi官方在GitHub上发布的中文版Windows节点搭建指南。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://m.bilibili.com/video/BV1fz4y1t7WB" target="_blank"><img src="https://www.google.com/s2/favicons?domain=bilibili.com" class="favicon" alt=""><strong>Bilibili 节点搭建视频</strong></a>
+                            <p>中文视频教程，直观地展示了Pi节点的搭建过程。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://dashboard.uptimerobot.com/monitors" target="_blank"><img src="https://www.google.com/s2/favicons?domain=uptimerobot.com" class="favicon" alt=""><strong>UptimeRobot (节点监控)</strong></a>
+                            <p>一个流行的网站监控服务，可用于监控您的Pi节点是否持续在线。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="http://study.pi-bbs.com/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=pi-bbs.com" class="favicon" alt=""><strong>Pi 教程大全</strong></a>
+                            <p>一个集合了PiApp、浏览器和节点等多种教程的中文资源站。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="http://update.pi-node.cn/" target="_blank"><img src="https://www.google.com/s2/favicons?domain=pi-node.cn" class="favicon" alt=""><strong>Pi 相关软件下载</strong></a>
+                            <p>提供Pi App、浏览器、电脑节点各版本及相关工具的下载。</p>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <span class="tree-branch">📚 学习资料</span>
+                    <ul class="links-container">
+                        <li class="tree-leaf">
+                            <a href="https://cftg.653827.xyz/1750626479665.pdf" target="_blank"><img src="https://www.google.com/s2/favicons?domain=cftg.653827.xyz" class="favicon" alt=""><strong>PI节点安装，检查和解决方法</strong></a>
+                            <p>关于Pi节点安装、检查及常见问题解决方法的详细指南。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://cftg.653827.xyz/1750626480197.pdf" target="_blank"><img src="https://www.google.com/s2/favicons?domain=cftg.653827.xyz" class="favicon" alt=""><strong>Pi_加密货币白皮书</strong></a>
+                            <p>Pi Network项目的官方白皮书，阐述其愿景和技术细节。</p>
+                        </li>
+                        <li class="tree-leaf">
+                            <a href="https://pan.653827.xyz/raw/%E8%B5%84%E6%96%99/%E6%B4%BE%E6%8E%8C%E4%B8%AD%E5%AE%9DV1.0%20%E7%BB%88%E7%A8%BF.pdf" target="_blank"><img src="https://www.google.com/s2/favicons?domain=cftg.653827.xyz" class="favicon" alt=""><strong>派掌中宝V1.0（终稿）</strong></a>
+                            <p>一份全面的Pi Network指南手册。</p>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function login(event) {
+            event.preventDefault();
+            const password = document.getElementById('password-input').value;
+            if (password === 'baoge') {
+                document.getElementById('password-overlay').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            } else {
+                alert('密码错误!');
+                document.getElementById('password-input').value = '';
+            }
+            return false;
+        }
+    </script>
+</body>
+</html>
