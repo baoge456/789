@@ -129,6 +129,7 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
+            flex-direction: row;
         }
         .bookmark .bookmark-icon {
             width: 32px;
@@ -145,10 +146,12 @@
             color: #5CAF50;
             word-wrap: break-word;
             flex: 1;
-            text-align: left;
-            transition: text-align 0.2s;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            height: 32px;
         }
-        .bookmark h2 a { text-decoration: none; color: #5CAF50; }
+        .bookmark h2 a { text-decoration: none; color: #5CAF50; width: 100%; }
         .bookmark h2 a:hover { color: #388E3C; }
         .bookmark:hover, .bookmark.selected { background-color: purple; color: white; }
         .bookmark:hover h2 a, .bookmark.selected h2 a { color: white; }
@@ -239,6 +242,7 @@
             }
             .bookmark h2 {
                 font-size: 1em;
+                height: 24px;
             }
         }
     </style>
@@ -432,7 +436,6 @@
             let pressTimer = null;
             let menuVisible = false;
             function toggleMenu() {
-                if (isMobile()) return; // 移动端不弹出菜单
                 if (menuVisible) {
                     bookmark.classList.remove('show-menu');
                     menuVisible = false;
@@ -442,18 +445,18 @@
                     menuVisible = true;
                 }
             }
-            // 移除移动端长按弹出菜单
-            // bookmark.addEventListener('touchstart', function(e) {
-            //     if (e.touches.length === 1) {
-            //         pressTimer = setTimeout(toggleMenu, 500);
-            //     }
-            // });
-            // bookmark.addEventListener('touchend', function() {
-            //     clearTimeout(pressTimer);
-            // });
-            // bookmark.addEventListener('touchmove', function() {
-            //     clearTimeout(pressTimer);
-            // });
+            // 支持移动端长按弹出菜单
+            bookmark.addEventListener('touchstart', function(e) {
+                if (e.touches.length === 1) {
+                    pressTimer = setTimeout(toggleMenu, 500);
+                }
+            });
+            bookmark.addEventListener('touchend', function() {
+                clearTimeout(pressTimer);
+            });
+            bookmark.addEventListener('touchmove', function() {
+                clearTimeout(pressTimer);
+            });
             bookmark.addEventListener('mousedown', function(e) {
                 if (e.button === 2) return; // 右键单独处理
                 pressTimer = setTimeout(toggleMenu, 500);
