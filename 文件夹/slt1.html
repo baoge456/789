@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>网站缩略图</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      overflow-x: hidden;
+    }
+    .panel {
+      position: relative;
+      width: 100vw;
+      max-width: 480px;
+      min-width: 0;
+      margin: 0 auto;
+      background: linear-gradient(120deg, #f8ffae 0%, #43cea2 100%);
+      padding: 32px 4vw 24px 4vw;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      text-align: center;
+      transition: box-shadow 0.2s, top 0.4s, transform 0.4s, margin-top 0.4s;
+      z-index: 10;
+      margin-top: 0;
+    }
+    .panel.centered {
+      position: relative;
+      top: 50vh;
+      transform: translateY(-50%);
+      margin-top: 0;
+    }
+    .refresh-btn {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 28px;
+      height: 28px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      z-index: 20;
+      transition: transform 0.2s;
+    }
+    .refresh-btn svg {
+      width: 100%;
+      height: 100%;
+      fill: #0078ff;
+      transition: transform 0.4s;
+    }
+    .refresh-btn:hover svg {
+      transform: rotate(180deg) scale(1.15);
+      fill: #005ecb;
+    }
+    input[type="text"] {
+      width: 90%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      font-size: 17px;
+      outline: none;
+      transition: border 0.2s;
+      box-sizing: border-box;
+    }
+    input[type="text"]:focus { border: 1.5px solid #0078ff; }
+    button:not(.refresh-btn) {
+      padding: 10px 28px;
+      background: linear-gradient(90deg, #0078ff 0%, #00c6ff 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 17px;
+      cursor: pointer;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 8px rgba(0,120,255,0.08);
+      transition: background 0.2s;
+    }
+    button:not(.refresh-btn):hover { background: linear-gradient(90deg, #005ecb 0%, #00aaff 100%); }
+    .result {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+    }
+    .icon-block {
+      background: linear-gradient(90deg, #fbc2eb 0%, #a6c1ee 100%);
+      border-radius: 12px;
+      padding: 14px 10px 10px 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      width: 190px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    .icon-block h4 {
+      margin: 0 0 6px 0;
+      font-size: 15px;
+      color: #0078ff;
+      font-weight: 600;
+    }
+    .icon-block img {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      background: #f5f6fa;
+      object-fit: contain;
+      margin-bottom: 6px;
+    }
+    .icon-link-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .icon-block a {
+      color: #0078ff;
+      word-break: break-all;
+      font-size: 14px;
+      text-decoration: underline;
+      margin-right: 0;
+    }
+    .copy-btn {
+      padding: 2px 10px;
+      font-size: 13px;
+      border: none;
+      border-radius: 6px;
+      background: #43cea2;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .copy-btn.copied {
+      background: #0078ff;
+    }
+    @media (max-width: 600px) {
+      .panel, .panel.centered {
+        max-width: 100vw;
+        padding: 18px 2vw 12px 2vw;
+        border-radius: 0;
+      }
+      .icon-block { max-width: calc(50% - 10px); width: auto; }
+      .icon-block img { width: 40px; height: 40px; }
+      .refresh-btn { top: 8px; right: 8px; width: 22px; height: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="panel centered" id="mainPanel">
+    <button class="refresh-btn" title="刷新" onclick="resetPanel()" aria-label="刷新">
+      <svg viewBox="0 0 24 24">
+        <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1l-4 4 4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.932 7.932 0 0 0 20 12c0-2.21-.9-4.21-2.35-5.65zM6.35 17.65A7.95 7.95 0 0 0 12 20v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8l-1.46-1.46A7.932 7.932 0 0 0 4 12c0 2.21.9 4.21 2.35 5.65z"/>
+      </svg>
+    </button>
+    <h2>网站缩略图</h2>
+    <input type="text" id="urlInput" placeholder="输入网址，如 https://www.baidu.com" />
+    <br>
+    <button onclick="fetch缩略图()">抓取</button>
+    <div class="result" id="result"></div>
+  </div>
+  <script>
+    // 页面加载时自动聚焦输入框
+    window.onload = function() {
+      document.getElementById('urlInput').focus();
+    };
+
+    function resetPanel() {
+      document.getElementById('urlInput').value = '';
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('urlInput').focus();
+      document.getElementById('mainPanel').classList.add('centered');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function fetch缩略图() {
+      const url = document.getElementById('urlInput').value.trim();
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+      if (!url) {
+        alert('请输入网址');
+        return;
+      }
+      // 域名提取
+      let domain = '';
+      try {
+        domain = new URL(url).hostname;
+      } catch {
+        try {
+          domain = new URL('https://' + url).hostname;
+        } catch {
+          resultDiv.innerHTML = '<span style="color:#e74c3c;">无法识别网址，请输入正确的网址！</span>';
+          return;
+        }
+      }
+      // 并发抓取
+      const apis = [
+        { name: 'Favicon.cccyun (无代理)', url: `https://favicon.cccyun.cc/${domain}` },
+        { name: '网站自身 (无代理)', url: `https://${domain}/favicon.ico` },
+        { name: 'Google Favicon', url: `https://www.google.com/s2/favicons?domain=${domain}` },
+        { name: 'Favicon.im', url: `https://favicon.im/${domain}` },
+        { name: 'Yandex Favicon', url: `https://favicon.yandex.net/favicon/${domain}` },
+        { name: 'Icon Horse', url: `https://icon.horse/icon/${domain}` },
+        { name: 'Unavatar', url: `https://unavatar.io/${domain}` },
+        { name: 'DuckDuckGo Favicon', url: `https://icons.duckduckgo.com/ip3/${domain}.ico` }
+      ];
+      // 并发检测图片可用性
+      const checkImage = (api) => new Promise((resolve) => {
+        const img = new window.Image();
+        img.onload = () => resolve({ ...api, valid: img.width > 8 });
+        img.onerror = () => resolve({ ...api, valid: false });
+        img.src = api.url + (api.url.includes('?') ? '&' : '?') + 't=' + Date.now();
+      });
+      const results = await Promise.all(apis.map(checkImage));
+      let html = '';
+      for (const api of results) {
+        html += `<div class="icon-block">
+          <h4>${api.name}</h4>
+          ${api.valid ? `<img src="${api.url}" alt="${api.name} 图标">` : `<span style='color:#e74c3c;'>获取失败</span>`}
+          <div class="icon-link-row">
+            <a href="${api.url}" target="_blank">${api.url}</a>
+            <button class="copy-btn" onclick="copyToClipboard('${api.url}', this)">复制</button>
+          </div>
+        </div>`;
+      }
+      resultDiv.innerHTML = html;
+      // 面板上移，内容多时自动滚动到面板顶部
+      const panel = document.getElementById('mainPanel');
+      panel.classList.remove('centered');
+      setTimeout(() => {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+
+    // 复制功能
+    function copyToClipboard(text, btn) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          btn.classList.add('copied');
+          btn.textContent = '已复制';
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.textContent = '复制';
+          }, 1200);
+        });
+      } else {
+        // 兼容旧浏览器
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          btn.classList.add('copied');
+          btn.textContent = '已复制';
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.textContent = '复制';
+          }, 1200);
+        } catch {}
+        document.body.removeChild(textarea);
+      }
+    }
+  </script>
+</body>
+</html>
