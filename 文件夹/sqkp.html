@@ -63,7 +63,7 @@
       color: var(--main-blue);
       position: fixed;
       top: 22px;
-      right: 100px;
+      right: 120px; /* 向左移动20px */
       z-index: 1001;
       transition: all 0.2s ease;
     }
@@ -169,7 +169,7 @@
       min-width: 0;
       min-height: 60px;
       box-sizing: border-box;
-      word-break: normal;
+      word-break: break-word; /* 允许文字换行 */
       transition: all 0.3s ease;
       position: relative;
       margin: 0.3rem;
@@ -209,12 +209,12 @@
       color: #333;
       font-size: 1.08rem;
       text-align: left;
-      max-width: 180px;
+      max-width: 100%; /* 确保不超出容器宽度 */
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
-      display: block;
-      flex: 1 1 auto;
+      display: -webkit-box;
+      -webkit-line-clamp: 2; /* 最多显示2行 */
+      -webkit-box-orient: vertical;
       margin: 0;
       line-height: 1.3;
       padding-left: 0.2rem;
@@ -347,19 +347,19 @@
     
     /* 移动设备适配 */
     @media (max-width: 800px) {
-      .bookmark-list { grid-template-columns: repeat(2, 1fr);}
-      .bookmark-title { font-size: 0.98rem; max-width: 80%; }
+      .bookmark-list { grid-template-columns: repeat(2, 1fr);} /* 中等屏幕至少2列 */
+      .bookmark-title { font-size: 0.98rem; }
       .bookmark-favicon { width: 28px; height: 28px;}
       .bookmark-item { min-width: 0; max-width: 100%; }
       header { padding: 1rem; }
       .settings-btn { right: 16px; }
-      .toggle-favicon-btn { right: 84px; }
+      .toggle-favicon-btn { right: 94px; } /* 调整移动设备上的位置 */
     }
     @media (max-width: 500px) {
-      .bookmark-list { grid-template-columns: repeat(1, 1fr);}
+      .bookmark-list { grid-template-columns: repeat(2, 1fr);} /* 小屏幕也保持2列 */
       .group-tabs { min-width: 0; }
       main { padding: 0.5rem; }
-      .bookmark-title { font-size: 0.95rem; max-width: 90%; }
+      .bookmark-title { font-size: 0.95rem; }
       .bookmark-favicon { width: 18px; height: 18px;}
       .bookmark-item { min-width: 0; max-width: 100%; }
       .admin-toolbar { flex-direction: column; }
@@ -396,6 +396,18 @@
     </div>
   </main>
   <!-- 密码弹窗 -->
+  <div class="modal-bg" id="passwordModalBg">
+    <div class="modal" id="passwordModalDialog">
+      <div style="text-align:center; margin-bottom:1rem; font-size:1.2rem;">管理后台验证</div>
+      <input type="password" id="passwordInput" placeholder="请输入管理密码">
+      <div style="margin-top:1.5rem; display:flex; justify-content:center; gap:1rem;">
+        <button onclick="verifyPassword()">确认</button>
+        <button onclick="closePasswordModal()">取消</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 常规操作弹窗 -->
   <div class="modal-bg" id="modalBg">
     <div class="modal" id="modalDialog">
       <div id="modalContent"></div>
@@ -462,6 +474,8 @@
     let isAdmin = false;
     let currentCat = appData.order.length > 0 ? appData.order[0] : '';
     let showFavicon = localStorage.getItem('showFavicon') !== 'false';
+    let isPasswordVerified = false; // 密码验证状态
+    const ADMIN_PASSWORD = 'baoge888'; // 管理密码
 
     function renderTabs() {
       const groupTabs = document.getElementById('groupTabs');
@@ -833,13 +847,44 @@
       }
     }
 
-    // 切换管理员模式
+    // 切换管理员模式（添加密码验证）
     document.getElementById('settingsBtn').onclick = function() {
+      if (!isPasswordVerified) {
+        showPasswordModal(); // 显示密码弹窗
+      } else {
+        toggleAdminMode(); // 已验证则直接切换模式
+      }
+    };
+
+    // 显示密码弹窗
+    function showPasswordModal() {
+      document.getElementById('passwordModalBg').classList.add('active');
+    }
+
+    // 关闭密码弹窗
+    function closePasswordModal() {
+      document.getElementById('passwordModalBg').classList.remove('active');
+    }
+
+    // 验证密码
+    function verifyPassword() {
+      const password = document.getElementById('passwordInput').value;
+      if (password === ADMIN_PASSWORD) {
+        isPasswordVerified = true; // 标记为已验证
+        closePasswordModal();
+        toggleAdminMode(); // 切换到管理模式
+      } else {
+        alert('密码错误！');
+      }
+    }
+
+    // 切换管理模式
+    function toggleAdminMode() {
       isAdmin = !isAdmin;
       document.getElementById('adminPanel').classList.toggle('active', isAdmin);
       document.getElementById('settingsBtn').title = isAdmin ? '返回前台' : '后台管理';
       renderGroupCard();
-    };
+    }
 
     // 切换显示/隐藏favicon
     document.getElementById('toggleFaviconBtn').onclick = function() {
