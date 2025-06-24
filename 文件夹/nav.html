@@ -6,6 +6,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <style>
+    /* 新增搜索结果的样式 */
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      margin-top: 5px;
+      display: none;
+    }
+    .search-result-item {
+      padding: 10px 15px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    .search-result-item:hover {
+      background-color: #f8f9fa;
+    }
+    .search-result-icon {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      object-fit: contain;
+    }
+    .search-result-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .search-result-name {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-result-url {
+      font-size: 0.8rem;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-result-group {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #e9ecef;
+      color: #495057;
+      margin-left: 10px;
+      white-space: nowrap;
+    }
+    
+    /* 其他原有样式保持不变 */
     html, body { height: 100%; margin: 0; }
     body {
       background: #f5f6fa;
@@ -19,7 +78,7 @@
     .sidebar li { padding: 12px 32px; cursor: pointer; transition: background 0.2s; }
     .sidebar li:hover, .sidebar li.active { background: #7B68EE; }
     .main-content { flex: 1; padding: 40px 48px; overflow-y: auto; }
-    .search-bar { display: flex; margin-bottom: 32px; gap: 12px; }
+    .search-bar { display: flex; margin-bottom: 32px; gap: 12px; position: relative; }
     .search-bar input { flex: 1; border-radius: 8px; border: 1px solid #ddd; padding: 10px 16px; font-size: 1rem; }
     .search-bar select { border-radius: 8px; border: 1px solid #ddd; padding: 10px 16px; font-size: 1rem; background: #fff; }
     .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
@@ -104,16 +163,10 @@
       <ul id="categoryList"></ul>
     </nav>
     <main class="main-content" id="mainContent">
-      <form class="search-bar" onsubmit="searchSite(event)">
-        <input type="text" id="searchInput" placeholder="输入关键词搜索站点...">
-        <select id="engineSelect">
-          <option value="https://www.baidu.com/s?wd=">百度</option>
-          <option value="https://www.bing.com/search?q=">必应</option>
-          <option value="https://www.google.com/search?q=">谷歌</option>
-          <option value="https://www.sogou.com/web?query=">搜狗</option>
-        </select>
-        <button type="submit" class="btn btn-primary">搜索</button>
-      </form>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="输入关键词搜索所有书签...">
+        <div class="search-results" id="searchResults"></div>
+      </div>
       <div id="bookmarkList" class="card-list"></div>
     </main>
   </div>
@@ -329,16 +382,58 @@
       });
     }
 
-    function searchSite(event) {
-      event.preventDefault();
+    // 新增：搜索书签功能
+    function searchBookmarks() {
       const searchInput = document.getElementById('searchInput');
-      const engineSelect = document.getElementById('engineSelect');
-      const query = searchInput.value.trim();
-      const engineUrl = engineSelect.value;
-
-      if (query) {
-        window.open(engineUrl + encodeURIComponent(query), '_blank');
+      const query = searchInput.value.trim().toLowerCase();
+      const searchResults = document.getElementById('searchResults');
+      
+      if (!query) {
+        searchResults.style.display = 'none';
+        renderBookmarks(currentCategory);
+        return;
       }
+      
+      const results = [];
+      bookmarksData.forEach(group => {
+        group.bookmarks.forEach(bookmark => {
+          if (bookmark.name.toLowerCase().includes(query) || 
+              bookmark.url.toLowerCase().includes(query) ||
+              group.name.toLowerCase().includes(query)) {
+            results.push({ bookmark, groupName: group.name });
+          }
+        });
+      });
+      
+      if (results.length === 0) {
+        searchResults.innerHTML = `<div class="search-result-item">没有找到匹配的书签</div>`;
+        searchResults.style.display = 'block';
+      } else {
+        searchResults.innerHTML = '';
+        results.forEach(result => {
+          const item = document.createElement('div');
+          item.classList.add('search-result-item');
+          item.innerHTML = `
+            <img src="${result.bookmark.favicon}" alt="favicon" class="search-result-icon" onerror="this.src='https://www.google.com/s2/favicons?domain=default';">
+            <div class="search-result-content">
+              <div class="search-result-name">${result.bookmark.name}</div>
+              <div class="search-result-url">${result.bookmark.url}</div>
+            </div>
+            <div class="search-result-group">${result.groupName}</div>
+          `;
+          item.addEventListener('click', () => {
+            window.open(result.bookmark.url, '_blank');
+          });
+          searchResults.appendChild(item);
+        });
+        searchResults.style.display = 'block';
+      }
+    }
+
+    // 新增：隐藏搜索结果
+    function hideSearchResults() {
+      const searchResults = document.getElementById('searchResults');
+      searchResults.style.display = 'none';
     }
 
     function updateRunTime() {
@@ -882,6 +977,22 @@
       setInterval(updateRunTime, 1000);
       handleHashChange();
       window.addEventListener('hashchange', handleHashChange);
+      
+      // 添加搜索功能事件监听
+      const searchInput = document.getElementById('searchInput');
+      searchInput.addEventListener('input', searchBookmarks);
+      
+      // 点击页面其他区域时隐藏搜索结果
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-bar')) {
+          hideSearchResults();
+        }
+      });
+      
+      // 在搜索结果区域点击时阻止事件冒泡
+      document.getElementById('searchResults').addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
     });
 </script>
 </body>
