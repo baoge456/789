@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>书签卡片</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --main-blue: #4f8cff;
+      --main-purple: #a259ff;
+      --tab-bg: #e3f0ff;
+      --tab-active-bg: #4f8cff;
+      --tab-hover-bg: #a259ff;
+      --tab-color: #fff;
+      --tab-inactive-color: #2563eb;
+      --panel-bg: linear-gradient(135deg, #e0e7ff 0%, #f8ffae 100%);
+      --card-bg: #fff;
+      --card-border: #d0d8f6;
+      --ellipse-bg: #f7faff;
+      --ellipse-shadow: 0 2px 12px #b3c6ff33;
+    }
+    body {
+      font-family: 'Segoe UI', 'PingFang SC', Arial, sans-serif;
+      background: var(--panel-bg);
+      margin: 0;
+      min-height: 100vh;
+      transition: all 0.3s ease;
+    }
+    header {
+      background: #fff;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #eee;
+      font-size: 1.5rem;
+      color: var(--main-blue);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 12px #b3c6ff11;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .settings-btn {
+      background: none;
+      border: none;
+      font-size: 1.6rem;
+      cursor: pointer;
+      color: var(--main-blue);
+      position: fixed;
+      top: 18px;
+      right: 24px;
+      z-index: 1001;
+      transition: transform 0.3s ease;
+    }
+    .settings-btn:hover {
+      transform: rotate(90deg);
+    }
+    .toggle-favicon-btn {
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+      color: var(--main-blue);
+      position: fixed;
+      top: 22px;
+      right: 100px; /* 左移20px */
+      z-index: 1001;
+      transition: all 0.2s ease;
+    }
+    .toggle-favicon-btn:hover {
+      color: var(--main-purple);
+    }
+    main {
+      max-width: 1200px;
+      margin: 2rem auto;
+      background: transparent;
+      border-radius: 18px;
+      box-shadow: none;
+      padding: 2rem 0.5rem;
+    }
+    .group-tabs-wrapper {
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    .group-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: nowrap;
+      min-width: 600px;
+      padding: 0 0.5rem;
+    }
+    .group-tab {
+      background: var(--tab-bg);
+      border: none;
+      border-radius: 20px;
+      padding: 0.5rem 1.5rem;
+      cursor: pointer;
+      font-size: 1.08rem;
+      color: var(--tab-inactive-color);
+      font-weight: 500;
+      transition: all 0.2s ease;
+      outline: none;
+      white-space: nowrap;
+      margin-bottom: 0;
+      flex: 0 0 auto;
+      box-shadow: 0 2px 8px #b3c6ff22;
+      letter-spacing: 1px;
+    }
+    .group-tab.active, .group-tab:active {
+      background: var(--tab-active-bg);
+      color: var(--tab-color);
+      box-shadow: 0 4px 16px #4f8cff33;
+      transform: translateY(-2px);
+    }
+    .group-tab:hover, .group-tab:focus {
+      background: var(--tab-hover-bg);
+      color: var(--tab-color);
+      box-shadow: 0 4px 12px #a259ff22;
+    }
+    .group-card {
+      background: transparent;
+      border-radius: 14px;
+      padding: 1rem 0.5rem 1.2rem 0.5rem;
+      min-width: 220px;
+      box-sizing: border-box;
+      margin-bottom: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      box-shadow: none;
+      transition: all 0.3s ease;
+    }
+    .group-title {
+      font-size: 1.08rem;
+      font-weight: bold;
+      color: var(--main-blue);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-left: 0.5rem;
+      transition: all 0.2s ease;
+    }
+    .group-actions button { 
+      margin-left: 0.3rem; 
+      transition: all 0.2s ease;
+    }
+    .bookmark-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.2rem 1.2rem;
+      margin: 0;
+      padding: 0 0.5rem;
+      list-style: none;
+      justify-content: start;
+      transition: all 0.3s ease;
+    }
+    .bookmark-item {
+      background: var(--card-bg);
+      border: 1.5px solid var(--card-border);
+      border-radius: 18px;
+      box-shadow: var(--ellipse-shadow);
+      padding: 0.7rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 0;
+      min-height: 60px;
+      box-sizing: border-box;
+      word-break: normal;
+      transition: all 0.3s ease;
+      position: relative;
+      margin: 0.3rem;
+      justify-content: flex-start;
+      max-width: 340px;
+      transform: translateY(0);
+      cursor: pointer;
+    }
+    .bookmark-item:hover {
+      box-shadow: 0 8px 24px #b3c6ff55;
+      transform: translateY(-3px);
+      border-color: var(--main-blue);
+    }
+    .bookmark-main-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      gap: 1rem;
+      max-width: 100%;
+      overflow: hidden;
+    }
+    .bookmark-favicon {
+      width: 38px; 
+      height: 38px; 
+      border-radius: 50%; 
+      background: #f0f4ff; 
+      object-fit: cover;
+      box-shadow: 0 2px 8px #b3c6ff22;
+      display: block;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+    }
+    .bookmark-title {
+      font-weight: 500;
+      color: #333;
+      font-size: 1.08rem;
+      text-align: left;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+      flex: 1 1 auto;
+      margin: 0;
+      line-height: 1.3;
+      padding-left: 0.2rem;
+      transition: all 0.2s ease;
+    }
+    .bookmark-actions {
+      margin-top: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      opacity: 0;
+      transition: all 0.2s ease;
+    }
+    .bookmark-item:hover .bookmark-actions {
+      opacity: 1;
+    }
+    .bookmark-actions button {
+      font-size: 1.1em;
+      padding: 0.18em 0.8em;
+      background: #f0f4ff;
+      color: var(--main-blue);
+      border: none;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .bookmark-actions button:hover {
+      background: var(--main-blue);
+      color: #fff;
+      transform: scale(1.05);
+    }
+    .admin-panel { display: none; margin-top: 2rem; }
+    .admin-panel.active { display: block; }
+    .admin-toolbar { margin-bottom: 1.2rem; display: flex; gap: 1rem; flex-wrap: wrap;}
+    .form-row { margin-bottom: 0; }
+    input, select { 
+      padding: 0.4rem; 
+      border: 1px solid #ddd; 
+      border-radius: 4px; 
+      font-size: 1rem; 
+      transition: all 0.2s ease;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--main-blue);
+      box-shadow: 0 0 0 3px #4f8cff22;
+    }
+    button { 
+      background: var(--main-blue); 
+      color: #fff; 
+      border: none; 
+      border-radius: 4px; 
+      padding: 0.3rem 1.1rem; 
+      cursor: pointer; 
+      font-size: 1rem; 
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px #4f8cff33;
+    }
+    button:hover { 
+      background: var(--main-purple); 
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px #a259ff33;
+    }
+    button:active {
+      transform: translateY(1px);
+    }
+    .import-export { display: flex; gap: 0.5rem; }
+    .modal-bg { 
+      display: none; 
+      position: fixed; 
+      left:0; 
+      top:0; 
+      width:100vw; 
+      height:100vh; 
+      background:rgba(0,0,0,0.3); 
+      z-index: 2000; 
+      align-items: center; 
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    .modal-bg.active { display: flex; }
+    .modal { 
+      background: #fff; 
+      padding: 2rem; 
+      border-radius: 8px; 
+      box-shadow: 0 8px 32px #0003; 
+      min-width: 260px;
+      max-width: 400px;
+      width: 90%;
+      transform: scale(0.9);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    .modal-bg.active .modal {
+      transform: scale(1);
+      opacity: 1;
+    }
+    .modal input { width: 100%; margin-top: 1rem; }
+    .modal .favicon-row { display: flex; align-items: center; gap: 1rem; margin-top: 1rem;}
+    .modal .favicon-preview { width: 32px; height: 32px; border-radius: 6px; background: #f0f0f0; object-fit: contain; border: 1px solid #eee;}
+    .modal .change-favicon-btn { background: var(--main-blue); color: #fff; border: none; border-radius: 7px; padding: 0.3rem 1.1rem; font-size: 0.98rem; cursor: pointer;}
+    .modal .change-favicon-btn:active { background: var(--main-purple);}
+    
+    /* 密码输入框样式 */
+    #passwordInput {
+      padding: 0.7rem;
+      font-size: 1.1rem;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      margin: 1rem 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #passwordInput:focus {
+      border-color: var(--main-blue);
+      box-shadow: 0 0 0 3px #4f8cff22;
+      outline: none;
+    }
+    
+    /* 动画效果 */
+    .fade-in {
+      animation: fadeIn 0.3s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* 移动设备适配 */
+    @media (max-width: 800px) {
+      .bookmark-list { grid-template-columns: repeat(2, 1fr);}
+      .bookmark-title { font-size: 0.98rem; max-width: 80%; }
+      .bookmark-favicon { width: 28px; height: 28px;}
+      .bookmark-item { min-width: 0; max-width: 100%; }
+      header { padding: 1rem; }
+      .settings-btn { right: 16px; }
+      .toggle-favicon-btn { right: 84px; } /* 调整移动端有图/无图按钮位置 */
+    }
+    @media (max-width: 500px) {
+      .bookmark-list { grid-template-columns: repeat(1, 1fr);}
+      .group-tabs { min-width: 0; }
+      main { padding: 0.5rem; }
+      .bookmark-title { font-size: 0.95rem; max-width: 90%; }
+      .bookmark-favicon { width: 18px; height: 18px;}
+      .bookmark-item { min-width: 0; max-width: 100%; }
+      .admin-toolbar { flex-direction: column; }
+      .admin-toolbar button, .admin-toolbar input { width: 100%; margin-bottom: 0.5rem; }
+      .modal { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span>书签卡片</span>
+    <button class="toggle-favicon-btn" id="toggleFaviconBtn">无图</button>
+    <button class="settings-btn" id="settingsBtn" title="后台管理/返回前台"><span>⚙️</span></button>
+  </header>
+  <main>
+    <div class="group-tabs-wrapper">
+      <div class="group-tabs" id="groupTabs"></div>
+    </div>
+    <div class="group-card" id="groupCard"></div>
+    <!-- 后台管理面板 -->
+    <div class="admin-panel" id="adminPanel">
+      <div class="admin-toolbar">
+        <form class="form-row" id="catForm" style="display:inline;">
+          <input type="text" id="catName" placeholder="新分组名" required>
+          <button type="submit">添加分组</button>
+        </form>
+        <div class="import-export">
+          <button type="button" id="exportBtn">导出书签</button>
+          <button type="button" id="importBtn">导入书签</button>
+          <button type="button" onclick="clearAllBookmarks()">清空所有书签</button>
+          
+        </div>
+      </div>
+    </div>
+  </main>
+  <!-- 密码弹窗 -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" id="modalDialog">
+      <div id="modalContent"></div>
+    </div>
+  </div>
+  
+  <!-- 隐藏的文件输入 -->
+  <input type="file" id="importFile" accept=".json" style="display:none;">
+  
+  <script>
+    // favicon.im 作为默认
+    function getDefaultFavicon(url) {
+      try {
+        const u = new URL(url);
+        return `https://favicon.im/${u.hostname}`;
+      } catch {
+        return defaultFavicon;
+      }
+    }
+    // 8种favicon部署方式
+    function getFaviconUrls(url) {
+      let u;
+      try { u = new URL(url); } catch { return []; }
+      const domain = u.hostname;
+      const origin = u.origin;
+      return [
+        `https://favicon.im/${domain}`,
+        `https://favicon.cccyun.cc/${domain}`,
+        `${origin}/favicon.ico`,
+        `https://www.google.com/s2/favicons?domain=${domain}`,
+        `https://icon.horse/icon/${domain}`,
+        `https://unavatar.io/${domain}`,
+        `https://favicon.yandex.net/favicon/${domain}`,
+        `https://icons.duckduckgo.com/ip3/${domain}.ico`
+      ];
+    }
+    const defaultFavicon = 'data:image/svg+xml;utf8,<svg width="32" height="32" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="19" cy="19" r="18" fill="%23e0e7ef" stroke="%234f8cff" stroke-width="2"/><ellipse cx="19" cy="19" rx="13" ry="18" fill="none" stroke="%234f8cff" stroke-width="1.5"/><ellipse cx="19" cy="19" rx="18" ry="7" fill="none" stroke="%234f8cff" stroke-width="1.5"/><circle cx="19" cy="19" r="2.5" fill="%234f8cff"/></svg>';
+
+    function getData() {
+      // 从localStorage获取数据，并确保返回的是有序数组
+      const storedData = localStorage.getItem('bookmarks_data');
+      if (!storedData) return { order: [], groups: {} };
+      
+      try {
+        const data = JSON.parse(storedData);
+        return {
+          order: data.order || [],
+          groups: data.groups || {}
+        };
+      } catch {
+        // 兼容旧数据格式
+        const oldGroups = JSON.parse(storedData);
+        const order = Object.keys(oldGroups);
+        return {
+          order,
+          groups: oldGroups
+        };
+      }
+    }
+    
+    function setData(data) {
+      localStorage.setItem('bookmarks_data', JSON.stringify(data));
+    }
+
+    let appData = getData();
+    let isAdmin = false;
+    let currentCat = appData.order.length > 0 ? appData.order[0] : '';
+    let showFavicon = localStorage.getItem('showFavicon') !== 'false';
+
+    function renderTabs() {
+      const groupTabs = document.getElementById('groupTabs');
+      groupTabs.innerHTML = '';
+      const order = appData.order;
+      
+      if (order.length === 0) {
+        groupTabs.innerHTML = '<div style="color:#888;">暂无分组，请在后台添加</div>';
+        document.getElementById('groupCard').innerHTML = '';
+        return;
+      }
+      
+      order.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'group-tab' + (cat === currentCat ? ' active' : '');
+        btn.textContent = cat;
+        btn.onclick = () => { currentCat = cat; renderTabs(); renderGroupCard(); };
+        groupTabs.appendChild(btn);
+      });
+      
+      setTimeout(() => {
+        const active = groupTabs.querySelector('.group-tab.active');
+        if (active) {
+          const wrapper = document.querySelector('.group-tabs-wrapper');
+          const left = active.offsetLeft - wrapper.offsetWidth / 2 + active.offsetWidth / 2;
+          wrapper.scrollTo({ left, behavior: 'smooth' });
+        }
+      }, 0);
+    }
+
+    function renderGroupCard() {
+      const groupCard = document.getElementById('groupCard');
+      if (!currentCat || !appData.groups[currentCat]) {
+        groupCard.innerHTML = '<div style="color:#888;">请选择分组</div>';
+        return;
+      }
+      
+      const cat = currentCat;
+      let html = '';
+      html += `<div class="group-title">`;
+      if (isAdmin) {
+        html += `<input type="text" id="catTitleInput" value="${cat}" style="font-size:1.1rem;width:7em;">`;
+      } else {
+        html += cat;
+      }
+      if (isAdmin) {
+        html += `<span class="group-actions">
+          <button type="button" onclick="deleteCat('${cat}')">🗑️</button>
+          <button type="button" onclick="moveCat('${cat}',-1)">↑</button>
+          <button type="button" onclick="moveCat('${cat}',1)">↓</button>
+        </span>`;
+      }
+      html += `</div>`;
+
+      html += `<ul class="bookmark-list">`;
+      (appData.groups[cat] || []).forEach((bm, idx) => {
+        html += `<li class="bookmark-item" onclick="openBookmark('${bm.url}')">`;
+        html += `<div class="bookmark-main-row">`;
+        if (showFavicon) {
+          html += `<img class="bookmark-favicon" src="${bm.favicon || getDefaultFavicon(bm.url) || defaultFavicon}" onerror="this.src='${defaultFavicon}`;
+        }
+        html += `<span class="bookmark-title">${bm.name}</span>`;
+        html += `</div>`;
+        if (isAdmin) {
+          html += `<div class="bookmark-actions">
+            <button type="button" onclick="editBookmark('${cat}',${idx})" title="编辑">✏️</button>
+            <button type="button" onclick="deleteBookmark('${cat}',${idx})" title="删除">🗑️</button>
+            <button type="button" onclick="moveBookmark('${cat}',${idx},-1)" title="上移">↑</button>
+            <button type="button" onclick="moveBookmark('${cat}',${idx},1)" title="下移">↓</button>
+          </div>`;
+        }
+        html += `</li>`;
+      });
+      if (isAdmin) {
+        html += `<li style="background:none;border:none;box-shadow:none;">
+          <form class="form-row" onsubmit="addBookmark(event,'${cat}')">
+            <input class="add-name" type="text" placeholder="书签名" required style="width:5em;">
+            <input class="add-url" type="url" placeholder="https://example.com" required style="width:10em;">
+            <input class="add-favicon" type="text" placeholder="Favicon URL（可选）" style="width:8em;">
+            <button type="submit">添加</button>
+          </form>
+        </li>`;
+      }
+      html += `</ul>`;
+      groupCard.innerHTML = html;
+
+      if (isAdmin) {
+        document.getElementById('catTitleInput').onchange = function() {
+          const newName = this.value.trim();
+          if (!newName || appData.groups[newName]) { this.value = cat; return; }
+          
+          // 更新分组名称
+          appData.groups[newName] = appData.groups[cat];
+          delete appData.groups[cat];
+          
+          // 更新分组顺序
+          const order = appData.order;
+          const idx = order.indexOf(cat);
+          if (idx !== -1) {
+            order.splice(idx, 1);
+            order.splice(idx, 0, newName);
+          }
+          
+          currentCat = newName;
+          setData(appData);
+          renderTabs();
+          renderGroupCard();
+        };
+      }
+    }
+
+    // 分类操作
+    function deleteCat(cat) {
+      if (confirm('确定删除分组及其所有书签？')) {
+        // 从分组顺序中移除
+        const order = appData.order;
+        const idx = order.indexOf(cat);
+        if (idx !== -1) {
+          order.splice(idx, 1);
+          
+          // 如果删除的是当前分组，切换到下一个分组
+          if (currentCat === cat && order.length > 0) {
+            currentCat = order[0];
+          }
+        }
+        
+        // 从分组数据中移除
+        delete appData.groups[cat];
+        
+        setData(appData);
+        renderTabs();
+        renderGroupCard();
+      }
+    }
+    
+    function moveCat(cat, dir) {
+      const order = appData.order;
+      const idx = order.indexOf(cat);
+      
+      if (idx === -1) return;
+      
+      // 检查是否可以移动
+      if ((dir === -1 && idx === 0) || (dir === 1 && idx === order.length - 1)) return;
+      
+      // 移动分组
+      order.splice(idx, 1);
+      order.splice(idx + dir, 0, cat);
+      
+      // 如果移动的是当前分组，更新currentCat
+      if (currentCat === cat) {
+        currentCat = order[idx];
+      }
+      
+      setData(appData);
+      renderTabs();
+      renderGroupCard();
+    }
+
+    // 书签操作
+    function editBookmark(cat, idx) {
+      const bm = appData.groups[cat][idx];
+      showEditBookmarkModal(cat, idx, bm);
+    }
+    function showEditBookmarkModal(cat, idx, bm) {
+      let faviconCycleIdx = 0;
+      let faviconCycleUrls = getFaviconUrls(bm.url);
+      let modalHtml = `
+        <div>编辑书签</div>
+        <input type="text" id="editName" value="${bm.name}" placeholder="书签名" style="margin-top:1rem;">
+        <input type="url" id="editUrl" value="${bm.url}" placeholder="URL">
+        <div class="favicon-row">
+          <img id="editFaviconPreview" class="favicon-preview" src="${bm.favicon || faviconCycleUrls[0] || defaultFavicon}" onerror="this.src='${defaultFavicon}
+          <button type="button" class="change-favicon-btn" id="changeFaviconBtn">更换</button>
+        </div>
+        <input type="text" id="editFavicon" value="${bm.favicon || ''}" placeholder="Favicon URL（可选）">
+        <div style="margin-top:1rem;display:flex;gap:1rem;justify-content:flex-end;">
+          <button onclick="saveEditBookmark('${cat}',${idx})">保存</button>
+          <button onclick="closeModal()">取消</button>
+        </div>
+      `;
+      document.getElementById('modalContent').innerHTML = modalHtml;
+      document.getElementById('modalBg').classList.add('active');
+      // 更换按钮逻辑
+      document.getElementById('changeFaviconBtn').onclick = function() {
+        faviconCycleIdx = (faviconCycleIdx + 1) % faviconCycleUrls.length;
+        document.getElementById('editFavicon').value = faviconCycleUrls[faviconCycleIdx];
+        document.getElementById('editFaviconPreview').src = faviconCycleUrls[faviconCycleIdx];
+        if (faviconCycleIdx === 0) alert('已尝试全部部署方式');
+      };
+      document.getElementById('editFavicon').oninput = function() {
+        document.getElementById('editFaviconPreview').src = this.value || faviconCycleUrls[0] || defaultFavicon;
+      };
+    }
+    function saveEditBookmark(cat, idx) {
+      const name = document.getElementById('editName').value.trim();
+      const url = document.getElementById('editUrl').value.trim();
+      const favicon = document.getElementById('editFavicon').value.trim();
+      if (!name || !url) return;
+      appData.groups[cat][idx] = { name, url, favicon };
+      setData(appData);
+      closeModal();
+      renderTabs();
+      renderGroupCard();
+    }
+    function closeModal() {
+      document.getElementById('modalBg').classList.remove('active');
+    }
+    function deleteBookmark(cat, idx) {
+      if (confirm('确定删除该书签？')) {
+        appData.groups[cat].splice(idx, 1);
+        setData(appData);
+        renderGroupCard();
+      }
+    }
+    function moveBookmark(cat, idx, dir) {
+      const arr = appData.groups[cat];
+      if ((dir === -1 && idx === 0) || (dir === 1 && idx === arr.length - 1)) return;
+      [arr[idx], arr[idx+dir]] = [arr[idx+dir], arr[idx]];
+      setData(appData);
+      renderGroupCard();
+    }
+    function addBookmark(e, cat) {
+      e.preventDefault();
+      const form = e.target;
+      const name = form.querySelector('.add-name').value.trim();
+      const url = form.querySelector('.add-url').value.trim();
+      const favicon = form.querySelector('.add-favicon').value.trim();
+      if (!name || !url) return;
+      appData.groups[cat].push({ name, url, favicon });
+      setData(appData);
+      form.reset();
+      renderGroupCard();
+    }
+
+    // 添加分组
+    document.getElementById('catForm').onsubmit = e => {
+      e.preventDefault();
+      const name = document.getElementById('catName').value.trim();
+      
+      // 检查分组名是否有效
+      if (!name || appData.groups[name]) return;
+      
+      const order = appData.order;
+      const currentIndex = order.indexOf(currentCat);
+      
+      // 在当前分组后插入新分组
+      if (currentIndex !== -1) {
+        order.splice(currentIndex + 1, 0, name);
+      } else {
+        // 如果当前分组不存在，添加到末尾
+        order.push(name);
+      }
+      
+      // 创建新分组
+      appData.groups[name] = [];
+      currentCat = name;
+      
+      setData(appData);
+      document.getElementById('catName').value = '';
+      renderTabs();
+      renderGroupCard();
+    };
+
+    // 导出选项
+    function showExportOptions() {
+      const modalHtml = `
+        <div>请选择导出范围：</div>
+        <div style="margin-top:1.5rem;display:flex;flex-direction:column;gap:1rem;">
+          <button onclick="exportBookmarks('all')">导出全部书签</button>
+          <button onclick="exportBookmarks('current')">导出当前分组</button>
+          <button onclick="closeModal()" style="background:#eee;color:#666;">取消</button>
+        </div>
+      `;
+      document.getElementById('modalContent').innerHTML = modalHtml;
+      document.getElementById('modalBg').classList.add('active');
+    }
+
+    function exportBookmarks(scope) {
+      let exportData;
+      closeModal();
+      
+      if (scope === 'all') {
+        exportData = {
+          order: appData.order,
+          groups: appData.groups
+        };
+      } else if (scope === 'current') {
+        if (!currentCat || !appData.groups[currentCat]) {
+          alert('请先选择一个分组！');
+          return;
+        }
+        exportData = {
+          order: [currentCat],
+          groups: {
+            [currentCat]: appData.groups[currentCat]
+          }
+        };
+      }
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = scope === 'all' ? 'bookmarks_all.json' : `bookmarks_${currentCat}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // 导入选项
+    function showImportOptions() {
+      const modalHtml = `
+        <div>请选择导入方式：</div>
+        <div style="margin-top:1.5rem;display:flex;flex-direction:column;gap:1rem;">
+          <button onclick="startImport('overwrite')">覆盖导入（替换现有数据）</button>
+          <button onclick="startImport('merge')">合并导入（添加到现有数据）</button>
+          <button onclick="closeModal()" style="background:#eee;color:#666;">取消</button>
+        </div>
+      `;
+      document.getElementById('modalContent').innerHTML = modalHtml;
+      document.getElementById('modalBg').classList.add('active');
+    }
+    
+    function startImport(mode) {
+      closeModal();
+      document.getElementById('importFile').onchange = e => handleImport(e, mode);
+      document.getElementById('importFile').click();
+    }
+    
+    function handleImport(e, mode) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = evt => {
+        try {
+          const json = JSON.parse(evt.target.result);
+          if (typeof json !== 'object') throw new Error('无效的JSON格式');
+          
+          if (mode === 'overwrite') {
+            // 覆盖模式 - 完全替换现有数据
+            appData = {
+              order: json.order || Object.keys(json),
+              groups: json.groups || json
+            };
+            alert('书签已成功覆盖导入！');
+          } else if (mode === 'merge') {
+            // 合并模式 - 添加到现有数据
+            const importData = {
+              order: json.order || Object.keys(json),
+              groups: json.groups || json
+            };
+            
+            // 合并分组
+            importData.order.forEach(cat => {
+              if (appData.groups[cat]) {
+                // 如果分组已存在，合并书签
+                appData.groups[cat] = [...appData.groups[cat], ...importData.groups[cat]];
+              } else {
+                // 如果分组不存在，创建新分组
+                appData.groups[cat] = importData.groups[cat];
+                appData.order.push(cat);
+              }
+            });
+            alert('书签已成功合并导入！');
+          }
+          
+          setData(appData);
+          renderTabs();
+          renderGroupCard();
+          
+          // 重置文件输入
+          e.target.value = '';
+        } catch (error) {
+          alert('导入失败: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // 清空所有书签
+    function clearAllBookmarks() {
+      if (confirm('确定清空所有书签？此操作不可恢复！')) {
+        appData = { order: [], groups: {} };
+        currentCat = '';
+        setData(appData);
+        renderTabs();
+        renderGroupCard();
+      }
+    }
+
+    // 清空当前分组
+    function clearCurrentGroup() {
+      if (!currentCat || !appData.groups[currentCat]) return;
+      if (confirm('确定清空当前分组所有书签？此操作不可恢复！')) {
+        appData.groups[currentCat] = [];
+        setData(appData);
+        renderGroupCard();
+      }
+    }
+
+    // 切换管理员模式
+    document.getElementById('settingsBtn').onclick = function() {
+      isAdmin = !isAdmin;
+      document.getElementById('adminPanel').classList.toggle('active', isAdmin);
+      document.getElementById('settingsBtn').title = isAdmin ? '返回前台' : '后台管理';
+      renderGroupCard();
+    };
+
+    // 切换显示/隐藏favicon
+    document.getElementById('toggleFaviconBtn').onclick = function() {
+      showFavicon = !showFavicon;
+      localStorage.setItem('showFavicon', showFavicon);
+      document.getElementById('toggleFaviconBtn').textContent = showFavicon ? '无图' : '有图';
+      renderGroupCard();
+    };
+
+    // 打开书签链接
+    function openBookmark(url) {
+      if (!isAdmin) {
+        window.open(url, '_blank');
+      }
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      renderTabs();
+      renderGroupCard();
+      document.getElementById('toggleFaviconBtn').textContent = showFavicon ? '无图' : '有图';
+      
+      // 绑定导出导入按钮
+      document.getElementById('exportBtn').onclick = showExportOptions;
+      document.getElementById('importBtn').onclick = showImportOptions;
+    });
+  </script>
+</body>
+</html>
