@@ -63,7 +63,7 @@
       color: var(--main-blue);
       position: fixed;
       top: 22px;
-      right: 100px; /* 左移20px */
+      right: 100px;
       z-index: 1001;
       transition: all 0.2s ease;
     }
@@ -353,7 +353,7 @@
       .bookmark-item { min-width: 0; max-width: 100%; }
       header { padding: 1rem; }
       .settings-btn { right: 16px; }
-      .toggle-favicon-btn { right: 84px; } /* 调整移动端有图/无图按钮位置 */
+      .toggle-favicon-btn { right: 84px; }
     }
     @media (max-width: 500px) {
       .bookmark-list { grid-template-columns: repeat(1, 1fr);}
@@ -390,7 +390,7 @@
           <button type="button" id="exportBtn">导出书签</button>
           <button type="button" id="importBtn">导入书签</button>
           <button type="button" onclick="clearAllBookmarks()">清空所有书签</button>
-          
+          <button type="button" onclick="clearCurrentGroup()">清空当前分组</button>
         </div>
       </div>
     </div>
@@ -435,7 +435,6 @@
     const defaultFavicon = 'data:image/svg+xml;utf8,<svg width="32" height="32" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="19" cy="19" r="18" fill="%23e0e7ef" stroke="%234f8cff" stroke-width="2"/><ellipse cx="19" cy="19" rx="13" ry="18" fill="none" stroke="%234f8cff" stroke-width="1.5"/><ellipse cx="19" cy="19" rx="18" ry="7" fill="none" stroke="%234f8cff" stroke-width="1.5"/><circle cx="19" cy="19" r="2.5" fill="%234f8cff"/></svg>';
 
     function getData() {
-      // 从localStorage获取数据，并确保返回的是有序数组
       const storedData = localStorage.getItem('bookmarks_data');
       if (!storedData) return { order: [], groups: {} };
       
@@ -446,7 +445,6 @@
           groups: data.groups || {}
         };
       } catch {
-        // 兼容旧数据格式
         const oldGroups = JSON.parse(storedData);
         const order = Object.keys(oldGroups);
         return {
@@ -523,7 +521,7 @@
         html += `<li class="bookmark-item" onclick="openBookmark('${bm.url}')">`;
         html += `<div class="bookmark-main-row">`;
         if (showFavicon) {
-          html += `<img class="bookmark-favicon" src="${bm.favicon || getDefaultFavicon(bm.url) || defaultFavicon}" onerror="this.src='${defaultFavicon}`;
+          html += `<img class="bookmark-favicon" src="${bm.favicon || getDefaultFavicon(bm.url) || defaultFavicon}" onerror="this.src='${defaultFavicon}'">`;
         }
         html += `<span class="bookmark-title">${bm.name}</span>`;
         html += `</div>`;
@@ -555,11 +553,9 @@
           const newName = this.value.trim();
           if (!newName || appData.groups[newName]) { this.value = cat; return; }
           
-          // 更新分组名称
           appData.groups[newName] = appData.groups[cat];
           delete appData.groups[cat];
           
-          // 更新分组顺序
           const order = appData.order;
           const idx = order.indexOf(cat);
           if (idx !== -1) {
@@ -578,21 +574,15 @@
     // 分类操作
     function deleteCat(cat) {
       if (confirm('确定删除分组及其所有书签？')) {
-        // 从分组顺序中移除
         const order = appData.order;
         const idx = order.indexOf(cat);
         if (idx !== -1) {
           order.splice(idx, 1);
-          
-          // 如果删除的是当前分组，切换到下一个分组
           if (currentCat === cat && order.length > 0) {
             currentCat = order[0];
           }
         }
-        
-        // 从分组数据中移除
         delete appData.groups[cat];
-        
         setData(appData);
         renderTabs();
         renderGroupCard();
@@ -602,21 +592,13 @@
     function moveCat(cat, dir) {
       const order = appData.order;
       const idx = order.indexOf(cat);
-      
       if (idx === -1) return;
-      
-      // 检查是否可以移动
       if ((dir === -1 && idx === 0) || (dir === 1 && idx === order.length - 1)) return;
-      
-      // 移动分组
       order.splice(idx, 1);
       order.splice(idx + dir, 0, cat);
-      
-      // 如果移动的是当前分组，更新currentCat
       if (currentCat === cat) {
         currentCat = order[idx];
       }
-      
       setData(appData);
       renderTabs();
       renderGroupCard();
@@ -635,7 +617,7 @@
         <input type="text" id="editName" value="${bm.name}" placeholder="书签名" style="margin-top:1rem;">
         <input type="url" id="editUrl" value="${bm.url}" placeholder="URL">
         <div class="favicon-row">
-          <img id="editFaviconPreview" class="favicon-preview" src="${bm.favicon || faviconCycleUrls[0] || defaultFavicon}" onerror="this.src='${defaultFavicon}
+          <img id="editFaviconPreview" class="favicon-preview" src="${bm.favicon || faviconCycleUrls[0] || defaultFavicon}" onerror="this.src='${defaultFavicon}'">
           <button type="button" class="change-favicon-btn" id="changeFaviconBtn">更换</button>
         </div>
         <input type="text" id="editFavicon" value="${bm.favicon || ''}" placeholder="Favicon URL（可选）">
@@ -646,7 +628,6 @@
       `;
       document.getElementById('modalContent').innerHTML = modalHtml;
       document.getElementById('modalBg').classList.add('active');
-      // 更换按钮逻辑
       document.getElementById('changeFaviconBtn').onclick = function() {
         faviconCycleIdx = (faviconCycleIdx + 1) % faviconCycleUrls.length;
         document.getElementById('editFavicon').value = faviconCycleUrls[faviconCycleIdx];
@@ -702,25 +683,16 @@
     document.getElementById('catForm').onsubmit = e => {
       e.preventDefault();
       const name = document.getElementById('catName').value.trim();
-      
-      // 检查分组名是否有效
       if (!name || appData.groups[name]) return;
-      
       const order = appData.order;
       const currentIndex = order.indexOf(currentCat);
-      
-      // 在当前分组后插入新分组
       if (currentIndex !== -1) {
         order.splice(currentIndex + 1, 0, name);
       } else {
-        // 如果当前分组不存在，添加到末尾
         order.push(name);
       }
-      
-      // 创建新分组
       appData.groups[name] = [];
       currentCat = name;
-      
       setData(appData);
       document.getElementById('catName').value = '';
       renderTabs();
@@ -746,20 +718,16 @@
       closeModal();
       
       if (scope === 'all') {
-        exportData = {
-          order: appData.order,
-          groups: appData.groups
-        };
+        // 直接导出groups对象，与用户示例格式一致
+        exportData = appData.groups;
       } else if (scope === 'current') {
         if (!currentCat || !appData.groups[currentCat]) {
           alert('请先选择一个分组！');
           return;
         }
+        // 导出当前分组，格式为 { 分组名: 书签数组 }
         exportData = {
-          order: [currentCat],
-          groups: {
-            [currentCat]: appData.groups[currentCat]
-          }
+          [currentCat]: appData.groups[currentCat]
         };
       }
       
@@ -795,35 +763,37 @@
     function handleImport(e, mode) {
       const file = e.target.files[0];
       if (!file) return;
-      
       const reader = new FileReader();
       reader.onload = evt => {
         try {
           const json = JSON.parse(evt.target.result);
           if (typeof json !== 'object') throw new Error('无效的JSON格式');
           
-          if (mode === 'overwrite') {
-            // 覆盖模式 - 完全替换现有数据
-            appData = {
-              order: json.order || Object.keys(json),
-              groups: json.groups || json
+          // 处理导入数据的格式转换
+          let importedData;
+          if (json.order && json.groups) {
+            // 如果导入的是包含order和groups的结构
+            importedData = {
+              order: json.order,
+              groups: json.groups
             };
+          } else {
+            // 如果导入的是简单分组对象
+            importedData = {
+              order: Object.keys(json),
+              groups: json
+            };
+          }
+          
+          if (mode === 'overwrite') {
+            appData = importedData;
             alert('书签已成功覆盖导入！');
           } else if (mode === 'merge') {
-            // 合并模式 - 添加到现有数据
-            const importData = {
-              order: json.order || Object.keys(json),
-              groups: json.groups || json
-            };
-            
-            // 合并分组
-            importData.order.forEach(cat => {
+            importedData.order.forEach(cat => {
               if (appData.groups[cat]) {
-                // 如果分组已存在，合并书签
-                appData.groups[cat] = [...appData.groups[cat], ...importData.groups[cat]];
+                appData.groups[cat] = [...appData.groups[cat], ...importedData.groups[cat]];
               } else {
-                // 如果分组不存在，创建新分组
-                appData.groups[cat] = importData.groups[cat];
+                appData.groups[cat] = importedData.groups[cat];
                 appData.order.push(cat);
               }
             });
@@ -831,10 +801,9 @@
           }
           
           setData(appData);
+          currentCat = appData.order.length > 0 ? appData.order[0] : '';
           renderTabs();
           renderGroupCard();
-          
-          // 重置文件输入
           e.target.value = '';
         } catch (error) {
           alert('导入失败: ' + error.message);
@@ -892,8 +861,6 @@
       renderTabs();
       renderGroupCard();
       document.getElementById('toggleFaviconBtn').textContent = showFavicon ? '无图' : '有图';
-      
-      // 绑定导出导入按钮
       document.getElementById('exportBtn').onclick = showExportOptions;
       document.getElementById('importBtn').onclick = showImportOptions;
     });
