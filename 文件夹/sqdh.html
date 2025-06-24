@@ -246,6 +246,13 @@
             color: #fff;
             cursor: pointer;
         }
+        /* Mobile Styles */
+        @media (max-width: 600px) {
+            #bookmark-list {
+                grid-template-columns: repeat(2, 1fr);
+                padding-bottom: 5vh; /* Add space at the bottom */
+            }
+        }
     </style>
 </head>
 <body>
@@ -355,6 +362,7 @@
         }
 
         function createBookmark(bookmarkData, index) {
+            const { iconsVisible } = getBookmarkData();
             const bookmarkList = document.getElementById('bookmark-list');
             const bookmarkEl = document.createElement('div');
             bookmarkEl.className = 'bookmark';
@@ -362,18 +370,21 @@
 
             const img = document.createElement('img');
             img.className = 'bookmark-icon';
-            const domain = getDomain(bookmarkData.url);
-            let providerIndex = 0;
-            img.src = bookmarkData.icon || (domain ? faviconProviders[0](domain) : DEFAULT_ICON);
-            img.onerror = function() {
-                providerIndex++;
-                if (providerIndex < faviconProviders.length && domain) {
-                    this.src = faviconProviders[providerIndex](domain);
-                } else {
-                    this.src = DEFAULT_ICON;
-                    this.onerror = null;
-                }
-            };
+            
+            if (iconsVisible) {
+                const domain = getDomain(bookmarkData.url);
+                let providerIndex = 0;
+                img.src = bookmarkData.icon || (domain ? faviconProviders[0](domain) : DEFAULT_ICON);
+                img.onerror = function() {
+                    providerIndex++;
+                    if (providerIndex < faviconProviders.length && domain) {
+                        this.src = faviconProviders[providerIndex](domain);
+                    } else {
+                        this.src = DEFAULT_ICON;
+                        this.onerror = null;
+                    }
+                };
+            }
             
             const h2 = document.createElement('h2');
             const a = document.createElement('a');
@@ -636,7 +647,19 @@
             let { bookmarks, groupOrder, iconsVisible } = getBookmarkData();
             iconsVisible = !iconsVisible;
             saveBookmarkData(bookmarks, groupOrder, iconsVisible);
+            
             applyIconVisibility();
+
+            if (!iconsVisible) {
+                // Stop loading images by clearing src
+                document.querySelectorAll('.bookmark-icon').forEach(img => {
+                    img.onerror = null;
+                    img.src = '';
+                });
+            } else {
+                // Reload bookmarks to show icons
+                loadBookmarks();
+            }
         });
 
         // Init
