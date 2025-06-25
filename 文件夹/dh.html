@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
-    /* 新增搜索结果的样式 */
+    /* 搜索结果样式 */
     .search-results {
       position: absolute;
       top: 100%;
@@ -65,7 +65,7 @@
       white-space: nowrap;
     }
     
-    /* 新增：有图/无图切换按钮样式 */
+    /* 有图/无图切换按钮 */
     #toggleThumbnailsBtn {
       border-radius: 8px;
       border: 1px solid #ddd;
@@ -82,7 +82,7 @@
       box-shadow: 0 2px 8px rgba(75, 0, 130, 0.3);
     }
     
-    /* 新增：进入后台按钮样式 */
+    /* 进入后台按钮 */
     #adminLoginBtn {
       color: #4B0082;
       font-weight: 600;
@@ -98,7 +98,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
-    /* 新增：书签图标样式 */
+    /* 书签图标样式 */
     .site-card-icon {
       width: 24px;
       height: 24px;
@@ -106,7 +106,7 @@
       object-fit: contain;
     }
     
-    /* 新增：图标按钮样式 */
+    /* 图标按钮样式 */
     .admin-group-item button,
     .admin-table button {
       background: none;
@@ -137,7 +137,7 @@
       color: #3498db;
     }
     
-    /* 新增：后台登录样式 */
+    /* 后台登录样式 */
     .login-overlay {
       position: fixed;
       top: 0;
@@ -193,7 +193,24 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     
-    /* 调整后的书签卡片样式 */
+    /* 图标加载状态 */
+    .favicon-loading {
+      position: relative;
+      display: inline-block;
+    }
+    .favicon-loading::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.8) url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzQwM2YzZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iNCIgZmlsbD0iIzQwM2YzZiIvPjxwYXRoIGQ9Ik0xNiA0VjBMMCAxNiA0IDE2VjR6IiBmaWxsPSIjNDAzZjNmIi8+PC9zdmc+') no-repeat center;
+      background-size: 20px 20px;
+      border-radius: 4px;
+    }
+    
+    /* 书签卡片样式 */
     .site-card {
       background: var(--group-bg-color);
       background-image: linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 75%, transparent 75%, transparent);
@@ -225,6 +242,11 @@
       min-width: 0;
       margin-bottom: 0;
     }
+    .site-card.no-icon .title {
+      margin-left: 0;
+      text-align: center;
+      width: 100%;
+    }
     .site-card .title {
       font-weight: 700;
       font-size: 0.95rem;
@@ -237,7 +259,7 @@
       margin-left: 8px;
     }
     
-    /* 其他原有样式保持不变 */
+    /* 其他样式 */
     html, body { height: 100%; margin: 0; }
     body {
       background: #f5f6fa;
@@ -272,10 +294,10 @@
     .admin-group-item button:hover { opacity: 0.8; }
     .admin-table-container { flex: 1; overflow-x: auto; }
     .admin-table { min-width: 800px; }
-    .admin-table th, .admin-table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+    .admin-table th, .admin-table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; padding: 8px; }
     .form-group label { font-weight: 600; margin-bottom: 5px; }
     .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-    /* 新增：后台分组和书签上下箭头样式 */
+    /* 后台箭头样式 */
     .admin-group-item .btn-arrow {
       font-size: 1.3em;
       padding: 2px 10px;
@@ -300,6 +322,67 @@
     .admin-table .btn-arrow.up { background: #3498db; color: #fff; }
     .admin-table .btn-arrow.down { background: #ff9800; color: #fff; }
     .admin-table .btn-arrow:hover { filter: brightness(0.9); }
+    
+    /* 复制按钮样式 */
+    .copy-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #4B0082;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: background 0.2s;
+      z-index: 1;
+    }
+    .copy-btn:hover {
+      background: #6A0DAD;
+    }
+    
+    /* 缩略图预览样式 */
+    .favicon-preview {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      object-fit: contain;
+      margin-right: 5px;
+    }
+    
+    /* 复制提示样式 */
+    .copy-toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 4px;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .copy-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* 优化输入框布局 */
+    .form-group {
+      margin-bottom: 12px;
+    }
+    .form-group input, .form-group select {
+      font-size: 0.9rem;
+    }
+    .admin-group-item {
+      font-size: 0.9rem;
+    }
+    
     @media (max-width: 992px) {
       .card-list { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
       .sidebar { width: 180px; padding: 20px 0 0 0; }
@@ -320,10 +403,17 @@
       .search-bar { flex-wrap: wrap; }
       .search-bar input { flex: 1 1 100%; }
       .search-bar button, .search-bar .btn-link { flex: 1; margin-top: 8px; }
+      .copy-btn {
+        padding: 3px 6px;
+        font-size: 0.65rem;
+      }
     }
     @media (max-width: 480px) {
       .card-list { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
       .admin-section { padding: 15px; }
+      .form-group input, .form-group select {
+        font-size: 0.85rem;
+      }
     }
   </style>
 </head>
@@ -364,13 +454,18 @@
             <label for="bookmarkName" class="form-label">名称</label>
             <input type="text" class="form-control" id="bookmarkName" required>
           </div>
-          <div class="col-md-6">
+          <div class="col-md-6 position-relative">
             <label for="bookmarkUrl" class="form-label">URL</label>
             <input type="url" class="form-control" id="bookmarkUrl" onblur="fetchFavicon()" required>
+            <button type="button" class="copy-btn" id="copyUrlBtn">复制</button>
           </div>
           <div class="col-md-6">
             <label for="bookmarkFavicon" class="form-label">图标URL</label>
-            <input type="url" class="form-control" id="bookmarkFavicon">
+            <div class="d-flex">
+              <input type="url" class="form-control" id="bookmarkFavicon">
+              <img src="" alt="图标预览" class="favicon-preview" id="favicon-preview">
+              <a href="https://file.baoge.hidns.co/文件夹/slt1" target="_blank" class="btn btn-primary change-favicon-btn" style="white-space: nowrap;">优选缩略图</a>
+            </div>
           </div>
           <div class="col-md-6">
             <label for="bookmarkGroup" class="form-label">分组</label>
@@ -415,6 +510,9 @@
       </div>
     </div>
   </div>
+  
+  <!-- 复制提示元素 -->
+  <div class="copy-toast" id="copyToast">已复制</div>
 
 <script>
     // 书签数据结构和初始化
@@ -438,6 +536,7 @@
     let adminSelectedGroup = currentCategory;
     const ADMIN_PASSWORD = "baoge";
     let isThumbnailsVisible = true; // 控制缩略图显示状态
+    const DEFAULT_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2FhYSI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bS0xIDE3LjkzYy0zLjk1LS40OS03LTMuODUtNy03LjkzUzMuMDUgNy40NCA3IDcuOTN2MTUuODZ6bTItMTUuODZjMS4wMy4xMyAyIC40NSAyLjg3LjkzTDE1IDhoLTNWNC4wN3ptMCA1LjkzSDEydi0yaDNjLTEuNDIgMC0yLjUgMS0zIDJ6bTAgNGgzaC0uNS0xLTEuNTgtMi0zLTJ2MnptMSA0LjkzYy44Ny0uNDggMS43LTEuMTIiIGZpbGw9IiM0MDNmM2YiLz48L3N2Zz4=';
 
     const groupColors = [
         { main: '#FF6347', hover: '#4B0082', text: '#fff' },
@@ -553,6 +652,9 @@
       bookmarks.forEach(bookmark => {
         const card = document.createElement('div');
         card.classList.add('site-card');
+        if (!isThumbnailsVisible) {
+          card.classList.add('no-icon');
+        }
         card.setAttribute('data-group', categoryName);
         card.style.setProperty('--group-bg-color', categoryColor.main);
         card.style.setProperty('--group-hover-color', categoryColor.hover);
@@ -560,7 +662,8 @@
         
         let cardContent = `<div class="site-card-content">`;
         if (isThumbnailsVisible) {
-          cardContent += `<img src="${bookmark.favicon}" alt="favicon" class="site-card-icon" onerror="this.src='https://www.google.com/s2/favicons?domain=default';">`;
+          cardContent += `<img src="${bookmark.favicon || DEFAULT_ICON}" alt="favicon" class="site-card-icon" 
+            onerror="this.src='${DEFAULT_ICON}'; this.classList.add('error-state')">`;
         }
         cardContent += `<div class="title">${bookmark.name}</div></div>`;
         
@@ -572,7 +675,7 @@
       });
     }
 
-    // 搜索书签功能
+    // 搜索书签
     function searchBookmarks() {
       const searchInput = document.getElementById('searchInput');
       const query = searchInput.value.trim().toLowerCase();
@@ -604,7 +707,8 @@
           const item = document.createElement('div');
           item.classList.add('search-result-item');
           item.innerHTML = `
-            <img src="${result.bookmark.favicon}" alt="favicon" class="search-result-icon" onerror="this.src='https://www.google.com/s2/favicons?domain=default';">
+            <img src="${result.bookmark.favicon || DEFAULT_ICON}" alt="favicon" class="search-result-icon" 
+              onerror="this.src='${DEFAULT_ICON}'">
             <div class="search-result-content">
               <div class="search-result-name">${result.bookmark.name}</div>
               <div class="search-result-url">${result.bookmark.url}</div>
@@ -626,7 +730,7 @@
       searchResults.style.display = 'none';
     }
 
-    // 切换缩略图显示状态
+    // 切换缩略图
     function toggleThumbnails() {
       isThumbnailsVisible = !isThumbnailsVisible;
       document.getElementById('toggleThumbnailsBtn').textContent = isThumbnailsVisible ? '无图' : '有图';
@@ -646,7 +750,7 @@
       document.getElementById('runtime').textContent = `${days} 天 ${hours} 小时 ${minutes} 分 ${seconds} 秒`;
     }
 
-    // 登录相关函数
+    // 登录相关
     function showLoginModal() {
       document.getElementById('loginOverlay').classList.remove('d-none');
       document.getElementById('adminPassword').focus();
@@ -662,7 +766,13 @@
       if (password === ADMIN_PASSWORD) {
         sessionStorage.setItem('adminLoggedIn', 'true');
         hideLoginModal();
-        window.location.hash = '#admin';
+        
+        // 自动添加#admin到URL并显示后台
+        window.location.hash = 'admin';
+        document.getElementById('app').classList.add('d-none');
+        document.getElementById('frontendFooter').classList.add('d-none');
+        document.getElementById('adminPanel').classList.remove('d-none');
+        renderAdminPanel();
       } else {
         alert('密码错误，请重试！');
         document.getElementById('adminPassword').value = '';
@@ -670,12 +780,11 @@
       }
     }
 
-    // 只用prompt弹窗登录后台
+    // 处理hash变化
     function handleHashChange() {
-      const mainContent = document.getElementById('mainContent');
-      const adminPanel = document.getElementById('adminPanel');
       const appContainer = document.getElementById('app');
       const frontendFooter = document.getElementById('frontendFooter');
+      const adminPanel = document.getElementById('adminPanel');
 
       if (window.location.hash === '#admin') {
         if (sessionStorage.getItem('adminLoggedIn') === 'true') {
@@ -687,18 +796,17 @@
           showLoginModal();
         }
       } else {
+        sessionStorage.removeItem('adminLoggedIn');
         appContainer.classList.remove('d-none');
         frontendFooter.classList.remove('d-none');
         adminPanel.classList.add('d-none');
         renderCategories();
         renderBookmarks(currentCategory);
         window.scrollTo({ top: 0, behavior: 'auto' });
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) mainContent.scrollTop = 0;
       }
     }
 
-    // --- 管理后台渲染函数 ---
+    // 后台渲染
     function renderAdminPanel() {
         const adminGroupList = document.getElementById('adminGroupList');
         adminGroupList.innerHTML = '';
@@ -881,18 +989,35 @@
         }
     }
 
+    // 自动获取favicon
     function fetchFavicon() {
         const bookmarkUrlInput = document.getElementById('bookmarkUrl');
         const bookmarkFaviconInput = document.getElementById('bookmarkFavicon');
+        const faviconPreview = document.getElementById('favicon-preview');
         const url = bookmarkUrlInput.value.trim();
-        if (url) {
-            const faviconServiceUrl = `https://favicon.im/${url}`;
-            bookmarkFaviconInput.value = faviconServiceUrl;
-            const img = new Image();
-            img.src = faviconServiceUrl;
-            img.onerror = () => {
-                bookmarkFaviconInput.value = 'https://www.google.com/s2/favicons?domain=default';
-            };
+        
+        if (!url) {
+            bookmarkFaviconInput.value = '';
+            faviconPreview.src = '';
+            return;
+        }
+        
+        try {
+            const parsedUrl = new URL(url);
+            const domain = parsedUrl.hostname;
+            const faviconUrl = `https://favicon.im/${domain}`; // 自动使用favicon.im服务
+            
+            // 自动填充图标URL（如果为空）
+            if (!bookmarkFaviconInput.value.trim()) {
+                faviconPreview.src = faviconUrl;
+                bookmarkFaviconInput.value = faviconUrl;
+            }
+        } catch (e) {
+            console.error('无效的URL', e);
+            if (!bookmarkFaviconInput.value.trim()) {
+                faviconPreview.src = DEFAULT_ICON;
+                bookmarkFaviconInput.value = DEFAULT_ICON;
+            }
         }
     }
 
@@ -909,12 +1034,23 @@
         const bookmarkAfterId = document.getElementById('bookmarkAfterId').value;
         const name = document.getElementById('bookmarkName').value.trim();
         const url = document.getElementById('bookmarkUrl').value.trim();
-        const favicon = document.getElementById('bookmarkFavicon').value.trim();
+        let favicon = document.getElementById('bookmarkFavicon').value.trim();
         const groupName = document.getElementById('bookmarkGroup').value;
 
         if (!name || !url || !groupName) {
             alert('名称、URL 和分组是必填项！');
             return;
+        }
+
+        // 自动补全favicon（如果为空）
+        if (!favicon) {
+            try {
+                const parsedUrl = new URL(url);
+                const domain = parsedUrl.hostname;
+                favicon = `https://favicon.im/${domain}`;
+            } catch (e) {
+                favicon = DEFAULT_ICON;
+            }
         }
 
         const targetGroup = bookmarksData.find(g => g.name === groupName);
@@ -923,7 +1059,7 @@
             return;
         }
 
-        const newBookmark = { id: Date.now() + Math.random(), name, url, favicon };
+        const newBookmark = { id: id ? parseFloat(id) : Date.now() + Math.random(), name, url, favicon };
 
         if (id) {
           let originalGroupName = null;
@@ -937,12 +1073,12 @@
             });
           });
           if (targetGroup.name === originalGroupName && originalIndex !== -1) {
-            targetGroup.bookmarks[originalIndex] = { id: parseFloat(id), name, url, favicon };
+            targetGroup.bookmarks[originalIndex] = newBookmark;
           } else {
             bookmarksData.forEach(group => {
               group.bookmarks = group.bookmarks.filter(b => b.id != id);
             });
-            targetGroup.bookmarks.push({ id: parseFloat(id), name, url, favicon });
+            targetGroup.bookmarks.push(newBookmark);
           }
         } else if (bookmarkAfterId) {
             const targetIndex = targetGroup.bookmarks.findIndex(b => b.id == bookmarkAfterId);
@@ -977,6 +1113,7 @@
             document.getElementById('bookmarkName').value = bookmarkToEdit.name;
             document.getElementById('bookmarkUrl').value = bookmarkToEdit.url;
             document.getElementById('bookmarkFavicon').value = bookmarkToEdit.favicon;
+            document.getElementById('favicon-preview').src = bookmarkToEdit.favicon || DEFAULT_ICON;
             document.getElementById('bookmarkGroup').value = groupName;
         }
     }
@@ -999,6 +1136,35 @@
         document.getElementById('bookmarkAfterId').value = '';
         document.getElementById('bookmarkGroup').value = adminSelectedGroup || (bookmarksData.length > 0 ? bookmarksData[0].name : "");
         document.getElementById('bookmarkForm').classList.add('d-none');
+        document.getElementById('favicon-preview').src = DEFAULT_ICON;
+    }
+
+    // 复制URL功能
+    function copyUrl() {
+        const urlInput = document.getElementById('bookmarkUrl');
+        const url = urlInput.value.trim();
+        if (!url) {
+            showCopyToast('URL为空，无法复制');
+            return;
+        }
+        
+        navigator.clipboard.writeText(url).then(() => {
+            showCopyToast('已复制');
+        }).catch(err => {
+            showCopyToast('复制失败');
+        });
+    }
+
+    // 显示复制提示
+    function showCopyToast(message) {
+        const toast = document.getElementById('copyToast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        
+        // 3秒后隐藏提示
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
     }
 
     function handleExport() {
@@ -1170,7 +1336,7 @@
         updateRunTime();
         setInterval(updateRunTime, 1000);
         
-        // 添加事件监听器
+        // 事件绑定
         document.getElementById('searchInput').addEventListener('input', searchBookmarks);
         document.getElementById('toggleThumbnailsBtn').addEventListener('click', toggleThumbnails);
         document.getElementById('adminLoginBtn').addEventListener('click', showLoginModal);
@@ -1187,10 +1353,23 @@
                 hideSearchResults();
             }
         });
+        
+        // 复制按钮事件
+        document.getElementById('copyUrlBtn').addEventListener('click', copyUrl);
+        
+        // 初始化时处理后台状态
+        if (window.location.hash === '#admin' && !sessionStorage.getItem('adminLoggedIn')) {
+            showLoginModal();
+        } else if (window.location.hash === '#admin' && sessionStorage.getItem('adminLoggedIn')) {
+            document.getElementById('app').classList.add('d-none');
+            document.getElementById('frontendFooter').classList.add('d-none');
+            document.getElementById('adminPanel').classList.remove('d-none');
+            renderAdminPanel();
+        }
     }
 
     // 页面加载完成后初始化
     document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
-</html>    
+</html>
