@@ -5,7 +5,239 @@
   <title>网址导航</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
+    /* 新增搜索结果的样式 */
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      margin-top: 5px;
+      display: none;
+    }
+    .search-result-item {
+      padding: 10px 15px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    .search-result-item:hover {
+      background-color: #f8f9fa;
+    }
+    .search-result-icon {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      object-fit: contain;
+    }
+    .search-result-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .search-result-name {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-result-url {
+      font-size: 0.8rem;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .search-result-group {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #e9ecef;
+      color: #495057;
+      margin-left: 10px;
+      white-space: nowrap;
+    }
+    
+    /* 新增：有图/无图切换按钮样式 */
+    #toggleThumbnailsBtn {
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 10px 16px;
+      font-size: 1rem;
+      background: #4B0082;
+      color: white;
+      cursor: pointer;
+      margin-right: 8px;
+      transition: all 0.2s;
+    }
+    #toggleThumbnailsBtn:hover {
+      background: #6A0DAD;
+      box-shadow: 0 2px 8px rgba(75, 0, 130, 0.3);
+    }
+    
+    /* 新增：进入后台按钮样式 */
+    #frontendFooter button.btn-link {
+      color: #4B0082;
+      font-weight: 600;
+      text-decoration: none;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 16px;
+      transition: all 0.2s;
+    }
+    #frontendFooter button.btn-link:hover {
+      background: #e9ecef;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* 新增：书签图标样式 */
+    .site-card-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 0;
+      object-fit: contain;
+    }
+    
+    /* 新增：图标按钮样式 */
+    .admin-group-item button,
+    .admin-table button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .admin-group-item button:hover,
+    .admin-table button:hover {
+      opacity: 0.8;
+    }
+    .admin-group-item button.btn-add,
+    .admin-table button.btn-add {
+      color: #28a745;
+    }
+    .admin-group-item button.btn-edit,
+    .admin-table button.btn-edit {
+      color: #ffc107;
+    }
+    .admin-group-item button.btn-delete,
+    .admin-table button.btn-delete {
+      color: #dc3545;
+    }
+    .admin-group-item button.btn-arrow,
+    .admin-table button.btn-arrow {
+      color: #3498db;
+    }
+    
+    /* 新增：后台登录样式 */
+    .login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .login-box {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      max-width: 400px;
+      width: 90%;
+    }
+    .login-box h3 {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+    .login-box .buttons {
+      display: flex;
+      justify-content: space-between;
+    }
+    .login-box button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .login-box button#loginBtn {
+      background: #4B0082;
+      color: white;
+    }
+    .login-box button#cancelBtn {
+      background: #f5f5f5;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+    .login-box button:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    /* 调整后的书签卡片样式 */
+    .site-card {
+      background: var(--group-bg-color);
+      background-image: linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 75%, transparent 75%, transparent);
+      background-size: 20px 20px;
+      border-radius: 25px;
+      height: 50px;
+      padding: 8px 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease-in-out;
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .site-card:hover, .site-card:active {
+      box-shadow: 0 8px 24px rgba(75, 0, 130, 0.3);
+      transform: translateY(-3px);
+      background: #4B0082;
+      background-image: linear-gradient(45deg, rgba(255,255,255,0.08) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.08) 75%, transparent 75%, transparent);
+      background-size: 20px 20px;
+    }
+    .site-card-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      margin-bottom: 0;
+    }
+    .site-card .title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--group-text-color);
+      line-height: 1.2;
+      margin-left: 8px;
+    }
+    
+    /* 其他原有样式保持不变 */
     html, body { height: 100%; margin: 0; }
     body {
       background: #f5f6fa;
@@ -19,14 +251,10 @@
     .sidebar li { padding: 12px 32px; cursor: pointer; transition: background 0.2s; }
     .sidebar li:hover, .sidebar li.active { background: #7B68EE; }
     .main-content { flex: 1; padding: 40px 48px; overflow-y: auto; }
-    .search-bar { display: flex; margin-bottom: 32px; gap: 12px; }
+    .search-bar { display: flex; margin-bottom: 32px; gap: 8px; position: relative; }
     .search-bar input { flex: 1; border-radius: 8px; border: 1px solid #ddd; padding: 10px 16px; font-size: 1rem; }
     .search-bar select { border-radius: 8px; border: 1px solid #ddd; padding: 10px 16px; font-size: 1rem; background: #fff; }
     .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-    .site-card { background: var(--group-bg-color); background-image: linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.05) 75%, transparent 75%, transparent); background-size: 20px 20px; border-radius: 25px; height: 50px; padding: 8px 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease-in-out; text-decoration: none; position: relative; overflow: hidden; cursor: pointer; }
-    .site-card:hover, .site-card:active { box-shadow: 0 8px 24px rgba(75, 0, 130, 0.3); transform: translateY(-3px); background: #4B0082; background-image: linear-gradient(45deg, rgba(255,255,255,0.08) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.08) 75%, transparent 75%, transparent); background-size: 20px 20px; }
-    .site-card-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; margin-bottom: 0; text-align: center; }
-    .site-card .title { font-weight: 700; font-size: 0.95rem; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--group-text-color); line-height: 1.2; }
     .footer { padding: 15px; background: #fff; border-top: 1px solid #eee; z-index: 10; width: 100%; flex-shrink: 0; }
     .admin-container { display: flex; flex-direction: column; height: 80vh; overflow-y: auto; }
     .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; flex-wrap: wrap; }
@@ -89,10 +317,12 @@
       .admin-header { flex-direction: column; align-items: flex-start; gap: 15px; }
       .admin-actions { width: 100%; justify-content: center; }
       .admin-group-list { flex-wrap: wrap; justify-content: center; }
+      .search-bar { flex-wrap: wrap; }
+      .search-bar input { flex: 1 1 100%; }
+      .search-bar button, .search-bar .btn-link { flex: 1; margin-top: 8px; }
     }
     @media (max-width: 480px) {
       .card-list { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-      .search-bar { flex-direction: column; }
       .admin-section { padding: 15px; }
     }
   </style>
@@ -104,10 +334,12 @@
       <ul id="categoryList"></ul>
     </nav>
     <main class="main-content" id="mainContent">
-      <form class="search-bar" onsubmit="searchBookmarks(event)">
-        <input type="text" id="searchInput" placeholder="输入关键词搜索书签...">
-        <button type="submit" class="btn btn-primary">搜索</button>
-      </form>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="输入关键词搜索所有书签...">
+        <button type="button" id="toggleThumbnailsBtn">无图</button>
+        <button type="button" id="adminLoginBtn" class="btn btn-link">后台</button>
+        <div class="search-results" id="searchResults"></div>
+      </div>
       <div id="bookmarkList" class="card-list"></div>
     </main>
   </div>
@@ -116,11 +348,11 @@
       <div class="admin-header">
         <h2>书签管理后台</h2>
         <div class="admin-actions">
-          <button class="btn btn-primary" onclick="handleExport()">导出书签</button>
+          <button class="btn btn-primary" onclick="handleExport()"><i class="fas fa-download"></i> 导出书签</button>
           <input type="file" id="importBookmarksFile" accept=".json" class="d-none" onchange="importBookmarks(event)">
-          <button class="btn btn-info" onclick="document.getElementById('importBookmarksFile').click()">导入书签</button>
-          <button class="btn btn-danger" onclick="clearAllBookmarks()">清空所有书签</button>
-          <button class="btn btn-success" onclick="location.hash = ''">返回前台</button>
+          <button class="btn btn-info" onclick="document.getElementById('importBookmarksFile').click()"><i class="fas fa-upload"></i> 导入书签</button>
+          <button class="btn btn-danger" onclick="clearAllBookmarks()"><i class="fas fa-trash"></i> 清空所有书签</button>
+          <button class="btn btn-success" onclick="location.hash = ''"><i class="fas fa-arrow-left"></i> 返回前台</button>
         </div>
       </div>
       <div class="admin-section">
@@ -146,8 +378,8 @@
             <select class="form-select" id="bookmarkGroup" required></select>
           </div>
           <div class="col-12">
-            <button type="submit" class="btn btn-primary">保存书签</button>
-            <button type="button" class="btn btn-secondary" onclick="resetBookmarkForm()">取消</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存书签</button>
+            <button type="button" class="btn btn-secondary" onclick="resetBookmarkForm()"><i class="fas fa-times"></i> 取消</button>
           </div>
         </form>
         <div class="admin-table-container">
@@ -167,10 +399,22 @@
     </div>
   </div>
   <div class="footer text-center text-muted mt-4" id="frontendFooter">
-    <button class="btn btn-link mt-2" onclick="location.hash = '#admin'">进入管理后台</button>
     <p>已稳定运行 <span id="runtime">0 天 0 小时 0 分 0 秒</span></p>
-    <p>&copy; 2020 &copy; 宝哥制作  All Rights Reserved </p>
+    <p>&copy; 2020 &copy;   宝哥制作    All Rights Reserved </p>
   </div>
+  
+  <!-- 登录模态框 -->
+  <div class="login-overlay d-none" id="loginOverlay">
+    <div class="login-box">
+      <h3>请输入管理密码</h3>
+      <input type="password" id="adminPassword" placeholder="输入密码...">
+      <div class="buttons">
+        <button id="loginBtn">确认</button>
+        <button id="cancelBtn">取消</button>
+      </div>
+    </div>
+  </div>
+
 <script>
     // 书签数据结构和初始化
     const DEFAULT_BOOKMARKS_DATA = [
@@ -191,9 +435,8 @@
     let bookmarksData = JSON.parse(JSON.stringify(DEFAULT_BOOKMARKS_DATA));
     let currentCategory = localStorage.getItem('currentCategory') || (bookmarksData.length > 0 ? bookmarksData[0].name : "");
     let adminSelectedGroup = currentCategory;
-    const ADMIN_PASSWORD = "baoge888";
-    let isSearching = false;
-    let searchResults = [];
+    const ADMIN_PASSWORD = "baoge";
+    let isThumbnailsVisible = true; // 控制缩略图显示状态
 
     const groupColors = [
         { main: '#FF6347', hover: '#4B0082', text: '#fff' },
@@ -273,7 +516,6 @@
         }
         li.addEventListener('click', () => {
           currentCategory = category;
-          isSearching = false;
           saveCurrentCategory();
           renderCategories();
           renderBookmarks(currentCategory);
@@ -289,46 +531,39 @@
       const bookmarkList = document.getElementById('bookmarkList');
       bookmarkList.innerHTML = '';
 
-      let bookmarks;
-      if (isSearching) {
-        bookmarks = searchResults;
-      } else {
-        const group = bookmarksData.find(g => g.name === categoryName);
-        bookmarks = group ? group.bookmarks : [];
-      }
+      const group = bookmarksData.find(g => g.name === categoryName);
+      const bookmarks = group ? group.bookmarks : [];
 
       if (bookmarks.length === 0) {
-        bookmarkList.innerHTML = `<p class="text-center text-muted">${isSearching ? '没有找到匹配的书签' : '该分类下暂无书签'}</p>`;
+        bookmarkList.innerHTML = `<p class="text-center text-muted">该分类下暂无书签。</p>`;
         return;
       }
 
-      // 创建一个映射，记录每个分组的颜色
-      bookmarksData.forEach(group => {
-        if (!colorMap[group.name]) {
-            const existingColors = Object.values(colorMap).map(c => c.main);
-            let availableColor = groupColors.find(color => !existingColors.includes(color.main));
-            if (!availableColor) {
-                availableColor = groupColors[Object.keys(colorMap).length % groupColors.length];
-            }
-            colorMap[group.name] = availableColor;
+      if (!colorMap[categoryName]) {
+        const existingColors = Object.values(colorMap).map(c => c.main);
+        let availableColor = groupColors.find(color => !existingColors.includes(color.main));
+        if (!availableColor) {
+            availableColor = groupColors[Object.keys(colorMap).length % groupColors.length];
         }
-      });
+        colorMap[categoryName] = availableColor;
+      }
+      const categoryColor = colorMap[categoryName];
 
       bookmarks.forEach(bookmark => {
-        const group = bookmarksData.find(g => g.bookmarks.some(b => b.id == bookmark.id));
-        const categoryColor = group ? colorMap[group.name] : groupColors[0];
-
         const card = document.createElement('div');
         card.classList.add('site-card');
-        card.setAttribute('data-group', group ? group.name : '未知分组');
+        card.setAttribute('data-group', categoryName);
         card.style.setProperty('--group-bg-color', categoryColor.main);
         card.style.setProperty('--group-hover-color', categoryColor.hover);
         card.style.setProperty('--group-text-color', categoryColor.text);
-        card.innerHTML = `
-          <div class="site-card-content">
-            <div class="title">${bookmark.name}</div>
-          </div>
-        `;
+        
+        let cardContent = `<div class="site-card-content">`;
+        if (isThumbnailsVisible) {
+          cardContent += `<img src="${bookmark.favicon}" alt="favicon" class="site-card-icon" onerror="this.src='https://www.google.com/s2/favicons?domain=default';">`;
+        }
+        cardContent += `<div class="title">${bookmark.name}</div></div>`;
+        
+        card.innerHTML = cardContent;
         card.addEventListener('click', () => {
           window.open(bookmark.url, '_blank');
         });
@@ -336,29 +571,65 @@
       });
     }
 
-    function searchBookmarks(event) {
-      event.preventDefault();
+    // 搜索书签功能
+    function searchBookmarks() {
       const searchInput = document.getElementById('searchInput');
       const query = searchInput.value.trim().toLowerCase();
-
-      if (query === '') {
-        isSearching = false;
+      const searchResults = document.getElementById('searchResults');
+      
+      if (!query) {
+        searchResults.style.display = 'none';
         renderBookmarks(currentCategory);
         return;
       }
-
-      // 搜索所有书签
-      searchResults = [];
+      
+      const results = [];
       bookmarksData.forEach(group => {
         group.bookmarks.forEach(bookmark => {
-          if (bookmark.name.toLowerCase().includes(query) || bookmark.url.toLowerCase().includes(query)) {
-            searchResults.push({...bookmark, group: group.name});
+          if (bookmark.name.toLowerCase().includes(query) || 
+              bookmark.url.toLowerCase().includes(query) ||
+              group.name.toLowerCase().includes(query)) {
+            results.push({ bookmark, groupName: group.name });
           }
         });
       });
+      
+      if (results.length === 0) {
+        searchResults.innerHTML = `<div class="search-result-item">没有找到匹配的书签</div>`;
+        searchResults.style.display = 'block';
+      } else {
+        searchResults.innerHTML = '';
+        results.forEach(result => {
+          const item = document.createElement('div');
+          item.classList.add('search-result-item');
+          item.innerHTML = `
+            <img src="${result.bookmark.favicon}" alt="favicon" class="search-result-icon" onerror="this.src='https://www.google.com/s2/favicons?domain=default';">
+            <div class="search-result-content">
+              <div class="search-result-name">${result.bookmark.name}</div>
+              <div class="search-result-url">${result.bookmark.url}</div>
+            </div>
+            <div class="search-result-group">${result.groupName}</div>
+          `;
+          item.addEventListener('click', () => {
+            window.open(result.bookmark.url, '_blank');
+          });
+          searchResults.appendChild(item);
+        });
+        searchResults.style.display = 'block';
+      }
+    }
 
-      isSearching = true;
-      renderBookmarks(null);
+    // 隐藏搜索结果
+    function hideSearchResults() {
+      const searchResults = document.getElementById('searchResults');
+      searchResults.style.display = 'none';
+    }
+
+    // 切换缩略图显示状态
+    function toggleThumbnails() {
+      isThumbnailsVisible = !isThumbnailsVisible;
+      document.getElementById('toggleThumbnailsBtn').textContent = isThumbnailsVisible ? '无图' : '有图';
+      renderBookmarks(currentCategory);
     }
 
     function updateRunTime() {
@@ -372,6 +643,30 @@
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
       document.getElementById('runtime').textContent = `${days} 天 ${hours} 小时 ${minutes} 分 ${seconds} 秒`;
+    }
+
+    // 登录相关函数
+    function showLoginModal() {
+      document.getElementById('loginOverlay').classList.remove('d-none');
+      document.getElementById('adminPassword').focus();
+    }
+
+    function hideLoginModal() {
+      document.getElementById('loginOverlay').classList.add('d-none');
+      document.getElementById('adminPassword').value = '';
+    }
+
+    function handleLogin() {
+      const password = document.getElementById('adminPassword').value;
+      if (password === ADMIN_PASSWORD) {
+        sessionStorage.setItem('adminLoggedIn', 'true');
+        hideLoginModal();
+        window.location.hash = '#admin';
+      } else {
+        alert('密码错误，请重试！');
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('adminPassword').focus();
+      }
     }
 
     // 只用prompt弹窗登录后台
@@ -388,23 +683,12 @@
           adminPanel.classList.remove('d-none');
           renderAdminPanel();
         } else {
-          const password = prompt("请输入管理后台密码:");
-          if (password === ADMIN_PASSWORD) {
-            sessionStorage.setItem('adminLoggedIn', 'true');
-            appContainer.classList.add('d-none');
-            frontendFooter.classList.add('d-none');
-            adminPanel.classList.remove('d-none');
-            renderAdminPanel();
-          } else {
-            alert("密码错误，无法进入管理后台。");
-            window.location.hash = '';
-          }
+          showLoginModal();
         }
       } else {
         appContainer.classList.remove('d-none');
         frontendFooter.classList.remove('d-none');
         adminPanel.classList.add('d-none');
-        isSearching = false;
         renderCategories();
         renderBookmarks(currentCategory);
         window.scrollTo({ top: 0, behavior: 'auto' });
@@ -432,9 +716,9 @@
             }
             groupItem.innerHTML = `
                 <span>${group.name}</span>
-                <button class="btn-add-group" onclick="addNewGroupAfter('${group.name}')">添加</button>
-                <button class="btn-edit-group" onclick="editGroup('${group.name}')">编辑</button>
-                <button class="btn-delete-group" onclick="deleteGroup('${group.name}')">删除</button>
+                <button class="btn-add" onclick="addNewGroupAfter('${group.name}')"><i class="fas fa-plus"></i></button>
+                <button class="btn-edit" onclick="editGroup('${group.name}')"><i class="fas fa-pencil-alt"></i></button>
+                <button class="btn-delete" onclick="deleteGroup('${group.name}')"><i class="fas fa-trash-alt"></i></button>
                 <button class="btn-arrow up" onclick="moveGroup('${group.name}', -1); event.stopPropagation();" title="上移">↑</button>
                 <button class="btn-arrow down" onclick="moveGroup('${group.name}', 1); event.stopPropagation();" title="下移">↓</button>
             `;
@@ -483,9 +767,9 @@
                 <td><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
                 <td>${groupName}</td>
                 <td>
-                    <button class="btn btn-sm btn-info me-1" onclick="prepareAddBookmarkAfter('${bookmark.id}', '${groupName}')">添加</button>
-                    <button class="btn btn-sm btn-warning me-1" onclick="editBookmark('${bookmark.id}', '${groupName}')">编辑</button>
-                    <button class="btn btn-sm btn-danger me-1" onclick="deleteBookmark('${bookmark.id}', '${groupName}')">删除</button>
+                    <button class="btn-add" onclick="prepareAddBookmarkAfter('${bookmark.id}', '${groupName}')"><i class="fas fa-plus"></i></button>
+                    <button class="btn-edit" onclick="editBookmark('${bookmark.id}', '${groupName}')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="btn-delete" onclick="deleteBookmark('${bookmark.id}', '${groupName}')"><i class="fas fa-trash-alt"></i></button>
                     <button class="btn-arrow up" onclick="moveBookmark('${bookmark.id}', '${groupName}', -1)">↑</button>
                     <button class="btn-arrow down" onclick="moveBookmark('${bookmark.id}', '${groupName}', 1)">↓</button>
                 </td>
@@ -903,7 +1187,40 @@
       setInterval(updateRunTime, 1000);
       handleHashChange();
       window.addEventListener('hashchange', handleHashChange);
+      
+      // 添加搜索功能事件监听
+      const searchInput = document.getElementById('searchInput');
+      searchInput.addEventListener('input', searchBookmarks);
+      
+      // 添加缩略图切换按钮事件监听
+      const toggleThumbnailsBtn = document.getElementById('toggleThumbnailsBtn');
+      toggleThumbnailsBtn.addEventListener('click', toggleThumbnails);
+      
+      // 添加后台登录按钮事件监听
+      const adminLoginBtn = document.getElementById('adminLoginBtn');
+      adminLoginBtn.addEventListener('click', showLoginModal);
+      
+      // 添加登录模态框事件监听
+      document.getElementById('loginBtn').addEventListener('click', handleLogin);
+      document.getElementById('cancelBtn').addEventListener('click', hideLoginModal);
+      document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          handleLogin();
+        }
+      });
+      
+      // 点击页面其他区域时隐藏搜索结果
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-bar')) {
+          hideSearchResults();
+        }
+      });
+      
+      // 在搜索结果区域点击时阻止事件冒泡
+      document.getElementById('searchResults').addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
     });
 </script>
 </body>
-</html>
+</html>    
