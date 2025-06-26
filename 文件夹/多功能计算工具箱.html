@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多功能计算工具箱</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Arial', sans-serif;
+      background: linear-gradient(135deg, #e0e7ff 0%, #f0fdfa 100%);
+      min-height: 100vh;
+    }
+    .toolbox-container {
+      max-width: 420px;
+      margin: 2.5rem auto;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 1.5rem 1rem 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .toolbox-title {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #2563eb;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      letter-spacing: 2px;
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .tab {
+      padding: 0.5rem 1rem;
+      border-radius: 8px 8px 0 0;
+      background: #f1f5f9;
+      color: #2563eb;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      font-size: 1rem;
+      box-shadow: 0 1px 2px rgba(56,189,248,0.06);
+    }
+    .tab.active {
+      background: linear-gradient(90deg, #60a5fa 0%, #38bdf8 100%);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(56,189,248,0.12);
+    }
+    .tab:not(.active):hover {
+      background: #e0e7ff;
+      color: #1d4ed8;
+      box-shadow: 0 2px 8px rgba(96,165,250,0.10);
+    }
+    .tool-content {
+      background: #f9fafb;
+      border-radius: 0 0 12px 12px;
+      padding: 1.2rem 0.5rem 0.5rem 0.5rem;
+      min-height: 180px;
+      box-shadow: 0 2px 8px rgba(56,189,248,0.04);
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    label {
+      font-size: 1rem;
+      color: #374151;
+      margin-bottom: 0.2rem;
+    }
+    input, select {
+      padding: 0.6rem 0.8rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    input:focus, select:focus {
+      border: 1.5px solid #2563eb;
+    }
+    .result {
+      background: linear-gradient(90deg, #60a5fa 0%, #38bdf8 100%);
+      color: #fff;
+      border-radius: 10px;
+      padding: 1.2rem 0.5rem;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-top: 0.5rem;
+    }
+    .note {
+      color: #64748b;
+      font-size: 0.95rem;
+      margin-top: 0.5rem;
+      text-align: left;
+    }
+    .process-note {
+      background-color: #eef2ff;
+      border-left: 4px solid #818cf8;
+      padding: 0.8rem;
+      margin-top: 1rem;
+      border-radius: 4px;
+      color: #4338ca;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      text-align: left;
+    }
+    .tool-content button.tab {
+      width: 100%;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #38bdf8 0%, #2563eb 100%);
+      color: #fff;
+      font-weight: 600;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+      box-shadow: 0 2px 8px rgba(56,189,248,0.10);
+      transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    .tool-content button.tab:hover {
+      background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.13);
+    }
+    @media (max-width: 520px) {
+      .toolbox-container {
+        max-width: 99vw;
+        padding: 0.5rem 0.2rem 1rem 0.2rem;
+      }
+      .toolbox-title {
+        font-size: 1.1rem;
+      }
+      .result {
+        font-size: 0.98rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbox-container">
+    <div class="toolbox-title">多功能计算工具箱</div>
+    <div class="tabs" id="tabs"></div>
+    <div class="tool-content" id="tool-content"></div>
+  </div>
+  <script>
+    // 工具列表
+    const tools = [
+      { name: '个人所得税', render: renderTax },
+      { name: '房贷/车贷月供', render: renderLoan },
+      { name: 'BMI健康', render: renderBMI },
+      { name: '养老金估算', render: renderPension },
+      { name: '复利理财', render: renderCompound },
+      { name: '退休年龄推算', render: renderRetire },
+    ];
+    let currentTool = 0;
+
+    // 渲染Tab
+    function renderTabs() {
+      const tabs = document.getElementById('tabs');
+      tabs.innerHTML = '';
+      tools.forEach((tool, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'tab' + (idx === currentTool ? ' active' : '');
+        btn.textContent = tool.name;
+        btn.onclick = () => {
+          currentTool = idx;
+          renderTabs();
+          renderToolContent();
+        };
+        tabs.appendChild(btn);
+      });
+    }
+
+    // 渲染内容
+    function renderToolContent() {
+      const content = document.getElementById('tool-content');
+      content.innerHTML = '';
+      tools[currentTool].render(content);
+    }
+
+    // 1. 个人所得税计算器
+    function renderTax(container) {
+      container.innerHTML = `
+        <div class="input-group">
+          <label>计算月份</label>
+          <select id="tax-month" onchange="calcTax()">
+            <option value="1">1月</option>
+            <option value="2">2月</option>
+            <option value="3">3月</option>
+            <option value="4">4月</option>
+            <option value="5">5月</option>
+            <option value="6">6月</option>
+            <option value="7">7月</option>
+            <option value="8">8月</option>
+            <option value="9">9月</option>
+            <option value="10">10月</option>
+            <option value="11">11月</option>
+            <option value="12">12月</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>税前月薪（元）</label>
+          <input type="number" id="tax-salary" value="15000" min="0" oninput="calcTax()">
+        </div>
+        <div class="input-group">
+          <label>五险一金（月扣，元）</label>
+          <input type="number" id="tax-insurance" value="2500" min="0" oninput="calcTax()">
+        </div>
+        <div class="input-group">
+          <label>专项附加扣除（元）</label>
+          <input type="number" id="tax-special" value="1000" min="0" oninput="calcTax()">
+        </div>
+        <button class="tab" onclick="calcTax()">计算税后</button>
+        <div class="result" id="tax-result"></div>
+        <div class="process-note" id="tax-process" style="display:none;"></div>
+        <div class="note">注：采用居民个人工资、薪金所得累计预扣法。税率表参考自"个税吧"官网。</div>
+      `;
+      window.calcTax = function() {
+        const month = parseInt(document.getElementById('tax-month').value) || 1;
+        const salary = parseFloat(document.getElementById('tax-salary').value) || 0;
+        const insurance = parseFloat(document.getElementById('tax-insurance').value) || 0;
+        const special = parseFloat(document.getElementById('tax-special').value) || 0;
+        
+        const monthlyTaxableBase = salary - insurance - special - 5000;
+
+        const processDiv = document.getElementById('tax-process');
+        processDiv.style.display = 'block';
+
+        if (monthlyTaxableBase <= 0) {
+            document.getElementById('tax-result').textContent = `税后月薪：${(salary - insurance).toFixed(2)} 元，月缴个税：0.00 元`;
+            processDiv.innerHTML = '<strong>计算过程:</strong>\n月度应纳税所得额小于等于0，无需缴纳个税。';
+            return;
+        }
+
+        const getCumulativeTax = (cumulativeIncome) => {
+            if (cumulativeIncome <= 0) return 0;
+            if (cumulativeIncome <= 36000) return cumulativeIncome * 0.03 - 0;
+            if (cumulativeIncome <= 144000) return cumulativeIncome * 0.10 - 2520;
+            if (cumulativeIncome <= 300000) return cumulativeIncome * 0.20 - 16920;
+            if (cumulativeIncome <= 420000) return cumulativeIncome * 0.25 - 31920;
+            if (cumulativeIncome <= 660000) return cumulativeIncome * 0.30 - 52920;
+            if (cumulativeIncome <= 960000) return cumulativeIncome * 0.35 - 85920;
+            return cumulativeIncome * 0.45 - 181920;
+        };
+
+        const cumulativeIncome = monthlyTaxableBase * month;
+        const prevCumulativeIncome = monthlyTaxableBase * (month - 1);
+        
+        const totalTaxDue = getCumulativeTax(cumulativeIncome);
+        const prevTotalTaxPaid = getCumulativeTax(prevCumulativeIncome);
+        
+        const currentMonthTax = Math.max(0, totalTaxDue - prevTotalTaxPaid);
+        const afterTaxSalary = salary - insurance - currentMonthTax;
+
+        document.getElementById('tax-result').textContent = `税后月薪：${afterTaxSalary.toFixed(2)} 元，本月预缴个税：${currentMonthTax.toFixed(2)} 元`;
+        
+        processDiv.innerHTML = `<strong>计算过程 (累计预扣法):</strong>
+1. 月应纳税所得额: ${salary} - ${insurance} - ${special} - 5000 = ${monthlyTaxableBase.toFixed(2)} 元
+2. 截止本月累计应纳税所得额: ${monthlyTaxableBase.toFixed(2)} × ${month} = ${cumulativeIncome.toFixed(2)} 元
+3. 查累计税率表，截止本月应缴总税额: ${totalTaxDue.toFixed(2)} 元
+4. 截止上月累计已缴税额: ${prevTotalTaxPaid.toFixed(2)} 元
+5. 本月应预缴个税: ${totalTaxDue.toFixed(2)} - ${prevTotalTaxPaid.toFixed(2)} = ${currentMonthTax.toFixed(2)} 元
+6. 税后月薪: ${salary} - ${insurance} - ${currentMonthTax.toFixed(2)} = ${afterTaxSalary.toFixed(2)} 元`;
+      }
+    }
+
+    // 2. 房贷/车贷月供计算器
+    function renderLoan(container) {
+      container.innerHTML = `
+        <div class="input-group">
+          <label>计算方式</label>
+          <select id="loan-type">
+            <option value="installment">等额本息</option>
+            <option value="principal">等额本金</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>贷款总额（万元）</label>
+          <input type="number" id="loan-total" value="100" min="0">
+        </div>
+        <div class="input-group">
+          <label>年利率（%）</label>
+          <input type="number" id="loan-rate" value="4.5" min="0" step="0.01">
+        </div>
+        <div class="input-group">
+          <label>贷款年限</label>
+          <input type="number" id="loan-years" value="30" min="1">
+        </div>
+        <button class="tab" style="margin-bottom:0.5rem;" onclick="calcLoan()">计算月供</button>
+        <div class="result" id="loan-result"></div>
+        <div class="process-note" id="loan-process" style="display:none;"></div>
+        <div class="note">等额本息法，结果仅供参考。</div>
+      `;
+      window.calcLoan = function() {
+        const total = parseFloat(document.getElementById('loan-total').value)||0;
+        const rate = parseFloat(document.getElementById('loan-rate').value)||0;
+        const years = parseInt(document.getElementById('loan-years').value)||0;
+        const type = document.getElementById('loan-type').value;
+
+        const months = years * 12;
+        const r = rate/100/12;
+        const loan = total * 10000;
+        const resultDiv = document.getElementById('loan-result');
+        const processDiv = document.getElementById('loan-process');
+        processDiv.style.display = 'block';
+
+        if (type === 'installment') { // 等额本息
+            if (r === 0) {
+                resultDiv.textContent = `月供：${(loan/months).toFixed(2)} 元`;
+                processDiv.innerHTML = `<strong>计算过程:</strong>\n无利率，按总额平均分配。`;
+                return;
+            }
+            const monthly = loan * r * Math.pow(1+r, months) / (Math.pow(1+r, months)-1);
+            const totalPayment = monthly * months;
+            const totalInterest = totalPayment - loan;
+            resultDiv.innerHTML = `<div>月供：${monthly.toFixed(2)} 元</div><div>总利息：${totalInterest.toFixed(2)} 元</div>`;
+            processDiv.innerHTML = `<strong>计算过程 (等额本息):</strong>
+1. 月利率: ${rate}% / 12 = ${r.toFixed(6)}
+2. 贷款月数: ${years} × 12 = ${months}
+3. 月供 = [贷款本金×月利率×(1+月利率)^还款月数] / [(1+月利率)^还款月数-1]
+   = [${loan} × ${r.toFixed(6)} × (1+${r.toFixed(6)})^${months}] / [(1+${r.toFixed(6)})^${months} - 1] = ${monthly.toFixed(2)} 元
+4. 总利息 = 月供 × 贷款月数 - 贷款本金 = ${totalInterest.toFixed(2)} 元`;
+        } else { // 等额本金
+            const monthlyPrincipal = loan / months;
+            const firstMonthInterest = loan * r;
+            const firstMonthPayment = monthlyPrincipal + firstMonthInterest;
+            const decrease = monthlyPrincipal * r;
+            const totalInterest = (months + 1) * loan * r / 2;
+            resultDiv.innerHTML = `<div>首月月供：${firstMonthPayment.toFixed(2)} 元</div><div>每月递减：${decrease.toFixed(2)} 元</div><div>总利息：${totalInterest.toFixed(2)} 元</div>`;
+            processDiv.innerHTML = `<strong>计算过程 (等额本金):</strong>
+1. 每月本金 = ${loan} / ${months} = ${monthlyPrincipal.toFixed(2)} 元
+2. 首月利息 = ${loan} × ${r.toFixed(6)} = ${firstMonthInterest.toFixed(2)} 元
+3. 首月月供 = 每月本金 + 首月利息 = ${firstMonthPayment.toFixed(2)} 元
+4. 每月递减额 = 每月本金 × 月利率 = ${decrease.toFixed(2)} 元
+5. 总利息 = (还款月数+1)×贷款本金×月利率/2 = ${totalInterest.toFixed(2)} 元`;
+        }
+      }
+    }
+
+    // 3. BMI健康计算器
+    function renderBMI(container) {
+      container.innerHTML = `
+        <div class="input-group">
+          <label>身高（cm）</label>
+          <input type="number" id="bmi-height" value="170" min="0">
+        </div>
+        <div class="input-group">
+          <label>体重（kg）</label>
+          <input type="number" id="bmi-weight" value="65" min="0">
+        </div>
+        <button class="tab" style="margin-bottom:0.5rem;" onclick="calcBMI()">计算BMI</button>
+        <div class="result" id="bmi-result"></div>
+        <div class="process-note" id="bmi-process" style="display:none;"></div>
+        <div class="note">BMI=体重(kg)/身高²(m²)。18.5~24为正常。</div>
+      `;
+      window.calcBMI = function() {
+        const h = parseFloat(document.getElementById('bmi-height').value)||0;
+        const w = parseFloat(document.getElementById('bmi-weight').value)||0;
+        if (h <= 0) return;
+        const bmi = w / Math.pow(h/100,2);
+        let msg = '';
+        if (bmi < 18.5) msg = '偏瘦';
+        else if (bmi < 24) msg = '正常';
+        else if (bmi < 28) msg = '超重';
+        else msg = '肥胖';
+        document.getElementById('bmi-result').textContent = `BMI：${bmi.toFixed(2)}，${msg}`;
+        const processDiv = document.getElementById('bmi-process');
+        processDiv.style.display = 'block';
+        if (h <= 0) {
+            processDiv.innerHTML = '请输入有效身高。';
+            return;
+        };
+        processDiv.innerHTML = `<strong>计算过程:</strong>
+1. 身高(米): ${h}cm / 100 = ${h/100} m
+2. BMI = ${w}kg / (${h/100}m)² = ${bmi.toFixed(2)}`;
+      }
+    }
+
+    // 7. 养老金估算
+    function renderPension(container) {
+      container.innerHTML = `
+        <div class="input-group">
+          <label>缴费年限（年）</label>
+          <input type="number" id="pension-years" value="30" min="0">
+        </div>
+        <div class="input-group">
+          <label>月平均缴费工资（元）</label>
+          <input type="number" id="pension-salary" value="8000" min="0">
+        </div>
+        <div class="input-group">
+          <label>退休时社会平均工资（元）</label>
+          <input type="number" id="pension-socavg" value="9000" min="0">
+        </div>
+        <div class="input-group">
+          <label>退休年龄（岁）</label>
+          <input type="number" id="pension-retire-age" value="60" min="0">
+        </div>
+        <button class="tab" onclick="calcPension()">估算养老金</button>
+        <div class="result" id="pension-result"></div>
+        <div class="process-note" id="pension-process" style="display:none;"></div>
+        <div class="note">根据2024年9月最新法规更新。养老金估算模型已简化，实际以当地社保机构核算为准。</div>
+      `;
+      window.calcPension = function() {
+        const years = parseFloat(document.getElementById('pension-years').value)||0;
+        const salary = parseFloat(document.getElementById('pension-salary').value)||0;
+        const socavg = parseFloat(document.getElementById('pension-socavg').value)||0;
+        const retireAge = parseFloat(document.getElementById('pension-retire-age').value)||60;
+
+        const currentYear = new Date().getFullYear();
+        let minYears = 15;
+        if (currentYear >= 2030) {
+            minYears = Math.min(20, 15 + (currentYear - 2029) * 0.5);
+        }
+
+        if (years <= 0 || salary <= 0 || socavg <= 0) {
+            document.getElementById('pension-result').textContent = '请输入有效数值';
+            document.getElementById('pension-process').style.display = 'none';
+            return;
+        }
+
+        let warning = '';
+        if (years < minYears) {
+            warning = `<div style="color: #ef4444; font-weight: bold; margin-bottom: 0.5rem;">注意：您的缴费年限(${years}年)低于当前要求的最低缴费年限(${minYears}年)。</div>`;
+        }
+        
+        const divisor = getPensionDivisor(retireAge);
+        // 基础养老金 = (社会平均工资+本人平均缴费工资)/2 * 缴费年限 * 1%
+        const basePension = (socavg + salary) / 2 * years * 0.01;
+        // 个人账户养老金 = (月平均缴费工资*12*缴费年限*8%) / 计发月数
+        const personalPension = (salary * 12 * years * 0.08) / divisor;
+        
+        const total = basePension + personalPension;
+        document.getElementById('pension-result').innerHTML = `${warning}预计月养老金：${total.toFixed(2)} 元`;
+
+        const processDiv = document.getElementById('pension-process');
+        processDiv.style.display = 'block';
+        processDiv.innerHTML = `<strong>估算思路 (依据新规):</strong>
+1. 当前最低缴费年限要求: ${minYears}年
+2. 退休年龄(${retireAge}岁)对应计发月数: ${divisor}
+3. 基础养老金 = (${socavg} + ${salary})/2 * ${years} * 1% = ${basePension.toFixed(2)} 元
+4. 个人账户养老金 = (${salary}*12*${years}*8%) / ${divisor} = ${personalPension.toFixed(2)} 元
+5. 预计月养老金 = 基础养老金 + 个人账户养老金 = ${total.toFixed(2)} 元`;
+      }
+    }
+
+    // 8. 复利理财收益
+    function renderCompound(container) {
+      container.innerHTML = `
+        <div class="input-group">
+          <label>初始本金（元）</label>
+          <input type="number" id="compound-principal" value="10000" min="0" oninput="calcCompound()">
+        </div>
+        <div class="input-group">
+          <label>年化利率（%）</label>
+          <input type="number" id="compound-rate" value="4" min="0" step="0.01" oninput="calcCompound()">
+        </div>
+        <div class="input-group">
+          <label>投资年数</label>
+          <input type="number" id="compound-years" value="10" min="0" oninput="calcCompound()">
+        </div>
+        <div class="input-group">
+          <label>计息方式</label>
+          <select id="compound-frequency" onchange="calcCompound()">
+            <option value="annually">按年</option>
+            <option value="quarterly">按季</option>
+            <option value="monthly">按月</option>
+            <option value="daily">按日</option>
+          </select>
+        </div>
+        <button class="tab" onclick="calcCompound()">计算收益</button>
+        <div class="result" id="compound-result"></div>
+        <div class="process-note" id="compound-process" style="display:none;"></div>
+        <div class="note">A = P(1 + r/k)^(n*k)。k为年计息次数。</div>
+      `;
+      window.calcCompound = function() {
+        const p = parseFloat(document.getElementById('compound-principal').value)||0;
+        const r = parseFloat(document.getElementById('compound-rate').value)||0;
+        const y = parseFloat(document.getElementById('compound-years').value)||0;
+        const frequency = document.getElementById('compound-frequency').value;
+
+        let k = 1, freqText = '年';
+        switch (frequency) {
+            case 'quarterly': k = 4; freqText = '季'; break;
+            case 'monthly': k = 12; freqText = '月'; break;
+            case 'daily': k = 365; freqText = '日'; break;
+        }
+
+        const periods = y * k;
+        const periodRate = (r / 100) / k;
+        const total = p * Math.pow(1 + periodRate, periods);
+        
+        document.getElementById('compound-result').textContent = `期末本息合计：${total.toFixed(2)} 元，总收益：${(total-p).toFixed(2)} 元`;
+        
+        const processDiv = document.getElementById('compound-process');
+        processDiv.style.display = 'block';
+
+        if (p <= 0 || r <= 0 || y <= 0) {
+            processDiv.innerHTML = `请输入有效的本金、利率和年数。`;
+            return;
+        }
+
+        processDiv.innerHTML = `<strong>计算过程 (复利):</strong>
+1. 计息周期数 (n): ${y}年 × ${k} (每${freqText}计息) = ${periods}期
+2. 每期利率 (r): ${r}% / ${k} = ${periodRate.toFixed(6)}
+3. 期末本息 = 本金 × (1 + 每期利率) ^ 计息周期数
+   = ${p} × (1 + ${periodRate.toFixed(6)}) ^ ${periods} = ${total.toFixed(2)} 元
+4. 总收益 = ${total.toFixed(2)} - ${p} = ${(total-p).toFixed(2)} 元`;
+      }
+    }
+
+    // 9. 退休年龄推算
+    function renderRetire(container) {
+      container.innerHTML = `
+        <div class="input-group">
+          <label>出生年份</label>
+          <input type="number" id="retire-year" value="1990" min="1940" max="2100" oninput="calcRetire()">
+        </div>
+        <div class="input-group">
+          <label>出生月份</label>
+          <input type="number" id="retire-month" value="1" min="1" max="12" oninput="calcRetire()">
+        </div>
+        <div class="input-group">
+          <label>身份类型</label>
+          <select id="retire-type" onchange="calcRetire()">
+            <option value="male_worker">男职工</option>
+            <option value="female_cadre">女干部 / 女性灵活就业人员 (原55岁退休)</option>
+            <option value="female_worker">女职工 (原50岁退休)</option>
+          </select>
+        </div>
+        <div class="input-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: -0.5rem;">
+          <input type="checkbox" id="retire-special" style="width: 1.2rem; height: 1.2rem;" onchange="calcRetire()">
+          <label for="retire-special" style="margin-bottom: 0;">符合规定的特殊工种 (原始年龄减5年)</label>
+        </div>
+        <button class="tab" onclick="calcRetire()">推算退休年龄</button>
+        <div class="result" id="retire-result"></div>
+        <div class="process-note" id="retire-process" style="display:none;"></div>
+        <div class="note">根据2024年9月最新法规《渐进式延迟法定退休年龄的决定》精确计算，结果仅供参考。</div>
+      `;
+      window.calcRetire = function() {
+        const year = parseInt(document.getElementById('retire-year').value)||0;
+        const month = parseInt(document.getElementById('retire-month').value - 1)||0; // JS month is 0-11
+        const type = document.getElementById('retire-type').value;
+        const isSpecial = document.getElementById('retire-special').checked;
+
+        let baseAge = 0, targetAge = 0, delayPeriod = 0;
+        
+        if (type === 'male_worker') {
+            baseAge = 60; targetAge = 63; delayPeriod = 4;
+        } else if (type === 'female_cadre') {
+            baseAge = 55; targetAge = 58; delayPeriod = 4;
+        } else { // female_worker
+            baseAge = 50; targetAge = 55; delayPeriod = 2;
+        }
+        
+        let specialNote = "";
+        if (isSpecial) {
+          baseAge -= 5;
+          specialNote = ` (因特殊工种减5年)`;
+        }
+        
+        const birthDate = new Date(year, month);
+        const policyStartDate = new Date(2025, 0); // 2025-01-01
+        
+        const originalRetireDate = new Date(birthDate.getFullYear() + baseAge, birthDate.getMonth());
+
+        if (originalRetireDate < policyStartDate) {
+            document.getElementById('retire-result').textContent = `法定退休年龄：${baseAge}岁，您不受延迟退休政策影响。`;
+            const processDiv = document.getElementById('retire-process');
+            processDiv.style.display = 'block';
+            processDiv.innerHTML = '<strong>推算思路:</strong>\n您的原始法定退休日期早于2025年1月1日，因此不受新政影响。';
+            return;
+        }
+
+        const O = (originalRetireDate.getFullYear() - policyStartDate.getFullYear()) * 12 + (originalRetireDate.getMonth() - policyStartDate.getMonth());
+        const P = delayPeriod;
+        
+        let D_approx = O * P / (P - 1);
+        let D = Math.floor(D_approx);
+        
+        // 迭代校准，确保 D - floor(D/P) >= O
+        while(D - Math.floor(D/P) < O) {
+            D++;
+        }
+
+        let finalDelayMonths = Math.floor(D / P);
+        let finalTotalAgeInMonths = (baseAge * 12) + finalDelayMonths;
+        
+        // 不能超过目标年龄
+        finalTotalAgeInMonths = Math.min(finalTotalAgeInMonths, targetAge * 12);
+        
+        const finalAgeYears = Math.floor(finalTotalAgeInMonths / 12);
+        const finalAgeMonths = finalTotalAgeInMonths % 12;
+
+        const finalRetireDate = new Date(birthDate.getFullYear() + finalAgeYears, birthDate.getMonth() + finalAgeMonths);
+        
+        let ageString = `${finalAgeYears}岁`;
+        if (finalAgeMonths > 0) {
+            ageString += `${finalAgeMonths}个月`;
+        }
+        
+        document.getElementById('retire-result').textContent = `法定退休年龄：${ageString}，预计退休于：${finalRetireDate.getFullYear()}年${finalRetireDate.getMonth() + 1}月`;
+        
+        const processDiv = document.getElementById('retire-process');
+        processDiv.style.display = 'block';
+        processDiv.innerHTML = `<strong>推算思路 (依据新规):</strong>
+1. 您的原始退休年龄为: <strong>${baseAge}岁</strong>${specialNote}，原始退休日期为 ${originalRetireDate.getFullYear()}年${originalRetireDate.getMonth() + 1}月。
+2. 您在此日期后退休，受新政影响。您的延迟计算周期为 <strong>每${P}个月延迟1个月</strong>。
+3. 计算得出，您的退休年龄需要延迟 <strong>${Math.floor(finalTotalAgeInMonths - (baseAge * 12))}个月</strong>。
+4. 您的最终法定退休年龄为: <strong>${ageString}</strong> (不超过${targetAge}岁上限)。
+5. 最终退休日期为: <strong>${finalRetireDate.getFullYear()}年${finalRetireDate.getMonth() + 1}月</strong>。`;
+      }
+    }
+
+    // 9. 退休年龄推算
+    function getPensionDivisor(age) {
+        age = Math.round(age);
+        const table = {
+            40: 233, 45: 216, 50: 195, 55: 170, 60: 139, 65: 101, 70: 56
+        };
+        if (table[age]) return table[age];
+        if (age < 40) return 233;
+        if (age > 70) return 56;
+
+        let lowerAge = 40, upperAge = 45;
+        for (const a in table) {
+            const numA = parseInt(a);
+            if (age > numA) {
+                lowerAge = numA;
+            } else {
+                upperAge = numA;
+                break;
+            }
+        }
+        
+        const lowerDivisor = table[lowerAge];
+        const upperDivisor = table[upperAge];
+        // 线性插值
+        const divisor = lowerDivisor - ((age - lowerAge) / (upperAge - lowerAge)) * (lowerDivisor - upperDivisor);
+        return Math.round(divisor);
+    }
+
+    // 初始化
+    renderTabs();
+    renderToolContent();
+  </script>
+</body>
+</html> 
