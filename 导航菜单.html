@@ -12,7 +12,7 @@
       margin: 0;
       padding: 0;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
     }
     .main-panel {
@@ -24,67 +24,57 @@
       min-height: 70vh;
       margin: 32px auto;
       display: flex;
-      overflow: hidden;
-    }
-    .sidebar-nav {
-      min-width: 180px;
-      max-width: 240px;
-      background: #22223b;
-      color: #fff;
-      padding: 0;
-      height: auto;
-      display: flex;
       flex-direction: column;
-      border-right: 1.5px solid #e0e0ef;
       overflow: hidden;
+      padding: 0 0 24px 0;
     }
-    .sidebar-nav .nav-title {
-      font-size: 1.3em;
-      text-align: center;
-      margin: 24px 0 18px 0;
-      letter-spacing: 2px;
-      color: #b39ddb;
-      font-weight: bold;
-    }
-    .sidebar-nav ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      flex: 1;
-      overflow-y: auto;
-      max-height: 70vh;
-      scrollbar-width: thin;
-      scrollbar-color: #7c3aed #22223b;
-    }
-    .sidebar-nav ul::-webkit-scrollbar {
-      width: 6px;
+    .top-group-bar {
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+      padding: 18px 18px 0 18px;
       background: #22223b;
+      border-radius: 18px 18px 0 0;
+      scrollbar-width: thick; /* Firefox */
+      scrollbar-color: #7c3aed #b39ddb; /* Firefox */
     }
-    .sidebar-nav ul::-webkit-scrollbar-thumb {
-      background: #7c3aed;
-      border-radius: 6px;
+    .top-group-bar::-webkit-scrollbar {
+      height: 14px;
+      background: #b39ddb;
+      border-radius: 8px;
     }
-    .sidebar-nav li {
-      padding: 14px 32px;
+    .top-group-bar::-webkit-scrollbar-thumb {
+      background: linear-gradient(90deg, #7c3aed 60%, #4B0082 100%);
+      border-radius: 8px;
+      border: 3px solid #b39ddb;
+    }
+    .group-btn {
+      background: #ede6ff;
+      color: #7c3aed;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 18px;
+      font-size: 1em;
       cursor: pointer;
-      transition: background 0.2s;
-      border-left: 4px solid transparent;
-      font-size: 1.08em;
+      font-weight: bold;
+      transition: background 0.2s, color 0.2s;
       white-space: nowrap;
-      user-select: none;
+      margin-bottom: 0;
+      outline: none;
     }
-    .sidebar-nav li.active, .sidebar-nav li:hover {
+    .group-btn.active, .group-btn:hover {
       background: #7c3aed;
       color: #fff;
-      border-left: 4px solid #fff;
     }
     .main-content {
       flex: 1;
-      padding: 40px 32px;
+      padding: 32px 32px 0 32px;
       min-width: 0;
       overflow-y: auto;
       max-height: 80vh;
       scroll-behavior: smooth;
+      display: flex;
+      flex-direction: column;
     }
     .search-bar-zone {
       display: flex;
@@ -193,61 +183,22 @@
       display: block;
     }
     @media (max-width: 900px) {
-      .main-panel { flex-direction: column; min-width: 0; }
-      .sidebar-nav { max-width: none; min-width: 0; width: 100vw; border-right: none; border-bottom: 1.5px solid #e0e0ef; }
-      .main-content { padding: 20px 5vw; max-height: none; }
+      .main-panel { min-width: 0; }
+      .main-content { padding: 20px 5vw 0 5vw; max-height: none; }
     }
     @media (max-width: 600px) {
-      .main-panel { flex-direction: column; border-radius: 0; margin: 0; width: 100vw; }
-      .sidebar-nav {
-        width: 100vw;
-        min-width: 0;
-        max-width: none;
-        border-radius: 0;
-        display: block;
-        height: auto;
-        position: static;
-        box-shadow: none;
-        padding: 0;
-        margin-bottom: 8px;
-        overflow-x: auto;
-        background: #22223b;
-      }
-      .sidebar-nav .nav-title { display: none; }
-      .sidebar-nav ul {
-        display: flex;
-        flex-direction: row;
-        gap: 0;
-        overflow-x: auto;
-        width: 100vw;
-        max-height: none;
-      }
-      .sidebar-nav li {
-        flex: 1 0 auto;
-        text-align: center;
-        border-left: none;
-        border-bottom: 3px solid transparent;
-        padding: 10px 16px;
-        font-size: 1em;
-      }
-      .sidebar-nav li.active, .sidebar-nav li:hover {
-        border-left: none;
-        border-bottom: 3px solid #fff;
-        background: #7c3aed;
-      }
-      .main-content { padding: 12px 2vw; }
+      .main-panel { border-radius: 0; margin: 0; width: 100vw; }
+      .main-content { padding: 12px 2vw 0 2vw; }
       .card-list { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
       .site-card { height: 38px; border-radius: 12px; padding: 4px 6px; font-size: 0.92em; }
       .site-card .site-card-icon { width: 15px; height: 15px; }
+      .top-group-bar { padding: 10px 4px 0 4px; border-radius: 0; }
     }
   </style>
 </head>
 <body>
   <div class="main-panel">
-    <nav class="sidebar-nav">
-      <div class="nav-title">导航菜单</div>
-      <ul id="categoryList"></ul>
-    </nav>
+    <div class="top-group-bar" id="groupBar"></div>
     <main class="main-content" id="mainContent">
       <div class="search-bar-zone">
         <input type="text" id="searchInput" placeholder="搜索当前分组书签...">
@@ -260,6 +211,9 @@
 
 <!-- ===================== 书签数据区（只保留纯JSON内容，直接粘贴/导入） ===================== -->
 <script type="application/json" id="nav-json">
+
+
+
 {
   "常用": [
     {
@@ -1716,7 +1670,10 @@
       "favicon": "https://favicon.im/https://vl-leilei.pages.dev/ddf965c3-384e-4e93-a802-03d6e2bf07a8"
     }
   ]
-}</script>
+}
+
+
+</script>
 <!-- ===================== 书签数据区结束 ===================== -->
 
 <script>
@@ -1741,22 +1698,22 @@ function getNavData() {
   }
 }
 
-function renderSidebar() {
-  const categoryList = document.getElementById('categoryList');
-  categoryList.innerHTML = '';
+function renderGroupBar() {
+  const groupBar = document.getElementById('groupBar');
+  groupBar.innerHTML = '';
   groupNames.forEach((group, idx) => {
-    const li = document.createElement('li');
-    li.textContent = group;
-    if (idx === currentGroupIdx) li.classList.add('active');
-    li.onclick = () => {
+    const btn = document.createElement('button');
+    btn.className = 'group-btn' + (idx === currentGroupIdx ? ' active' : '');
+    btn.textContent = group;
+    btn.onclick = () => {
       currentGroupIdx = idx;
       searchValue = "";
       document.getElementById('searchInput').value = "";
-      renderSidebar();
+      renderGroupBar();
       renderGroupContent();
       document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'auto' });
     };
-    categoryList.appendChild(li);
+    groupBar.appendChild(btn);
   });
 }
 
@@ -1797,7 +1754,7 @@ document.addEventListener('DOMContentLoaded', function() {
   navData = getNavData();
   groupNames = Object.keys(navData);
   currentGroupIdx = 0;
-  renderSidebar();
+  renderGroupBar();
   renderGroupContent();
 
   document.getElementById('searchInput').addEventListener('input', function(e) {
