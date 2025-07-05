@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加密货币分析工具库 | 专业资源导航</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --card-border: rgba(255, 255, 255, 0.1);
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0c1220 0%, #1a243f 100%);
+            color: var(--light);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding-bottom: 40px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(106, 17, 203, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(37, 117, 252, 0.1) 0%, transparent 20%);
+            z-index: -1;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            padding: 30px 0;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .tagline {
+            font-size: 14px;
+            color: var(--gray);
+            margin-top: 5px;
+            font-family: 'Roboto Mono', monospace;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .stat-box {
+            background: var(--card-bg);
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            text-align: center;
+            min-width: 120px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .hero {
+            text-align: center;
+            padding: 60px 0 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .hero h2 {
+            font-size: 42px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hero p {
+            font-size: 18px;
+            color: var(--gray);
+            margin-bottom: 30px;
+        }
+        
+        .search-box {
+            max-width: 600px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 15px 20px 15px 50px;
+            border-radius: 50px;
+            border: none;
+            background: rgba(30, 41, 59, 0.8);
+            color: white;
+            font-size: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.3);
+            background: rgba(15, 23, 42, 0.9);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+        
+        .categories {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+        
+        .category-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--gray);
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(5px);
+        }
+        
+        .category-btn:hover, .category-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-color: transparent;
+        }
+        
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        
+        .tool-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(5px);
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border-color: rgba(106, 17, 203, 0.3);
+            background: rgba(30, 41, 59, 0.5);
+        }
+        
+        .card-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+        
+        .tool-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .tool-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .tool-category {
+            font-size: 12px;
+            color: var(--gray);
+            background: rgba(148, 163, 184, 0.1);
+            padding: 3px 10px;
+            border-radius: 50px;
+            display: inline-block;
+        }
+        
+        .card-body {
+            padding: 20px;
+            flex-grow: 1;
+        }
+        
+        .tool-description {
+            color: var(--gray);
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+        
+        .tool-features {
+            margin-bottom: 20px;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .feature i {
+            color: var(--success);
+        }
+        
+        .card-footer {
+            padding: 0 20px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .tool-link {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 8px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .tool-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(106, 17, 203, 0.4);
+        }
+        
+        .tool-tags {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .tag {
+            background: rgba(37, 117, 252, 0.1);
+            color: #60a5fa;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 50px;
+        }
+        
+        .section-title {
+            font-size: 28px;
+            margin: 50px 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title i {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .section-description {
+            color: var(--gray);
+            margin-bottom: 30px;
+            max-width: 700px;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--gray);
+            padding: 8px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .filter-btn:hover, .filter-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .more-resources {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+        
+        .more-resources h3 {
+            font-size: 22px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .more-resources h3 i {
+            color: var(--warning);
+        }
+        
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .resource-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .resource-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .resource-link {
+            color: var(--light);
+            text-decoration: none;
+            font-size: 15px;
+        }
+        
+        .resource-link:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+        
+        .featured-tools {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .featured-card {
+            background: linear-gradient(135deg, rgba(106, 17, 203, 0.15), rgba(37, 117, 252, 0.15));
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(106, 17, 203, 0.3);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+        
+        .featured-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(106, 17, 203, 0.2);
+        }
+        
+        .featured-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .featured-card p {
+            color: var(--gray);
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+        
+        .featured-link {
+            display: inline-block;
+            color: #60a5fa;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .featured-link:hover {
+            color: #93c5fd;
+            text-decoration: underline;
+        }
+        
+        .tool-anchor {
+            position: relative;
+            top: -100px;
+            visibility: hidden;
+        }
+        
+        .pi-resources {
+            background: linear-gradient(135deg, rgba(38, 50, 56, 0.7), rgba(25, 32, 38, 0.9));
+            border-radius: 16px;
+            padding: 25px;
+            margin: 40px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+        
+        .pi-resources h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 22px;
+            color: #4fc3f7;
+        }
+        
+        .pi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .pi-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .pi-card:hover {
+            background: rgba(38, 48, 77, 0.7);
+            transform: translateY(-3px);
+        }
+        
+        .pi-card h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .pi-card a {
+            color: #4fc3f7;
+            text-decoration: none;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        
+        .pi-card a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .stats {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .hero h2 {
+                font-size: 32px;
+            }
+            
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section-title {
+                font-size: 24px;
+            }
+            
+            .more-resources {
+                padding: 20px;
+            }
+            
+            .featured-tools {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stat-box {
+                min-width: auto;
+                padding: 8px 12px;
+            }
+            
+            .hero {
+                padding: 40px 0 20px;
+            }
+            
+            .hero h2 {
+                font-size: 28px;
+            }
+            
+            .filters {
+                gap: 8px;
+            }
+            
+            .filter-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .categories {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                justify-content: flex-start;
+                padding: 10px 0;
+                scrollbar-width: none;
+            }
+            
+            .categories::-webkit-scrollbar {
+                display: none;
+            }
+            
+            .category-btn {
+                flex-shrink: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <h1>CryptoAnalytics Pro</h1>
+                        <div class="tagline">一站式加密货币分析工具库 | 专业资源导航</div>
+                    </div>
+                </div>
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-value">120+</div>
+                        <div class="stat-label">分析工具</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">38K+</div>
+                        <div class="stat-label">追踪代币</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">24/7</div>
+                        <div class="stat-label">实时数据</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="hero">
+            <h2>发现顶级加密货币分析工具</h2>
+            <p>精选最全面的加密数据分析平台、交易工具和市场资源，帮助您做出明智的投资决策</p>
+            
+            <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="search-input" placeholder="搜索分析工具、平台或功能...">
+            </div>
+            
+            <div class="categories">
+                <button class="category-btn active" data-target="market-tools">市场分析</button>
+                <button class="category-btn" data-target="onchain-tools">链上分析</button>
+                <button class="category-btn" data-target="trading-tools">交易工具</button>
+                <button class="category-btn" data-target="pi-resources">Pi Network</button>
+                <button class="category-btn" data-target="research-tools">研究资源</button>
+                <button class="category-btn" data-target="more-resources">更多资源</button>
+            </div>
+        </section>
+
+        <div class="featured-tools">
+            <div class="featured-card">
+                <h3><i class="fas fa-star"></i> 今日精选工具</h3>
+                <p>非小号(Feixiaohao) 提供全面的加密货币行情数据，包括价格、市值、交易量等关键指标。</p>
+                <a href="https://m.feixiaohao.com/" class="featured-link" target="_blank">访问非小号 →</a>
+            </div>
+            
+            <div class="featured-card">
+                <h3><i class="fas fa-lightbulb"></i> 开发者推荐</h3>
+                <p>Dune Analytics 允许用户通过SQL查询创建自定义区块链数据仪表板，是链上分析的首选工具。</p>
+                <a href="https://dune.com/" class="featured-link" target="_blank">访问 Dune Analytics →</a>
+            </div>
+            
+            <div class="featured-card">
+                <h3><i class="fas fa-chart-line"></i> 交易者必备</h3>
+                <p>CoinMarketCap 是全球最权威的加密货币数据平台，提供实时价格、市值排名和交易量数据。</p>
+                <a href="https://coinmarketcap.com/" class="featured-link" target="_blank">访问 CoinMarketCap →</a>
+            </div>
+        </div>
+
+        <section class="market-tools" id="market-tools">
+            <span class="tool-anchor" id="anchor-market-tools"></span>
+            <h2 class="section-title"><i class="fas fa-chart-bar"></i> 市场分析工具</h2>
+            <p class="section-description">实时价格追踪、技术指标和算法预测工具，捕捉最佳交易机会</p>
+            
+            <div class="tools-grid">
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">非小号(Feixiaohao)</div>
+                            <span class="tool-category">行情数据</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">中文加密货币数据平台，提供实时价格、市值、交易量、交易所排名等关键指标，特别适合中文用户。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 实时行情数据</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 交易所排名</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 多维度项目分析</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://m.feixiaohao.com/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">中文</span>
+                            <span class="tag">行情数据</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">CoinMarketCap</div>
+                            <span class="tool-category">全球数据</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">全球最权威的加密货币数据平台，追踪超过20,000种加密货币，提供实时价格、市值排名和交易量数据。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 全球加密货币排名</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 交易所交易量监控</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> NFT市场追踪</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://coinmarketcap.com/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">全球</span>
+                            <span class="tag">权威</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-landmark"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">MyTokenCap</div>
+                            <span class="tool-category">项目分析</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">提供全面的加密货币项目数据，包括价格走势、市值、交易量和社区动态，支持高级筛选功能。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 项目多维分析</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 实时价格提醒</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 社区动态追踪</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://www.mytokencap.com/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">项目分析</span>
+                            <span class="tag">筛选功能</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="onchain-tools" id="onchain-tools">
+            <span class="tool-anchor" id="anchor-onchain-tools"></span>
+            <h2 class="section-title"><i class="fas fa-link"></i> 链上分析工具</h2>
+            <p class="section-description">监控区块链数据、大额交易和网络活动，识别市场周期转折点</p>
+            
+            <div class="tools-grid">
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-sitemap"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">Glassnode</div>
+                            <span class="tool-category">链上情报</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">监控链上数据指标，生成"超买/超卖"信号，提供每周市场情绪报告，简化复杂链上数据。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 长期持有者动向</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 市场周期预测</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 大额交易追踪</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://glassnode.com/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">专业版</span>
+                            <span class="tag">比特币</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">DeFiLlama</div>
+                            <span class="tool-category">DeFi分析</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">聚合全链DeFi协议数据，实时更新TVL、交易量和收益率，支持跨链生态对比分析。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> L2解决方案追踪</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 收益耕作优化</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 协议风险分析</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://defillama.com/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">免费</span>
+                            <span class="tag">多链</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">Dune Analytics</div>
+                            <span class="tool-category">链上分析</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">用户自定义SQL数据看板，开源社区共享模板，支持高级链上行为分析。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> NFT交易量追踪</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> Gas费趋势分析</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 巨鲸钱包监控</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://dune.com/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">社区驱动</span>
+                            <span class="tag">自定义</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="pi-resources" id="pi-resources">
+            <span class="tool-anchor" id="anchor-pi-resources"></span>
+            <h3><i class="fas fa-coins"></i> pi币价格查询专区</h3>
+            <div class="pi-grid">
+                <div class="pi-card">
+                    <h4><i class="fas fa-info-circle"></i> coinmarketcap</h4>
+                    <a href="https://coinmarketcap.com/zh/currencies/pi/" target="_blank">CoinMarketCap - Pi Network</a>
+                </div>
+                <div class="pi-card">
+                    <h4><i class="fas fa-search"></i> mytoken</h4>
+                    <a href="https://www.mytokencap.com/zh/search/?keyword=pi&category=all" target="_blank">MyTokenCap - Pi Network</a>
+                </div>
+                <div class="pi-card">
+                    <h4><i class="fas fa-chart-line"></i> 非小号</h4>
+                    <a href="https://m.feixiaohao.com/currencies/pi-network-1/" target="_blank">非小号 - Pi Network</a>
+                </div>
+                <div class="pi-card">
+                    <h4><i class="fas fa-wallet"></i> 币界网</h4>
+                    <a href="https://m.528btc.com/coin/10000023613/bosswallet-pi-usdt-cny" target="_blank">Bosswallet Pi/USDT/CNY</a>
+                </div>
+                <div class="pi-card">
+                    <h4><i class="fas fa-exchange-alt"></i> OKX </h4>
+                    <a href="https://www.okx.com/trade-spot/pi-usdt" target="_blank">OKX - PI/USDT 交易对</a>
+                </div>
+                <div class="pi-card">
+                    <h4><i class="fas fa-robot"></i> Gate.io </h4>
+                    <a href="https://www.gate.io/trade/PI_USDT" target="_blank">Gate.io - PI/USDT 交易对</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="trading-tools" id="trading-tools">
+            <span class="tool-anchor" id="anchor-trading-tools"></span>
+            <h2 class="section-title"><i class="fas fa-exchange-alt"></i> 交易执行工具</h2>
+            <p class="section-description">从中心化交易所到去中心化协议，优化您的交易执行和投资组合管理</p>
+            
+            <div class="tools-grid">
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-building-columns"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">Binance 高级交易</div>
+                            <span class="tool-category">CEX工具</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">提供API支持量化策略，集成跟单交易和期权合约功能，全球流动性最佳的交易平台。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 高级订单类型</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 网格交易</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 跟单交易</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://www.binance.com/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">专业版</span>
+                            <span class="tag">高流动性</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-unlock-keyhole"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">OKX 交易所</div>
+                            <span class="tool-category">CEX工具</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">全球领先的加密货币交易所，提供现货、合约、期权等多种交易产品，支持PI/USDT交易对。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 多资产交易</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 高级交易工具</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 机构级流动性</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://www.okx.com/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">全球</span>
+                            <span class="tag">多资产</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">Gate.io</div>
+                            <span class="tool-category">CEX工具</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">提供多样化的交易工具和服务，包括现货、合约、理财等，支持PI/USDT交易对和策略交易。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 策略交易机器人</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 多币种支持</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 高流动性</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://www.gate.io/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">策略交易</span>
+                            <span class="tag">多币种</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="research-tools" id="research-tools">
+            <span class="tool-anchor" id="anchor-research-tools"></span>
+            <h2 class="section-title"><i class="fas fa-book-open"></i> 研究与情报资源</h2>
+            <p class="section-description">市场新闻、融资动态和事件日历，把握行业脉搏</p>
+            
+            <div class="tools-grid">
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-newspaper"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">The Block</div>
+                            <span class="tool-category">新闻研究</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">加密行业专业媒体与研究平台，提供独家新闻、深度报告和独特的链上链下数据分析。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 独家行业报道</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 机构级数据图表</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 监管动态分析</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://www.theblock.co/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">专业</span>
+                            <span class="tag">深度</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">CoinMarketCal</div>
+                            <span class="tool-category">事件日历</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">社区驱动的加密货币事件日历，跟踪代币解锁、主网上线、交易所上市等重要市场事件。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 事件重要性评级</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 社区验证机制</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 自定义提醒功能</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://coinmarketcal.com/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">免费</span>
+                            <span class="tag">社区驱动</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tool-card">
+                    <div class="card-header">
+                        <div class="tool-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div>
+                            <div class="tool-title">CryptoRank</div>
+                            <span class="tool-category">融资追踪</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">追踪加密货币项目融资轮次、IDO/IEO信息和代币解锁数据，识别早期投资机会。</p>
+                        <div class="tool-features">
+                            <div class="feature"><i class="fas fa-check-circle"></i> 融资历史数据库</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 代币解锁日历</div>
+                            <div class="feature"><i class="fas fa-check-circle"></i> 空投机会发现</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="https://cryptorank.io/" target="_blank" class="tool-link">访问平台</a>
+                        <div class="tool-tags">
+                            <span class="tag">融资</span>
+                            <span class="tag">IDO</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <div class="more-resources" id="more-resources">
+            <span class="tool-anchor" id="anchor-more-resources"></span>
+            <h3><i class="fas fa-external-link-alt"></i> 更多资源导航</h3>
+            <div class="resources-grid">
+                <div class="resource-item">
+                    <div class="resource-icon">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <a href="https://www.panewslab.com/tools" class="resource-link" target="_blank">PANews 区块链工具导航</a>
+                </div>
+                <div class="resource-item">
+                    <div class="resource-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <a href="https://www.hellobtc.com/kp/du/10/5458.html" class="resource-link" target="_blank">50种DYOR工具大全</a>
+                </div>
+                <div class="resource-item">
+                    <div class="resource-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <a href="https://metadock.finance/" class="resource-link" target="_blank">MetaDock 链上安全插件</a>
+                </div>
+                <div class="resource-item">
+                    <div class="resource-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <a href="https://www.gate.com/zh-tw/learn/articles/introduction-to-six-analytical-tools-and-their-use-cases/740" class="resource-link" target="_blank">链上数据分析工具指南</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 分类按钮点击事件
+            const categoryBtns = document.querySelectorAll('.category-btn');
+            categoryBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 更新按钮状态
+                    categoryBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 滚动到对应区域
+                    const targetId = this.getAttribute('data-target');
+                    const targetSection = document.getElementById(targetId);
+                    const anchor = document.getElementById(`anchor-${targetId}`);
+                    
+                    if (targetSection && anchor) {
+                        window.scrollTo({
+                            top: anchor.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+            
+            // 搜索功能
+            const searchInput = document.getElementById('search-input');
+            const toolCards = document.querySelectorAll('.tool-card');
+            const piCards = document.querySelectorAll('.pi-card');
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                // 搜索工具卡片
+                toolCards.forEach(card => {
+                    const title = card.querySelector('.tool-title').textContent.toLowerCase();
+                    const desc = card.querySelector('.tool-description').textContent.toLowerCase();
+                    const features = card.querySelector('.tool-features').textContent.toLowerCase();
+                    
+                    if (title.includes(searchTerm) || desc.includes(searchTerm) || features.includes(searchTerm)) {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                
+                // 搜索Pi Network资源
+                piCards.forEach(card => {
+                    const title = card.querySelector('h4').textContent.toLowerCase();
+                    const link = card.querySelector('a').textContent.toLowerCase();
+                    
+                    if (title.includes(searchTerm) || link.includes(searchTerm)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+            
+            // 工具卡片悬停效果增强
+            toolCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+            
+            // 资源链接提示
+            const resourceLinks = document.querySelectorAll('.resource-link, .featured-link');
+            resourceLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (!confirm('您即将离开本站访问外部资源，是否继续？')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
