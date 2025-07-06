@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>链接检测面板</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto mt-10 p-6 bg-orange-200 rounded-lg shadow-lg max-w-2xl">
+        <h1 class="text-center text-2xl font-bold">链接检测面板</h1>
+        <form id="monitorForm" class="flex flex-wrap mt-4">
+            <input type="text" id="url" placeholder="请输入网址" required class="flex-1 p-2 border rounded mr-2 mb-2">
+            <input type="text" id="name" placeholder="网站名称" required class="flex-1 p-2 border rounded mr-2 mb-2">
+            <button type="submit" class="bg-green-500 text-white p-2 rounded w-full sm:w-auto mb-2">添加</button>
+        </form>
+        <div class="button-group flex flex-wrap justify-between mt-4 gap-2">
+            <button id="toggleWebsiteList" class="bg-blue-500 text-white p-2 rounded">展开列表</button>
+            <button id="downloadButton" class="bg-yellow-500 text-white p-2 rounded">导出列表</button>
+            <input type="file" id="fileInput" accept=".json" style="display: none;">
+            <button id="uploadButton" class="bg-purple-500 text-white p-2 rounded">导入列表</button>
+            <button id="clearListButton" class="bg-gray-500 text-white p-2 rounded">清空列表</button>
+            <button id="startMonitoring" class="bg-red-500 text-white p-2 rounded">检测全部</button>
+        </div>
+        <ul id="websiteList" class="mt-4 hidden"></ul>
+        <div id="progressContainer" style="display: none;" class="mt-4">
+            <div id="progressStats" class="text-center mb-2"></div>
+            <div class="w-full bg-gray-300 rounded">
+                <div id="progressBar" class="h-4 bg-green-500 rounded" style="width:0%"></div>
+            </div>
+            <div id="progressText" class="text-center mt-2"></div>
+        </div>
+        <div id="results" class="mt-4"></div>
+    </div>
+
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    displayWebsiteList();
+    document.getElementById('websiteList').classList.add('hidden');
+    document.getElementById('results').style.display = 'none';
+
+    document.getElementById('monitorForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const url = document.getElementById('url').value.trim();
+        const name = document.getElementById('name').value.trim();
+
+        if (!url || !name) {
+            alert("请输入网址和网站名称。");
+            return;
+        }
+
+        const websites = JSON.parse(localStorage.getItem('websites')) || [];
+        const isDuplicate = websites.some(website => website.url === url);
+
+        if (isDuplicate) {
+            alert("该网址已存在，请输入不同的网址。");
+            return;
+        }
+
+        addWebsiteToList(url, name);
+        displayWebsiteList();
+        this.reset();
+    });
+
+    document.getElementById('downloadButton').addEventListener('click', downloadWebsiteList);
+
+    document.getElementById('uploadButton').addEventListener('click', function() {
+        document.getElementById('fileInput').click();
+    });
+
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const content = e.target.result;
+                const importedData = JSON.parse(content);
+                function extractWebsites(data) {
+                    let result = [];
+                    if (Array.isArray(data)) {
+                        data.forEach(item => {
+                            result = result.concat(extractWebsites(item));
+                        });
+                    } else if (typeof data === 'object' && data !== null) {
+                        const nameKeys = ['name', 'title', '网站', '名称'];
+                        const urlKeys = ['url', 'link', '网址', '链接'];
+                        let name, url;
+                        for (const key of nameKeys) {
+                            if (typeof data[key] === 'string') {
+                                name = data[key];
+                                break;
+                            }
+                        }
+                        for (const key of urlKeys) {
+                            if (typeof data[key] === 'string') {
+                                url = data[key];
+                                break;
+                            }
+                        }
+                        if (name && url) {
+                            result.push({ name, url });
+                        }
+                        for (const value of Object.values(data)) {
+                            result = result.concat(extractWebsites(value));
+                        }
+                    }
+                    return result;
+                }
+                const importedWebsites = extractWebsites(importedData);
+                if (importedWebsites.length === 0) {
+                    throw new Error("未找到包含名称和链接的数据。");
+                }
+                const existingWebsites = JSON.parse(localStorage.getItem('websites')) || [];
+                const allWebsites = [...existingWebsites];
+                importedWebsites.forEach(site => {
+                    if (!allWebsites.some(w => w.url === site.url)) {
+                        allWebsites.push(site);
+                    }
+                });
+                localStorage.setItem('websites', JSON.stringify(allWebsites));
+                alert("网站列表导入成功！");
+                displayWebsiteList();
+            } catch (error) {
+                alert("导入网站列表出错: " + error.message);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('toggleWebsiteList').addEventListener('click', function() {
+        const websiteList = document.getElementById('websiteList');
+        let countInfo = document.getElementById('websiteCountInfo');
+        if (!countInfo) {
+            countInfo = document.createElement('div');
+            countInfo.id = 'websiteCountInfo';
+            countInfo.className = 'text-sm text-gray-700 mt-2';
+            this.parentNode.appendChild(countInfo);
+        }
+        if (websiteList.classList.contains('hidden')) {
+            websiteList.classList.remove('hidden');
+            this.textContent = '收起列表';
+            const websites = JSON.parse(localStorage.getItem('websites')) || [];
+            countInfo.textContent = `网址总数量：${websites.length}`;
+            countInfo.style.display = '';
+        } else {
+            websiteList.classList.add('hidden');
+            this.textContent = '展开列表';
+            countInfo.style.display = 'none';
+        }
+    });
+
+    document.getElementById('clearListButton').addEventListener('click', function() {
+        if (confirm("确定要清空所有网站列表吗？")) {
+            localStorage.removeItem('websites');
+            displayWebsiteList();
+            alert("列表已清空！");
+        }
+    });
+
+    document.getElementById('startMonitoring').addEventListener('click', function() {
+        startBatchCheck();
+    });
+});
+
+function addWebsiteToList(url, name) {
+    let websites = JSON.parse(localStorage.getItem('websites')) || [];
+    websites.push({ url, name });
+    localStorage.setItem('websites', JSON.stringify(websites));
+}
+
+function displayWebsiteList() {
+    const websiteList = document.getElementById('websiteList');
+    websiteList.innerHTML = '';
+    const websites = JSON.parse(localStorage.getItem('websites')) || [];
+    websites.forEach((website, index) => {
+        const listItem = document.createElement('li');
+        listItem.className = 'flex justify-between items-center p-2 bg-white rounded shadow mb-2';
+
+        const checkButton = document.createElement('button');
+        checkButton.textContent = '检测';
+        checkButton.className = 'check bg-blue-500 text-white p-2 rounded mr-2';
+        checkButton.onclick = () => { checkWebsite(website, listItem, true); };
+
+        const link = document.createElement('span');
+        link.textContent = website.name;
+        link.title = website.url;
+        link.className = 'flex-1 overflow-hidden overflow-ellipsis whitespace-nowrap';
+        
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'flex items-center';
+
+        const editButton = document.createElement('button');
+        editButton.textContent = '修改';
+        editButton.className = 'modify bg-yellow-500 text-white p-2 rounded mr-2';
+        editButton.onclick = () => { modifyWebsite(index); };
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = '删除';
+        deleteButton.className = 'delete bg-red-500 text-white p-2 rounded';
+        deleteButton.onclick = () => { deleteWebsite(index); };
+        
+        listItem.appendChild(checkButton);
+        listItem.appendChild(link);
+        buttonGroup.appendChild(editButton);
+        buttonGroup.appendChild(deleteButton);
+        listItem.appendChild(buttonGroup);
+
+        websiteList.appendChild(listItem);
+    });
+}
+
+function deleteWebsite(index) {
+    if (confirm("确定要删除这个网站吗？")) {
+        let websites = JSON.parse(localStorage.getItem('websites')) || [];
+        websites.splice(index, 1);
+        localStorage.setItem('websites', JSON.stringify(websites));
+        displayWebsiteList();
+    }
+}
+
+function modifyWebsite(index) {
+    let websites = JSON.parse(localStorage.getItem('websites')) || [];
+    const currentSite = websites[index];
+    const newUrl = prompt("请输入新的网址", currentSite.url);
+    if (newUrl === null) return; // User cancelled
+    const newName = prompt("请输入新的网站名称", currentSite.name);
+    if (newName === null) return; // User cancelled
+
+    if (newUrl && newName) {
+        websites[index] = { url: newUrl, name: newName };
+        localStorage.setItem('websites', JSON.stringify(websites));
+        displayWebsiteList();
+    }
+}
+
+async function checkWebsite(website, listItem, showAlert = false) {
+    let resultElement = listItem.querySelector('.result');
+    if (!resultElement) {
+        resultElement = document.createElement('div');
+        resultElement.className = 'result';
+        listItem.appendChild(resultElement);
+    }
+    resultElement.innerText = '检测中...';
+    resultElement.className = 'result text-gray-500 ml-2';
+
+    async function tryCheck(url, name) {
+        try {
+            const response = await fetch(`https://jiance.baoge.wang/?target=${encodeURIComponent(url)},${encodeURIComponent(name)}`, {cache: 'no-store'});
+            const resultText = await response.text();
+            return parseResult(resultText);
+        } catch (e) {
+            return { ok: false, code: '网络错误', text: e.message };
+        }
+    }
+
+    function parseResult(resultText) {
+        if (resultText.includes('请求超时')) return {ok: false, code: '超时', text: resultText};
+        let codeMatch = resultText.match(/状态码[:：]\s*(\d+)/);
+        if (codeMatch && codeMatch[1] === '200' || resultText.includes('正常运行')) return {ok: true, code: 200, text: resultText};
+        const hasHtml = /<html|<title|<body|<!DOCTYPE|<meta|<div|<span|window\.|var |function |TopHub/i.test(resultText) || resultText.length > 500;
+        if (hasHtml) return {ok: true, code: codeMatch ? codeMatch[1] : '未知', text: '页面可访问（但有反爬虫或限制），原始返回：' + resultText};
+        if (codeMatch) return {ok: false, code: codeMatch[1], text: resultText};
+        let codeMatch2 = resultText.match(/403|404|500|502|503|504|520|530|412|429/);
+        if (codeMatch2) return {ok: false, code: codeMatch2[0], text: resultText};
+        return {ok: false, code: '未知', text: resultText};
+    }
+
+    let url = website.url.trim();
+    let name = website.name;
+
+    let result = await tryCheck(url, name);
+    if (!result.ok) {
+        let altUrl = '';
+        if (url.startsWith('http://')) altUrl = url.replace(/^http:\/\//, 'https://');
+        else if (url.startsWith('https://')) altUrl = url.replace(/^https:\/\//, 'http://');
+        if (altUrl) result = await tryCheck(altUrl, name);
+    }
+
+    if (result.ok) {
+        return showResult(result, name, url, resultElement, showAlert);
+    }
+
+    resultElement.innerText = '接口检测失败，尝试浏览器检测...';
+    const originalResult = result;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.sandbox = 'allow-scripts allow-same-origin'; // for security
+    iframe.src = url;
+    document.body.appendChild(iframe);
+
+    const canOpen = await new Promise(resolve => {
+        let finished = false;
+        const timer = setTimeout(() => {
+            if (!finished) {
+                finished = true;
+                resolve(false);
+            }
+        }, 5000);
+
+        iframe.onload = () => {
+            if (!finished) {
+                finished = true;
+                clearTimeout(timer);
+                resolve(true);
+            }
+        };
+        iframe.onerror = () => {
+            if (!finished) {
+                finished = true;
+                clearTimeout(timer);
+                resolve(false);
+            }
+        };
+    });
+    
+    document.body.removeChild(iframe);
+
+    if (canOpen) {
+        result = { ok: true, code: 'iframe', text: '页面可访问（浏览器可打开，检测接口受限）' };
+        return showResult(result, name, url, resultElement, showAlert);
+    } else {
+        return showResult(originalResult, name, url, resultElement, showAlert);
+    }
+}
+
+function showResult(result, name, url, resultElement, showAlert) {
+    if (result.ok) {
+        resultElement.innerText = `正常`;
+        resultElement.className = 'result status-normal text-green-500 ml-2';
+        if (result.code !== 200 && result.code !== 'iframe') {
+            resultElement.innerText = `可访问 (码: ${result.code})`;
+        }
+        if (result.code === 'iframe') {
+            resultElement.innerText = `可访问 (浏览器)`;
+        }
+        if (showAlert) alert(`${name} 检测正常`);
+    } else {
+        resultElement.innerHTML = `<a href="${url}" target="_blank" class="text-red-500 underline">检测失败 (码: ${result.code})</a>`;
+        resultElement.className = 'result status-error ml-2';
+        if (showAlert) alert(`${name} 检测失败，状态码: ${result.code}`);
+    }
+    return result.ok;
+}
+
+function startBatchCheck() {
+    const websites = JSON.parse(localStorage.getItem('websites')) || [];
+    if (websites.length === 0) {
+        alert("没有可检测的网址。");
+        return;
+    }
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('progressContainer').style.display = 'block';
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('progressText').innerText = '检测进度: 0%';
+    document.getElementById('progressStats').innerText = `总数量: ${websites.length}, 成功: 0, 失败: 0`;
+
+    let totalCount = websites.length;
+    let successCount = 0;
+    let failureCount = 0;
+    let finishedCount = 0;
+    let failedUrls = [];
+
+    const websiteList = document.getElementById('websiteList');
+    const listItems = Array.from(websiteList.children);
+    const checkPromises = websites.map((website, i) => {
+        const listItem = listItems[i];
+        return checkWebsite(website, listItem, false).then(ok => {
+            if (ok) {
+                successCount++;
+            } else {
+                failureCount++;
+                failedUrls.push({ name: website.name, url: website.url });
+            }
+            finishedCount++;
+            const progressPercentage = (finishedCount / totalCount) * 100;
+            document.getElementById('progressBar').style.width = `${progressPercentage}%`;
+            document.getElementById('progressText').innerText = `检测进度: ${Math.round(progressPercentage)}%`;
+            document.getElementById('progressStats').innerText = `总数量: ${totalCount}, 成功: ${successCount}, 失败: ${failureCount}`;
+        });
+    });
+
+    Promise.all(checkPromises).then(() => {
+        document.getElementById('progressContainer').style.display = 'none';
+        showSummary(successCount, failureCount, failedUrls);
+    });
+}
+
+function showSummary(successCount, failureCount, failedUrls) {
+    const summaryDiv = document.getElementById('results');
+    summaryDiv.style.display = 'block';
+    const failedLinksHtml = failedUrls.map(site => 
+        `<a href="${site.url}" target="_blank" class="text-red-600 underline hover:text-red-800">${site.name}</a>`
+    ).join(', ');
+
+    summaryDiv.innerHTML = `
+        <div class="p-4 bg-white rounded shadow mt-4">
+            <div>检测已完成，成功 <span class="text-green-600">${successCount}</span> 个，失败 <span class="text-red-600">${failureCount}</span> 个</div>
+            ${failureCount > 0 ? `<div>失败的网址: ${failedLinksHtml}</div>` : ''}
+        </div>
+    `;
+}
+
+function downloadWebsiteList() {
+    const websites = JSON.parse(localStorage.getItem('websites')) || [];
+    if (websites.length === 0) {
+        alert("没有可下载的网址。");
+        return;
+    }
+    const formattedWebsites = websites.map(website => ({
+        "name": website.name,
+        "url": website.url
+    }));
+    const jsonContent = JSON.stringify(formattedWebsites, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'websites.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+    </script>
+</body>
+</html>
