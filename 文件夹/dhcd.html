@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝哥导航菜单</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            min-height: 98vh;
+        }
+        .container {
+            width: 98%;
+            max-width: 900px;
+            margin: 10px auto;
+            background-color: #fff;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            position: relative;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        h1 {
+            color: #7c3aed;
+            margin-bottom: 6px;
+            font-size: 1.5em;
+        }
+        .search-bar {
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .search-bar input {
+            width: 90%;
+            max-width: 400px;
+            padding: 6px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 18px;
+            font-size: 0.98em;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
+        }
+        .search-bar input:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 6px rgba(124,58,237,0.18);
+        }
+        .groups-container {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            justify-content: center;
+        }
+        .group {
+            background-color: #f5f5fa;
+            border: 2px solid #e0e0ef;
+            border-radius: 10px;
+            padding: 10px 8px 8px 8px;
+            box-shadow: 0 1px 4px rgba(124,58,237,0.04);
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .group-title {
+            font-size: 1.1em;
+            color: #7c3aed;
+            margin-top: 0;
+            margin-bottom: 7px;
+            border-bottom: 1.5px solid #e9e4f0;
+            padding-bottom: 3px;
+            display: flex;
+            align-items: center;
+        }
+        .bookmark-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: flex-start;
+        }
+        .bookmark-card {
+            border-radius: 7px;
+            padding: 5px 10px 4px 10px;
+            text-align: center;
+            transition: all 0.18s;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(124,58,237,0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 32px;
+            text-decoration: none;
+            color: #333;
+            width: auto;
+            min-width: 70px;
+            max-width: 120px;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            overflow: hidden;
+            white-space: normal;
+            font-size: 0.97em;
+            border: 1.5px solid #e0e0ef;
+            background-color: var(--group-color, #ede7f6);
+        }
+        .bookmark-card:hover, .bookmark-card:active {
+            background-color: #7c3aed !important;
+            color: #fff !important;
+            border-color: #7c3aed;
+            box-shadow: 0 2px 8px rgba(124,58,237,0.18);
+            transform: translateY(-1.5px) scale(1.04);
+        }
+        .bookmark-card img {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            margin-bottom: 2px;
+            background: #eee;
+            box-shadow: none;
+        }
+        .bookmark-name {
+            font-size: 0.93em;
+            font-weight: 500;
+            color: inherit;
+            display: block;
+            margin-top: 1.5px;
+            text-align: center;
+            word-break: break-word;
+            line-height: 1.15;
+            max-height: 2.3em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 99%;
+                padding: 6px;
+            }
+            h1 {
+                font-size: 1.1em;
+            }
+            .group {
+                padding: 7px 3px 5px 3px;
+            }
+            .group-title {
+                font-size: 1em;
+            }
+            .bookmark-card {
+                min-width: 55px;
+                max-width: 90px;
+                padding: 4px 4px 3px 4px;
+                font-size: 0.89em;
+            }
+            .bookmark-card img {
+                width: 13px;
+                height: 13px;
+            }
+            .bookmark-name {
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>宝哥导航菜单</h1>
+        </header>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="搜索书签...">
+        </div>
+        <div class="groups-container" id="groups-container">
+            <!-- Bookmarks will be loaded here by JavaScript -->
+        </div>
+    </div>
+
+<!-- ===================== 书签数据区（只保留纯JSON内容，直接粘贴/导入） ===================== -->
+<script type="application/json" id="nav-json">
+
+
+
+{
+  "常用": [
+    {
+      "name": "宝哥导航站",
+      "url": "https://dhz.baoge.wang/",
+      "favicon": "https://favicon.im/dhz.baoge.wang"
+    },
+    {
+      "name": "宝哥影院",
+      "url": "http://ys.baoge.zone.id/",
+      "favicon": "https://icons.duckduckgo.com/ip3/ys.baoge.zone.id.ico"
+    },
+    {
+      "name": "泰安本地宝",
+      "url": "https://m.ta.bendibao.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=m.ta.bendibao.com"
+    },
+    {
+      "name": "泰安日报",
+      "url": "https://tophub.today/n/YKd6GRzeaP",
+      "favicon": "https://www.google.com/s2/favicons?domain=tophub.today"
+    },
+    {
+      "name": "今日热榜",
+      "url": "https://hot.imsyy.top/#/",
+      "favicon": "https://www.google.com/s2/favicons?domain=hot.imsyy.top"
+    },
+    {
+      "name": "新闻汇聚",
+      "url": "https://xw.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=xw.653827.xyz"
+    },
+    {
+      "name": "Notion 博客",
+      "url": "https://www.653827.xyz",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.653827.xyz"
+    },
+    {
+      "name": "hexo博客",
+      "url": "http://hexo.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=hexo.baoge.wang"
+    },
+    {
+      "name": "丁丁传书",
+      "url": "https://dingding.baoge.wang/index.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dingding.baoge.wang"
+    },
+    {
+      "name": "HF云盘",
+      "url": "https://pan.hefamily.net/home?path=%2F",
+      "favicon": "https://www.google.com/s2/favicons?domain=pan.hefamily.net"
+    },
+    {
+      "name": "黑猫文件",
+      "url": "https://dfile.baoge.wang",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    },
+    {
+      "name": "电报文件",
+      "url": "https://cftg.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cftg.653827.xyz"
+    },
+    {
+      "name": "文件管理678789",
+      "url": "https://789-two.vercel.app/",
+      "favicon": "https://www.google.com/s2/favicons?domain=789-two.vercel.app"
+    },
+    {
+      "name": "文件管理4567890",
+      "url": "https://7890-ten.vercel.app/",
+      "favicon": "https://www.google.com/s2/favicons?domain=7890-ten.vercel.app"
+    },
+    {
+      "name": "链接检测",
+      "url": "https://file.baoge.wang/lianjiejiance1",
+      "favicon": "https://favicon.im/https://file.baoge.wang/lianjiejiance1"
+    },
+    {
+      "name": "IP检测面板",
+      "url": "https://file.baoge.wang/ipjc",
+      "favicon": "https://favicon.im/https://file.baoge.wang/ipjc"
+    },
+    {
+      "name": "书签系统",
+      "url": "https://file.baoge.wang/bkmk2",
+      "favicon": "https://favicon.im/https://file.baoge.wang/bkmk2"
+    },
+    {
+      "name": "书签导航",
+      "url": "https://sqdh.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=sqdh.653827.xyz"
+    }
+  ],
+  "新闻资讯": [
+    {
+      "name": "全网热点",
+      "url": "https://hot.ailake.cn/hot/1",
+      "favicon": "https://www.google.com/s2/favicons?domain=hot.ailake.cn"
+    },
+    {
+      "name": "今日热榜",
+      "url": "https://tophub.today/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tophub.today"
+    },
+    {
+      "name": "头条热榜",
+      "url": "https://www.hsmy.fun/news/toutiao",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.hsmy.fun"
+    },
+    {
+      "name": "实时热点",
+      "url": "https://www.36jxs.com/hot.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.36jxs.com"
+    },
+    {
+      "name": "划水摸鱼",
+      "url": "https://www.huashuimoyu.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.huashuimoyu.com"
+    },
+    {
+      "name": "果汁排行",
+      "url": "http://guozhivip.com/rank/",
+      "favicon": "https://www.google.com/s2/favicons?domain=guozhivip.com"
+    },
+    {
+      "name": "扎客新闻",
+      "url": "https://www.myzaker.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.myzaker.com"
+    },
+    {
+      "name": "大江头条",
+      "url": "https://news.jxcn.cn/?from=jx33",
+      "favicon": "https://www.google.com/s2/favicons?domain=news.jxcn.cn"
+    },
+    {
+      "name": "信息主管",
+      "url": "https://www.cio360.net/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.cio360.net"
+    },
+    {
+      "name": "学习强国",
+      "url": "https://www.xuexi.cn/3271716c843e44c7e00e66e38ad6fcd5/e2c3733327a5a413f63fc980e92f4552.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.xuexi.cn"
+    },
+    {
+      "name": "区块链网",
+      "url": "https://www.qklw.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.qklw.com"
+    },
+    {
+      "name": "加密储蓄",
+      "url": "https://cryptosavingexpert.com/news",
+      "favicon": "https://www.google.com/s2/favicons?domain=cryptosavingexpert.com"
+    }
+  ],
+  "pi节点（相关）": [
+    {
+      "name": "节点数据云检测",
+      "url": "http://jk.pi-node.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=jk.pi-node.cn"
+    },
+    {
+      "name": "节点端口在线检测",
+      "url": "http://pi-node.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=pi-node.cn"
+    },
+    {
+      "name": "节点端口打开检测",
+      "url": "https://pi-mods.de/nodeports/",
+      "favicon": "https://www.google.com/s2/favicons?domain=pi-mods.de"
+    },
+    {
+      "name": "pi节点检测网",
+      "url": "https://check.zhshsq.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=check.zhshsq.com"
+    },
+    {
+      "name": "pi币中文网",
+      "url": "https://www.picn.cc/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.picn.cc"
+    },
+    {
+      "name": "24小时pi区块链统计",
+      "url": "https://explorepi.info",
+      "favicon": "https://www.google.com/s2/favicons?domain=explorepi.info"
+    },
+    {
+      "name": "pi浏览器（主网）",
+      "url": "https://blockexplorer.minepi.com/mainnet/",
+      "favicon": "https://www.google.com/s2/favicons?domain=blockexplorer.minepi.com"
+    },
+    {
+      "name": "pi项目方650亿矿池钱包",
+      "url": "http://cmd.im/88ws",
+      "favicon": "https://www.google.com/s2/favicons?domain=cmd.im"
+    },
+    {
+      "name": "uptimerobot",
+      "url": "https://dashboard.uptimerobot.com/monitors",
+      "favicon": "https://www.google.com/s2/favicons?domain=dashboard.uptimerobot.com"
+    },
+    {
+      "name": "pinetwork资源导航中心",
+      "url": "https://pizy.653827.xyz/",
+      "favicon": "https://favicon.im/https://pizy.653827.xyz/"
+    }
+  ],
+  "serv00（相关）": [
+    {
+      "name": "serv00登录保活",
+      "url": "https://baohuo.baoge.wang",
+      "favicon": "https://www.google.com/s2/favicons?domain=baohuo.baoge.wang"
+    },
+    {
+      "name": "serv00主机状态",
+      "url": "https://status.eooce.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=status.eooce.com"
+    },
+    {
+      "name": "serv00服务器状态查询",
+      "url": "https://ss.fkj.pp.ua/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ss.fkj.pp.ua"
+    },
+    {
+      "name": "Serv00 账号状态检测器",
+      "url": "https://file.baoge.wang/serv00-%E8%B4%A6%E5%8F%B7%E6%A3%80%E6%B5%8B",
+      "favicon": "https://favicon.im/https://file.baoge.wang/serv00-%E8%B4%A6%E5%8F%B7%E6%A3%80%E6%B5%8B"
+    },
+    {
+      "name": "serv00账号状态查询",
+      "url": "https://plcx.yydsidc.top/",
+      "favicon": "https://www.google.com/s2/favicons?domain=plcx.yydsidc.top"
+    },
+    {
+      "name": "Serv00自动化安装面板       ",
+      "url": "https://serv00.eooce.com",
+      "favicon": "https://www.google.com/s2/favicons?domain=serv00.eooce.com"
+    }
+  ],
+  "websssh": [
+    {
+      "name": "ssh.090227",
+      "url": "https://ssh.090227.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ssh.090227.xyz"
+    },
+    {
+      "name": "ssh-cmliussss",
+      "url": "https://ssh.cmliussss.net/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ssh.cmliussss.net"
+    },
+    {
+      "name": "ssh.icdyct",
+      "url": "https://ssh.icdyct.nyc.mn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ssh.icdyct.nyc.mn"
+    },
+    {
+      "name": "flyio-webssh",
+      "url": "https://flyio-webssh.fly.dev/",
+      "favicon": "https://www.google.com/s2/favicons?domain=flyio-webssh.fly.dev"
+    }
+  ],
+  "面板（相关）": [
+    {
+      "name": "哪吒面板-ali",
+      "url": "http://baoge.d.gv.vc:39676/",
+      "favicon": "https://www.google.com/s2/favicons?domain=baoge.d.gv.vc"
+    },
+    {
+      "name": "VPS到期监控",
+      "url": "https://vps.shorten.dpdns.org/",
+      "favicon": "https://www.google.com/s2/favicons?domain=vps.shorten.dpdns.org"
+    },
+    {
+      "name": "uptime-阿里云",
+      "url": "http://baoge.d.gv.vc:3003/dashboard",
+      "favicon": "https://www.google.com/s2/favicons?domain=baoge.d.gv.vc"
+    },
+    {
+      "name": "青龙面板",
+      "url": "https://huggingface.co/spaces/baoge666/qinglong",
+      "favicon": "https://www.google.com/s2/favicons?domain=huggingface.co"
+    },
+    {
+      "name": "s-ui-baoge",
+      "url": "http://baoge.d.gv.vc:2095/app/",
+      "favicon": "https://www.google.com/s2/favicons?domain=baoge.d.gv.vc"
+    },
+    {
+      "name": "x-ui-帕斯云",
+      "url": "https://www.pasyun.com/server/lxc",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.pasyun.com"
+    }
+  ],
+  "云服（教程）": [
+    {
+      "name": "阿里云",
+      "url": "https://swasnext.console.aliyun.com/servers/cn-hongkong?__refreshToken=1724502455242",
+      "favicon": "https://www.google.com/s2/favicons?domain=swasnext.console.aliyun.com"
+    },
+    {
+      "name": "v2ray安装",
+      "url": "https://233boy.com/v2ray/v2ray-script/",
+      "favicon": "https://www.google.com/s2/favicons?domain=233boy.com"
+    },
+    {
+      "name": "1panel安装",
+      "url": "https://github.com/1Panel-dev/1Panel",
+      "favicon": "https://www.google.com/s2/favicons?domain=github.com"
+    },
+    {
+      "name": "x-ui-yg",
+      "url": "https://github.com/yonggekkk/x-ui-yg",
+      "favicon": "https://www.google.com/s2/favicons?domain=github.com"
+    },
+    {
+      "name": "dpanel",
+      "url": "https://github.com/baoge998/dpanel",
+      "favicon": "https://www.google.com/s2/favicons?domain=github.com"
+    },
+    {
+      "name": "s-ui",
+      "url": "https://amclubs.blogspot.com/2025/02/s-ui.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=amclubs.blogspot.com"
+    },
+    {
+      "name": "Sun-Panel",
+      "url": "https://doc.sun-panel.top/zh_cn/usage/quick_deploy.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=doc.sun-panel.top"
+    },
+    {
+      "name": "pi节点搭建、维护导引图",
+      "url": "http://node.pi-node.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=node.pi-node.cn"
+    }
+  ],
+  "域名": [
+    {
+      "name": "域名监控",
+      "url": "https://ym.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ym.baoge.wang"
+    },
+    {
+      "name": "Com.MP 仪表板",
+      "url": "https://www.registry.com.mp/dashboard/domains?page=1&page_size=10&search=&sort=created_at&order=ASC",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.registry.com.mp"
+    },
+    {
+      "name": "US.KG  登录",
+      "url": "https://register.us.kg/auth/login?next=/panel/main",
+      "favicon": "https://www.google.com/s2/favicons?domain=register.us.kg"
+    },
+    {
+      "name": "dns.he.net",
+      "url": "https://ipv6.he.net/certification/cert-main.php",
+      "favicon": "https://www.google.com/s2/favicons?domain=ipv6.he.net"
+    },
+    {
+      "name": "DNS托管免费|HOSTRY托管服务",
+      "url": "https://hostry.com/products/dns/",
+      "favicon": "https://www.google.com/s2/favicons?domain=hostry.com"
+    },
+    {
+      "name": "ClouDNS",
+      "url": "https://www.cloudns.net/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.cloudns.net"
+    },
+    {
+      "name": "L53域名",
+      "url": "https://customer.l53.net/",
+      "favicon": "https://www.google.com/s2/favicons?domain=customer.l53.net"
+    },
+    {
+      "name": "dynv6域名",
+      "url": "https://dynv6.com/zones",
+      "favicon": "https://www.google.com/s2/favicons?domain=dynv6.com"
+    },
+    {
+      "name": "baoge.x10.mx",
+      "url": "https://x11.x10hosting.com:2222/evo/user/dns",
+      "favicon": "https://www.google.com/s2/favicons?domain=x11.x10hosting.com"
+    },
+    {
+      "name": "YDNS",
+      "url": "https://ydns.io/hosts/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ydns.io"
+    },
+    {
+      "name": "ugu.pl/panel",
+      "url": "https://www.ugu.pl/panel/user/profile#google_vignette",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.ugu.pl"
+    },
+    {
+      "name": "freewebhostmost客户专区",
+      "url": "https://client.webhostmost.com/clientarea.php",
+      "favicon": "https://www.google.com/s2/favicons?domain=client.webhostmost.com"
+    },
+    {
+      "name": "space域名",
+      "url": "https://www.spaceship.com/zh/application/domain-list-application/?domainName=653827.xyz",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.spaceship.com"
+    }
+  ],
+  "导航页": [
+    {
+      "name": "书签导航一",
+      "url": "https://sq.baoge.wang",
+      "favicon": "https://www.google.com/s2/favicons?domain=sq.baoge.wang"
+    },
+    {
+      "name": "书签导航二",
+      "url": "https://sqdh.653827.xyz",
+      "favicon": "https://www.google.com/s2/favicons?domain=sqdh.653827.xyz"
+    },
+    {
+      "name": "jsqdh",
+      "url": "https://jsqdh.653827.xyz",
+      "favicon": "https://www.google.com/s2/favicons?domain=jsqdh.653827.xyz"
+    },
+    {
+      "name": "网址导航",
+      "url": "https://nav.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=nav.baoge.wang"
+    },
+    {
+      "name": "宝哥导航站",
+      "url": "https://dhz.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=dhz.baoge.wang"
+    },
+    {
+      "name": "书签管理系统",
+      "url": "https://file.baoge.wang/bkmk2",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "我的书签",
+      "url": "https://dfile.baoge.wang/sunpanel.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    },
+    {
+      "name": "简约导航1",
+      "url": "https://dfile.baoge.wang/%E7%AE%80%E7%BA%A6%E5%AF%BC%E8%88%AA1.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    },
+    {
+      "name": "简约2",
+      "url": "https://dfile.baoge.wang/%E7%AE%80%E7%BA%A62.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    },
+    {
+      "name": "jianyue2",
+      "url": "https://dfile.baoge.wang/jianyue2.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    }
+  ],
+  "博客": [
+    {
+      "name": "Gridea博客",
+      "url": "https://bk.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=bk.baoge.wang"
+    },
+    {
+      "name": "XAMPP博客",
+      "url": "https://xampp.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=xampp.baoge.wang"
+    },
+    {
+      "name": "RIN博客",
+      "url": "https://blog.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=blog.baoge.wang"
+    },
+    {
+      "name": "Notion博客",
+      "url": "https://www.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.653827.xyz"
+    },
+    {
+      "name": "CF-Blog",
+      "url": "https://cfblog.baoge888.ddns-ip.net",
+      "favicon": "https://www.google.com/s2/favicons?domain=cfblog.baoge888.ddns-ip.net"
+    },
+    {
+      "name": "宝哥论坛",
+      "url": "http://baoge.ugu.pl/",
+      "favicon": "https://www.google.com/s2/favicons?domain=baoge.ugu.pl"
+    },
+    {
+      "name": "Blogger",
+      "url": "https://baoge666.blogspot.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=baoge666.blogspot.com"
+    }
+  ],
+  "工具页": [
+    {
+      "name": "文件管理器",
+      "url": "https://dfile.baoge.wang",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    },
+    {
+      "name": "IP检测工具汇总",
+      "url": "https://file.baoge.wang/ipjc",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "网址加速器",
+      "url": "https://js.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=js.653827.xyz"
+    },
+    {
+      "name": "链接检测面板",
+      "url": "https://file.baoge.wang/lianjiejiance",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "在线粘贴板",
+      "url": "https://cp.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cp.653827.xyz"
+    },
+    {
+      "name": "跳转浏览器",
+      "url": "https://tz.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tz.baoge.wang"
+    },
+    {
+      "name": "电报文件管理",
+      "url": "https://cftg.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cftg.653827.xyz"
+    },
+    {
+      "name": "挪车二维码生成器",
+      "url": "https://ncewm.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ncewm.baoge.wang"
+    },
+    {
+      "name": "域名监控",
+      "url": "https://ym.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ym.baoge.wang"
+    },
+    {
+      "name": "网页分析",
+      "url": "https://fx.baoge.wang",
+      "favicon": "https://www.google.com/s2/favicons?domain=fx.baoge.wang"
+    },
+    {
+      "name": "书签导航页自动生成",
+      "url": "https://file.baoge.wang/j2-h2",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "文本到图像生成器",
+      "url": "https://text.imageonline.co/cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=text.imageonline.co"
+    },
+    {
+      "name": "在线抠图",
+      "url": "https://www.remove.bg/zh",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.remove.bg"
+    },
+    {
+      "name": "Cron表达式生成器",
+      "url": "https://cron.qqe2.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cron.qqe2.com"
+    }
+  ],
+  "Markdown": [
+    {
+      "name": "Tool On lion",
+      "url": "https://toolonline.net/markdown",
+      "favicon": "https://www.google.com/s2/favicons?domain=toolonline.net"
+    },
+    {
+      "name": "Arya",
+      "url": "https://markdown.lovejade.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=markdown.lovejade.cn"
+    },
+    {
+      "name": "锤子在线",
+      "url": "https://www.toolhelper.cn/Code/Markdown",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.toolhelper.cn"
+    },
+    {
+      "name": "在线工具",
+      "url": "https://tool.lu/markdown/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.lu"
+    },
+    {
+      "name": "HTML转换Markdown",
+      "url": "https://devtool.tech/html-md",
+      "favicon": "https://www.google.com/s2/favicons?domain=devtool.tech"
+    },
+    {
+      "name": "Markdown 语法",
+      "url": "https://markdown.com.cn/hacks.html#%E6%A6%82%E8%BF%B0",
+      "favicon": "https://www.google.com/s2/favicons?domain=markdown.com.cn"
+    }
+  ],
+  "其它资源": [
+    {
+      "name": "AI导航",
+      "url": "https://www.aidh.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.aidh.cn"
+    },
+    {
+      "name": "AI工具箱",
+      "url": "https://aiproducthome.top/",
+      "favicon": "https://www.google.com/s2/favicons?domain=aiproducthome.top"
+    },
+    {
+      "name": "新闻汇聚",
+      "url": "https://xw.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=xw.653827.xyz"
+    },
+    {
+      "name": "财经新闻",
+      "url": "https://sina-news.vercel.app/",
+      "favicon": "https://www.google.com/s2/favicons?domain=sina-news.vercel.app"
+    },
+    {
+      "name": "泰安天气",
+      "url": "https://www.qweather.com/weather/tai'an-101120801.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.qweather.com"
+    },
+    {
+      "name": "岱岳天气",
+      "url": "https://tianqi.moji.com/weather/china/shandong/daiyue-district",
+      "favicon": "https://www.google.com/s2/favicons?domain=tianqi.moji.com"
+    },
+    {
+      "name": "ImgURL图库",
+      "url": "https://www.imgurl.org/vip/manage/upload",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.imgurl.org"
+    },
+    {
+      "name": "骤雨重山图库",
+      "url": "https://wp-cdn.4ce.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=wp-cdn.4ce.cn"
+    },
+    {
+      "name": "Bilibili音乐",
+      "url": "https://www.bilibili.com/video/BV1564y1m7Mu?spm_id_from=333.788.videopod.sections&vd_source=954e725e91c1c3621a8a51c91cb1da04",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.bilibili.com"
+    },
+    {
+      "name": "微信读书",
+      "url": "https://weread.qq.com/web/category/100000",
+      "favicon": "https://www.google.com/s2/favicons?domain=weread.qq.com"
+    },
+    {
+      "name": "宝哥影院",
+      "url": "https://ys.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ys.653827.xyz"
+    },
+    {
+      "name": "Vodg影视",
+      "url": "https://vd.loc.cc/",
+      "favicon": "https://www.google.com/s2/favicons?domain=vd.loc.cc"
+    },
+    {
+      "name": "LibreTV-baoge",
+      "url": "https://ys.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ys.baoge.wang"
+    },
+    {
+      "name": "LibreTV-ys",
+      "url": "https://ys.001315.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ys.001315.xyz"
+    },
+    {
+      "name": "老王电影",
+      "url": "https://laowang.co/",
+      "favicon": "https://www.google.com/s2/favicons?domain=laowang.co"
+    },
+    {
+      "name": "彩虹工具网",
+      "url": "https://tool.cccyun.cc/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.cccyun.cc"
+    }
+  ],
+  "代码混淆": [
+    {
+      "name": "toolonline",
+      "url": "https://toolonline.net/js-obfuscator",
+      "favicon": "https://www.google.com/s2/favicons?domain=toolonline.net"
+    },
+    {
+      "name": "傲星工具箱",
+      "url": "https://tool.aoaostar.com/code_js",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.aoaostar.com"
+    },
+    {
+      "name": "Html加密",
+      "url": "https://fairysoftware.com/html_jia_mi.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=fairysoftware.com"
+    },
+    {
+      "name": "在线文本加密",
+      "url": "https://tophix.com/zh-cn/development-tools/encrypt-text",
+      "favicon": "https://www.google.com/s2/favicons?domain=tophix.com"
+    },
+    {
+      "name": "Online Obfuscator",
+      "url": "https://javascriptobfuscator.com/Javascript-Obfuscator.aspx",
+      "favicon": "https://www.google.com/s2/favicons?domain=javascriptobfuscator.com"
+    }
+  ],
+  "科学订阅": [
+    {
+      "name": "FOFA搜节点",
+      "url": "https://gaojilingjuli.blogspot.com/2025/02/fofa.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=gaojilingjuli.blogspot.com"
+    },
+    {
+      "name": "CM节点代理池",
+      "url": "https://blog.cmliussss.com/p/ProxyPool/",
+      "favicon": "https://www.google.com/s2/favicons?domain=blog.cmliussss.com"
+    },
+    {
+      "name": "免费安装软路由",
+      "url": "https://www.freedidi.com/741.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.freedidi.com"
+    },
+    {
+      "name": "IDM破解版",
+      "url": "https://blog.aizrf.com/p/IDM-Crack/",
+      "favicon": "https://www.google.com/s2/favicons?domain=blog.aizrf.com"
+    },
+    {
+      "name": "pi节点搭建",
+      "url": "https://youtu.be/eWK5NsWKMjU",
+      "favicon": "https://www.google.com/s2/favicons?domain=youtu.be"
+    },
+    {
+      "name": "科学上网资源导航中心",
+      "url": "https://dfile.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/%E7%A7%91%E5%AD%A6%E4%B8%8A%E7%BD%91%E8%B5%84%E6%BA%90%E5%AF%BC%E8%88%AA%E4%B8%AD%E5%BF%83.html",
+      "favicon": "https://favicon.im/https://dfile.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/%E7%A7%91%E5%AD%A6%E4%B8%8A%E7%BD%91%E8%B5%84%E6%BA%90%E5%AF%BC%E8%88%AA%E4%B8%AD%E5%BF%83.html"
+    }
+  ],
+  "A I": [
+    {
+      "name": "deepseek",
+      "url": "https://chat.deepseek.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=chat.deepseek.com"
+    },
+    {
+      "name": "scira",
+      "url": "https://scira.app/",
+      "favicon": "https://www.google.com/s2/favicons?domain=scira.app"
+    },
+    {
+      "name": "纳米AI搜索",
+      "url": "https://www.n.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.n.cn"
+    },
+    {
+      "name": "grok",
+      "url": "https://grok.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=grok.com"
+    },
+    {
+      "name": "flowith",
+      "url": "https://flowith.io/blank",
+      "favicon": "https://www.google.com/s2/favicons?domain=flowith.io"
+    },
+    {
+      "name": "豆包",
+      "url": "https://www.doubao.com/chat/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.doubao.com"
+    },
+    {
+      "name": "AI仓库",
+      "url": "https://ai-cangku.com/?ef=jnav",
+      "favicon": "https://www.google.com/s2/favicons?domain=ai-cangku.com"
+    }
+  ],
+  "pi币价格信息": [
+    {
+      "name": "coinmarketcap",
+      "url": "https://coinmarketcap.com/zh/currencies/pi/",
+      "favicon": "https://www.google.com/s2/favicons?domain=coinmarketcap.com"
+    },
+    {
+      "name": "MyToken",
+      "url": "https://www.mytokencap.com/zh/search/?keyword=pi&category=all",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.mytokencap.com"
+    },
+    {
+      "name": "非小号",
+      "url": "https://m.feixiaohao.com/currencies/pi-network-1/",
+      "favicon": "https://www.google.com/s2/favicons?domain=m.feixiaohao.com"
+    },
+    {
+      "name": "币界网",
+      "url": "https://m.528btc.com/coin/10000023613/bosswallet-pi-usdt-cny",
+      "favicon": "https://www.google.com/s2/favicons?domain=m.528btc.com"
+    },
+    {
+      "name": "欧意",
+      "url": "https://www.okx.com/en-eu/trade-spot/pi-usdt",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.okx.com"
+    },
+    {
+      "name": "gate.io",
+      "url": "https://www.gate.io/zh/trade/PI_USDT?tradModel=strategybot",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.gate.io"
+    }
+  ],
+  "AI": [
+    {
+      "name": "AI导航",
+      "url": "https://www.aidh.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.aidh.cn"
+    },
+    {
+      "name": "AI工具箱",
+      "url": "https://aiproducthome.top/",
+      "favicon": "https://www.google.com/s2/favicons?domain=aiproducthome.top"
+    },
+    {
+      "name": "AI仓库",
+      "url": "https://ai-cangku.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ai-cangku.com"
+    }
+  ],
+  "订阅面板": [
+    {
+      "name": "周润发公益订阅器",
+      "url": "https://zrf.zrf.me/",
+      "favicon": "https://www.google.com/s2/favicons?domain=zrf.zrf.me"
+    },
+    {
+      "name": "CF自由代理",
+      "url": "https://bmkg.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=bmkg.xyz"
+    },
+    {
+      "name": "xConfig 面板",
+      "url": "https://xconfig.pages.dev/index2",
+      "favicon": "https://www.google.com/s2/favicons?domain=xconfig.pages.dev"
+    },
+    {
+      "name": "Ikuuu日本节点",
+      "url": "https://ikuuu.one/user",
+      "favicon": "https://www.google.com/s2/favicons?domain=ikuuu.one"
+    },
+    {
+      "name": "开放代理",
+      "url": "https://openproxylist.com/v2ray/",
+      "favicon": "https://www.google.com/s2/favicons?domain=openproxylist.com"
+    },
+    {
+      "name": "其他订阅",
+      "url": "https://proxy.v2gh.com/https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+      "favicon": "https://www.google.com/s2/favicons?domain=proxy.v2gh.com"
+    },
+    {
+      "name": "free v2",
+      "url": "https://www.xrayvip.com/free.txt",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.xrayvip.com"
+    },
+    {
+      "name": "85 la",
+      "url": "https://www.85la.com/internet-access",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.85la.com"
+    },
+    {
+      "name": "CloudFlare官方优选IP",
+      "url": "https://cf.090227.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cf.090227.xyz"
+    },
+    {
+      "name": "V2RaySE免费节点",
+      "url": "https://v2rayse.com/live-node",
+      "favicon": "https://www.google.com/s2/favicons?domain=v2rayse.com"
+    },
+    {
+      "name": "免费节点",
+      "url": "https://bcoder.clbug.com/node/",
+      "favicon": "https://www.google.com/s2/favicons?domain=bcoder.clbug.com"
+    }
+  ],
+  "新闻": [
+    {
+      "name": "新闻汇聚",
+      "url": "https://xw.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=xw.653827.xyz"
+    },
+    {
+      "name": "Feedly",
+      "url": "https://feedly.com/i/my/me",
+      "favicon": "https://www.google.com/s2/favicons?domain=feedly.com"
+    },
+    {
+      "name": "FOLO",
+      "url": "https://app.follow.is/timeline/view-0/all/pending",
+      "favicon": "https://www.google.com/s2/favicons?domain=app.follow.is"
+    },
+    {
+      "name": "财经新闻",
+      "url": "https://sina-news.vercel.app/",
+      "favicon": "https://www.google.com/s2/favicons?domain=sina-news.vercel.app"
+    }
+  ],
+  "天气": [
+    {
+      "name": "泰安天气",
+      "url": "https://www.qweather.com/weather/tai'an-101120801.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.qweather.com"
+    },
+    {
+      "name": "岱岳天气",
+      "url": "https://tianqi.moji.com/weather/china/shandong/daiyue-district",
+      "favicon": "https://www.google.com/s2/favicons?domain=tianqi.moji.com"
+    },
+    {
+      "name": "泰安天气",
+      "url": "https://tianqi.qq.com/index.htm",
+      "favicon": "https://www.google.com/s2/favicons?domain=tianqi.qq.com"
+    }
+  ],
+  "图床": [
+    {
+      "name": "ImgURL",
+      "url": "https://www.imgurl.org/vip/manage/upload",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.imgurl.org"
+    },
+    {
+      "name": "骤雨重山",
+      "url": "https://wp-cdn.4ce.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=wp-cdn.4ce.cn"
+    }
+  ],
+  "视听": [
+    {
+      "name": "Bilibili音乐",
+      "url": "https://www.bilibili.com/video/BV1564y1m7Mu?spm_id_from=333.788.videopod.sections&vd_source=954e725e91c1c3621a8a51c91cb1da04",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.bilibili.com"
+    },
+    {
+      "name": "微信读书",
+      "url": "https://weread.qq.com/web/category/100000",
+      "favicon": "https://www.google.com/s2/favicons?domain=weread.qq.com"
+    }
+  ],
+  "影院": [
+    {
+      "name": "LibreTV-ys",
+      "url": "https://ys.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ys.baoge.wang"
+    },
+    {
+      "name": "LibreTV",
+      "url": "https://libretv.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=libretv.baoge.wang"
+    },
+    {
+      "name": "LibreTV-x",
+      "url": "https://libretv-x.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=libretv-x.baoge.wang"
+    },
+    {
+      "name": "LibreTV-aizrf",
+      "url": "https://ys.001315.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ys.001315.xyz"
+    },
+    {
+      "name": "影视",
+      "url": "https://vd.ruo.my/",
+      "favicon": "https://www.google.com/s2/favicons?domain=vd.ruo.my"
+    },
+    {
+      "name": "老王电影",
+      "url": "https://laowang.co/",
+      "favicon": "https://www.google.com/s2/favicons?domain=laowang.co"
+    }
+  ],
+  "其它": [
+    {
+      "name": "彩虹工具网",
+      "url": "https://tool.cccyun.cc/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.cccyun.cc"
+    },
+    {
+      "name": "安知鱼博客",
+      "url": "https://blog.anheyu.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=blog.anheyu.com"
+    }
+  ],
+  "工具页一": [
+    {
+      "name": "github文件管理器",
+      "url": "https://file.baoge.wang",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "IP检测工具汇总",
+      "url": "https://file.baoge.wang/ipjc",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "网址加速器",
+      "url": "https://js.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=js.653827.xyz"
+    },
+    {
+      "name": "在线粘贴板",
+      "url": "https://cp.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cp.653827.xyz"
+    },
+    {
+      "name": "跳转浏览器",
+      "url": "https://tz.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tz.baoge.wang"
+    },
+    {
+      "name": "电报文件管理",
+      "url": "https://cftg.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cftg.653827.xyz"
+    },
+    {
+      "name": "webp图床",
+      "url": "https://b2.notpeppa.ggff.net/notpeppa",
+      "favicon": "https://www.google.com/s2/favicons?domain=b2.notpeppa.ggff.net"
+    },
+    {
+      "name": "缩略图",
+      "url": "https://slt.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=slt.baoge.wang"
+    },
+    {
+      "name": "链接检测面板",
+      "url": "https://file.baoge.wang/lianjiejiance1",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "挪车二维码生成器一",
+      "url": "https://ncewm.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ncewm.baoge.wang"
+    },
+    {
+      "name": "挪车二维码生成器二",
+      "url": "https://dfile.baoge.wang/%E6%8C%AA%E8%BD%A6%E4%BA%8C%E7%BB%B4%E7%A0%81/%E6%8C%AA%E8%BD%A6%E4%BA%8C%E7%BB%B4%E7%A0%81%E7%94%9F%E6%88%90%E5%99%A8.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    }
+  ],
+  "工具页二": [
+    {
+      "name": "xugou监控",
+      "url": "https://xugou.653827.xyz/monitors",
+      "favicon": "https://www.google.com/s2/favicons?domain=xugou.653827.xyz"
+    },
+    {
+      "name": "域名监控",
+      "url": "https://ym.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ym.baoge.wang"
+    },
+    {
+      "name": "VPS到期监控",
+      "url": "https://vps.shorten.dpdns.org/",
+      "favicon": "https://www.google.com/s2/favicons?domain=vps.shorten.dpdns.org"
+    },
+    {
+      "name": "网页分析",
+      "url": "https://fx.baoge.wang",
+      "favicon": "https://www.google.com/s2/favicons?domain=fx.baoge.wang"
+    },
+    {
+      "name": "书签导航页自动生成",
+      "url": "https://file.baoge.wang/j2-h2",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "文本到图像生成器",
+      "url": "https://text.imageonline.co/cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=text.imageonline.co"
+    },
+    {
+      "name": "在线抠图",
+      "url": "https://www.remove.bg/zh",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.remove.bg"
+    },
+    {
+      "name": "Cron表达式生成器",
+      "url": "https://cron.qqe2.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cron.qqe2.com"
+    },
+    {
+      "name": "Temp临时邮件",
+      "url": "https://mail.tm/zh/",
+      "favicon": "https://www.google.com/s2/favicons?domain=mail.tm"
+    }
+  ],
+  "工具箱": [
+    {
+      "name": "彩虹工具箱",
+      "url": "https://tool.cccyun.cc/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.cccyun.cc"
+    },
+    {
+      "name": "在线工具箱",
+      "url": "https://tool.lu/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.lu"
+    },
+    {
+      "name": "在线工具",
+      "url": "https://toolonline.net/",
+      "favicon": "https://www.google.com/s2/favicons?domain=toolonline.net"
+    },
+    {
+      "name": "锤子在线工具网",
+      "url": "https://www.toolhelper.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.toolhelper.cn"
+    },
+    {
+      "name": "仓鼠工具箱",
+      "url": "https://www.hamstertools.org/zh",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.hamstertools.org"
+    },
+    {
+      "name": "锦时.产品工具箱",
+      "url": "https://www.y3pm.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.y3pm.com"
+    },
+    {
+      "name": "超级PDF",
+      "url": "https://xpdf.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=xpdf.cn"
+    },
+    {
+      "name": "爱资料工具",
+      "url": "https://www.toolnb.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=www.toolnb.com"
+    },
+    {
+      "name": "资源网",
+      "url": "https://heeee.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=heeee.com"
+    },
+    {
+      "name": "数字素养网",
+      "url": "https://szsyw.cn/book",
+      "favicon": "https://www.google.com/s2/favicons?domain=szsyw.cn"
+    }
+  ],
+  "科学订阅面板": [
+    {
+      "name": "哪吒面板",
+      "url": "http://baoge.d.gv.vc:39676/",
+      "favicon": "https://favicon.im/http://baoge.d.gv.vc:39676/"
+    },
+    {
+      "name": "uptime-阿里云",
+      "url": "http://baoge.d.gv.vc:3003/dashboard",
+      "favicon": "https://favicon.im/http://baoge.d.gv.vc:3003/dashboard"
+    },
+    {
+      "name": "s-ui-baoge",
+      "url": "http://baoge.d.gv.vc:2095/app/",
+      "favicon": "https://favicon.im/http://baoge.d.gv.vc:2095/app/"
+    },
+    {
+      "name": "x-ui-帕斯云",
+      "url": "https://www.pasyun.com/server/lxc",
+      "favicon": "https://favicon.im/https://www.pasyun.com/server/lxc"
+    },
+    {
+      "name": "XUGOU监控",
+      "url": "https://xugou.653827.xyz/monitors",
+      "favicon": "https://favicon.im/https://xugou.653827.xyz/monitors"
+    },
+    {
+      "name": "域名监控",
+      "url": "https://ym.baoge.wang/",
+      "favicon": "https://favicon.im/https://ym.baoge.wang/"
+    },
+    {
+      "name": "周润发公益订阅器",
+      "url": "https://zrf.zrf.me/",
+      "favicon": "https://favicon.im/https://zrf.zrf.me/"
+    },
+    {
+      "name": "免费 CF 代理",
+      "url": "https://bmkg.xyz/free-vpn",
+      "favicon": "https://favicon.im/https://bmkg.xyz/free-vpn"
+    },
+    {
+      "name": "机场订阅",
+      "url": "https://jc.653827.xyz/e484de0e-9996-4383-b06c-0f48be137c62/configs?sub=list",
+      "favicon": "https://favicon.im/https://jc.653827.xyz/e484de0e-9996-4383-b06c-0f48be137c62/configs?sub=list"
+    },
+    {
+      "name": "V2ray Worker Control Panel",
+      "url": "https://v2.baoge123.dpdns.org/?token=fccade1f0f40a37f1a45fea93013a0de8f5b19492fcf256a",
+      "favicon": "https://favicon.im/https://v2.baoge123.dpdns.org/?token=fccade1f0f40a37f1a45fea93013a0de8f5b19492fcf256a"
+    },
+    {
+      "name": "xConfig 面板",
+      "url": "https://xconfig.pages.dev/index2",
+      "favicon": "https://favicon.im/https://xconfig.pages.dev/index2"
+    },
+    {
+      "name": "bpb-3",
+      "url": "https://bpb-3.653827.xyz/panel",
+      "favicon": "https://favicon.im/https://bpb-3.653827.xyz/panel"
+    },
+    {
+      "name": "bpb-worker",
+      "url": "https://bpb-worker.bgyy.dpdns.org/panel",
+      "favicon": "https://favicon.im/https://bpb-worker.bgyy.dpdns.org/panel"
+    },
+    {
+      "name": "bpb面板",
+      "url": "https://bpb.653827.xyz/panel",
+      "favicon": "https://favicon.im/https://bpb.653827.xyz/panel"
+    },
+    {
+      "name": "自动更新bpb面板",
+      "url": "https://zdgx.653827.xyz/panel",
+      "favicon": "https://favicon.im/https://zdgx.653827.xyz/panel"
+    },
+    {
+      "name": "iKuuu VPN",
+      "url": "https://ikuuu.one/user",
+      "favicon": "https://favicon.im/https://ikuuu.one/user"
+    },
+    {
+      "name": "sublink-baoge678",
+      "url": "https://sublink.baoge678.dpdns.org/",
+      "favicon": "https://favicon.im/https://sublink.baoge678.dpdns.org/"
+    },
+    {
+      "name": "Edge Sub",
+      "url": "https://dyzh.baoge.dpdns.org/",
+      "favicon": "https://favicon.im/https://dyzh.baoge.dpdns.org/"
+    },
+    {
+      "name": "全球主机监控",
+      "url": "https://stock.hostmonit.com/CloudFlareYesl",
+      "favicon": "https://favicon.im/https://stock.hostmonit.com/CloudFlareYesl"
+    },
+    {
+      "name": "vps789优选IP",
+      "url": "https://vps789.com/cfip/",
+      "favicon": "https://favicon.im/https://vps789.com/cfip/"
+    },
+    {
+      "name": "CF官方优选IP",
+      "url": "https://cf.090227.xyz/",
+      "favicon": "https://favicon.im/https://cf.090227.xyz/"
+    },
+    {
+      "name": "其他订阅",
+      "url": "https://proxy.v2gh.com/https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+      "favicon": "https://favicon.im/https://proxy.v2gh.com/https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub"
+    },
+    {
+      "name": "free v2",
+      "url": "https://www.xrayvip.com/free.txt",
+      "favicon": "https://favicon.im/https://www.xrayvip.com/free.txt"
+    },
+    {
+      "name": "85 la",
+      "url": "https://www.85la.com/internet-access",
+      "favicon": "https://favicon.im/https://www.85la.com/internet-access"
+    },
+    {
+      "name": "v2rayse实时节点",
+      "url": "https://v2rayse.com/live-node",
+      "favicon": "https://favicon.im/https://v2rayse.com/live-node"
+    },
+    {
+      "name": "自测免费24条高速节点",
+      "url": "https://bcoder.clbug.com/node/",
+      "favicon": "https://favicon.im/https://bcoder.clbug.com/node/"
+    },
+    {
+      "name": "FOFA 搜索获取节点",
+      "url": "https://gaojilingjuli.blogspot.com/2025/02/fofa.html",
+      "favicon": "https://favicon.im/https://gaojilingjuli.blogspot.com/2025/02/fofa.html"
+    },
+    {
+      "name": "cm节点代理池",
+      "url": "https://blog.cmliussss.com/p/ProxyPool/",
+      "favicon": "https://favicon.im/https://blog.cmliussss.com/p/ProxyPool/"
+    },
+    {
+      "name": "免费安装软路由",
+      "url": "https://www.freedidi.com/741.html",
+      "favicon": "https://favicon.im/https://www.freedidi.com/741.html"
+    },
+    {
+      "name": "IDM破解版",
+      "url": "https://blog.zrf.me/p/IDM-Crack/",
+      "favicon": "https://favicon.im/https://blog.zrf.me/p/IDM-Crack/"
+    }
+  ],
+  "订阅链接": [
+    {
+      "name": "宝哥自用订阅转换",
+      "url": "https://dyzh.baoge.dpdns.org/",
+      "favicon": "https://favicon.im/https://dyzh.baoge.dpdns.org/"
+    },
+    {
+      "name": "宝哥专属节点订阅",
+      "url": "https://cfworkers-sub.baoge678.workers.dev/baoge",
+      "favicon": "https://favicon.im/https://cfworkers-sub.baoge678.workers.dev/baoge"
+    },
+    {
+      "name": "订阅生成器",
+      "url": "https://dyscq.baoge123.dpdns.org/baoge",
+      "favicon": "https://favicon.im/https://dyscq.baoge123.dpdns.org/baoge"
+    },
+    {
+      "name": "zxtz",
+      "url": "https://zxtz.baoge666.dpdns.org/1",
+      "favicon": "https://favicon.im/https://zxtz.baoge666.dpdns.org/1"
+    },
+    {
+      "name": "bgyxip",
+      "url": "https://bgyxip.baoge666.dpdns.org/baoge?sub",
+      "favicon": "https://favicon.im/https://bgyxip.baoge666.dpdns.org/baoge?sub"
+    },
+    {
+      "name": "cf-kexue",
+      "url": "https://cf-kexue.baoge456.dpdns.org/sub/37e59065-ea53-417b-ba6c-f52e4879615e",
+      "favicon": "https://favicon.im/https://cf-kexue.baoge456.dpdns.org/sub/37e59065-ea53-417b-ba6c-f52e4879615e"
+    },
+    {
+      "name": "sock5",
+      "url": "https://s5.653827.xyz/8178f794-f464-4e7c-9633-08964124f84b",
+      "favicon": "https://favicon.im/https://s5.653827.xyz/8178f794-f464-4e7c-9633-08964124f84b"
+    },
+    {
+      "name": "bpb.653827.xyz",
+      "url": "https://bpb.653827.xyz/sub/3047da27-0011-4d64-91ec-040b543991a9#BPB-Normal",
+      "favicon": "https://favicon.im/https://bpb.653827.xyz/sub/3047da27-0011-4d64-91ec-040b543991a9#BPB-Normal"
+    },
+    {
+      "name": "bpb-3.653827.xyz",
+      "url": "https://bpb-3.653827.xyz/sub/724c6afa-920c-4dc4-a62c-578e747cc123#BPB-Normal",
+      "favicon": "https://favicon.im/https://bpb-3.653827.xyz/sub/724c6afa-920c-4dc4-a62c-578e747cc123#BPB-Normal"
+    },
+    {
+      "name": "bpb-worker.bgyy",
+      "url": "https://bpb-worker.bgyy.dpdns.org/sub/e067c987-7fc6-440f-900b-3b37ddd5a435?app=singbox#BPB-Normal",
+      "favicon": "https://favicon.im/https://bpb-worker.bgyy.dpdns.org/sub/e067c987-7fc6-440f-900b-3b37ddd5a435?app=singbox#BPB-Normal"
+    },
+    {
+      "name": "yg-cf-vless",
+      "url": "https://cf-vless.baoge666.dpdns.org/96ad20ce-9eff-4973-bb90-780e44235ff3/pty",
+      "favicon": "https://favicon.im/https://cf-vless.baoge666.dpdns.org/96ad20ce-9eff-4973-bb90-780e44235ff3/pty"
+    },
+    {
+      "name": "yg-cf-trojan",
+      "url": "https://cf-trojan.baoge666.dpdns.org/trojan/pty",
+      "favicon": "https://favicon.im/https://cf-trojan.baoge666.dpdns.org/trojan/pty"
+    },
+    {
+      "name": "kjgx-trojan",
+      "url": "https://kjgx-trojan.baoge666.dpdns.org/baoge",
+      "favicon": "https://favicon.im/https://kjgx-trojan.baoge666.dpdns.org/baoge"
+    },
+    {
+      "name": "kj-gx-trojan",
+      "url": "https://sub.bao.publicvm.com/baoge",
+      "favicon": "https://favicon.im/https://sub.bao.publicvm.com/baoge"
+    },
+    {
+      "name": "bgdy",
+      "url": "https://bgdy.653827.xyz/9420f6c8-4afc-46b3-bbee-16a8953ef454",
+      "favicon": "https://favicon.im/https://bgdy.653827.xyz/9420f6c8-4afc-46b3-bbee-16a8953ef454"
+    },
+    {
+      "name": "机场订阅-宝哥",
+      "url": "https://jc.653827.xyz/e484de0e-9996-4383-b06c-0f48be137c62/configs?sub=list",
+      "favicon": "https://favicon.im/https://jc.653827.xyz/e484de0e-9996-4383-b06c-0f48be137c62/configs?sub=list"
+    },
+    {
+      "name": "订阅转换工具-baoge678",
+      "url": "https://sublink.baoge678.dpdns.org/",
+      "favicon": "https://favicon.im/https://sublink.baoge678.dpdns.org/"
+    },
+    {
+      "name": "订阅转换工具-998666",
+      "url": "https://sublink-worker.wangsir998666.workers.dev/",
+      "favicon": "https://favicon.im/https://sublink-worker.wangsir998666.workers.dev/"
+    },
+    {
+      "name": "trojan/baoge",
+      "url": "https://trojan-ehc.pages.dev/baoge",
+      "favicon": "https://favicon.im/https://trojan-ehc.pages.dev/baoge"
+    },
+    {
+      "name": "资源核",
+      "url": "https://zyh.baoge666.dpdns.org/c9f2123e-3d7e-4db1-be78-f484c0aeb737",
+      "favicon": "https://favicon.im/https://zyh.baoge666.dpdns.org/c9f2123e-3d7e-4db1-be78-f484c0aeb737"
+    },
+    {
+      "name": "cmliu",
+      "url": "https://cmliu.baoge666.dpdns.org/6d6099fe-8195-4549-8de7-a530ffa5ad8a",
+      "favicon": "https://favicon.im/https://cmliu.baoge666.dpdns.org/6d6099fe-8195-4549-8de7-a530ffa5ad8a"
+    },
+    {
+      "name": "cf-worker",
+      "url": "https://cf-worker.baoge123.dpdns.org/77a571fb-4fd2-4b37-8596-1b7d9728bb5c",
+      "favicon": "https://favicon.im/https://cf-worker.baoge123.dpdns.org/77a571fb-4fd2-4b37-8596-1b7d9728bb5c"
+    },
+    {
+      "name": "cfworker",
+      "url": "https://cfworker.baoge123.dpdns.org/2512a95c-87ba-4f0b-98a5-fe029cb7a991",
+      "favicon": "https://favicon.im/https://cfworker.baoge123.dpdns.org/2512a95c-87ba-4f0b-98a5-fe029cb7a991"
+    },
+    {
+      "name": "bao",
+      "url": "https://bao.wangsir666998.workers.dev/a701ba9f-7c93-4070-8645-d48fab65388d",
+      "favicon": "https://favicon.im/https://bao.wangsir666998.workers.dev/a701ba9f-7c93-4070-8645-d48fab65388d"
+    },
+    {
+      "name": "baoge",
+      "url": "https://baoge.wangsir666998.workers.dev/90cd4a77-141a-43c9-991b-08263cfe9c10",
+      "favicon": "https://favicon.im/https://baoge.wangsir666998.workers.dev/90cd4a77-141a-43c9-991b-08263cfe9c10"
+    },
+    {
+      "name": "cm-trojan",
+      "url": "https://cm-trojan-53p.pages.dev/baoge",
+      "favicon": "https://favicon.im/https://cm-trojan-53p.pages.dev/baoge"
+    },
+    {
+      "name": "dingyueqi",
+      "url": "https://workervless2sub-aj7.pages.dev/baoge666",
+      "favicon": "https://favicon.im/https://workervless2sub-aj7.pages.dev/baoge666"
+    },
+    {
+      "name": "sub-yx",
+      "url": "https://sub.baoge666.dpdns.org/sub/1.2.3.4",
+      "favicon": "https://favicon.im/https://sub.baoge666.dpdns.org/sub/1.2.3.4"
+    },
+    {
+      "name": "yg-cf-vl",
+      "url": "https://cf-vl.baoge666.dpdns.org/a0201944-2445-4854-8bc9-26581d2b3ee6/pty",
+      "favicon": "https://favicon.im/https://cf-vl.baoge666.dpdns.org/a0201944-2445-4854-8bc9-26581d2b3ee6/pty"
+    },
+    {
+      "name": "VLESS.fxxk.dedyn.io",
+      "url": "https://vless.fxxk.dedyn.io/sub?uuid=a3c075ab-51cd-4947-e8a4-aad55e19bec2&encryption=none&security=tls&allowInsecure=1&type=ws&host=hy2.xiaozi.cc.ua&path=%2Flzjjj",
+      "favicon": "https://favicon.im/https://vless.fxxk.dedyn.io/sub?uuid=a3c075ab-51cd-4947-e8a4-aad55e19bec2&encryption=none&security=tls&allowInsecure=1&type=ws&host=hy2.xiaozi.cc.ua&path=%2Flzjjj"
+    },
+    {
+      "name": "v2",
+      "url": "https://v2.baoge123.dpdns.org/sub",
+      "favicon": "https://favicon.im/https://v2.baoge123.dpdns.org/sub"
+    },
+    {
+      "name": "vl-leilei",
+      "url": "https://vl-leilei.pages.dev/ddf965c3-384e-4e93-a802-03d6e2bf07a8",
+      "favicon": "https://favicon.im/https://vl-leilei.pages.dev/ddf965c3-384e-4e93-a802-03d6e2bf07a8"
+    }
+  ]
+}
+
+
+</script>
+<!-- ===================== 书签数据区结束 ===================== -->
+
+<script>
+// 分组主色（更深更明显）
+const groupColors = [
+  "#e1d5fa", // 紫
+  "#ffe0b2", // 橙
+  "#b2dfdb", // 青
+  "#f8bbd0", // 粉
+  "#d1c4e9", // 紫
+  "#fff9c4", // 黄
+  "#b3e5fc", // 蓝
+  "#ffccbc", // 棕
+  "#c5e1a5", // 绿
+  "#f0f4c3"  // 淡绿
+];
+
+function getNavData() {
+  const json = document.getElementById('nav-json').textContent.trim();
+  try {
+    return JSON.parse(json);
+  } catch (e) {
+    alert('书签数据格式有误，请检查JSON！');
+    return {};
+  }
+}
+
+function renderBookmarks(filter = '') {
+  const groupsContainer = document.getElementById('groups-container');
+  groupsContainer.innerHTML = '';
+  const navData = getNavData();
+  const lowerCaseFilter = filter.toLowerCase();
+
+  let groupIdx = 0;
+  Object.keys(navData).forEach(groupName => {
+    const groupElement = document.createElement('div');
+    groupElement.className = 'group';
+
+    const groupTitleElement = document.createElement('h3');
+    groupTitleElement.className = 'group-title';
+    groupTitleElement.textContent = groupName;
+    groupElement.appendChild(groupTitleElement);
+
+    const bookmarkListElement = document.createElement('div');
+    bookmarkListElement.className = 'bookmark-list';
+
+    // 取分组主色
+    const groupColor = groupColors[groupIdx % groupColors.length];
+
+    const filteredBookmarks = navData[groupName].filter(bookmark =>
+      bookmark.name.toLowerCase().includes(lowerCaseFilter) ||
+      bookmark.url.toLowerCase().includes(lowerCaseFilter)
+    );
+
+    filteredBookmarks.forEach(bookmark => {
+      const bookmarkCard = document.createElement('a');
+      bookmarkCard.href = bookmark.url;
+      bookmarkCard.className = 'bookmark-card';
+      bookmarkCard.target = '_blank';
+      bookmarkCard.rel = 'noopener noreferrer';
+
+      // 分组内书签同色
+      bookmarkCard.style.setProperty('--group-color', groupColor);
+
+      // favicon
+      if (bookmark.favicon) {
+        const favicon = document.createElement('img');
+        favicon.src = bookmark.favicon;
+        favicon.alt = '';
+        bookmarkCard.appendChild(favicon);
+      }
+
+      const bookmarkName = document.createElement('span');
+      bookmarkName.className = 'bookmark-name';
+      bookmarkName.textContent = bookmark.name;
+      bookmarkCard.appendChild(bookmarkName);
+
+      bookmarkListElement.appendChild(bookmarkCard);
+    });
+
+    if (filteredBookmarks.length > 0 || filter === '') {
+      groupElement.appendChild(bookmarkListElement);
+      groupsContainer.appendChild(groupElement);
+    }
+    groupIdx++;
+  });
+}
+
+document.getElementById('searchInput').onkeyup = (event) => {
+  renderBookmarks(event.target.value);
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  renderBookmarks();
+});
+</script>
+</body>
+</html>
