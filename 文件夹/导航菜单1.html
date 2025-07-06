@@ -250,7 +250,7 @@
     </nav>
     <main class="main-content" id="mainContent">
       <div class="search-bar-zone">
-        <input type="text" id="searchInput" placeholder="搜索当前分组书签...">
+        <input type="text" id="searchInput" placeholder="检索全部书签...">
         <button id="toggleThumbBtn" type="button">无图</button>
       </div>
       <div id="groupTitle" class="group-title"></div>
@@ -258,7 +258,7 @@
     </main>
   </div>
 
-<!-- ===================== 书签数据区（只保留纯JSON内容，直接粘贴/导入） ===================== -->
+<!-- ===================== 书签数据区 ===================== -->
 <script type="application/json" id="nav-json">
 {
   "常用": [
@@ -1229,6 +1229,12 @@
       "favicon": "https://www.google.com/s2/favicons?domain=vd.ruo.my"
     },
     {
+      "name": "moon tv",
+      "url": "https://nnypxrykegia.ap-northeast-1.clawcloudrun.com/",
+      "favicon": "https://nnypxrykegia.ap-northeast-1.clawcloudrun.com/favicon.ico"
+    },
+
+    {
       "name": "老王电影",
       "url": "https://laowang.co/",
       "favicon": "https://www.google.com/s2/favicons?domain=laowang.co"
@@ -1761,36 +1767,69 @@ function renderSidebar() {
 }
 
 function renderGroupContent() {
-  const groupName = groupNames[currentGroupIdx];
-  const groupColor = groupColors[currentGroupIdx % groupColors.length];
-  document.getElementById('groupTitle').textContent = groupName;
   const cardList = document.getElementById('cardList');
   cardList.innerHTML = '';
-  let bookmarks = navData[groupName] || [];
+  let hasResult = false;
+
   if (searchValue) {
+    // 全局分组分块检索
     const q = searchValue.toLowerCase();
-    bookmarks = bookmarks.filter(b =>
-      (b.name && b.name.toLowerCase().includes(q)) ||
-      (b.url && b.url.toLowerCase().includes(q))
-    );
+    groupNames.forEach((g, idx) => {
+      const matches = (navData[g] || []).filter(b =>
+        (b.name && b.name.toLowerCase().includes(q)) ||
+        (b.url && b.url.toLowerCase().includes(q))
+      );
+      if (matches.length > 0) {
+        hasResult = true;
+        // 分组标题
+        const groupTitle = document.createElement('div');
+        groupTitle.textContent = g;
+        groupTitle.style = `font-weight:bold;font-size:1.1em;color:#4B0082;margin:18px 0 8px 0;grid-column:1/-1;`;
+        cardList.appendChild(groupTitle);
+        // 该分组下所有匹配书签
+        matches.forEach(bookmark => {
+          const card = document.createElement('a');
+          card.className = 'site-card' + (showThumb ? '' : ' no-thumb');
+          card.style.setProperty('--group-bg-color', groupColors[idx % groupColors.length]);
+          card.href = bookmark.url;
+          card.target = '_blank';
+          card.rel = 'noopener noreferrer';
+          card.innerHTML = `
+            <img src="${bookmark.favicon || DEFAULT_ICON}" alt="icon" class="site-card-icon" onerror="this.src='${DEFAULT_ICON}'">
+            <span class="title">${bookmark.name}</span>
+          `;
+          cardList.appendChild(card);
+        });
+      }
+    });
+    document.getElementById('groupTitle').textContent = '检索结果';
+    if (!hasResult) {
+      cardList.innerHTML = `<div class="text-muted" style="grid-column:1/-1;">无匹配书签</div>`;
+    }
+  } else {
+    // 默认分组展示
+    const groupName = groupNames[currentGroupIdx];
+    const groupColor = groupColors[currentGroupIdx % groupColors.length];
+    document.getElementById('groupTitle').textContent = groupName;
+    const bookmarks = navData[groupName] || [];
+    if (bookmarks.length === 0) {
+      cardList.innerHTML = `<div class="text-muted" style="grid-column:1/-1;">无书签</div>`;
+      return;
+    }
+    bookmarks.forEach(bookmark => {
+      const card = document.createElement('a');
+      card.className = 'site-card' + (showThumb ? '' : ' no-thumb');
+      card.style.setProperty('--group-bg-color', groupColor);
+      card.href = bookmark.url;
+      card.target = '_blank';
+      card.rel = 'noopener noreferrer';
+      card.innerHTML = `
+        <img src="${bookmark.favicon || DEFAULT_ICON}" alt="icon" class="site-card-icon" onerror="this.src='${DEFAULT_ICON}'">
+        <span class="title">${bookmark.name}</span>
+      `;
+      cardList.appendChild(card);
+    });
   }
-  if (bookmarks.length === 0) {
-    cardList.innerHTML = `<div class="text-muted" style="grid-column:1/-1;">无匹配书签</div>`;
-    return;
-  }
-  bookmarks.forEach(bookmark => {
-    const card = document.createElement('a');
-    card.className = 'site-card' + (showThumb ? '' : ' no-thumb');
-    card.style.setProperty('--group-bg-color', groupColor);
-    card.href = bookmark.url;
-    card.target = '_blank';
-    card.rel = 'noopener noreferrer';
-    card.innerHTML = `
-      <img src="${bookmark.favicon || DEFAULT_ICON}" alt="icon" class="site-card-icon" onerror="this.src='${DEFAULT_ICON}'">
-      <span class="title">${bookmark.name}</span>
-    `;
-    cardList.appendChild(card);
-  });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
