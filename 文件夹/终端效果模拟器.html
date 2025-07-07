@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>终端效果模拟器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            margin: 30px 0 10px 0;
+            font-size: 2rem;
+        }
+        .input-area {
+            max-width: 900px;
+            margin: 0 auto 30px auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 20px;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            font-size: 1rem;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .btn {
+            display: inline-block;
+            margin-top: 0;
+            margin-bottom: 18px;
+            padding: 8px 24px;
+            background: #3f51b5;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+        .btn:last-child {
+            margin-bottom: 0;
+        }
+        .btn:hover {
+            background: #283593;
+        }
+        .simulator-row {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .device-frame {
+            background: #222;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+            padding: 18px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .device-title {
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .device-screen {
+            background: #fff;
+            border-radius: 10px;
+            overflow: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            border: 2px solid #444;
+        }
+        /* 设备尺寸 */
+        .desktop .device-screen { width: 1200px; height: 700px; }
+        .tablet .device-screen { width: 800px; height: 600px; }
+        .mobile-h .device-screen { width: 700px; height: 400px; }
+        .mobile-v .device-screen { width: 375px; height: 700px; }
+        /* 响应式适配小屏 */
+        @media (max-width: 1400px) {
+            .desktop .device-screen { width: 900px; }
+        }
+        @media (max-width: 1100px) {
+            .desktop .device-screen { width: 600px; }
+            .tablet .device-screen { width: 500px; }
+            .mobile-h .device-screen { width: 400px; }
+            .mobile-v .device-screen { width: 300px; }
+        }
+        @media (max-width: 900px) {
+            .simulator-row { flex-direction: column; align-items: center; }
+            .device-frame { width: 100%; }
+            .desktop .device-screen,
+            .tablet .device-screen,
+            .mobile-h .device-screen,
+            .mobile-v .device-screen { width: 100% !important; min-width: 0; }
+        }
+    </style>
+</head>
+<body>
+    <h1>终端效果模拟器</h1>
+    <div class="input-area">
+        <label for="htmlInput"><b>请输入你的HTML代码：</b></label>
+        <textarea id="htmlInput" placeholder="在这里粘贴你的HTML代码"></textarea>
+        <button class="btn" onclick="renderSim()">代码输入模拟展示</button>
+        <br><br>
+        <label for="urlInput"><b>请输入网址：</b></label>
+        <input type="text" id="urlInput" placeholder="如 https://example.com">
+        <button class="btn" onclick="loadUrl()">加载网址模拟显示</button>
+    </div>
+    <div class="simulator-row">
+        <div class="device-frame desktop">
+            <div class="device-title">桌面端 (1200×700)</div>
+            <div class="device-screen"><iframe id="desktopView" frameborder="0" style="width:100%;height:100%;background:#fff;"></iframe></div>
+        </div>
+        <div class="device-frame mobile-v">
+            <div class="device-title">手机竖屏 (375×700)</div>
+            <div class="device-screen"><iframe id="mobileVView" frameborder="0" style="width:100%;height:100%;background:#fff;"></iframe></div>
+        </div>
+    </div>
+    <div class="simulator-row">
+        <div class="device-frame tablet">
+            <div class="device-title">平板 (800×600)</div>
+            <div class="device-screen"><iframe id="tabletView" frameborder="0" style="width:100%;height:100%;background:#fff;"></iframe></div>
+        </div>
+        <div class="device-frame mobile-h">
+            <div class="device-title">手机横屏 (700×400)</div>
+            <div class="device-screen"><iframe id="mobileHView" frameborder="0" style="width:100%;height:100%;background:#fff;"></iframe></div>
+        </div>
+    </div>
+    <script>
+        function renderSim() {
+            const html = document.getElementById('htmlInput').value;
+            const ids = ['desktopView', 'tabletView', 'mobileHView', 'mobileVView'];
+            ids.forEach(id => {
+                const iframe = document.getElementById(id);
+                iframe.removeAttribute('src');
+                iframe.srcdoc = '';
+                setTimeout(() => {
+                    iframe.srcdoc = html;
+                }, 10);
+            });
+        }
+        function loadUrl() {
+            let url = document.getElementById('urlInput').value.trim();
+            if (!url) {
+                alert('请输入网址');
+                return;
+            }
+            if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+            const ids = ['desktopView', 'tabletView', 'mobileHView', 'mobileVView'];
+            ids.forEach(id => {
+                const iframe = document.getElementById(id);
+                iframe.removeAttribute('srcdoc');
+                iframe.src = url;
+            });
+        }
+    </script>
+</body>
+</html>
