@@ -23,7 +23,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.75);
-            display: flex;
+            display: none;
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -188,6 +188,16 @@
     </style>
 </head>
 <body>
+<script>
+(function() {
+    var savedPassword = localStorage.getItem('pi_nav_password');
+    if (savedPassword === 'baoge') {
+        document.write('<style>#main-content{display:block!important;}#password-overlay{display:none!important;}</style>');
+    } else {
+        document.write('<style>#password-overlay{display:flex!important;}#main-content{display:none!important;}</style>');
+    }
+})();
+</script>
 
     <div id="password-overlay">
         <div id="password-box">
@@ -493,18 +503,29 @@
 
 
     <script>
-        function login(event) {
-            event.preventDefault();
-            const password = document.getElementById('password-input').value;
-            if (password === 'baoge') {
-                document.getElementById('password-overlay').style.display = 'none';
-                document.getElementById('main-content').style.display = 'block';
-            } else {
-                alert('密码错误!');
-                document.getElementById('password-input').value = '';
-            }
-            return false;
+    // 检查本地存储的密码
+    window.onload = function() {
+        const savedPassword = localStorage.getItem('pi_nav_password');
+        if (savedPassword === 'baoge') {
+            document.getElementById('password-overlay').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
         }
-    </script>
+    };
+
+    function login(event) {
+        event.preventDefault();
+        const password = document.getElementById('password-input').value;
+        if (password === 'baoge') {
+            // 记住密码
+            localStorage.setItem('pi_nav_password', password);
+            document.getElementById('password-overlay').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+        } else {
+            alert('密码错误!');
+            document.getElementById('password-input').value = '';
+        }
+        return false;
+    }
+</script>
 </body>
 </html>
