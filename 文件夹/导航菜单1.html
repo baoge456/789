@@ -240,6 +240,66 @@
       .site-card { height: 38px; border-radius: 12px; padding: 4px 6px; font-size: 0.92em; }
       .site-card .site-card-icon { width: 15px; height: 15px; }
     }
+.main-panel.mobile-nav {
+  flex-direction: column !important;
+  min-width: 0 !important;
+}
+.main-panel.mobile-nav .sidebar-nav {
+  max-width: none !important;
+  min-width: 0 !important;
+  width: 100vw !important;
+  border-right: none !important;
+  border-bottom: 1.5px solid #e0e0ef !important;
+  display: block !important;
+  height: auto !important;
+  position: static !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin-bottom: 8px !important;
+  overflow-x: auto !important;
+  background: #22223b !important;
+}
+.main-panel.mobile-nav .sidebar-nav .nav-title {
+  display: none !important;
+}
+.main-panel.mobile-nav .sidebar-nav ul {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0 !important;
+  overflow-x: auto !important;
+  width: 100vw !important;
+  max-height: none !important;
+}
+.main-panel.mobile-nav .sidebar-nav li {
+  flex: 1 0 auto !important;
+  text-align: center !important;
+  border-left: none !important;
+  border-bottom: 3px solid transparent !important;
+  padding: 10px 16px !important;
+  font-size: 1em !important;
+}
+.main-panel.mobile-nav .sidebar-nav li.active,
+.main-panel.mobile-nav .sidebar-nav li:hover {
+  border-left: none !important;
+  border-bottom: 3px solid #fff !important;
+  background: #7c3aed !important;
+}
+.main-panel.mobile-nav .main-content {
+  padding: 12px 2vw !important;
+}
+.main-panel.mobile-nav .card-list {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+}
+.main-panel.mobile-nav .site-card {
+  height: 38px !important;
+  border-radius: 12px !important;
+  padding: 4px 6px !important;
+  font-size: 0.92em !important;
+}
+.main-panel.mobile-nav .site-card .site-card-icon {
+  width: 15px !important;
+  height: 15px !important;
+}
   </style>
 </head>
 <body>
@@ -1726,6 +1786,22 @@
 <!-- ===================== 书签数据区结束 ===================== -->
 
 <script>
+function isTabletOrMobile() {
+  return (('ontouchstart' in window) || navigator.maxTouchPoints > 0) && window.innerWidth < 1300;
+}
+function updateNavMode() {
+  const mainPanel = document.querySelector('.main-panel');
+  if (mainPanel) {
+    if (isTabletOrMobile()) {
+      mainPanel.classList.add('mobile-nav');
+    } else {
+      mainPanel.classList.remove('mobile-nav');
+    }
+  }
+}
+window.addEventListener('resize', updateNavMode);
+document.addEventListener('DOMContentLoaded', updateNavMode);
+
 const groupColors = [
   "#ede7f6", "#ffe0b2", "#b2dfdb", "#f8bbd0", "#d1c4e9", "#fff9c4", "#b3e5fc", "#ffccbc", "#c5e1a5", "#f0f4c3"
 ];
@@ -1736,6 +1812,7 @@ let groupNames = [];
 let currentGroupIdx = 0;
 let showThumb = true;
 let searchValue = "";
+
 
 function getNavData() {
   const json = document.getElementById('nav-json').textContent.trim();
