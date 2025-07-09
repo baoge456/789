@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=yes">
+  <title>Pi Network 资源导航中心</title>
+  <style>
+    body {
+      margin: 0;
+      background: #f5f7fa;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #222;
+      min-height: 100vh;
+    }
+    .nav-header {
+      text-align: center;
+      font-size: 2.2rem;
+      color: #3f51b5;
+      margin: 30px 0 10px 0;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+    .main-panel {
+      max-width: 1200px;
+      margin: 30px auto 0 auto;
+      background: #f7faff; /* 纯色淡蓝 */
+      border-radius: 18px;
+      box-shadow: 0 4px 24px rgba(63,81,181,0.10);
+      padding: 28px 14px 36px 14px;
+      min-height: 500px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .svg-scroll {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: auto;
+      background: transparent;
+      border-radius: 12px;
+      margin: 0 auto 20px auto;
+      padding: 0;
+      touch-action: pinch-zoom;
+      display: flex;
+      justify-content: center;
+    }
+    .footer {
+      text-align: center;
+      color: #888;
+      font-size: 1.1rem;
+      margin: 40px 0 18px 0;
+      padding-bottom: 10px;
+    }
+    .category-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 32px;
+    }
+    .category-title {
+      margin: 32px 0 12px 0;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #3f51b5;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+    .bookmarks-list {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+    .bookmark-link {
+      display: block;
+      font-size: 1.08rem;
+      color: #0d6efd;
+      font-weight: 500;
+      text-align: center;
+      text-decoration: none;
+      border-bottom: 2px solid #e0e6f0;
+      padding: 8px 22px 6px 22px;
+      border-radius: 10px 10px 0 0;
+      transition: color 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      background: #f9fafe; /* 纯色淡灰蓝 */
+      min-width: 120px;
+      max-width: 260px;
+      margin: 0 auto;
+      box-shadow: 0 2px 8px rgba(63,81,181,0.06);
+    }
+    .bookmark-link:hover {
+      color: #fff;
+      border-bottom: 2px solid #7c4dff;
+      background: #7c4dff; /* 纯色紫色 */
+      box-shadow: 0 4px 16px rgba(124,77,255,0.13);
+    }
+    .logo-center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .logo-center img {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(63,81,181,0.10);
+      border: 3px solid #f5f7fa;
+      object-fit: contain;
+      background: #fff;
+    }
+    .categories-row {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 36px;
+      margin-top: 10px;
+    }
+    @media (max-width: 900px) {
+      .nav-header { font-size: 1.3rem; }
+      .footer { font-size: 0.95rem; }
+      .main-panel { padding: 8px 2px 18px 2px; }
+      .categories-row { gap: 18px; }
+      .category-block { margin: 0 10px; }
+    }
+    @media (max-width: 600px) {
+      .nav-header { font-size: 1.1rem; }
+      .footer { font-size: 0.9rem; }
+      .main-panel { padding: 2px 0 10px 0; }
+      .categories-row { flex-direction: column; align-items: center; gap: 10px; }
+      .category-block { margin: 0 0 18px 0; }
+    }
+    #password-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    #password-box {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      padding: 32px 28px 24px 28px;
+      text-align: center;
+      min-width: 260px;
+    }
+    #password-box h2 {
+      margin: 0 0 18px 0;
+      color: #3f51b5;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    #password-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      margin-bottom: 18px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #password-input:focus {
+      border-color: #3f51b5;
+    }
+    #login-button {
+      width: 100%;
+      padding: 10px 0;
+      background: #3f51b5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #login-button:hover {
+      background: #2c387e;
+    }
+  </style>
+</head>
+<body>
+  <div id="password-overlay">
+    <div id="password-box">
+      <h2>请输入密码</h2>
+      <form id="password-form" onsubmit="login(event)">
+        <input type="password" id="password-input" placeholder="密码" autofocus>
+        <button type="submit" id="login-button">登 录</button>
+      </form>
+    </div>
+  </div>
+  <div id="main-content" style="display:none;">
+    <div class="main-panel">
+      <div class="logo-center">
+        <a href="https://minepi.com/" target="_blank">
+          <img src="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png" alt="Pi Network Logo">
+        </a>
+      </div>
+      <div class="nav-header">Pi Network 资源导航中心</div>
+      <div class="categories-row" id="categories-row"></div>
+      <div class="footer">
+        <p>© 2025 Pi Network 资源导航中心 | 本网站为社区项目，非Pi Network官方产品</p>
+        <p>安全提示：请勿在任何网站输入您的Pi账户密码或助记词，数据更新于2025年7月</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    // 书签数据
+    const navData = [
+      {
+        title: "⚡官方渠道",
+        bookmarks: [
+          { title: "Pi Network 官网", url: "https://minepi.com/" },
+          { title: "官方博客", url: "https://minepi.com/blog" },
+          { title: "官方 Twitter/X", url: "https://twitter.com/PiNetworkUpdate" },
+          { title: "官方 Facebook", url: "https://www.facebook.com/share/16RQG6rMRA/" },
+          { title: "Pi 白皮书", url: "https://minepi.com/white-paper/" },
+          { title: "区块浏览器", url: "https://blockexplorer.minepi.com/mainnet/" },
+          { title: "SocialChain服务条款", url: "https://socialchain.app/tos" },
+          { title: "SocialChain隐私政策", url: "https://socialchain.app/privacy" },
+          { title: "青少年安全指南", url: "https://minepi.com/safety/youth-safety/" }
+        ]
+      },
+      {
+        title: "🎓 社区与资讯",
+        bookmarks: [
+          { title: "Reddit社区", url: "https://www.reddit.com/r/PiNetwork" },
+          { title: "Pi币中文网", url: "https://www.picn.cc/" },
+          { title: "HokaNews", url: "https://www.hokanews.com/?m=1" },
+          { title: "福布斯数字资产: Pi", url: "https://www.forbes.com/digital-assets/assets/pi-network-pi/?sh=2c09255e341b" },
+          { title: "智狐网络(好看视频)", url: "https://haokan.baidu.com/author/1651166394255964" },
+          { title: "Pi Network发展历程", url: "http://info.pi-node.cn/?id=387" },
+          { title: "Pi社区自助问答", url: "http://question.pi-node.cn/" },
+          { title: "宝哥博客", url: "https://bk.baoge.wang/" },
+          { title: "Pi123快讯导航", url: "https://pi123.net/#/pages/news/index" },
+          { title: "派想网Pi币资讯", url: "https://www.pimiss.com/" },
+          { title: "NBA岛Pi币专题", url: "https://www.nbadao.com/3975.html" },
+          { title: "蚂蚁应用Pi生态导航", url: "https://antapp.cc/?post=131" }
+        ]
+      },
+      {
+        title: "💻节点工具与教程",
+        bookmarks: [
+          { title: "节点导引图", url: "http://node.pi-node.cn/" },
+          { title: "端口检测", url: "http://pi-node.cn/" },
+          { title: "节点实时信息", url: "http://jk.pi-node.cn/" },
+          { title: "Pi仪表板", url: "https://dashboard.pi-blockchain.net/dashboard/mainnet/" },
+          { title: "开源地址", url: "https://github.com/pi-node/pi-node" },
+          { title: "Bilibili节点搭建视频", url: "https://m.bilibili.com/video/BV1fz4y1t7WB" },
+          { title: "UptimeRobot节点监控", url: "https://dashboard.uptimerobot.com/monitors" },
+          { title: "Pi教程大全", url: "http://study.pi-bbs.com/" },
+          { title: "Pi软件下载", url: "http://update.pi-node.cn/" },
+          { title: "Pi生态-签到&浏览", url: "https://pi.baoge.wang/" },
+          { title: "自编云服搭建教程", url: "https://file.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/%E8%87%AA%E7%BC%96pi%E8%8A%82%E7%82%B9%E7%82%B9%E6%90%AD%E5%BB%BA%E6%95%99%E7%A8%8B" }
+        ]
+      },
+      {
+        title: "📚学习资料",
+        bookmarks: [
+          { title: "节点安装检查与解决", url: "https://cftg.653827.xyz/1750626479665.pdf" },
+          { title: "Pi加密货币白皮书", url: "https://cftg.653827.xyz/1750626480197.pdf" },
+          { title: "派掌中宝V1.0", url: "https://pan.653827.xyz/raw/%E8%B5%84%E6%96%99/%E6%B4%BE%E6%8E%8C%E4%B8%AD%E5%AE%9DV1.0%20%E7%BB%88%E7%A8%BF.pdf" }
+        ]
+      }
+    ];
+
+    function renderCategories() {
+      const row = document.getElementById('categories-row');
+      navData.forEach(cat => {
+        const block = document.createElement('div');
+        block.className = 'category-block';
+        block.innerHTML = `
+          <div class="category-title">${cat.title}</div>
+          <div class="bookmarks-list">
+            ${cat.bookmarks.map(b => `
+              <a class="bookmark-link" href="${b.url}" target="_blank" rel="noopener">${b.title}</a>
+            `).join('')}
+          </div>
+        `;
+        row.appendChild(block);
+      });
+    }
+
+    (function() {
+      var savedPassword = localStorage.getItem('pi_nav_password');
+      if (savedPassword === 'baoge') {
+        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('password-overlay').style.display = 'none';
+        renderCategories();
+      } else {
+        document.getElementById('password-overlay').style.display = 'flex';
+        document.getElementById('main-content').style.display = 'none';
+      }
+    })();
+    function login(event) {
+      event.preventDefault();
+      const password = document.getElementById('password-input').value;
+      if (password === 'baoge') {
+        localStorage.setItem('pi_nav_password', password);
+        document.getElementById('password-overlay').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        renderCategories();
+      } else {
+        alert('密码错误!');
+        document.getElementById('password-input').value = '';
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>
