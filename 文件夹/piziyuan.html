@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Pi Network 资源导航中心</title>
+  <link rel="icon" href="https://icon.horse/icon/node.pi-node.cn">
+  <style>
+    :root {
+      --main-bg: #f5f7fa;
+      --card-bg: #fff;
+      --primary: #3f51b5;
+      --border: #e0e6f0;
+      --radius: 12px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.06);
+      --text: #222;
+      --muted: #888;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--main-bg);
+      font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .nav-header {
+      background: var(--primary);
+      color: #fff;
+      padding: 32px 0 18px 0;
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      box-shadow: 0 2px 8px rgba(63,81,181,0.08);
+    }
+    .main-container {
+      max-width: 1100px;
+      margin: 30px auto 0 auto;
+      padding: 0 16px 40px 16px;
+    }
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 32px 0 18px 0;
+      border-left: 4px solid var(--primary);
+      padding-left: 12px;
+      letter-spacing: 1px;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+      gap: 18px;
+      margin-bottom: 10px;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      padding: 20px 18px 16px 18px;
+      display: flex;
+      flex-direction: column;
+      min-height: 120px;
+      transition: box-shadow 0.2s,transform 0.2s;
+    }
+    .card:hover {
+      box-shadow: 0 6px 18px rgba(63,81,181,0.10);
+      transform: translateY(-2px) scale(1.01);
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      font-size: 1.08rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .card-title img {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      border-radius: 4px;
+      background: #f0f0f0;
+    }
+    .card-desc {
+      font-size: 0.97rem;
+      color: #444;
+      margin-bottom: 8px;
+      flex: 1;
+    }
+    .card-meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 1rem;
+      margin: 40px 0 18px 0;
+      padding-bottom: 10px;
+    }
+    /* 密码弹窗 */
+    #password-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    #password-box {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 28px 24px 28px;
+      text-align: center;
+      min-width: 260px;
+    }
+    #password-box h2 {
+      margin: 0 0 18px 0;
+      color: var(--primary);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    #password-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      margin-bottom: 18px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #password-input:focus {
+      border-color: var(--primary);
+    }
+    #login-button {
+      width: 100%;
+      padding: 10px 0;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #login-button:hover {
+      background: #2c387e;
+    }
+    @media (max-width: 600px) {
+      .main-container { padding: 0 4px 30px 4px; }
+      .nav-header { font-size: 1.2rem; padding: 22px 0 12px 0; }
+      .section-title { font-size: 1.05rem; margin: 22px 0 10px 0; }
+      .card { padding: 14px 8px 10px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="password-overlay">
+    <div id="password-box">
+      <h2>请输入密码</h2>
+      <form id="password-form" onsubmit="login(event)">
+        <input type="password" id="password-input" placeholder="密码" autofocus>
+        <button type="submit" id="login-button">登 录</button>
+      </form>
+    </div>
+  </div>
+  <div id="main-content" style="display:none;">
+    <div class="nav-header">Pi Network 资源导航中心</div>
+    <div class="main-container" id="nav-sections">
+      <!-- 动态插入导航区块 -->
+    </div>
+    <div class="footer">
+      <p>© 2025 Pi Network 资源导航中心 | 本网站为社区项目，非Pi Network官方产品</p>
+      <p>安全提示：请勿在任何网站输入您的Pi账户密码或助记词，数据更新于2025年7月</p>
+    </div>
+  </div>
+  <script>
+    // 资源数据结构，后续只需增删此处内容
+    const navData = [
+      {
+        title: "⚡ 官方渠道",
+        items: [
+          {
+            title: "Pi Network 官网",
+            url: "https://minepi.com/",
+            icon: "https://www.google.com/s2/favicons?domain=minepi.com&sz=32",
+            desc: "官方主站，提供Pi币下载、项目信息及最新公告。",
+            meta: ["核心资源", "更新于2025.06"]
+          },
+          {
+            title: "官方博客",
+            url: "https://minepi.com/blog",
+            icon: "https://www.google.com/s2/favicons?domain=minepi.com&sz=32",
+            desc: "发布节点技术更新、主网进展及未来计划的权威来源。",
+            meta: ["最新资讯", "每周更新"]
+          },
+          {
+            title: "官方 Twitter/X 账号",
+            url: "https://twitter.com/PiNetworkUpdate",
+            icon: "https://www.google.com/s2/favicons?domain=twitter.com&sz=32",
+            desc: "获取关于节点奖励、主网动态等实时信息的最佳渠道。",
+            meta: ["社交媒体", "每日更新"]
+          },
+          {
+            title: "官方 Facebook 页面",
+            url: "https://www.facebook.com/share/16RQG6rMRA/",
+            icon: "https://www.google.com/s2/favicons?domain=facebook.com&sz=32",
+            desc: "Pi Network官方Facebook页面，获取最新社区动态。",
+            meta: ["社交媒体", "官方"]
+          },
+          {
+            title: "Pi 白皮书",
+            url: "https://minepi.com/white-paper/",
+            icon: "https://www.google.com/s2/favicons?domain=minepi.com&sz=32",
+            desc: "详细阐述了Pi Network的愿景、技术架构和经济模型。",
+            meta: ["核心文档", "必读"]
+          },
+          {
+            title: "Pi 主网区块浏览器",
+            url: "https://blockexplorer.minepi.com/mainnet/",
+            icon: "https://favicon.im/blockexplorer.minepi.com",
+            desc: "用于探索Pi主网区块链、查询交易和账户信息的官方工具。",
+            meta: ["区块链工具", "实时数据"]
+          },
+          {
+            title: "SocialChain 服务条款",
+            url: "https://socialchain.app/tos",
+            icon: "https://www.google.com/s2/favicons?domain=socialchain.app&sz=32",
+            desc: "Pi生态应用SocialChain的服务条款和使用协议。",
+            meta: ["法律文件", "重要"]
+          },
+          {
+            title: "SocialChain 隐私政策",
+            url: "https://socialchain.app/privacy",
+            icon: "https://www.google.com/s2/favicons?domain=socialchain.app&sz=32",
+            desc: "SocialChain如何处理用户数据的隐私政策说明。",
+            meta: ["隐私政策", "必读"]
+          },
+          {
+            title: "青少年安全指南",
+            url: "https://minepi.com/safety/youth-safety/",
+            icon: "https://www.google.com/s2/favicons?domain=minepi.com&sz=32",
+            desc: "Pi Network针对青少年用户的安全使用指南和防护措施。",
+            meta: ["安全指南", "家长必读"]
+          }
+        ]
+      },
+      {
+        title: "🎓 社区与资讯",
+        items: [
+          {
+            title: "Reddit 社区",
+            url: "https://www.reddit.com/r/PiNetwork",
+            icon: "https://www.google.com/s2/favicons?domain=reddit.com&sz=32",
+            desc: "全球用户分享节点设置经验、讨论奖励机制和解决常见问题的平台。",
+            meta: ["全球社区", "活跃"]
+          },
+          {
+            title: "Pi币中文网",
+            url: "https://www.picn.cc/",
+            icon: "https://favicon.cccyun.cc/www.picn.cc",
+            desc: "一个面向中文用户的Pi币资讯和社区网站。",
+            meta: ["中文资源", "本地化"]
+          },
+          {
+            title: "HokaNews",
+            url: "https://www.hokanews.com/?m=1",
+            icon: "https://www.google.com/s2/favicons?domain=hokanews.com&sz=32",
+            desc: "一个提供Pi Network相关新闻和分析的海外资讯站。",
+            meta: ["新闻媒体", "国际视角"]
+          },
+          {
+            title: "福布斯数字资产: Pi",
+            url: "https://www.forbes.com/digital-assets/assets/pi-network-pi/?sh=2c09255e341b",
+            icon: "https://www.google.com/s2/favicons?domain=forbes.com&sz=32",
+            desc: "福布斯网站对Pi Network的介绍及相关信息。",
+            meta: ["权威媒体", "专业分析"]
+          },
+          {
+            title: "智狐网络 (好看视频)",
+            url: "https://haokan.baidu.com/author/1651166394255964",
+            icon: "https://www.google.com/s2/favicons?domain=baidu.com&sz=32",
+            desc: "提供Pi Network相关视频资讯的中文内容创作者。",
+            meta: ["视频内容", "中文"]
+          },
+          {
+            title: "Pi Network 发展历程",
+            url: "http://info.pi-node.cn/?id=387",
+            icon: "https://favicon.yandex.net/favicon/info.pi-node.cn",
+            desc: "一个按时间线整理的Pi Network官方动态和发展历史的中文网站。",
+            meta: ["历史记录", "时间线"]
+          },
+          {
+            title: "Pi 社区自助问答",
+            url: "http://question.pi-node.cn/",
+            icon: "https://www.google.com/s2/favicons?domain=pi-node.cn&sz=32",
+            desc: "一个由社区驱动的自助问答平台，帮助解决常见问题。",
+            meta: ["Q&A", "社区支持"]
+          },
+          {
+            title: "宝哥博客",
+            url: "https://bk.baoge.wang/",
+            icon: "https://bk.baoge.wang/favicon.ico",
+            desc: "博主关于Pi Network的个人见解、资讯和分析。",
+            meta: ["博客", "个人观点"]
+          },
+          {
+            title: "Pi123快讯导航",
+            url: "https://pi123.net/#/pages/news/index",
+            icon: "https://www.google.com/s2/favicons?domain=pi123.net&sz=32",
+            desc: "Pi123快讯，聚合Pi Network最新新闻、公告与社区动态，实时更新。",
+            meta: ["快讯资讯", "实时"]
+          },
+          {
+            title: "派想网 Pi币资讯",
+            url: "https://www.pimiss.com/",
+            icon: "https://www.google.com/s2/favicons?domain=pimiss.com&sz=32",
+            desc: "Pi币注册教程、价格行情、官方资讯、生态发展等一站式中文门户。",
+            meta: ["中文资讯", "权威"]
+          },
+          {
+            title: "NBA岛Pi币专题",
+            url: "https://www.nbadao.com/3975.html",
+            icon: "https://www.google.com/s2/favicons?domain=nbadao.com&sz=32",
+            desc: "NBA岛Pi币专题，深度解读Pi Network项目、生态与最新动态。",
+            meta: ["专题解读", "深度"]
+          },
+          {
+            title: "蚂蚁应用Pi生态导航",
+            url: "https://antapp.cc/?post=131",
+            icon: "https://antapp.cc/favicon.ico",
+            desc: "蚂蚁应用Pi生态导航，收录Pi生态应用、工具与教程，便捷入口。",
+            meta: ["生态导航", "工具集合"]
+          }
+        ]
+      },
+      {
+        title: "💻 节点工具与教程",
+        items: [
+          {
+            title: "pi节点搭建维护导引图",
+            url: "http://node.pi-node.cn/",
+            icon: "https://icon.horse/icon/node.pi-node.cn",
+            desc: "一个提供全方位Pi节点服务的导航网站。",
+            meta: ["节点指南", "图解"]
+          },
+          {
+            title: "节点端口在线检测",
+            url: "http://pi-node.cn/",
+            icon: "https://www.google.com/s2/favicons?domain=pi-node.cn&sz=32",
+            desc: "经典的端口检测工具，用于检测节点端口 (31400-31409) 是否开放。",
+            meta: ["诊断工具", "实用"]
+          },
+          {
+            title: "节点实时信息",
+            url: "http://jk.pi-node.cn/",
+            icon: "https://icon.horse/icon/jk.pi-node.cn",
+            desc: "云端检测工具，帮助分析您的节点实时数据和状态。",
+            meta: ["监控工具", "实时"]
+          },
+          {
+            title: "Pi仪表板",
+            url: "https://dashboard.pi-blockchain.net/dashboard/mainnet/",
+            icon: "https://www.google.com/s2/favicons?domain=pi-blockchain.net&sz=32",
+            desc: "一个提供Pi主网各项数据统计的仪表板。",
+            meta: ["数据分析", "统计"]
+          },
+          {
+            title: "pi node开源地址",
+            url: "https://github.com/pi-node/pi-node",
+            icon: "https://www.google.com/s2/favicons?domain=github.com&sz=32",
+            desc: "Pi节点官方开源仓库，包含节点软件源代码、开发文档及贡献指南，适合开发者和技术爱好者。",
+            meta: ["开源代码", "官方"]
+          },
+          {
+            title: "Bilibili 节点搭建视频",
+            url: "https://m.bilibili.com/video/BV1fz4y1t7WB",
+            icon: "https://www.google.com/s2/favicons?domain=bilibili.com&sz=32",
+            desc: "中文视频教程，直观地展示了Pi节点的搭建过程。",
+            meta: ["视频教程", "中文"]
+          },
+          {
+            title: "UptimeRobot (节点监控)",
+            url: "https://dashboard.uptimerobot.com/monitors",
+            icon: "https://www.google.com/s2/favicons?domain=uptimerobot.com&sz=32",
+            desc: "一个流行的网站监控服务，可用于监控您的Pi节点是否持续在线。",
+            meta: ["监控工具", "第三方"]
+          },
+          {
+            title: "Pi 教程大全",
+            url: "http://study.pi-bbs.com/",
+            icon: "https://icon.horse/icon/study.pi-bbs.com",
+            desc: "一个集合了PiApp、浏览器和节点等多种教程的中文资源站。",
+            meta: ["教程集合", "综合"]
+          },
+          {
+            title: "Pi 相关软件下载",
+            url: "http://update.pi-node.cn/",
+            icon: "https://www.google.com/s2/favicons?domain=pi-node.cn&sz=32",
+            desc: "提供Pi App、浏览器、电脑节点各版本及相关工具的下载。",
+            meta: ["软件下载", "资源"]
+          },
+          {
+            title: "Pi生态-签到&浏览",
+            url: "https://pi.baoge.wang/",
+            icon: "https://favicon.im/pi.baoge.wang",
+            desc: "自建Pi生态应用、签到、浏览等一站式导航页面。",
+            meta: ["生态导航", "自建"]
+          },
+          {
+            title: "自编Pi节点云服搭建教程",
+            url: "https://file.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/%E8%87%AA%E7%BC%96pi%E8%8A%82%E7%82%B9%E7%82%B9%E6%90%AD%E5%BB%BA%E6%95%99%E7%A8%8B",
+            icon: "https://s3.bmp.ovh/imgs/2025/07/07/9f1cd21d85023213.png",
+            desc: "详细讲解如何自建Pi节点云服务器，包含环境配置、端口映射、Docker与Pi Node安装等全流程。",
+            meta: ["图文教程", "节点搭建"]
+          }
+        ]
+      },
+      {
+        title: "📚 学习资料",
+        items: [
+          {
+            title: "PI节点安装，检查和解决方法",
+            url: "https://cftg.653827.xyz/1750626479665.pdf",
+            icon: "https://s3.bmp.ovh/imgs/2025/07/07/9f1cd21d85023213.png",
+            desc: "关于Pi节点安装、检查及常见问题解决方法的详细指南。",
+            meta: ["PDF指南", "问题解决"]
+          },
+          {
+            title: "Pi_加密货币白皮书",
+            url: "https://cftg.653827.xyz/1750626480197.pdf",
+            icon: "https://s3.bmp.ovh/imgs/2025/07/07/9f1cd21d85023213.png",
+            desc: "Pi Network项目的官方白皮书，阐述其愿景和技术细节。",
+            meta: ["核心文档", "必读"]
+          },
+          {
+            title: "派掌中宝V1.0（终稿）",
+            url: "https://pan.653827.xyz/raw/%E8%B5%84%E6%96%99/%E6%B4%BE%E6%8E%8C%E4%B8%AD%E5%AE%9DV1.0%20%E7%BB%88%E7%A8%BF.pdf",
+            icon: "https://s3.bmp.ovh/imgs/2025/07/07/9f1cd21d85023213.png",
+            desc: "一份全面的Pi Network指南手册，包含实用技巧和资源。",
+            meta: ["综合指南", "中文"]
+          }
+        ]
+      }
+    ];
+
+    // 渲染导航区块
+    function renderNavSections() {
+      const container = document.getElementById('nav-sections');
+      navData.forEach(section => {
+        const sec = document.createElement('section');
+        sec.innerHTML = `
+          <div class="section-title">${section.title}</div>
+          <div class="card-grid">
+            ${section.items.map(item => `
+              <div class="card">
+                <a class="card-title" href="${item.url}" target="_blank" rel="noopener">
+                  <img src="${item.icon}" alt="">
+                  ${item.title}
+                </a>
+                <div class="card-desc">${item.desc}</div>
+                <div class="card-meta">${item.meta.map(m=>`<span>${m}</span>`).join('')}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        container.appendChild(sec);
+      });
+    }
+
+    // 密码校验逻辑
+    (function() {
+      var savedPassword = localStorage.getItem('pi_nav_password');
+      if (savedPassword === 'baoge') {
+        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('password-overlay').style.display = 'none';
+        renderNavSections();
+      } else {
+        document.getElementById('password-overlay').style.display = 'flex';
+        document.getElementById('main-content').style.display = 'none';
+      }
+    })();
+
+    function login(event) {
+      event.preventDefault();
+      const password = document.getElementById('password-input').value;
+      if (password === 'baoge') {
+        localStorage.setItem('pi_nav_password', password);
+        document.getElementById('password-overlay').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        renderNavSections();
+      } else {
+        alert('密码错误!');
+        document.getElementById('password-input').value = '';
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>
