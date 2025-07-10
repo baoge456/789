@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收藏夹整理工具 - 最终优化版</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            background-attachment: fixed;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,64L48,69.3C96,75,192,85,288,112C384,139,480,181,576,192C672,203,768,181,864,165.3C960,149,1056,139,1152,128C1248,117,1344,107,1392,101.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+            background-size: cover;
+            background-position: bottom;
+            opacity: 0.3;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            background: linear-gradient(45deg, #4caf50, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            position: relative;
+        }
+        
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            margin: 20px auto;
+            max-width: 600px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .tab-btn.active {
+            color: #1a2a6c;
+        }
+        
+        .tab-indicator {
+            position: absolute;
+            height: 100%;
+            background: linear-gradient(45deg, #4caf50, #2e7d32);
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            z-index: 0;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            flex: 1;
+            min-height: 0;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .card::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            pointer-events: none;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card h2 {
+            display: flex;
+            align-items: center;
+            position: relative;
+            font-size: 1.8rem;
+        }
+        
+        .card h2 i {
+            margin-right: 12px;
+            font-size: 1.5rem;
+            color: #4caf50;
+        }
+        
+        .upload-area {
+            border: 3px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 25px;
+            background: rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .upload-area:hover, .upload-area.drag-over {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #4caf50;
+        }
+        
+        .upload-area i {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            color: #4caf50;
+            transition: transform 0.3s;
+        }
+        
+        .upload-area:hover i {
+            transform: scale(1.1);
+        }
+        
+        .upload-area p {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #4caf50, #2e7d32);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::after {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
+            transform: rotate(30deg);
+            pointer-events: none;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-download {
+            background: linear-gradient(45deg, #2196f3, #0d47a1);
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 1.1rem;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            animation: statsAppear 0.5s ease-out;
+        }
+        
+        @keyframes statsAppear {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4caf50;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .preview-container {
+            flex: 1;
+            overflow: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .preview-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .preview-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .preview-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            border-radius: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .category-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 20px;
+            padding-right: 5px;
+        }
+        
+        .category-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .category-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .category-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        
+        .category {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        
+        .category:hover {
+            transform: translateX(5px);
+        }
+        
+        .category-header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .bookmark-list {
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .bookmark {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.2s;
+        }
+        
+        .bookmark:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .bookmark:last-child {
+            border-bottom: none;
+        }
+        
+        .bookmark-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            background: #4caf50;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        
+        .bookmark-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .bookmark-url {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-left: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 40%;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            opacity: 0.7;
+            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-top: auto;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #4caf50;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .success-message {
+            background: rgba(76, 175, 80, 0.2);
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+        
+        .html-input {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            color: #fff;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            resize: vertical;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        .html-input:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+        
+        .instructions {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            position: relative;
+            padding-left: 15px;
+        }
+        
+        .instructions li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #4caf50;
+        }
+        
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+            display: none;
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        
+        .file-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #2e7d32);
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-bookmark"></i> 收藏夹整理工具 - 最终优化版</h1>
+            <p class="subtitle">稳定导入 | 智能分类 | 极致体验</p>
+        </header>
+        
+        <div class="tabs">
+            <div class="tab-indicator" id="tabIndicator"></div>
+            <button class="tab-btn active" data-tab="fileTab">上传文件</button>
+            <button class="tab-btn" data-tab="codeTab">粘贴代码</button>
+        </div>
+        
+        <div class="main-content">
+            <div class="card">
+                <div id="fileTab" class="tab-content active">
+                    <div class="card-header">
+                        <h2><i class="fas fa-file-upload"></i> 上传收藏夹文件</h2>
+                    </div>
+                    
+                    <div class="instructions">
+                        <p><strong>使用说明：</strong></p>
+                        <ul>
+                            <li>从浏览器导出收藏夹为HTML文件（Chrome/Firefox/Edge等均支持）</li>
+                            <li>点击下方按钮上传文件</li>
+                            <li>工具会自动解析并按分类整理</li>
+                            <li>生成JSON格式的书签数据</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="uploadArea" class="upload-area">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>拖放收藏夹HTML文件到此处<br>或点击选择文件</p>
+                        <button class="btn" id="selectFileBtn">
+                            <i class="fas fa-folder-open"></i> 选择文件
+                        </button>
+                        <input type="file" id="fileInput" accept=".html" class="hidden">
+                    </div>
+                    
+                    <div id="fileInfo" class="file-info">
+                        <i class="fas fa-file-alt"></i> 
+                        <span id="fileName">未选择文件</span>
+                        <div class="progress-bar">
+                            <div class="progress" id="fileProgress"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="fileError" class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <span id="errorText"></span>
+                    </div>
+                </div>
+                
+                <div id="codeTab" class="tab-content">
+                    <div class="card-header">
+                        <h2><i class="fas fa-code"></i> 粘贴HTML代码</h2>
+                    </div>
+                    
+                    <div class="instructions">
+                        <p><strong>使用说明：</strong></p>
+                        <ul>
+                            <li>打开收藏夹导出的HTML文件</li>
+                            <li>复制文件中的所有内容</li>
+                            <li>粘贴到下方文本区域</li>
+                            <li>点击"解析HTML"按钮</li>
+                        </ul>
+                    </div>
+                    
+                    <textarea id="htmlCodeInput" class="html-input" placeholder="粘贴收藏夹HTML代码..."></textarea>
+                    <div id="codeError" class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <span id="codeErrorText"></span>
+                    </div>
+                    <button class="btn" id="parseHtmlBtn">
+                        <i class="fas fa-cogs"></i> 解析HTML
+                    </button>
+                </div>
+                
+                <div class="stats hidden" id="statsContainer">
+                    <div class="stat-item">
+                        <div class="stat-value" id="categoriesCount">0</div>
+                        <div class="stat-label">分类</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="bookmarksCount">0</div>
+                        <div class="stat-label">书签</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="nestedCount">0</div>
+                        <div class="stat-label">嵌套层级</div>
+                    </div>
+                </div>
+                
+                <div class="hidden" id="resultsContainer">
+                    <div class="success-message">
+                        <i class="fas fa-check-circle"></i> 成功解析收藏夹内容！
+                    </div>
+
+
+                    <button class="btn btn-download" id="downloadBtn">
+                        <i class="fas fa-download"></i> 下载JSON文件
+                    </button>
+
+
+                    <h3>分类预览:</h3>
+                    <div class="category-list" id="categoryPreview"></div>
+                    
+                    <button class="btn btn-download" id="downloadBtn">
+                        <i class="fas fa-download"></i> 下载JSON文件
+                    </button>
+                </div>
+                
+                <div class="loading hidden" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    正在解析收藏夹内容...
+                    <div id="loadingProgress"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-file-code"></i> JSON预览</h2>
+                    <button class="copy-btn" id="copyJsonBtn">
+                        <i class="fas fa-copy"></i> 复制
+                    </button>
+                </div>
+                <div class="preview-container" id="jsonPreview">
+{
+  "上传文件或粘贴代码后": [
+    {
+      "name": "JSON预览将显示在这里",
+      "url": "https://example.com",
+      "favicon": "https://icons.duckduckgo.com/ip3/example.com.ico"
+    }
+  ]
+}
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 收藏夹整理工具 | 所有操作均在浏览器中完成，您的数据不会上传到任何服务器</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 元素引用
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const tabIndicator = document.getElementById('tabIndicator');
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+            const selectFileBtn = document.getElementById('selectFileBtn');
+            const htmlCodeInput = document.getElementById('htmlCodeInput');
+            const parseHtmlBtn = document.getElementById('parseHtmlBtn');
+            const jsonPreview = document.getElementById('jsonPreview');
+            const categoryPreview = document.getElementById('categoryPreview');
+            const statsContainer = document.getElementById('statsContainer');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const categoriesCount = document.getElementById('categoriesCount');
+            const bookmarksCount = document.getElementById('bookmarksCount');
+            const nestedCount = document.getElementById('nestedCount');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileError = document.getElementById('fileError');
+            const errorText = document.getElementById('errorText');
+            const codeError = document.getElementById('codeError');
+            const codeErrorText = document.getElementById('codeErrorText');
+            const copyJsonBtn = document.getElementById('copyJsonBtn');
+            const fileProgress = document.getElementById('fileProgress');
+            const loadingProgress = document.getElementById('loadingProgress');
+            
+            // 选项卡切换
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // 更新活动选项卡
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // 更新指示器位置
+                    const index = Array.from(tabBtns).indexOf(btn);
+                    const btnWidth = 100 / tabBtns.length;
+                    tabIndicator.style.width = `${btnWidth}%`;
+                    tabIndicator.style.left = `${index * btnWidth}%`;
+                    
+                    // 显示对应内容
+                    const tabId = btn.getAttribute('data-tab');
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === tabId) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+            
+            // 初始化选项卡指示器位置
+            tabIndicator.style.width = `${100 / tabBtns.length}%`;
+            
+            // 点击上传区域触发文件选择
+            uploadArea.addEventListener('click', () => fileInput.click());
+            selectFileBtn.addEventListener('click', () => fileInput.click());
+            
+            // 拖放功能
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.add('drag-over');
+            });
+            
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.remove('drag-over');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.remove('drag-over');
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // 文件选择处理
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFileUpload(e.target.files[0]);
+                }
+            });
+            
+            // 解析HTML按钮
+            parseHtmlBtn.addEventListener('click', () => {
+                const htmlContent = htmlCodeInput.value.trim();
+                if (!htmlContent) {
+                    showCodeError('请粘贴收藏夹HTML代码');
+                    return;
+                }
+                
+                processHtmlContent(htmlContent);
+            });
+            
+            // 复制JSON按钮
+            copyJsonBtn.addEventListener('click', () => {
+                const jsonText = jsonPreview.textContent;
+                navigator.clipboard.writeText(jsonText).then(() => {
+                    showCopySuccess();
+                }).catch(err => {
+                    alert('复制失败: ' + err);
+                });
+            });
+            
+            // 显示复制成功提示
+            function showCopySuccess() {
+                const originalText = copyJsonBtn.innerHTML;
+                copyJsonBtn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                copyJsonBtn.style.background = 'rgba(76, 175, 80, 0.3)';
+                
+                setTimeout(() => {
+                    copyJsonBtn.innerHTML = originalText;
+                    copyJsonBtn.style.background = '';
+                }, 2000);
+            }
+            
+            // 处理文件上传
+            function handleFileUpload(file) {
+                // 隐藏之前的错误信息
+                hideFileError();
+                
+                // 验证文件
+                if (!isValidFile(file)) {
+                    return;
+                }
+                
+                // 显示文件信息和进度条
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                fileProgress.style.width = '0%';
+                
+                // 模拟进度条
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 5;
+                    fileProgress.style.width = `${progress}%`;
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                    }
+                }, 100);
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    clearInterval(progressInterval);
+                    fileProgress.style.width = '100%';
+                    setTimeout(() => {
+                        processHtmlContent(e.target.result);
+                    }, 300);
+                };
+                
+                reader.onerror = function() {
+                    clearInterval(progressInterval);
+                    showFileError('读取文件时出错，请重试');
+                };
+                
+                reader.readAsText(file);
+            }
+            
+            // 验证文件
+            function isValidFile(file) {
+                // 检查文件是否存在
+                if (!file) {
+                    showFileError('未选择文件');
+                    return false;
+                }
+                
+                // 检查文件类型
+                const validTypes = ['text/html', 'application/xhtml+xml'];
+                const extension = file.name.split('.').pop().toLowerCase();
+                
+                if (!validTypes.includes(file.type) && extension !== 'html') {
+                    showFileError('请上传HTML格式的收藏夹文件！');
+                    return false;
+                }
+                
+                // 检查文件大小 (限制10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    showFileError('文件过大，请选择小于10MB的文件');
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            // 显示文件错误
+            function showFileError(message) {
+                errorText.textContent = message;
+                fileError.style.display = 'block';
+                fileInfo.style.display = 'none';
+            }
+            
+            // 隐藏文件错误
+            function hideFileError() {
+                fileError.style.display = 'none';
+            }
+            
+            // 显示代码错误
+            function showCodeError(message) {
+                codeErrorText.textContent = message;
+                codeError.style.display = 'block';
+            }
+            
+            // 隐藏代码错误
+            function hideCodeError() {
+                codeError.style.display = 'none';
+            }
+            
+            // 处理HTML内容
+            function processHtmlContent(htmlContent) {
+                // 隐藏之前的错误信息
+                hideFileError();
+                hideCodeError();
+                
+                // 显示加载指示器
+                loadingIndicator.classList.remove('hidden');
+                resultsContainer.classList.add('hidden');
+                statsContainer.classList.add('hidden');
+                
+                // 模拟加载进度
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 10;
+                    loadingProgress.textContent = `处理中... ${progress}%`;
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                    }
+                }, 200);
+                
+                // 使用setTimeout让UI有机会更新
+                setTimeout(() => {
+                    try {
+                        const bookmarks = parseBookmarks(htmlContent);
+                        
+                        // 更新统计信息
+                        const totalBookmarks = Object.values(bookmarks).reduce((acc, val) => acc + val.length, 0);
+                        categoriesCount.textContent = Object.keys(bookmarks).length;
+                        bookmarksCount.textContent = totalBookmarks;
+                        
+                        // 计算嵌套层级
+                        nestedCount.textContent = calculateNestingLevel(bookmarks);
+                        
+                        // 显示结果
+                        displayResults(bookmarks);
+                        
+                        // 隐藏加载指示器，显示结果
+                        clearInterval(progressInterval);
+                        loadingIndicator.classList.add('hidden');
+                        statsContainer.classList.remove('hidden');
+                        resultsContainer.classList.remove('hidden');
+                    } catch (error) {
+                        console.error('解析错误:', error);
+                        clearInterval(progressInterval);
+                        loadingIndicator.classList.add('hidden');
+                        showFileError('解析收藏夹内容时出错：' + error.message);
+                        showCodeError('解析收藏夹内容时出错：' + error.message);
+                    }
+                }, 1000);
+            }
+            
+            // 解析书签HTML
+            function parseBookmarks(htmlContent) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlContent, 'text/html');
+                const rootDL = doc.querySelector('dl');
+                
+                if (!rootDL) {
+                    throw new Error('未找到有效的书签数据。请确保上传的是浏览器导出的收藏夹HTML文件。');
+                }
+                
+                const result = {};
+                const maxBookmarksPerCategory = 100; // 每个分类最多显示的书签数
+                
+                // 递归处理文件夹
+                function processFolder(dlElement, currentCategory) {
+                    const items = dlElement.children;
+                    
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i];
+                        
+                        if (item.tagName === 'DT') {
+                            // 处理书签
+                            const aTag = item.querySelector('a');
+                            if (aTag) {
+                                const name = aTag.textContent.trim();
+                                const url = aTag.getAttribute('href');
+                                
+                                if (url && (url.startsWith('http') || url.startsWith('https'))) {
+                                    // 名称长度限制
+                                    const shortName = name.length > 15 ? name.substring(0, 12) + '...' : name;
+                                    
+                                    // 添加到当前分类
+                                    if (!result[currentCategory]) {
+                                        result[currentCategory] = [];
+                                    }
+                                    
+                                    // 如果当前分类书签过多，创建子分类
+                                    if (result[currentCategory].length >= maxBookmarksPerCategory) {
+                                        const subCategory = currentCategory ? `${currentCategory}/子分类` : "子分类";
+                                        if (!result[subCategory]) {
+                                            result[subCategory] = [];
+                                        }
+                                        result[subCategory].push({
+                                            name: shortName,
+                                            url: url,
+                                            favicon: generateFavicon(url)
+                                        });
+                                    } else {
+                                        // 生成favicon
+                                        result[currentCategory].push({
+                                            name: shortName,
+                                            url: url,
+                                            favicon: generateFavicon(url)
+                                        });
+                                    }
+                                }
+                            }
+                            
+                            // 处理文件夹
+                            const h3Tag = item.querySelector('h3');
+                            if (h3Tag) {
+                                const folderName = h3Tag.textContent.trim();
+                                const nestedDL = item.querySelector('dl');
+                                
+                                if (nestedDL) {
+                                    // 如果当前没有分类，则使用文件夹名称作为分类
+                                    const newCategory = currentCategory ? `${currentCategory}/${folderName}` : folderName;
+                                    processFolder(nestedDL, newCategory);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 从根DL开始处理
+                processFolder(rootDL, null);
+                
+                // 处理未分类的书签
+                if (result.null) {
+                    result['未分类'] = result.null;
+                    delete result.null;
+                }
+                
+                // 如果没有找到任何书签
+                if (Object.keys(result).length === 0) {
+                    throw new Error('未找到任何书签。请检查文件格式是否正确。');
+                }
+                
+                return result;
+            }
+            
+            // 生成favicon URL
+            function generateFavicon(url) {
+                try {
+                    const domain = new URL(url).hostname.replace('www.', '');
+                    return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+                } catch (e) {
+                    return 'https://icons.duckduckgo.com/ip3/unknown.ico';
+                }
+            }
+            
+            // 计算嵌套层级
+            function calculateNestingLevel(bookmarks) {
+                let maxLevel = 1;
+                for (const category in bookmarks) {
+                    const level = category.split('/').length;
+                    if (level > maxLevel) maxLevel = level;
+                }
+                return maxLevel;
+            }
+            
+            // 显示解析结果
+            function displayResults(bookmarks) {
+                // 生成JSON预览
+                const jsonStr = JSON.stringify(bookmarks, null, 2);
+                jsonPreview.textContent = jsonStr;
+                
+                // 生成分类预览
+                categoryPreview.innerHTML = '';
+                
+                for (const [category, bookmarksList] of Object.entries(bookmarks)) {
+                    const categoryEl = document.createElement('div');
+                    categoryEl.className = 'category';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'category-header';
+                    header.innerHTML = `<i class="fas fa-folder"></i> ${category} (${bookmarksList.length})`;
+                    
+                    // 添加折叠/展开功能
+                    header.addEventListener('click', () => {
+                        const list = header.nextElementSibling;
+                        list.style.display = list.style.display === 'none' ? 'block' : 'none';
+                    });
+                    
+                    const list = document.createElement('div');
+                    list.className = 'bookmark-list';
+                    
+                    // 只显示前20个书签（避免过多）
+                    const displayCount = Math.min(bookmarksList.length, 20);
+                    for (let i = 0; i < displayCount; i++) {
+                        const bookmark = bookmarksList[i];
+                        const bookmarkEl = document.createElement('div');
+                        bookmarkEl.className = 'bookmark';
+                        
+                        bookmarkEl.innerHTML = `
+                            <div class="bookmark-icon"></div>
+                            <div class="bookmark-name">${bookmark.name}</div>
+                            <div class="bookmark-url">${bookmark.url}</div>
+                        `;
+                        
+                        list.appendChild(bookmarkEl);
+                    }
+                    
+                    // 如果书签数量超过显示限制，添加提示
+                    if (bookmarksList.length > displayCount) {
+                        const moreEl = document.createElement('div');
+                        moreEl.className = 'bookmark';
+                        moreEl.innerHTML = `<div class="bookmark-name">+ ${bookmarksList.length - displayCount} 更多书签...</div>`;
+                        list.appendChild(moreEl);
+                    }
+                    
+                    categoryEl.appendChild(header);
+                    categoryEl.appendChild(list);
+                    categoryPreview.appendChild(categoryEl);
+                }
+                
+                // 设置下载按钮
+                downloadBtn.onclick = function() {
+                    downloadJson(jsonStr, 'organized_bookmarks.json');
+                };
+            }
+            
+            // 下载JSON文件
+            function downloadJson(jsonStr, filename) {
+                const blob = new Blob([jsonStr], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
