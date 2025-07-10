@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>导航页</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f4f4f9 100%);
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 60px;
+            background: linear-gradient(90deg, #4A90E2 0%, #6ec6ff 100%);
+            color: #fff;
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            user-select: none;
+            position: relative;
+            z-index: 20;
+        }
+        .header-bar .admin-fab {
+            display: none;
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #fff;
+            color: #4A90E2;
+            border: none;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            box-shadow: 0 2px 8px rgba(80, 120, 200, 0.10);
+            cursor: pointer;
+            font-size: 22px;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .admin-mode .header-bar .admin-fab {
+            display: flex;
+        }
+        .admin-links-bar {
+            display: none;
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 60px;
+            z-index: 15;
+            background: linear-gradient(90deg, #e0e7ff 0%, #f0f9ff 100%);
+            color: #4A90E2;
+            font-size: 14px;
+            padding: 7px 0 7px 0;
+            text-align: center;
+            border-bottom: 1px solid #b3c6ff;
+        }
+        .admin-mode .admin-links-bar {
+            display: block;
+        }
+        .admin-links-bar a {
+            color: #4A90E2;
+            margin: 0 12px;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+        #adminPwdModal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0; top: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.4);
+        }
+        #adminPwdModal .modal-content {
+            position: absolute;
+            left: 50%; top: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            border-radius: 10px;
+            padding: 30px 24px 24px 24px;
+            box-shadow: 0 2px 16px rgba(80, 120, 200, 0.18);
+            min-width: 260px;
+            text-align: center;
+        }
+        #adminPwdModal h2 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: #4A90E2;
+        }
+        #adminPwdModal input[type=password] {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 16px;
+            background: #e0e7ff;
+            border: 1px solid #b3c6ff;
+            border-radius: 5px;
+            color: #333;
+            font-size: 16px;
+        }
+        #adminPwdModal button {
+            background: #4A90E2;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #adminPwdModal button:hover {
+            background: #357ab8;
+        }
+        #addCategoryForm {
+            display: none;
+            margin: 18px 0 0 0;
+            padding: 0 16px;
+        }
+        .admin-mode #addCategoryForm {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #addCategoryForm input, #addCategoryForm button {
+            padding: 10px 12px;
+            background: #e0e7ff;
+            border: 1px solid #b3c6ff;
+            color: #333;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        #addCategoryForm input {
+            flex: 1;
+        }
+        #addCategoryForm input:focus, #addCategoryForm button:focus {
+            outline: 2px solid #4A90E2;
+        }
+        #addCategoryForm button {
+            color: #fff;
+            background: #4A90E2;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        #addCategoryForm button:hover {
+            background: #357ab8;
+        }
+        .ca-title {
+            padding: 0;
+            margin-top: 24px;
+            margin-bottom: 0;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+            margin-top: 8px;
+            padding: 0 8px;
+        }
+        li {
+            margin: 8px;
+            padding: 12px 10px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(80, 120, 200, 0.12);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            width: 100px;
+            min-width: 80px;
+            box-sizing: border-box;
+            vertical-align: middle;
+            transition: box-shadow 0.2s, transform 0.2s;
+            position: relative;
+        }
+        li:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(10, 22, 41, .15);
+            background: linear-gradient(135deg, #e1f0ff 0%, #d5e1ff 100%);
+        }
+        .item-icon {
+            width: 42px; height: 42px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .item-icon img {
+            width: 100%; height: 100%; object-fit: cover;
+            border-radius: 8px;
+        }
+        .item-icon .iconify {
+            width: 32px; height: 32px;
+            color: #4A90E2;
+        }
+       .site-style {
+    width: 110px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-all;
+    font-size: 15px;
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+    background: none;
+    border: none;
+    text-align: center;
+}
+        .site-style:hover {
+            color: #ff6700;
+        }
+        .opts {
+            margin-top: 6px;
+            display: flex;
+            gap: 4px;
+        }
+        .opts-item {
+            display: none;
+            background: #e0e7ff;
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            padding: 4px 6px;
+            color: #4A90E2;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .opts-delete:hover {
+            color: red;
+            background: #ffeaea;
+        }
+        .opts-edit:hover {
+            color: #4A90E2;
+            background: #d0d7ff;
+        }
+        .admin-mode .opts-item {
+            display: inline-block;
+        }
+        .delete-ca-btn, .add-site-btn {
+            display: none;
+            background: #e0e7ff;
+            border: none;
+            border-radius: 4px;
+            margin-left: 8px;
+            color: #4A90E2;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 6px;
+            transition: all 0.2s;
+        }
+        .admin-mode .delete-ca-btn, .admin-mode .add-site-btn {
+            display: inline-block;
+        }
+        .delete-ca-btn:hover {
+            color: red;
+            background: #ffeaea;
+        }
+        .add-site-btn:hover {
+            color: #ff6700;
+            background: #fffbe6;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 101;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(80, 120, 200, 0.25);
+            min-width: 300px;
+            max-width: 90%;
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #4A90E2;
+        }
+        .modal-content input, .modal-content select, .modal-content button, .modal-content textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            background: #e0e7ff;
+            border: 1px solid #b3c6ff;
+            color: #333;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .modal-content input:focus, .modal-content select:focus, .modal-content button:focus, .modal-content textarea:focus {
+            outline: 2px solid #4A90E2;
+            background: #f0f5ff;
+        }
+        .modal-content button {
+            color: #fff;
+            background: #4A90E2;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+        }
+        .modal-content button:hover {
+            background: #357ab8;
+        }
+        .modal-content select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A90E2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+        @media (max-width: 900px) {
+            li { width: calc(33% - 16px); min-width: 60px; }
+            .ca-title { padding: 0 12px; }
+        }
+        @media (max-width: 600px) {
+            li { width: calc(50% - 16px); min-width: 50px; }
+            h2 { font-size: 18px; }
+            .header-bar { font-size: 22px; }
+            .admin-links-bar { font-size: 12px; padding: 5px 0; }
+            .modal-content { min-width: 280px; padding: 20px; }
+        }
+        .password-hint {
+            font-size: 12px;
+            color: #777;
+            margin-top: 15px;
+            text-align: center;
+        }
+        /* 修复按钮被遮挡或不可见问题 */
+        #allBarContainer {
+            display: none;
+        }
+        .admin-mode #allBarContainer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 10px 16px 0 16px;
+        }
+    </style>
+    <script src="https://code.iconify.design/2/2.0.3/iconify.min.js"></script>
+</head>
+<body>
+    <div class="header-bar" id="headerBar">
+        <span id="navTitle">导航页</span>
+        <button class="admin-fab" id="adminFab" title="退出管理">
+            <span class="iconify" data-icon="mdi:close-circle-outline"></span>
+        </button>
+    </div>
+    <div class="admin-links-bar" id="adminLinksBar">
+        图标库：<a href="https://icon-sets.iconify.design/" target="_blank">iconify.design</a>
+        &nbsp;|&nbsp;
+        缩略图服务：<a href="https://file.baoge.hidns.co/%E6%96%87%E4%BB%B6%E5%A4%B9/slt1" target="_blank">slt1</a>
+        <span style="color:#888;">（在“图标”输入框中可直接填写 iconify 名称或缩略图完整URL）</span>
+    </div>
+    <!-- 管理员密码模态框 -->
+    <div id="adminPwdModal">
+        <div class="modal-content">
+            <h2>管理员密码</h2>
+            <input type="password" id="adminPwdInput" placeholder="请输入管理员密码" />
+            <button id="adminPwdConfirm">确定</button>
+        </div>
+    </div>
+    <form id="addCategoryForm" style="margin-top:50px;">
+        <input type="text" name="categoryName" placeholder="分类名称" required maxlength="12" />
+        <button type="submit">添加分类</button>
+    </form>
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <h2>添加站点</h2>
+            <form id="addSiteForm">
+                <select class="addSelect" name="categoryIndex" required></select>
+                <input type="text" name="siteName" placeholder="站点名称" required maxlength="12" />
+                <input type="url" name="siteUrl" placeholder="站点链接" required />
+                <input type="text" name="siteIcon" placeholder="图标（Iconify 名称或缩略图URL）" required />
+                <button type="submit">添加</button>
+            </form>
+        </div>
+    </div>
+    <div id="editSiteModal" class="modal">
+        <div class="modal-content">
+            <h2>修改站点</h2>
+            <form id="editSiteForm">
+                <input type="hidden" name="currentCategoryIndex" />
+                <input type="hidden" name="siteIndex" />
+                <select name="categoryIndex" required></select>
+                <input type="text" name="siteName" placeholder="站点名称" required maxlength="12" />
+                <input type="url" name="siteUrl" placeholder="站点链接" required />
+                <input type="text" name="siteIcon" placeholder="图标（Iconify 名称或缩略图URL）" required />
+                <button type="submit">保存修改</button>
+            </form>
+        </div>
+    </div>
+    <div id="importExportModal" class="modal">
+        <div class="modal-content">
+            <h2 id="importExportTitle">导入/导出书签</h2>
+            <input type="file" id="importFileInput" accept=".json,application/json" style="display:none" />
+            <textarea id="importExportTextarea" style="width:100%;height:180px;resize:vertical;font-size:15px;display:none;"></textarea>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button id="importBtn">导入</button>
+                <button id="exportBtn">导出</button>
+                <button id="clearBtn">清空</button>
+                <button id="closeImportExportModal">关闭</button>
+            </div>
+        </div>
+    </div>
+    <div id="allBarContainer">
+        <button onclick="openImportExportModal('all')" style="background:#e0e7ff;color:#4A90E2;border:none;border-radius:5px;padding:6px 12px;cursor:pointer;">导入/导出/清空所有书签</button>
+    </div>
+    <div id="navArea"></div>
+    <script>
+    window.onload = function() {
+        function escapeHtml(unsafe) {
+            if (!unsafe) return unsafe;
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        const defaultData = {
+            categories: [
+                {
+                    name: "常用推荐",
+                    sites: [
+                        { name: "百度", url: "https://www.baidu.com", icon: "simple-icons:baidu" },
+                        { name: "淘宝", url: "https://www.taobao.com", icon: "simple-icons:taobao" },
+                        { name: "京东", url: "https://www.jd.com", icon: "simple-icons:jd" },
+                        { name: "GitHub", url: "https://github.com", icon: "mdi:github" },
+                        { name: "知乎", url: "https://www.zhihu.com", icon: "simple-icons:zhihu" },
+                        { name: "哔哩哔哩", url: "https://www.bilibili.com", icon: "simple-icons:bilibili" }
+                    ]
+                },
+                {
+                    name: "开发工具",
+                    sites: [
+                        { name: "MDN", url: "https://developer.mozilla.org", icon: "simple-icons:mdnwebdocs" },
+                        { name: "Stack Overflow", url: "https://stackoverflow.com", icon: "simple-icons:stackoverflow" },
+                        { name: "Vue.js", url: "https://vuejs.org", icon: "simple-icons:vuedotjs" },
+                        { name: "React", url: "https://reactjs.org", icon: "simple-icons:react" },
+                        { name: "Node.js", url: "https://nodejs.org", icon: "simple-icons:nodedotjs" },
+                        { name: "VS Code", url: "https://code.visualstudio.com", icon: "simple-icons:visualstudiocode" }
+                    ]
+                }
+            ]
+        };
+        function isUrl(str) {
+            return /^https?:\/\//i.test(str);
+        }
+        function getThumb(url) {
+            return "https://file.baoge.hidns.co/%E6%96%87%E4%BB%B6%E5%A4%B9/slt1?url=" + encodeURIComponent(url);
+        }
+        function getData() {
+            let data = localStorage.getItem('navData');
+            if (!data) {
+                setData(defaultData);
+                return JSON.parse(JSON.stringify(defaultData));
+            }
+            try {
+                let parsed = JSON.parse(data);
+                if (!parsed.categories || !Array.isArray(parsed.categories) || parsed.categories.length === 0) {
+                    setData(defaultData);
+                    return JSON.parse(JSON.stringify(defaultData));
+                }
+                if (parsed.categories.length === 1 && parsed.categories[0].sites.length === 0) {
+                    parsed.categories[0].sites.push(defaultData.categories[0].sites[0]);
+                    setData(parsed);
+                }
+                return parsed;
+            } catch {
+                setData(defaultData);
+                return JSON.parse(JSON.stringify(defaultData));
+            }
+        }
+        function setData(data) {
+            localStorage.setItem('navData', JSON.stringify(data));
+        }
+        function moveCategory(index, direction) {
+            const data = getData();
+            if (direction === 'up' && index > 0) {
+                [data.categories[index - 1], data.categories[index]] = [data.categories[index], data.categories[index - 1]];
+                setData(data);
+                render();
+            } else if (direction === 'down' && index < data.categories.length - 1) {
+                [data.categories[index + 1], data.categories[index]] = [data.categories[index], data.categories[index + 1]];
+                setData(data);
+                render();
+            }
+        }
+        function moveSite(categoryIndex, siteIndex, direction) {
+            const data = getData();
+            const sites = data.categories[categoryIndex].sites;
+            if (direction === 'up' && siteIndex > 0) {
+                [sites[siteIndex - 1], sites[siteIndex]] = [sites[siteIndex], sites[siteIndex - 1]];
+                setData(data);
+                render();
+            } else if (direction === 'down' && siteIndex < sites.length - 1) {
+                [sites[siteIndex + 1], sites[siteIndex]] = [sites[siteIndex], sites[siteIndex + 1]];
+                setData(data);
+                render();
+            }
+        }
+        let importExportContext = { type: 'all', categoryIndex: null };
+        function openImportExportModal(type, categoryIndex) {
+            importExportContext = { type, categoryIndex };
+            document.getElementById('importExportModal').style.display = 'block';
+            document.getElementById('importExportTextarea').value = '';
+            if(type === 'all') {
+                document.getElementById('importExportTitle').innerText = '导入/导出所有书签';
+            } else {
+                document.getElementById('importExportTitle').innerText = '导入/导出分类书签';
+            }
+        }
+        document.getElementById('closeImportExportModal').onclick = function() {
+            document.getElementById('importExportModal').style.display = 'none';
+        };
+
+        document.getElementById('importFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    let obj = JSON.parse(evt.target.result);
+                    const data = getData();
+                    if(importExportContext.type === 'all') {
+                        data.categories = [];
+                        for(let k in obj) {
+                            data.categories.push({
+                                name: k,
+                                sites: (obj[k]||[]).map(s => ({
+                                    name: s.name,
+                                    url: s.url,
+                                    icon: s.icon || s.favicon || ''
+                                }))
+                            });
+                        }
+                    } else {
+                        let c = data.categories[importExportContext.categoryIndex];
+                        let arr = obj[c.name] || [];
+                        c.sites = arr.map(s => ({
+                            name: s.name,
+                            url: s.url,
+                            icon: s.icon || s.favicon || ''
+                        }));
+                    }
+                    setData(data);
+                    render();
+                    alert('导入成功');
+                } catch {
+                    alert('导入失败，格式错误');
+                }
+                e.target.value = '';
+                document.getElementById('importExportModal').style.display = 'none';
+            };
+            reader.readAsText(file, 'utf-8');
+        });
+
+        document.getElementById('exportBtn').onclick = function() {
+            const data = getData();
+            let exportObj = {};
+            if(importExportContext.type === 'all') {
+                data.categories.forEach(c => {
+                    exportObj[c.name] = c.sites.map(s => ({
+                        name: s.name,
+                        url: s.url,
+                        favicon: isUrl(s.icon) ? s.icon : '',
+                        icon: s.icon
+                    }));
+                });
+            } else {
+                const c = data.categories[importExportContext.categoryIndex];
+                exportObj[c.name] = c.sites.map(s => ({
+                    name: s.name,
+                    url: s.url,
+                    favicon: isUrl(s.icon) ? s.icon : '',
+                    icon: s.icon
+                }));
+            }
+            const blob = new Blob([JSON.stringify(exportObj, null, 2)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (importExportContext.type === 'all' ? 'nav_all.json' : 'nav_category.json');
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        };
+
+        document.getElementById('importBtn').onclick = function() {
+            document.getElementById('importFileInput').click();
+        };
+
+        document.getElementById('clearBtn').onclick = function() {
+            if(!confirm('确定要清空吗？')) return;
+            const data = getData();
+            if(importExportContext.type === 'all') {
+                data.categories.forEach(c => c.sites = []);
+            } else {
+                data.categories[importExportContext.categoryIndex].sites = [];
+            }
+            setData(data);
+            render();
+            document.getElementById('importExportModal').style.display = 'none';
+        };
+
+        let isAdmin = false;
+        let pressTimer = null;
+        const navTitle = document.getElementById('navTitle');
+        navTitle.addEventListener('mousedown', function(e) {
+            pressTimer = setTimeout(() => {
+                showPwdModal();
+            }, 600);
+        });
+        navTitle.addEventListener('mouseup', function(e) {
+            clearTimeout(pressTimer);
+        });
+        navTitle.addEventListener('mouseleave', function(e) {
+            clearTimeout(pressTimer);
+        });
+        navTitle.addEventListener('touchstart', function(e) {
+            pressTimer = setTimeout(() => {
+                showPwdModal();
+            }, 600);
+        });
+        navTitle.addEventListener('touchend', function(e) {
+            clearTimeout(pressTimer);
+        });
+        function showPwdModal() {
+            document.getElementById('adminPwdModal').style.display = 'block';
+            document.getElementById('adminPwdInput').focus();
+        }
+        document.getElementById('adminFab').onclick = function() {
+            isAdmin = false;
+            document.body.classList.remove('admin-mode');
+            document.getElementById('allBarContainer').style.display = 'none';
+        };
+        function checkAdminPwd() {
+            const pwd = document.getElementById('adminPwdInput').value;
+            if (pwd === 'baoge888') {
+                isAdmin = true;
+                document.body.classList.add('admin-mode');
+                document.getElementById('adminPwdModal').style.display = 'none';
+                document.getElementById('adminPwdInput').value = '';
+                document.getElementById('allBarContainer').style.display = 'flex';
+            } else {
+                alert('密码错误！');
+            }
+        }
+        document.getElementById('adminPwdConfirm').addEventListener('click', checkAdminPwd);
+        document.getElementById('adminPwdInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') checkAdminPwd();
+        });
+        window.deleteCategory = function(categoryIndex) {
+            if (!isAdmin) { alert('请先进入管理模式'); return; }
+            if (confirm('确定要删除该分类吗？')) {
+                const data = getData();
+                data.categories.splice(categoryIndex, 1);
+                setData(data);
+                render();
+            }
+        }
+        window.deleteSite = function(categoryIndex, siteIndex) {
+            if (!isAdmin) { alert('请先进入管理模式'); return; }
+            if (confirm('确定要删除该站点吗？')) {
+                const data = getData();
+                data.categories[categoryIndex].sites.splice(siteIndex, 1);
+                setData(data);
+                render();
+            }
+        }
+        window.openAddModal = function(categoryIndex) {
+            if (!isAdmin) { alert('请先进入管理模式'); return; }
+            document.getElementById('myModal').style.display = 'block';
+            document.querySelector('.addSelect').selectedIndex = categoryIndex;
+        }
+        window.openEditModal = function(categoryIndex, siteIndex) {
+            if (!isAdmin) { alert('请先进入管理模式'); return; }
+            const data = getData();
+            const site = data.categories[categoryIndex].sites[siteIndex];
+            document.getElementById('editSiteModal').style.display = 'block';
+            const form = document.getElementById('editSiteForm');
+            form.currentCategoryIndex.value = categoryIndex;
+            form.categoryIndex.value = categoryIndex;
+            form.siteIndex.value = siteIndex;
+            form.siteName.value = site.name;
+            form.siteUrl.value = site.url;
+            form.siteIcon.value = site.icon;
+        }
+        window.openLink = function(event) {
+            event.preventDefault();
+            var clickedElement = event.target;
+            if (clickedElement.tagName.toLowerCase() === 'span') {
+                clickedElement = clickedElement.parentElement;
+            }
+            var link = clickedElement.closest('.item').querySelector('a').getAttribute('href');
+            window.open(link, '_blank');
+        }
+        document.getElementById('addCategoryForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            if (!isAdmin) { alert('请先进入管理模式'); return; }
+            const categoryName = event.target.categoryName.value.trim();
+            if (!categoryName) return;
+            const data = getData();
+            if (data.categories.some(c => c.name === categoryName)) {
+                alert('该分类已经存在，请输入不同的分类名称。');
+                return;
+            }
+            data.categories.push({ name: categoryName, sites: [] });
+            setData(data);
+            event.target.reset();
+            render();
+        });
+        document.getElementById('addSiteForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            if (!isAdmin) { alert('请先进入管理模式'); return; }
+            const formData = new FormData(event.target);
+            const data = getData();
+            data.categories[formData.get('categoryIndex')].sites.push({
+                name: formData.get('siteName'),
+                url: formData.get('siteUrl'),
+                icon: formData.get('siteIcon')
+            });
+            setData(data);
+            event.target.reset();
+            document.getElementById('myModal').style.display = 'none';
+            render();
+        });
+        document.getElementById('editSiteForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            if (!isAdmin) { alert('请先进入管理模式'); return; }
+            const formData = new FormData(event.target);
+            const curCaIndex = parseInt(formData.get('currentCategoryIndex'));
+            const selectedIndex = parseInt(formData.get('categoryIndex'));
+            const siteIndex = parseInt(formData.get('siteIndex'));
+            const data = getData();
+            if (curCaIndex === selectedIndex) {
+                data.categories[selectedIndex].sites[siteIndex] = {
+                    name: formData.get('siteName'),
+                    url: formData.get('siteUrl'),
+                    icon: formData.get('siteIcon')
+                };
+            } else {
+                const site = data.categories[curCaIndex].sites.splice(siteIndex, 1)[0];
+                site.name = formData.get('siteName');
+                site.url = formData.get('siteUrl');
+                site.icon = formData.get('siteIcon');
+                data.categories[selectedIndex].sites.push(site);
+            }
+            setData(data);
+            document.getElementById('editSiteModal').style.display = 'none';
+            render();
+        });
+        document.getElementById('myModal').onclick = function(e) {
+            if (e.target === this) this.style.display = 'none';
+        };
+        document.getElementById('editSiteModal').onclick = function(e) {
+            if (e.target === this) this.style.display = 'none';
+        };
+        document.getElementById('adminPwdModal').onclick = function(e) {
+            if (e.target === this) this.style.display = 'none';
+        };
+        window.moveCategory = moveCategory;
+        window.moveSite = moveSite;
+        window.openImportExportModal = openImportExportModal;
+        function render() {
+            const data = getData();
+            const navArea = document.getElementById('navArea');
+            navArea.innerHTML = '';
+            // 其余内容不变
+            data.categories.forEach((category, categoryIndex) => {
+                const h2 = document.createElement('h2');
+                h2.className = 'ca-title';
+                h2.innerHTML = `
+                    ${escapeHtml(category.name)}
+                    <button class="delete-ca-btn" onclick="deleteCategory(${categoryIndex})"><span class="iconify" data-icon="material-symbols:delete-outline" data-width="18" data-height="18"></span></button>
+                    <button class="add-site-btn" onclick="openAddModal(${categoryIndex})"><span class="iconify" data-icon="carbon:add-filled" data-width="18" data-height="18"></span></button>
+                    <button class="add-site-btn" onclick="moveCategory(${categoryIndex},'up')" title="上移分类"><span class="iconify" data-icon="mdi:arrow-up-bold" data-width="18" data-height="18"></span></button>
+                    <button class="add-site-btn" onclick="moveCategory(${categoryIndex},'down')" title="下移分类"><span class="iconify" data-icon="mdi:arrow-down-bold" data-width="18" data-height="18"></span></button>
+                    <button class="add-site-btn" onclick="openImportExportModal('category',${categoryIndex})" title="导入/导出/清空分类书签"><span class="iconify" data-icon="mdi:import-export" data-width="18" data-height="18"></span></button>
+                `;
+                navArea.appendChild(h2);
+                const ul = document.createElement('ul');
+                category.sites.forEach((site, siteIndex) => {
+                    const li = document.createElement('li');
+                    li.className = 'item';
+                    let iconHtml = '';
+                    if (isUrl(site.icon)) {
+                        iconHtml = `<img src="${escapeHtml(site.icon)}" alt="icon" onerror="this.style.display='none';this.parentNode.querySelector('.iconify').style.display='inline-block';" />
+                                    <span class="iconify" data-icon="mdi:image-broken-variant" style="display:none;"></span>`;
+                    } else {
+                        iconHtml = `<span class="iconify" data-icon="${escapeHtml(site.icon)}"></span>`;
+                    }
+                    li.innerHTML = `
+                        <div class="item-icon" onclick="openLink(event)">
+                            ${iconHtml}
+                        </div>
+                        <a class="site-style" href="${escapeHtml(site.url)}" target="_blank" title="${escapeHtml(site.name)}">
+                            ${escapeHtml(site.name.length > 6 ? site.name.slice(0,6)+'…' : site.name)}
+                        </a>
+                        <div class="opts">
+                            <button class="opts-item opts-delete" onclick="deleteSite(${categoryIndex}, ${siteIndex})">
+                                <span class="iconify" data-icon="material-symbols:delete-outline" data-width="15" data-height="15"></span>
+                            </button>
+                            <button class="opts-item opts-edit" onclick="openEditModal(${categoryIndex}, ${siteIndex})">
+                                <span class="iconify" data-icon="raphael:edit" data-width="15" data-height="15"></span>
+                            </button>
+                            <button class="opts-item" onclick="moveSite(${categoryIndex},${siteIndex},'up')" title="上移站点"><span class="iconify" data-icon="mdi:arrow-up-bold" data-width="15" data-height="15"></span></button>
+                            <button class="opts-item" onclick="moveSite(${categoryIndex},${siteIndex},'down')" title="下移站点"><span class="iconify" data-icon="mdi:arrow-down-bold" data-width="15" data-height="15"></span></button>
+                        </div>
+                    `;
+                    ul.appendChild(li);
+                });
+                navArea.appendChild(ul);
+            });
+            const selects = document.querySelectorAll('.addSelect, #editSiteForm select[name=categoryIndex]');
+            selects.forEach(sel => {
+                sel.innerHTML = data.categories.map((c, i) =>
+                    `<option value="${i}">${escapeHtml(c.name)}</option>`
+                ).join('');
+            });
+        }
+        render();
+    }
+    </script>
+</body>
+</html>
