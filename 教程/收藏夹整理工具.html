@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>收藏夹整理工具 </title>
+    <title>收藏夹整理工具 - 优化版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
@@ -24,7 +24,7 @@
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1000px;
             margin: 0 auto;
             flex: 1;
             display: flex;
@@ -133,21 +133,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            flex: 1;
-            min-height: 0;
-            margin-bottom: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-        }
-        
         .card {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -159,23 +144,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-        }
-        
-        .card::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-            pointer-events: none;
+            margin-bottom: 25px;
         }
         
         .card-header {
@@ -221,11 +190,6 @@
             font-size: 4rem;
             margin-bottom: 15px;
             color: #4caf50;
-            transition: transform 0.3s;
-        }
-        
-        .upload-area:hover i {
-            transform: scale(1.1);
         }
         
         .upload-area p {
@@ -250,18 +214,6 @@
             overflow: hidden;
         }
         
-        .btn::after {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
-            transform: rotate(30deg);
-            pointer-events: none;
-        }
-        
         .btn:hover {
             transform: translateY(-3px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -279,6 +231,14 @@
             font-size: 1.1rem;
         }
         
+        .btn-toggle {
+            background: linear-gradient(45deg, #9c27b0, #673ab7);
+            width: 100%;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 1.1rem;
+        }
+        
         .hidden {
             display: none;
         }
@@ -290,12 +250,6 @@
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
-            animation: statsAppear 0.5s ease-out;
-        }
-        
-        @keyframes statsAppear {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
         }
         
         .stat-item {
@@ -315,17 +269,17 @@
         }
         
         .preview-container {
-            flex: 1;
+            height: 500px; /* 固定初始高度 */
+            max-height: 1000px; /* 最大高度为初始2倍 */
             overflow: auto;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
             padding: 15px;
-            font-family: 'Fira Code', 'Courier New', monospace;
+            font-family: 'Courier New', monospace;
             font-size: 0.9rem;
             line-height: 1.4;
             white-space: pre-wrap;
             position: relative;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
         }
         
         .preview-container::-webkit-scrollbar {
@@ -353,34 +307,17 @@
             cursor: pointer;
             transition: all 0.3s;
             z-index: 10;
-            display: flex;
-            align-items: center;
-            gap: 5px;
         }
         
         .copy-btn:hover {
             background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
         }
         
         .category-list {
-            flex: 1;
+            height: 500px; /* 固定初始高度 */
+            max-height: 1000px; /* 最大高度为初始2倍 */
             overflow-y: auto;
             margin-top: 20px;
-            padding-right: 5px;
-        }
-        
-        .category-list::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .category-list::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-        }
-        
-        .category-list::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
         }
         
         .category {
@@ -388,11 +325,6 @@
             border-radius: 8px;
             margin-bottom: 15px;
             overflow: hidden;
-            transition: transform 0.3s ease;
-        }
-        
-        .category:hover {
-            transform: translateX(5px);
         }
         
         .category-header {
@@ -404,10 +336,14 @@
             cursor: pointer;
         }
         
+        .category-header i {
+            margin-right: 10px;
+            transition: transform 0.3s;
+        }
+        
         .bookmark-list {
             padding: 10px;
-            max-height: 300px;
-            overflow-y: auto;
+            display: none; /* 默认折叠 */
         }
         
         .bookmark {
@@ -415,11 +351,6 @@
             align-items: center;
             padding: 8px 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            transition: background 0.2s;
-        }
-        
-        .bookmark:hover {
-            background: rgba(255, 255, 255, 0.05);
         }
         
         .bookmark:last-child {
@@ -432,7 +363,6 @@
             margin-right: 10px;
             background: #4caf50;
             border-radius: 2px;
-            flex-shrink: 0;
         }
         
         .bookmark-name {
@@ -459,7 +389,7 @@
             font-size: 0.9rem;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
-            margin-top: auto;
+            margin-top: 20px;
         }
         
         .loading {
@@ -488,13 +418,6 @@
             padding: 15px;
             border-radius: 0 8px 8px 0;
             margin: 15px 0;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
         }
         
         .html-input {
@@ -505,16 +428,14 @@
             border-radius: 8px;
             padding: 15px;
             color: #fff;
-            font-family: 'Fira Code', 'Courier New', monospace;
+            font-family: 'Courier New', monospace;
             resize: vertical;
             margin-bottom: 15px;
-            transition: border-color 0.3s;
         }
         
         .html-input:focus {
             outline: none;
             border-color: #4caf50;
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
         }
         
         .instructions {
@@ -532,16 +453,7 @@
         }
         
         .instructions li {
-            margin-bottom: 8px;
-            position: relative;
-            padding-left: 15px;
-        }
-        
-        .instructions li::before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: #4caf50;
+            margin-bottom: 5px;
         }
         
         .error-message {
@@ -551,13 +463,6 @@
             border-radius: 0 8px 8px 0;
             margin: 15px 0;
             display: none;
-            animation: shake 0.5s;
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-5px); }
-            40%, 80% { transform: translateX(5px); }
         }
         
         .file-info {
@@ -567,7 +472,6 @@
             margin-top: 15px;
             text-align: center;
             display: none;
-            animation: fadeIn 0.5s;
         }
         
         .progress-bar {
@@ -584,13 +488,41 @@
             width: 0%;
             transition: width 0.3s;
         }
+        
+        .preview-toggle-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .preview-toggle-btn {
+            flex: 1;
+            margin: 0 5px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .preview-toggle-btn.active {
+            background: linear-gradient(45deg, #4caf50, #2e7d32);
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+        
+        .preview-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-bookmark"></i> 收藏夹整理工具 </h1>
-            <p class="subtitle">稳定导入 | 智能分类 | 极致体验</p>
+            <h1><i class="fas fa-bookmark"></i> 收藏夹整理工具</h1>
+            <p class="subtitle">上传浏览器收藏夹HTML文件，自动整理并生成结构化JSON数据</p>
         </header>
         
         <div class="tabs">
@@ -599,120 +531,108 @@
             <button class="tab-btn" data-tab="codeTab">粘贴代码</button>
         </div>
         
-        <div class="main-content">
-            <div class="card">
-                <div id="fileTab" class="tab-content active">
-                    <div class="card-header">
-                        <h2><i class="fas fa-file-upload"></i> 上传收藏夹文件</h2>
-                    </div>
-                    
-                    <div class="instructions">
-                        <p><strong>使用说明：</strong></p>
-                        <ul>
-                            <li>从浏览器导出收藏夹为HTML文件（Chrome/Firefox/Edge等均支持）</li>
-                            <li>点击下方按钮上传文件</li>
-                            <li>工具会自动解析并按分类整理</li>
-                            <li>生成JSON格式的书签数据</li>
-                        </ul>
-                    </div>
-                    
-                    <div id="uploadArea" class="upload-area">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>拖放收藏夹HTML文件到此处<br>或点击选择文件</p>
-                        <button class="btn" id="selectFileBtn">
-                            <i class="fas fa-folder-open"></i> 选择文件
-                        </button>
-                        <input type="file" id="fileInput" accept=".html" class="hidden">
-                    </div>
-                    
-                    <div id="fileInfo" class="file-info">
-                        <i class="fas fa-file-alt"></i> 
-                        <span id="fileName">未选择文件</span>
-                        <div class="progress-bar">
-                            <div class="progress" id="fileProgress"></div>
-                        </div>
-                    </div>
-                    
-                    <div id="fileError" class="error-message">
-                        <i class="fas fa-exclamation-triangle"></i> 
-                        <span id="errorText"></span>
-                    </div>
+        <div class="card">
+            <div id="fileTab" class="tab-content active">
+                <div class="card-header">
+                    <h2><i class="fas fa-file-upload"></i> 上传收藏夹文件</h2>
                 </div>
                 
-                <div id="codeTab" class="tab-content">
-                    <div class="card-header">
-                        <h2><i class="fas fa-code"></i> 粘贴HTML代码</h2>
-                    </div>
-                    
-                    <div class="instructions">
-                        <p><strong>使用说明：</strong></p>
-                        <ul>
-                            <li>打开收藏夹导出的HTML文件</li>
-                            <li>复制文件中的所有内容</li>
-                            <li>粘贴到下方文本区域</li>
-                            <li>点击"解析HTML"按钮</li>
-                        </ul>
-                    </div>
-                    
-                    <textarea id="htmlCodeInput" class="html-input" placeholder="粘贴收藏夹HTML代码..."></textarea>
-                    <div id="codeError" class="error-message">
-                        <i class="fas fa-exclamation-triangle"></i> 
-                        <span id="codeErrorText"></span>
-                    </div>
-                    <button class="btn" id="parseHtmlBtn">
-                        <i class="fas fa-cogs"></i> 解析HTML
+                <div class="instructions">
+                    <p><strong>使用说明：</strong></p>
+                    <ul>
+                        <li>从浏览器导出收藏夹为HTML文件（Chrome/Firefox/Edge等均支持）</li>
+                        <li>点击下方按钮上传文件</li>
+                        <li>工具会自动解析并按分类整理</li>
+                        <li>生成JSON格式的书签数据</li>
+                    </ul>
+                </div>
+                
+                <div id="uploadArea" class="upload-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>拖放收藏夹HTML文件到此处<br>或点击选择文件</p>
+                    <button class="btn" id="selectFileBtn">
+                        <i class="fas fa-folder-open"></i> 选择文件
                     </button>
+                    <input type="file" id="fileInput" accept=".html" class="hidden">
                 </div>
                 
-                <div class="stats hidden" id="statsContainer">
-                    <div class="stat-item">
-                        <div class="stat-value" id="categoriesCount">0</div>
-                        <div class="stat-label">分类</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="bookmarksCount">0</div>
-                        <div class="stat-label">书签</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="nestedCount">0</div>
-                        <div class="stat-label">嵌套层级</div>
+                <div id="fileInfo" class="file-info">
+                    <i class="fas fa-file-alt"></i> 
+                    <span id="fileName">未选择文件</span>
+                    <div class="progress-bar">
+                        <div class="progress" id="fileProgress"></div>
                     </div>
                 </div>
                 
-                <div class="hidden" id="resultsContainer">
-                    <div class="success-message">
-                        <i class="fas fa-check-circle"></i> 成功解析收藏夹内容！
-                    </div>
-
-
-                    <button class="btn btn-download" id="downloadBtn">
-                        <i class="fas fa-download"></i> 下载JSON文件
-                    </button>
-
-
-                    <h3>分类预览:</h3>
-                    <div class="category-list" id="categoryPreview"></div>
-                    
-                    <button class="btn btn-download" id="downloadBtn">
-                        <i class="fas fa-download"></i> 下载JSON文件
-                    </button>
-                </div>
-                
-                <div class="loading hidden" id="loadingIndicator">
-                    <div class="spinner"></div>
-                    正在解析收藏夹内容...
-                    <div id="loadingProgress"></div>
+                <div id="fileError" class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <span id="errorText"></span>
                 </div>
             </div>
             
-            <div class="card">
+            <div id="codeTab" class="tab-content">
                 <div class="card-header">
-                    <h2><i class="fas fa-file-code"></i> JSON预览</h2>
-                    <button class="copy-btn" id="copyJsonBtn">
-                        <i class="fas fa-copy"></i> 复制
-                    </button>
+                    <h2><i class="fas fa-code"></i> 粘贴HTML代码</h2>
                 </div>
-                <div class="preview-container" id="jsonPreview">
+                
+                <div class="instructions">
+                    <p><strong>使用说明：</strong></p>
+                    <ul>
+                        <li>打开收藏夹导出的HTML文件</li>
+                        <li>复制文件中的所有内容</li>
+                        <li>粘贴到下方文本区域</li>
+                        <li>点击"解析HTML"按钮</li>
+                    </ul>
+                </div>
+                
+                <textarea id="htmlCodeInput" class="html-input" placeholder="粘贴收藏夹HTML代码..."></textarea>
+                <div id="codeError" class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <span id="codeErrorText"></span>
+                </div>
+                <button class="btn" id="parseHtmlBtn">
+                    <i class="fas fa-cogs"></i> 解析HTML
+                </button>
+            </div>
+            
+            <div class="stats hidden" id="statsContainer">
+                <div class="stat-item">
+                    <div class="stat-value" id="categoriesCount">0</div>
+                    <div class="stat-label">分类</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="bookmarksCount">0</div>
+                    <div class="stat-label">书签</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="nestedCount">0</div>
+                    <div class="stat-label">嵌套层级</div>
+                </div>
+            </div>
+            
+            <div class="hidden" id="resultsContainer">
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i> 成功解析收藏夹内容！
+                </div>
+                
+                <div class="preview-toggle-container">
+                    <button class="preview-toggle-btn active" data-preview="category">分类预览</button>
+                    <button class="preview-toggle-btn" data-preview="json">JSON预览</button>
+                </div>
+                
+                <div id="categoryPreview" class="preview-content active">
+                    <h3>分类预览:</h3>
+                    <div class="category-list" id="categoryList"></div>
+                </div>
+                
+                <div id="jsonPreviewCard" class="preview-content hidden">
+                    <div class="card-header">
+                        <h2><i class="fas fa-file-code"></i> JSON预览</h2>
+                        <button class="copy-btn" id="copyJsonBtn">
+                            <i class="fas fa-copy"></i> 复制预览的json数据
+                        </button>
+                    </div>
+                    <div class="preview-container" id="jsonPreview">
 {
   "上传文件或粘贴代码后": [
     {
@@ -722,12 +642,28 @@
     }
   ]
 }
+                    </div>
                 </div>
+                
+                <button class="btn btn-download" id="downloadBtn">
+                    <i class="fas fa-download"></i> 下载JSON文件
+                </button>
+<button class="copy-btn" id="copyJsonBtn">
+                            <i class="fas fa-copy"></i> 复制预览的json数据
+                        </button>
+
+            </div>
+            
+            <div class="loading hidden" id="loadingIndicator">
+                <div class="spinner"></div>
+                正在解析收藏夹内容...
+                <div id="loadingProgress"></div>
             </div>
         </div>
         
         <footer>
             <p>© 2025 收藏夹整理工具 | 所有操作均在浏览器中完成，您的数据不会上传到任何服务器</p>
+            <p>使用说明：上传收藏夹HTML文件或粘贴HTML代码，工具将自动整理并生成结构化JSON数据</p>
         </footer>
     </div>
 
@@ -742,8 +678,7 @@
             const selectFileBtn = document.getElementById('selectFileBtn');
             const htmlCodeInput = document.getElementById('htmlCodeInput');
             const parseHtmlBtn = document.getElementById('parseHtmlBtn');
-            const jsonPreview = document.getElementById('jsonPreview');
-            const categoryPreview = document.getElementById('categoryPreview');
+            const categoryList = document.getElementById('categoryList');
             const statsContainer = document.getElementById('statsContainer');
             const resultsContainer = document.getElementById('resultsContainer');
             const loadingIndicator = document.getElementById('loadingIndicator');
@@ -760,6 +695,8 @@
             const copyJsonBtn = document.getElementById('copyJsonBtn');
             const fileProgress = document.getElementById('fileProgress');
             const loadingProgress = document.getElementById('loadingProgress');
+            const previewToggleBtns = document.querySelectorAll('.preview-toggle-btn');
+            const previewContents = document.querySelectorAll('.preview-content');
             
             // 选项卡切换
             tabBtns.forEach(btn => {
@@ -836,11 +773,30 @@
             
             // 复制JSON按钮
             copyJsonBtn.addEventListener('click', () => {
-                const jsonText = jsonPreview.textContent;
+                const jsonText = document.getElementById('jsonPreview').textContent;
                 navigator.clipboard.writeText(jsonText).then(() => {
                     showCopySuccess();
                 }).catch(err => {
                     alert('复制失败: ' + err);
+                });
+            });
+            
+            // 预览切换按钮
+            previewToggleBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const previewType = btn.getAttribute('data-preview');
+                    
+                    // 更新活动按钮
+                    previewToggleBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // 显示对应预览内容
+                    previewContents.forEach(content => {
+                        content.classList.add('hidden');
+                        if (content.id === `${previewType}Preview` || content.id === `${previewType}PreviewCard`) {
+                            content.classList.remove('hidden');
+                        }
+                    });
                 });
             });
             
@@ -871,6 +827,9 @@
                 fileInfo.style.display = 'block';
                 fileProgress.style.width = '0%';
                 
+                // 重置状态，确保每次都是新的开始
+                resetState();
+                
                 // 模拟进度条
                 let progress = 0;
                 const progressInterval = setInterval(() => {
@@ -897,6 +856,28 @@
                 };
                 
                 reader.readAsText(file);
+            }
+            
+            // 重置状态函数 - 解决首次导入失败问题
+            function resetState() {
+                // 隐藏结果和统计
+                resultsContainer.classList.add('hidden');
+                statsContainer.classList.add('hidden');
+                
+                // 清空预览
+                categoryList.innerHTML = "";
+                
+                // 重置统计
+                categoriesCount.textContent = "0";
+                bookmarksCount.textContent = "0";
+                nestedCount.textContent = "0";
+                
+                // 重置预览切换
+                previewToggleBtns.forEach(btn => btn.classList.remove('active'));
+                document.querySelector('[data-preview="category"]').classList.add('active');
+                
+                previewContents.forEach(content => content.classList.add('hidden'));
+                document.getElementById('categoryPreview').classList.remove('hidden');
             }
             
             // 验证文件
@@ -959,16 +940,6 @@
                 resultsContainer.classList.add('hidden');
                 statsContainer.classList.add('hidden');
                 
-                // 模拟加载进度
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    progress += 10;
-                    loadingProgress.textContent = `处理中... ${progress}%`;
-                    if (progress >= 100) {
-                        clearInterval(progressInterval);
-                    }
-                }, 200);
-                
                 // 使用setTimeout让UI有机会更新
                 setTimeout(() => {
                     try {
@@ -986,18 +957,16 @@
                         displayResults(bookmarks);
                         
                         // 隐藏加载指示器，显示结果
-                        clearInterval(progressInterval);
                         loadingIndicator.classList.add('hidden');
                         statsContainer.classList.remove('hidden');
                         resultsContainer.classList.remove('hidden');
                     } catch (error) {
                         console.error('解析错误:', error);
-                        clearInterval(progressInterval);
                         loadingIndicator.classList.add('hidden');
                         showFileError('解析收藏夹内容时出错：' + error.message);
                         showCodeError('解析收藏夹内容时出错：' + error.message);
                     }
-                }, 1000);
+                }, 800);
             }
             
             // 解析书签HTML
@@ -1115,10 +1084,10 @@
             function displayResults(bookmarks) {
                 // 生成JSON预览
                 const jsonStr = JSON.stringify(bookmarks, null, 2);
-                jsonPreview.textContent = jsonStr;
+                document.getElementById('jsonPreview').textContent = jsonStr;
                 
                 // 生成分类预览
-                categoryPreview.innerHTML = '';
+                categoryList.innerHTML = '';
                 
                 for (const [category, bookmarksList] of Object.entries(bookmarks)) {
                     const categoryEl = document.createElement('div');
@@ -1129,17 +1098,23 @@
                     header.innerHTML = `<i class="fas fa-folder"></i> ${category} (${bookmarksList.length})`;
                     
                     // 添加折叠/展开功能
-                    header.addEventListener('click', () => {
-                        const list = header.nextElementSibling;
-                        list.style.display = list.style.display === 'none' ? 'block' : 'none';
+                    header.addEventListener('click', function() {
+                        const icon = this.querySelector('i');
+                        const list = this.nextElementSibling;
+                        if (list.style.display === 'none') {
+                            list.style.display = 'block';
+                            icon.style.transform = 'rotate(0deg)';
+                        } else {
+                            list.style.display = 'none';
+                            icon.style.transform = 'rotate(-90deg)';
+                        }
                     });
                     
                     const list = document.createElement('div');
                     list.className = 'bookmark-list';
+                    list.style.display = 'none'; // 默认折叠
                     
-                    // 只显示前20个书签（避免过多）
-                    const displayCount = Math.min(bookmarksList.length, 20);
-                    for (let i = 0; i < displayCount; i++) {
+                    for (let i = 0; i < bookmarksList.length; i++) {
                         const bookmark = bookmarksList[i];
                         const bookmarkEl = document.createElement('div');
                         bookmarkEl.className = 'bookmark';
@@ -1153,17 +1128,9 @@
                         list.appendChild(bookmarkEl);
                     }
                     
-                    // 如果书签数量超过显示限制，添加提示
-                    if (bookmarksList.length > displayCount) {
-                        const moreEl = document.createElement('div');
-                        moreEl.className = 'bookmark';
-                        moreEl.innerHTML = `<div class="bookmark-name">+ ${bookmarksList.length - displayCount} 更多书签...</div>`;
-                        list.appendChild(moreEl);
-                    }
-                    
                     categoryEl.appendChild(header);
                     categoryEl.appendChild(list);
-                    categoryPreview.appendChild(categoryEl);
+                    categoryList.appendChild(categoryEl);
                 }
                 
                 // 设置下载按钮
