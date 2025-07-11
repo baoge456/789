@@ -24,11 +24,12 @@
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1200px; /* 增加最大宽度 */
             margin: 0 auto;
             flex: 1;
             display: flex;
             flex-direction: column;
+            width: 100%;
         }
         
         header {
@@ -78,6 +79,7 @@
             margin: 0 auto;
             line-height: 1.6;
             position: relative;
+            padding: 0 15px;
         }
         
         .tabs {
@@ -89,6 +91,7 @@
             overflow: hidden;
             position: relative;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            width: 95%;
         }
         
         .tab-btn {
@@ -145,6 +148,7 @@
             display: flex;
             flex-direction: column;
             margin-bottom: 25px;
+            width: 100%;
         }
         
         .card-header {
@@ -250,11 +254,14 @@
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         
         .stat-item {
             text-align: center;
             flex: 1;
+            min-width: 120px;
+            margin: 5px;
         }
         
         .stat-value {
@@ -516,6 +523,89 @@
         .preview-toggle-btn:hover {
             background: rgba(255, 255, 255, 0.1);
         }
+        
+        /* 响应式设计优化 */
+        @media (max-width: 1200px) {
+            .container {
+                padding: 0 20px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .tab-btn {
+                padding: 12px;
+                font-size: 1rem;
+            }
+            
+            .card {
+                padding: 20px 15px;
+            }
+            
+            .card h2 {
+                font-size: 1.5rem;
+            }
+            
+            .upload-area {
+                padding: 30px 15px;
+            }
+            
+            .upload-area i {
+                font-size: 3rem;
+            }
+            
+            .preview-toggle-container {
+                flex-direction: column;
+            }
+            
+            .preview-toggle-btn {
+                margin: 5px 0;
+            }
+            
+            .stats {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stat-item {
+                margin: 10px 0;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .tabs {
+                flex-direction: column;
+                border-radius: 15px;
+            }
+            
+            .tab-btn {
+                border-radius: 0;
+            }
+            
+            .tab-indicator {
+                display: none;
+            }
+            
+            .upload-area p {
+                font-size: 1rem;
+            }
+            
+            .preview-container,
+            .category-list {
+                height: 400px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -629,7 +719,7 @@
                     <div class="card-header">
                         <h2><i class="fas fa-file-code"></i> JSON预览</h2>
                         <button class="copy-btn" id="copyJsonBtn">
-                            <i class="fas fa-copy"></i> 复制预览的json数据
+                            <i class="fas fa-copy"></i> 复制JSON
                         </button>
                     </div>
                     <div class="preview-container" id="jsonPreview">
@@ -648,10 +738,6 @@
                 <button class="btn btn-download" id="downloadBtn">
                     <i class="fas fa-download"></i> 下载JSON文件
                 </button>
-<button class="copy-btn" id="copyJsonBtn">
-                            <i class="fas fa-copy"></i> 复制预览的json数据
-                        </button>
-
             </div>
             
             <div class="loading hidden" id="loadingIndicator">
@@ -697,6 +783,9 @@
             const loadingProgress = document.getElementById('loadingProgress');
             const previewToggleBtns = document.querySelectorAll('.preview-toggle-btn');
             const previewContents = document.querySelectorAll('.preview-content');
+            
+            // 解决文件导入问题：存储当前文件引用
+            let currentFile = null;
             
             // 选项卡切换
             tabBtns.forEach(btn => {
@@ -748,15 +837,16 @@
                 uploadArea.classList.remove('drag-over');
                 
                 if (e.dataTransfer.files.length) {
-                    fileInput.files = e.dataTransfer.files;
-                    handleFileUpload(e.dataTransfer.files[0]);
+                    currentFile = e.dataTransfer.files[0];
+                    handleFileUpload(currentFile);
                 }
             });
             
             // 文件选择处理
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files.length) {
-                    handleFileUpload(e.target.files[0]);
+                    currentFile = e.target.files[0];
+                    handleFileUpload(currentFile);
                 }
             });
             
@@ -847,12 +937,16 @@
                     fileProgress.style.width = '100%';
                     setTimeout(() => {
                         processHtmlContent(e.target.result);
+                        // 重置文件输入以允许再次选择相同文件
+                        fileInput.value = '';
                     }, 300);
                 };
                 
                 reader.onerror = function() {
                     clearInterval(progressInterval);
                     showFileError('读取文件时出错，请重试');
+                    // 重置文件输入以允许再次选择相同文件
+                    fileInput.value = '';
                 };
                 
                 reader.readAsText(file);
