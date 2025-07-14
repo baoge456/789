@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>OneNav</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+  <style>
+    body { background: #f5f6fa; font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans', Arial, sans-serif; margin: 0; color: #333;}
+    .header { background: #fff; padding: 30px 0 10px 0; text-align: center; box-shadow: 0 2px 8px #f0f1f2;}
+    .header h1 { margin: 0; font-size: 2.5em; color: #222;}
+    .nav { max-width: 900px; margin: 30px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #f0f1f2; padding: 30px 40px;}
+    .category { margin-bottom: 30px;}
+    .category-title { font-size: 1.2em; color: #666; margin-bottom: 10px; border-left: 4px solid #409eff; padding-left: 10px;}
+    .links { display: flex; flex-wrap: wrap; gap: 18px;}
+    .link-item { display: flex; align-items: center; background: #f7f8fa; border-radius: 8px; padding: 10px 18px; min-width: 180px; max-width: 260px; transition: box-shadow .2s; box-shadow: 0 1px 2px #eaeaea; text-decoration: none; color: #333; cursor: grab;}
+    .link-item:hover { box-shadow: 0 4px 12px #d0d0d0; background: #e6f7ff;}
+    .link-icon, .iconify { width: 24px; height: 24px; margin-right: 12px; border-radius: 4px; background: #fff; object-fit: contain;}
+    .link-title { font-size: 1em; font-weight: 500;}
+    .admin-btn { position: fixed; right: 30px; bottom: 30px; background: #409eff; color: #fff; border: none; border-radius: 50%; width: 56px; height: 56px; font-size: 2em; cursor: pointer; box-shadow: 0 2px 8px #b0b0b0;}
+    .back-btn { position: fixed; left: 30px; bottom: 30px; background: #409eff; color: #fff; border: none; border-radius: 50%; width: 56px; height: 56px; font-size: 2em; cursor: pointer; box-shadow: 0 2px 8px #b0b0b0;}
+    .admin-panel { max-width: 900px; margin: 30px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #f0f1f2; padding: 30px 40px;}
+    .admin-panel h2 { margin-top: 0;}
+    .admin-form input, .admin-form select { margin: 0 8px 8px 0; padding: 6px; border: 1px solid #ccc; border-radius: 4px;}
+    .admin-form button { padding: 6px 18px; background: #409eff; color: #fff; border: none; border-radius: 4px; cursor: pointer;}
+    .admin-table { width: 100%; border-collapse: collapse; margin-top: 8px;}
+    .admin-table th, .admin-table td { border: 1px solid #e0e0e0; padding: 8px 6px; text-align: center;}
+    .admin-table th { background: #f7f8fa;}
+    .admin-table td { background: #fff;}
+    .admin-table button { background: #409eff; color: #fff; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; margin: 0 2px;}
+    .admin-table button.del { background: #ff4d4f;}
+    .admin-table tr.dragging { opacity: 0.5; }
+    .admin-table tr.over { outline: 2px dashed #409eff; }
+    .admin-links { display: flex; gap: 18px; margin-bottom: 18px; }
+    .admin-links a { color: #409eff; text-decoration: underline; }
+    .admin-tools { margin-bottom: 18px; }
+    .admin-tools button { margin-right: 8px; }
+    .group-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 4px;}
+    .group-bar input { padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px;}
+    .group-bar button { padding: 2px 8px; font-size: 0.95em;}
+    .mask { position: fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:99; display:flex; align-items:center; justify-content:center;}
+    .login-box { background:#fff; border-radius:8px; padding:32px 28px; box-shadow:0 2px 8px #888; text-align:center;}
+    .login-box input { padding:8px; border:1px solid #ccc; border-radius:4px; margin-bottom:12px;}
+    .login-box button { padding:8px 24px; background:#409eff; color:#fff; border:none; border-radius:4px; cursor:pointer;}
+    @media (max-width: 700px) {
+      .nav, .admin-panel { padding: 18px 6px; }
+      .links { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 id="main-title">OneNav </h1>
+    <p id="main-desc">简洁 · 高效 · 开源导航</p>
+  </div>
+  <div id="main-view">
+    <div class="nav" id="nav"></div>
+    <button class="admin-btn" title="进入后台管理" onclick="showLogin()">&#9881;</button>
+  </div>
+  <div id="admin-view" style="display:none;">
+    <div class="admin-panel">
+      <div class="admin-links">
+        <a href="https://icon-sets.iconify.design/" target="_blank">Iconify 图标库</a>
+        <a href="https://file.baoge.hidns.co/%E6%96%87%E4%BB%B6%E5%A4%B9/slt1" target="_blank">网站缩略图工具</a>
+      </div>
+      <div class="admin-tools">
+        <button onclick="exportLinks()">导出书签</button>
+        <button onclick="importLinks()">导入书签</button>
+        <button onclick="clearAllLinks()">清空所有书签</button>
+        <input type="file" id="importFile" style="display:none" accept=".json,.html">
+      </div>
+      <h2>分组管理</h2>
+      <div id="group-list"></div>
+      <form class="admin-form" id="addGroupForm" autocomplete="off" onsubmit="return false;" style="margin-bottom:18px;">
+        <input type="text" id="newGroup" placeholder="新分组名称" required>
+        <button type="submit">添加分组</button>
+      </form>
+      
+      <!-- 添加书签表单 -->
+      <h2>添加书签</h2>
+      <form class="admin-form" id="addForm" autocomplete="off" onsubmit="return false;">
+        <input type="text" id="name" placeholder="名称" required>
+        <input type="text" id="url" placeholder="URL" required>
+        <input type="text" id="icon" placeholder="图标（可选）">
+        <select id="group">
+          <!-- 分组选项将通过JS动态填充 -->
+        </select>
+        <button type="submit">添加书签</button>
+      </form>
+      
+      <div id="admin-tables"></div>
+    </div>
+    <button class="back-btn" title="返回前台" onclick="showMain()">&#8592;</button>
+  </div>
+  <div id="login-mask" class="mask" style="display:none;">
+    <div class="login-box">
+      <h3>请输入管理密码</h3>
+      <input type="password" id="admin-pwd" placeholder="密码">
+      <br>
+      <button id="login-confirm-btn" onclick="checkLogin()">确认</button>
+      <button onclick="hideLogin()">取消</button>
+      <div id="login-msg" style="color:#f00;margin-top:8px;"></div>
+    </div>
+  </div>
+  <script>
+    // 原始书签数据（清空后恢复）
+    const originalData = {
+      groups: ["常用", "社区", "开发"],
+      links: [
+        { name: "宝哥导航站", url: "https://dhz.baoge.wang/", icon: "https://www.google.com/s2/favicons?domain=dhz.baoge.wang", group: "常用" },
+        { name: "宝哥影院", url: "http://ys.baoge.zone.id/", icon: "https://favicon.im/ys.baoge.zone.id", group: "常用" },
+        { name: "知乎", url: "https://www.zhihu.com/", icon: "mdi:alpha-z-box", group: "社区" },
+        { name: "掘金", url: "https://juejin.cn", icon: "simple-icons:juejin", group: "社区" },
+        { name: "Github", url: "https://github.com", icon: "mdi:github", group: "开发" },
+        { name: "Gitee", url: "https://gitee.com", icon: "simple-icons:gitee", group: "开发" }
+      ]
+    };
+    function getData() {
+      return JSON.parse(localStorage.getItem('onenav_data') || 'null') || JSON.parse(JSON.stringify(originalData));
+    }
+    function setData(data) {
+      localStorage.setItem('onenav_data', JSON.stringify(data));
+    }
+    // 前台渲染
+    function renderLinks() {
+      const data = getData();
+      let html = '';
+      data.groups.forEach(cat => {
+        const groupLinks = data.links.filter(l => l.group === cat);
+        if (groupLinks.length === 0) return;
+        html += `<div class="category">
+          <div class="category-title">${cat}</div>
+          <div class="links">` +
+          groupLinks.map(link => `
+            <a class="link-item" href="${link.url}" target="_blank">
+              ${renderIcon(link.icon, link.url)}
+              <span class="link-title">${link.name}</span>
+            </a>
+          `).join('') +
+          `</div></div>`;
+      });
+      document.getElementById('nav').innerHTML = html;
+      if (window.Iconify) Iconify.scan(document.getElementById('nav'));
+    }
+    function renderIcon(icon, url) {
+      if (icon && icon.includes(':') && !icon.startsWith('http')) {
+        return `<span class="iconify" data-icon="${icon}" data-width="24" data-height="24"></span>`;
+      } else {
+        return `<img class="link-icon" src="${icon || 'https://www.google.com/s2/favicons?domain=' + url}">`;
+      }
+    }
+    renderLinks();
+
+    // 分组管理
+    function renderGroupList() {
+      const data = getData();
+      let html = '';
+      data.groups.forEach((g, i) => {
+        html += `<div class="group-bar" draggable="true" data-idx="${i}">
+          <input value="${g}" onchange="renameGroup(${i}, this.value)">
+          <button onclick="moveGroup(${i}, -1)" ${i===0?'disabled':''}>↑</button>
+          <button onclick="moveGroup(${i}, 1)" ${i===data.groups.length-1?'disabled':''}>↓</button>
+          <button onclick="delGroup(${i})" class="del">删除</button>
+        </div>`;
+      });
+      document.getElementById('group-list').innerHTML = html;
+      enableGroupDrag();
+    }
+    function moveGroup(i, dir) {
+      const data = getData();
+      if (i+dir<0 || i+dir>=data.groups.length) return;
+      [data.groups[i], data.groups[i+dir]] = [data.groups[i+dir], data.groups[i]];
+      setData(data);
+      renderGroupList();
+      renderAdminTable();
+      renderLinks();
+    }
+    function renameGroup(i, val) {
+      const data = getData();
+      const old = data.groups[i];
+      data.groups[i] = val;
+      data.links.forEach(l=>{if(l.group===old)l.group=val;});
+      setData(data);
+      renderGroupList();
+      renderAdminTable();
+      renderLinks();
+    }
+    function delGroup(i) {
+      if (!confirm('删除分组会同时删除该分组下所有书签，确定吗？')) return;
+      const data = getData();
+      const delName = data.groups[i];
+      data.groups.splice(i,1);
+      data.links = data.links.filter(l=>l.group!==delName);
+      setData(data);
+      renderGroupList();
+      renderAdminTable();
+      renderLinks();
+    }
+    document.getElementById('addGroupForm').onsubmit = function() {
+      const val = document.getElementById('newGroup').value.trim();
+      if (!val) return;
+      const data = getData();
+      if (data.groups.includes(val)) return alert('分组已存在');
+      data.groups.push(val);
+      setData(data);
+      renderGroupList();
+      renderAdminTable();
+      renderLinks();
+      document.getElementById('newGroup').value = '';
+    };
+    // 分组拖拽排序
+    function enableGroupDrag() {
+      let dragIdx = null;
+      document.querySelectorAll('.group-bar').forEach(bar => {
+        bar.addEventListener('dragstart', function(){ dragIdx = +this.getAttribute('data-idx'); this.classList.add('dragging'); });
+        bar.addEventListener('dragend', function(){ this.classList.remove('dragging'); });
+        bar.addEventListener('dragover', function(e){ e.preventDefault(); this.classList.add('over'); });
+        bar.addEventListener('dragleave', function(){ this.classList.remove('over'); });
+        bar.addEventListener('drop', function(e){
+          e.preventDefault(); this.classList.remove('over');
+          const dropIdx = +this.getAttribute('data-idx');
+          if (dragIdx === dropIdx) return;
+          const data = getData();
+          const moved = data.groups.splice(dragIdx,1)[0];
+          data.groups.splice(dropIdx,0,moved);
+          setData(data);
+          renderGroupList();
+          renderAdminTable();
+          renderLinks();
+        });
+      });
+    }
+
+    // 后台渲染+分组排序
+    function renderAdminTable() {
+      const data = getData();
+      let html = '';
+      data.groups.forEach(cat => {
+        const groupLinks = data.links.filter(l => l.group === cat);
+        html += `<div style="margin-bottom:18px;">
+          <div class="category-title">${cat}</div>
+          <table class="admin-table" data-group="${cat}">
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>URL</th>
+                <th>分组</th>
+                <th>图标</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>` +
+            groupLinks.map((link, i) => `
+              <tr draggable="true" data-idx="${i}" data-group="${cat}">
+                <td>${link.name}</td>
+                <td><a href="${link.url}" target="_blank">${link.url}</a></td>
+                <td>${link.group}</td>
+                <td>${renderIcon(link.icon, link.url)}</td>
+                <td>
+                  <button onclick="editLink('${cat}',${i})">编辑</button>
+                  <button onclick="delLink('${cat}',${i})" class="del">删除</button>
+                </td>
+              </tr>
+            `).join('') +
+            `</tbody>
+          </table>
+        </div>`;
+      });
+      document.getElementById('admin-tables').innerHTML = html;
+      enableAdminDrag();
+      if (window.Iconify) Iconify.scan(document.getElementById('admin-tables'));
+    }
+    // 后台拖拽排序
+    function enableAdminDrag() {
+      document.querySelectorAll('.admin-table').forEach(table => {
+        let dragSrcIdx = null;
+        let group = table.getAttribute('data-group');
+        table.querySelectorAll('tbody tr').forEach(row => {
+          row.addEventListener('dragstart', function(e){
+            dragSrcIdx = +this.getAttribute('data-idx');
+            this.classList.add('dragging');
+          });
+          row.addEventListener('dragend', function(){
+            this.classList.remove('dragging');
+          });
+          row.addEventListener('dragover', function(e){
+            e.preventDefault();
+            this.classList.add('over');
+          });
+          row.addEventListener('dragleave', function(){
+            this.classList.remove('over');
+          });
+          row.addEventListener('drop', function(e){
+            e.preventDefault();
+            this.classList.remove('over');
+            const dropIdx = +this.getAttribute('data-idx');
+            if (dragSrcIdx === dropIdx) return;
+            const data = getData();
+            let groupLinks = data.links.filter(l => l.group === group);
+            let allOther = data.links.filter(l => l.group !== group);
+            const moved = groupLinks.splice(dragSrcIdx, 1)[0];
+            groupLinks.splice(dropIdx, 0, moved);
+            data.links = [...allOther, ...groupLinks];
+            setData(data);
+            renderAdminTable();
+            renderLinks();
+          });
+        });
+      });
+    }
+    
+    // 填充分组选择框
+    function fillGroupSelect() {
+      const data = getData();
+      const select = document.getElementById('group');
+      select.innerHTML = '';
+      data.groups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group;
+        option.textContent = group;
+        select.appendChild(option);
+      });
+    }
+    
+    // 后台表单
+    let editIndex = null, editGroup = null;
+    document.getElementById('addForm').onsubmit = function() {
+      const name = document.getElementById('name').value.trim();
+      const url = document.getElementById('url').value.trim();
+      const icon = document.getElementById('icon').value.trim();
+      const group = document.getElementById('group').value.trim();
+      if (!name || !url || !group) return;
+      const data = getData();
+      if (!data.groups.includes(group)) {
+        data.groups.push(group);
+      }
+      if (editIndex !== null && editGroup !== null) {
+        let idx = 0;
+        for (let i = 0; i < data.links.length; i++) {
+          if (data.links[i].group === editGroup) {
+            if (idx === editIndex) {
+              data.links[i] = { name, url, icon, group };
+              break;
+            }
+            idx++;
+          }
+        }
+        editIndex = null; editGroup = null;
+      } else {
+        data.links.push({ name, url, icon, group });
+      }
+      setData(data);
+      renderLinks();
+      renderAdminTable();
+      renderGroupList();
+      clearForm();
+    };
+    function editLink(group, i) {
+      const data = getData();
+      let idx = 0;
+      for (let j = 0; j < data.links.length; j++) {
+        if (data.links[j].group === group) {
+          if (idx === i) {
+            const link = data.links[j];
+            document.getElementById('name').value = link.name;
+            document.getElementById('url').value = link.url;
+            document.getElementById('icon').value = link.icon;
+            document.getElementById('group').value = link.group;
+            editIndex = i;
+            editGroup = group;
+            break;
+          }
+          idx++;
+        }
+      }
+    }
+    function delLink(group, i) {
+      if (!confirm('确定删除该书签？')) return;
+      const data = getData();
+      let idx = 0;
+      for (let j = 0; j < data.links.length; j++) {
+        if (data.links[j].group === group) {
+          if (idx === i) {
+            data.links.splice(j, 1);
+            break;
+          }
+          idx++;
+        }
+      }
+      setData(data);
+      renderLinks();
+      renderAdminTable();
+    }
+    function clearForm() {
+      document.getElementById('name').value = '';
+      document.getElementById('url').value = '';
+      document.getElementById('icon').value = '';
+      document.getElementById('group').value = '';
+      editIndex = null; editGroup = null;
+    }
+    // 导出导入清空（自定义格式）
+    function exportLinks() {
+      const data = getData();
+      const out = {};
+      data.groups.forEach(g=>{
+        out[g] = data.links.filter(l=>l.group===g).map(l=>({
+          name: l.name,
+          url: l.url,
+          favicon: l.icon
+        }));
+      });
+      const blob = new Blob([JSON.stringify(out, null, 2)], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'onenav-bookmarks.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    function importLinks() {
+      document.getElementById('importFile').click();
+    }
+    
+    // 增强的导入功能
+    document.getElementById('importFile').onchange = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const content = evt.target.result;
+          let importResult;
+          
+          // 尝试解析为JSON格式
+          if (file.name.endsWith('.json')) {
+            try {
+              const jsonData = JSON.parse(content);
+              
+              if (Array.isArray(jsonData)) {
+                // 通用JSON数组格式
+                const groups = [...new Set(jsonData.map(item => item.group || '未分类'))];
+                const links = jsonData.map(item => ({
+                  name: item.name || item.title || '未命名',
+                  url: item.url || item.href || '#',
+                  icon: item.icon || item.favicon || '',
+                  group: item.group || '未分类'
+                }));
+                
+                setData({ groups, links });
+                importResult = `导入成功！共导入 ${links.length} 个书签`;
+              } 
+              else if (typeof jsonData === 'object' && !Array.isArray(jsonData)) {
+                // OneNav自定义格式
+                const groups = Object.keys(jsonData);
+                const links = [];
+                groups.forEach(g => {
+                  if (Array.isArray(jsonData[g])) {
+                    jsonData[g].forEach(item => {
+                      links.push({
+                        name: item.name || '未命名',
+                        url: item.url || '#',
+                        icon: item.favicon || item.icon || '',
+                        group: g
+                      });
+                    });
+                  }
+                });
+                setData({ groups, links });
+                importResult = `导入成功！共导入 ${links.length} 个书签`;
+              }
+              else {
+                throw new Error('JSON格式不支持');
+              }
+            } catch (jsonError) {
+              // JSON解析失败，尝试解析为HTML格式
+              importResult = parseHtmlBookmarks(content);
+            }
+          } 
+          else if (file.name.endsWith('.html')) {
+            // 直接解析HTML格式
+            importResult = parseHtmlBookmarks(content);
+          }
+          else {
+            throw new Error('不支持的文件格式');
+          }
+          
+          renderLinks();
+          renderAdminTable();
+          renderGroupList();
+          alert(importResult);
+        } catch (error) {
+          console.error('导入失败:', error);
+          alert('导入失败: ' + error.message);
+        }
+      };
+      
+      reader.readAsText(file);
+      this.value = '';
+    };
+    
+    // HTML书签解析函数
+    function parseHtmlBookmarks(html) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const links = [];
+      const groups = new Set();
+      let currentGroup = '未分类';
+      
+      // 递归遍历DOM树
+      function traverse(node) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          // 处理文件夹（分组）
+          if (node.tagName === 'H3' || 
+             (node.tagName === 'DT' && node.querySelector('h3'))) {
+            const h3 = node.tagName === 'H3' ? node : node.querySelector('h3');
+            if (h3) {
+              currentGroup = h3.textContent.trim() || '未分类';
+              groups.add(currentGroup);
+            }
+          }
+          
+          // 处理书签
+          if (node.tagName === 'A') {
+            links.push({
+              name: node.textContent.trim() || '未命名',
+              url: node.getAttribute('href') || '#',
+              icon: '',
+              group: currentGroup
+            });
+          }
+          
+          // 递归处理子节点
+          for (let i = 0; i < node.childNodes.length; i++) {
+            traverse(node.childNodes[i]);
+          }
+        }
+      }
+      
+      // 从根节点开始遍历
+      const dlElements = doc.querySelectorAll('dl');
+      if (dlElements.length === 0) {
+        throw new Error('未找到有效的书签数据');
+      }
+      
+      dlElements.forEach(dl => traverse(dl));
+      
+      // 如果没有找到任何书签，尝试更通用的方法
+      if (links.length === 0) {
+        const aElements = doc.querySelectorAll('a');
+        aElements.forEach(a => {
+          links.push({
+            name: a.textContent.trim() || '未命名',
+            url: a.getAttribute('href') || '#',
+            icon: '',
+            group: '未分类'
+          });
+        });
+        groups.add('未分类');
+      }
+      
+      if (links.length === 0) {
+        throw new Error('未找到有效的书签数据');
+      }
+      
+      setData({
+        groups: Array.from(groups),
+        links: links
+      });
+      
+      return `导入成功！共导入 ${links.length} 个书签`;
+    }
+
+    function clearAllLinks() {
+      if (!confirm('确定清空所有书签并恢复为初始书签？')) return;
+      setData(JSON.parse(JSON.stringify(originalData)));
+      renderLinks();
+      renderAdminTable();
+      renderGroupList();
+    }
+    // 页面切换
+    function showLogin() {
+      document.getElementById('login-mask').style.display = 'flex';
+      document.getElementById('admin-pwd').value = '';
+      document.getElementById('login-msg').innerText = '';
+      setTimeout(() => {
+        document.getElementById('admin-pwd').focus();
+        // 先解绑再绑定，防止多次绑定
+        const pwdInput = document.getElementById('admin-pwd');
+        pwdInput.onkeydown = null;
+        pwdInput.onkeydown = function(e){
+          if(e.key === 'Enter'){ document.getElementById('login-confirm-btn').click(); }
+        };
+      }, 100);
+    }
+    function hideLogin() {
+      document.getElementById('login-mask').style.display = 'none';
+    }
+    function checkLogin() {
+      const pwd = document.getElementById('admin-pwd').value;
+      if (pwd === 'baoge888') {
+        hideLogin();
+        showAdmin();
+      } else {
+        document.getElementById('login-msg').innerText = '密码错误！';
+      }
+    }
+    function showAdmin() {
+      document.getElementById('main-view').style.display = 'none';
+      document.getElementById('admin-view').style.display = '';
+      renderAdminTable();
+      renderGroupList();
+      fillGroupSelect(); // 填充分组选择框
+      clearForm();
+    }
+    function showMain() {
+      document.getElementById('main-view').style.display = '';
+      document.getElementById('admin-view').style.display = 'none';
+      renderLinks();
+    }
+  </script>
+</body>
+</html>
