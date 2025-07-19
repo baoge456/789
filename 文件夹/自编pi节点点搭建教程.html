@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>自编pi节点云服搭建教程</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background: #f4f7fa;
+      font-family: "微软雅黑", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(44,62,80,0.10);
+      padding: 32px 24px 24px 24px;
+    }
+    h1 {
+      color: #2d3a4b;
+      text-align: center;
+      margin-bottom: 32px;
+      letter-spacing: 2px;
+    }
+    h2 {
+      color: #1abc9c;
+      border-left: 6px solid #1abc9c;
+      padding-left: 12px;
+      margin-top: 36px;
+      margin-bottom: 18px;
+      background: #e8f8f5;
+      border-radius: 4px;
+      font-size: 1.3em;
+    }
+    ul, ol {
+      margin-left: 1.5em;
+      margin-bottom: 1em;
+    }
+    li {
+      margin-bottom: 0.5em;
+      line-height: 1.7;
+    }
+    a {
+      color: #2980b9;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+    .panel {
+      background: #f9fafb;
+      border: 1px solid #e1e4e8;
+      border-radius: 8px;
+      padding: 18px 20px 10px 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+    }
+    .cmd-block {
+      position: relative;
+      background: #23272e;
+      color: #fff;
+      border-radius: 6px;
+      margin: 16px 0 18px 0;
+      padding: 16px 16px 16px 48px;
+      font-family: "Fira Mono", "Consolas", "Menlo", monospace;
+      font-size: 1em;
+      overflow-x: auto;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+    }
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      z-index: 2;
+      outline: none;
+      transition: opacity 0.2s;
+      opacity: 0.7;
+    }
+    .copy-btn:hover {
+      opacity: 1;
+    }
+    .copy-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: #1abc9c;
+      vertical-align: middle;
+      transition: fill 0.2s;
+    }
+    .copy-btn.copied svg {
+      fill: #27ae60;
+    }
+    #password-mask {
+      position: fixed;
+      z-index: 9999;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(44,62,80,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #password-box {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(44,62,80,0.18);
+      padding: 36px 32px 28px 32px;
+      text-align: center;
+      min-width: 260px;
+    }
+    #password-box h2 {
+      color: #1abc9c;
+      margin-bottom: 18px;
+      font-size: 1.2em;
+    }
+    #password-input {
+      width: 80%;
+      padding: 8px 10px;
+      font-size: 1em;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    #password-input:focus {
+      border: 1.5px solid #1abc9c;
+    }
+    #password-submit {
+      background: #1abc9c;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 8px 24px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #password-submit:hover {
+      background: #16a085;
+    }
+    #password-error {
+      color: #e74c3c;
+      margin-top: 10px;
+      font-size: 0.98em;
+      min-height: 1.5em;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 8px; }
+      .panel { padding: 10px 6px 6px 6px; }
+      .cmd-block { padding: 12px 12px 12px 44px; font-size: 0.95em; }
+      h1 { font-size: 1.3em; }
+      h2 { font-size: 1.1em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>自编【pi节点云服搭建】教程</h1>
+<div class="panel">
+  <h2>一、节点电脑配置检查</h2>
+  <ul>
+    <li>打开任务管理器，窗口放大，点性能选项，检查“虚拟化”选项是否是“已启用”</li>
+    <li>鼠标右击“开始”键选“系统”查看</li>
+    <li>启用或关闭 Windows 功能（以支持WSL/虚拟化）</li>
+  </ul>
+  <ol style="margin-left:1.5em;">
+    <li>
+      <b>打开“控制面板”</b>：<br>
+      按 <b>Win + R</b>，输入 <b>control</b>，回车，进入控制面板。
+    </li>
+    <li>
+      <b>进入“程序和功能”</b>：<br>
+      在控制面板中，点击<b>“程序”</b>，再点击<b>“程序和功能”</b>。
+    </li>
+    <li>
+      <b>启用或关闭 Windows 功能</b>：<br>
+      在左侧点击<b>“启用或关闭 Windows 功能”</b>，弹出新窗口。
+    </li>
+    <li>
+      <b>勾选相关功能</b>：<br>
+      在弹出的窗口中，找到并勾选以下选项（如未勾选请勾选，已勾选可跳过）：<br>
+      <ul>
+        <li><b>适用于 Linux 的 Windows 子系统</b>（Windows Subsystem for Linux）</li>
+        <li><b>虚拟机平台</b>（Virtual Machine Platform）</li>
+        <li><b>Hyper-V</b>（如系统支持）</li>
+      </ul>
+    </li>
+    <li>
+      <b>点击“确定”</b>，等待系统自动安装所需组件，安装完成后根据提示<b>重启电脑</b>。
+    </li>
+    <li>
+      <b>重启后再次检查</b>：<br>
+      重启后可再次进入“启用或关闭 Windows 功能”确认上述选项已勾选。
+    </li>
+  </ol>
+  <p style="color:#888;font-size:0.98em;">
+    <b>说明：</b>如未找到“适用于 Linux 的 Windows 子系统”或“虚拟机平台”选项，请先确保系统已升级到 Windows 10 2004 及以上版本。
+  </p>
+</div>
+    <div class="panel">
+  
+      <h2>二、参考网站及相关资料</h2>
+      <ul>
+        <li><a href="https://www.zhshsq.com/pi-node-course" target="_blank">https://www.zhshsq.com/pi-node-course</a></li>
+        <li><a href="http://node.pi-node.cn/" target="_blank">http://node.pi-node.cn/</a></li>
+        <li>WSL 下载链接：<a href="https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.Msi" target="_blank">wsl_update_x64.Msi</a></li>
+        <li>Windows 版finalshell 下载地址（二选一）：<br>
+          <a href="https://z2s8yrru6j.feishu.cn/file/J23dbSnCAoYL2Pxdypbcuee6ntd?from=from_copylink" target="_blank">下载1</a> |
+          <a href="http://www.hostbuf.com/downloads/finalshell_install.exe" target="_blank">下载2</a>
+        </li>
+        <li>openvpn 下载链接：<a href="https://swupdate.openvpn.org/community/releases/OpenVPN-2.6.6-I001-amd64.msi" target="_blank">OpenVPN-2.6.6-I001-amd64.msi</a></li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>三、终端管理员命令模式下操作（选用慎用）</h2>
+      <ol>
+        <li>
+          <b>查看电脑系统信息</b>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            systeminfo
+          </div>
+        </li>
+        <li>
+          <b>查看电脑详细系统信息和硬件配置</b>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            msinfo32
+          </div>
+        </li>
+        <li>
+          <b>查看网络配置信息</b>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            ipconfig /all
+          </div>
+        </li>
+        <li>
+          <b>清除DNS缓存</b>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            ipconfig /flushdns
+          </div>
+        </li>
+        <li>
+          <b>释放当前IP地址</b>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            ipconfig /release
+          </div>
+        </li>
+        <li>
+          <b>重置TCP/IP协议</b>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            netsh int ip reset
+          </div>
+        </li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h2>四、安装WSL和Hyper-V，电脑运行环境配置</h2>
+      <ol>
+        <li>检查运行WSL 2 的要求，windows10 系统版本22H2，内部版本1903 或更高版本。
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            winver
+          </div>
+        </li>
+        <li>检查计算机是否支持虚拟化：
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            dism.exe /online /get-features /format:table | findstr /c:"VirtualMachinePlatform"
+          </div>
+        </li>
+        <li>下载并安装WSL 2 更新包：<a href="https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.Msi" target="_blank">wsl_update_x64.Msi</a></li>
+        <li>在Windows功能中启用Hyper-V，控制面板→程序→启用或关闭Windows功能→勾选Hyper-V。</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h2>五、云服务器购买与配置</h2>
+      <ol>
+        <li>阿里云服务器购买教程：<a href="https://www.bilibili.com/video/BV1aK41127oJ/" target="_blank">B站视频</a></li>
+        <li>进入阿里云官网，选择轻量云服务器：<a href="https://www.aliyun.com" target="_blank">https://www.aliyun.com</a></li>
+        <li>选择套餐、重置密码、放行端口、设置防火墙入站规则（TCP+UDP 31400-31409），关闭防火墙和系统更新，关闭安全中心相关保护。</li>
+        <li>IPV6 打×</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h2>六、Linux服务器安装网络代理工具以及端口映射</h2>
+      <ol>
+        <li>下载finalshell，连接服务器。</li>
+        <li>卸载阿里云盾、安骑士监控，屏蔽相关IP，提升服务器访问速度。
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+wget http://update.aegis.aliyun.com/download/uninstall.sh<br>
+chmod +x uninstall.sh<br>
+./uninstall.sh<br>
+wget http://update.aegis.aliyun.com/download/quartz_uninstall.sh<br>
+chmod +x quartz_uninstall.sh<br>
+./quartz_uninstall.sh<br>
+pkill aliyun-service<br>
+rm -rf /etc/init.d/agentwatch /usr/sbin/aliyun-service<br>
+rm -rf /usr/local/aegis*
+          </div>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+iptables -I INPUT -s 140.205.201.0/28 -j DROP<br>
+iptables -I INPUT -s 140.205.201.16/29 -j DROP<br>
+iptables -I INPUT -s 140.205.201.32/28 -j DROP<br>
+iptables -I INPUT -s 140.205.225.192/29 -j DROP<br>
+iptables -I INPUT -s 140.205.225.200/30 -j DROP<br>
+iptables -I INPUT -s 140.205.225.184/29 -j DROP<br>
+iptables -I INPUT -s 140.205.225.183/32 -j DROP<br>
+iptables -I INPUT -s 140.205.225.206/32 -j DROP<br>
+iptables -I INPUT -s 140.205.225.205/32 -j DROP<br>
+iptables -I INPUT -s 140.205.225.195/32 -j DROP<br>
+iptables -I INPUT -s 140.205.225.204/32 -j DROP
+          </div>
+        </li>
+        <li>安装Curl
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            apt-get update -y && apt-get install curl -y
+          </div>
+        </li>
+        <li>安装OpenVPN
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            wget https://git.io/vpn -O openvpn-install.sh && bash openvpn-install.sh
+          </div>
+        </li>
+        <li>安装BBR加速
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            wget --no-check-certificate https://github.com/teddysun/across/raw/master/bbr.sh && chmod +x bbr.sh && ./bbr.sh
+          </div>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            uname -r
+          </div>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            sysctl net.ipv4.tcp_congestion_control
+          </div>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            lsmod | grep bbr
+          </div>
+        </li>
+        <li>安装端口转发程序 socat
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            wget https://www.moerats.com/usr/shell/socat.sh && bash socat.sh
+          </div>
+        </li>
+        <li>重启服务器，检查端口是否打通：<a href="https://pi-mods.de/nodeports/" target="_blank">https://pi-mods.de/nodeports/</a></li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h2>七、Pi Node节点软件与Docker安装</h2>
+      <ol>
+       <li>Pi Node 0.45/0.47 版本下载：<br>
+          <a href="https://z2s8yrru6j.feishu.cn/file/Gyycb3gyxoD9lGxhuOSc0z79nng?from=from_copylink" target="_blank">0.45下载</a> |
+          <a href="https://z2s8yrru6j.feishu.cn/file/A2sGbmQGIoTseuxYeOucUMNknOg?from=from_copylink" target="_blank">0.47下载</a>
+        </li>
+        <li>Docker 4.1.9 Windows兼容版下载：<a href="https://z2s8yrru6j.feishu.cn/file/TBHdbrDJ3oR026xra0QcfPwsnae?from=from_copylink" target="_blank">下载</a></li>
+        
+        <li>配置Pi Node节点，连接Pi Network App，检测端口，开启区块高度。</li>
+        <li>
+          Pi Node 最新版本：<b>0.5.2</b>（Pi Desktop）<br>
+          <a href="https://node.minepi.com/" target="_blank">官方下载页面</a> |
+          <a href="https://github.com/pi-node/pi-node/releases" target="_blank">GitHub Releases</a> |
+          <a href="https://github.com/pi-node/instructions/wiki/(EN)-Download-links" target="_blank">多平台下载说明</a>
+        </li>
+        <li>
+          Docker Desktop 最新版本：<b>v4.43</b><br>
+          <a href="https://www.docker.com/products/docker-desktop/" target="_blank">官方下载页面</a> |
+          <a href="https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe" target="_blank">Windows 版直接下载</a> |
+          <a href="https://desktop.docker.com/mac/main/arm64/Docker.dmg" target="_blank">Mac (Apple Silicon)</a> |
+          <a href="https://desktop.docker.com/mac/main/amd64/Docker.dmg" target="_blank">Mac (Intel)</a> |
+          <a href="https://docs.docker.com/desktop/install/windows-install/" target="_blank">Windows安装文档</a> |
+          <a href="https://docs.docker.com/desktop/install/mac-install/" target="_blank">Mac安装文档</a>
+        </li>
+        <li>安装Pi Node和Docker，注意先装0.47再覆盖0.45（如有历史需求，建议直接用最新版）。</li>
+        <li>配置Pi Node节点，连接Pi Network App，检测端口，开启区块高度。</li>
+        <li>节点检测工具：<br>
+          <a href="https://pi-mods.de/nodeports/" target="_blank">https://pi-mods.de/nodeports/</a> |
+          <a href="http://pi-node.cn/" target="_blank">http://pi-node.cn/</a>
+        </li>
+             </ol>
+    </div>
+<div class="panel">
+  <h2>八、其它相关教程</h2>
+  <ol>
+    <li>
+      <b>s-ui搭建节点</b>
+      <a href="https://amclubs.blogspot.com/2025/02/s-ui.html" target="_blank" style="font-size:0.9em;">[官方教程]</a>
+      <ul>
+        <li>一键部署命令：
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            bash &lt;(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/master/install.sh)
+          </div>
+        </li>
+        <li>指定版本安装命令：
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            VERSION=1.1.0 && bash &lt;(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/$VERSION/install.sh) $VERSION
+          </div>
+        </li>
+        <li>安装成功后运行面板命令：
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            s-ui
+          </div>
+        </li>
+        <li>默认访问地址：
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            http://IP:2095/app/
+          </div>
+        </li>
+      </ul>
+      <p>详细教程请参考 <a href="https://amclubs.blogspot.com/2025/02/s-ui.html" target="_blank">AM科技博客</a>。</p>
+    </li>
+    <li>
+      <b>端口映射与OpenVPN配置教程</b>
+      <ul>
+        <li>登录服务器
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            ssh root@IP地址
+          </div>
+          <span>第一次登录会提示导入ssh配置，输入yes即可，然后会提示输入密码。</span>
+        </li>
+        <li>安装openvpn
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            wget https://git.io/vpn -O openvpn-install.sh && bash openvpn-install.sh
+          </div>
+          <ul>
+            <li>1 选择协议：输入1 udp；</li>
+            <li>2 选择openvpn使用的端口，默认1194，或自定义；</li>
+            <li>3 选择DNS, 推荐2 Google；</li>
+            <li>4 配置文件名，直接回车默认即可；</li>
+            <li>5 按任意键安装Openvpn，回车即可开始安装。</li>
+          </ul>
+        </li>
+        <li>下载openvpn配置文件到本地
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            scp -r root@服务器ip地址:/root/client.ovpn c:/vpn_config.ovpn
+          </div>
+          <span>说明：用户名@服务器IP 下载到哪个地址。将这个配置导入到节点电脑的openvpn即可。</span>
+        </li>
+        <li>端口映射
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            apt-get install redir
+          </div>
+          <span>安装完成后，添加端口映射：</span>
+          <div class="cmd-block">
+            <button class="copy-btn" onclick="copyCmd(this)" title="复制">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            </button>
+            redir :31401 10.8.0.2:31401 &amp; redir :31402 10.8.0.2:31402 &amp; redir :31403 10.8.0.2:31403
+          </div>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>WebView插件说明（安卓Pi节点/浏览器白屏解决）</b>
+      <p>
+        WebView 是 Android 平台上用于展示网页内容的控件。它基于 WebKit 引擎，能够加载和显示 HTML、CSS 和 JavaScript 等 Web 内容。WebView 在 Android 开发中广泛应用于混合应用（Hybrid App），如电商平台、社交媒体等。
+      </p>
+      <p>
+        部分安卓老手机打开 Pi Network 或 Pi Browser 程序加载白屏或转圈等现象，可安装 WebView 插件解决。建议选择版本100以下的WebView，有些老手机高版本反而不兼容。遇到此现象请多测试不同版本。
+      </p>
+      <p>
+        <b>插件下载地址：</b>
+        <a href="https://www.apkmirror.com/uploads/page/6/?appcategory=android-system-webview" target="_blank">
+          https://www.apkmirror.com/uploads/page/6/?appcategory=android-system-webview
+        </a>
+      </p>
+      <p>
+        会弄的可直接去谷歌应用商店下载。
+      </p>
+    </li>
+
+<li>
+  <b>Pi Node 全自动分流插件修正版（Win平台全局代理国内分流）</b>
+  <p>
+    为Win平台全局代理添加国内IP/域名分流功能。<br>
+    <b style="color:#e67e22;">警告：</b>1条宽带下面挂载N台节点的不要使用分流。（几个贼都躲到一个衣柜里，你说能发现彼此吗？）深层原因就不多说了。此方法仅用于Pi Node分流专用。不得用于从事非法目的，由此产生的一切后果，由使用者自行承担。
+  </p>
+  <p>
+    说明：这是一个几年前的开源项目，一切来源于网络，所以并非本人原创，仅在一些代码内稍作更改，以便于动手能力差的节点派友易于使用。
+  </p>
+  <p>
+    <b>为什么要用分流插件？</b><br>
+    A. 想得到节点奖励，就必须要用到海外IP，但不断有节点派友抱怨 向日亏+TD 等软件连接海外IP节点开始收费，分流之后可以解决此等问题。<br>
+    B. 如果节点采用了分流，或许8元钱/月的云服都能满足了，我是说或许……但我不建议选这么便宜的。毕竟一分价钱一分货。节点网络质量是首要的。
+  </p>
+  <p>
+    <b>开源项目地址：</b>
+    <a href="https://github.com/lmc999/auto-add-routes" target="_blank">https://github.com/lmc999/auto-add-routes</a>
+    <br>
+    <b>分流插件打包下载：</b>
+    <a href="https://cftg.653827.xyz/1751932815470.7z" target="_blank">https://cftg.653827.xyz/1751932815470.7z</a>
+    <br>
+    如果你对我打包的文件不放心，自行去开源地址下载。
+  </p>
+  <p>
+    <b>使用说明：</b>
+    <ol>
+      <li>下载 <b>OpenVPN.7z</b>（<a href="https://cftg.653827.xyz/1751932815470.7z" target="_blank">分流插件下载</a>），解压到OpenVPN的config文件夹中，确保解压出的文件与你的配置文件 <b>client.ovpn</b> 保存在同一目录中。<br>
+      如果你的配置文件不是 client.ovpn 而是 Pi Node.ovpn，你需要将 Pi Node_pre.bat 和 Pi Node_down.bat 分别改名为 client_pre.bat 和 client_down.bat，否则OpenVPN无法自动调用批处理文件。</li>
+      <li>运行 <b>先运行我.cmd</b>，会自动把代码加到 client.ovpn 文件末尾（首次执行后会自动删除自身，防止多次执行）。</li>
+      <li>分流连接成功后可上 <a href="https://ip.skk.moe/" target="_blank">ip.skk.moe</a> 测试是否正确分流。</li>
+    </ol>
+  </p>
+  <p>
+    <b>特别说明：</b><br>
+    不要拿此方法到处行骗收费，如果你实在要收，就温柔少收点，心不要那么黑。还是不懂的派友，也别再动不动就有偿+肉偿了，显得自己很富有，很性感迷人似的。<br>
+    节点总群里多问+多看聊天记录==定有收获。
+  </p>
+</li>  </ol>
+</div>
+  </div>
+  <div id="password-mask">
+    <div id="password-box">
+      <h2>请输入访问密码</h2>
+      <input type="password" id="password-input" placeholder="请输入密码" autofocus>
+      <br>
+      <button id="password-submit">登录</button>
+      <div id="password-error"></div>
+    </div>
+  </div>
+  <script>
+    const CORRECT_PASSWORD = "baoge";
+    const STORAGE_KEY = "baoge_page_authed";
+    function checkAuth() {
+      if (localStorage.getItem(STORAGE_KEY) === "1") {
+        document.getElementById("password-mask").style.display = "none";
+        document.body.style.overflow = "";
+      } else {
+        document.getElementById("password-mask").style.display = "flex";
+        document.body.style.overflow = "hidden";
+      }
+    }
+    function tryLogin() {
+      const input = document.getElementById("password-input").value;
+      if (input === CORRECT_PASSWORD) {
+        localStorage.setItem(STORAGE_KEY, "1");
+        document.getElementById("password-error").innerText = "";
+        location.reload();
+      } else {
+        document.getElementById("password-error").innerText = "密码错误，请重试";
+        document.getElementById("password-input").value = "";
+        document.getElementById("password-input").focus();
+      }
+    }
+    document.getElementById("password-submit").onclick = tryLogin;
+    document.getElementById("password-input").onkeydown = function(e) {
+      if (e.key === "Enter") tryLogin();
+    };
+    window.onload = checkAuth;
+    function copyCmd(btn) {
+      var code = btn.parentElement.innerText.replace(/^[\s\S]*?\n?/, '').trim();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(code);
+        btn.classList.add("copied");
+        setTimeout(() => { btn.classList.remove("copied"); }, 1200);
+      } else {
+        var textarea = document.createElement("textarea");
+        textarea.value = code;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        btn.classList.add("copied");
+        setTimeout(() => { btn.classList.remove("copied"); }, 1200);
+      }
+    }
+  </script>
+</body>
+</html>
