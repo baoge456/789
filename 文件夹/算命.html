@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>易经八卦在线算命 - 周易占卜</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            color: #d4af37;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="%23d4af37" opacity="0.1"><animate attributeName="opacity" values="0.1;0.3;0.1" dur="3s" repeatCount="indefinite"/></circle></svg>') repeat;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 2px solid #d4af37;
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 3rem;
+            color: #d4af37;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #b8860b;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .bagua-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .bagua {
+            width: 200px;
+            height: 200px;
+            border: 3px solid #d4af37;
+            border-radius: 50%;
+            position: relative;
+            background: radial-gradient(circle, #000 30%, #fff 30%, #fff 50%, #000 50%);
+            animation: rotate 20s linear infinite;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .bagua:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .bagua::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 40px;
+            background: #000;
+            border-radius: 40px 40px 0 0;
+        }
+
+        .bagua::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 40px;
+            background: #fff;
+            border-radius: 0 0 40px 40px;
+        }
+
+        .trigram {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #d4af37;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .input-section {
+            background: rgba(212, 175, 55, 0.1);
+            border: 2px solid #d4af37;
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #d4af37;
+            font-weight: bold;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #d4af37;
+            font-size: 16px;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .divination-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #d4af37, #b8860b);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: linear-gradient(45deg, #ffd700, #d4af37);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+        }
+
+        .result-section {
+            background: rgba(212, 175, 55, 0.1);
+            border: 2px solid #d4af37;
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            min-height: 400px;
+        }
+
+        .hexagram-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .hexagram-lines {
+            font-family: monospace;
+            font-size: 2rem;
+            line-height: 1.2;
+            color: #d4af37;
+            margin: 20px 0;
+        }
+
+        .hexagram-name {
+            font-size: 1.5rem;
+            color: #ffd700;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .interpretation {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #d4af37;
+        }
+
+        .fortune-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .category-card {
+            background: rgba(212, 175, 55, 0.1);
+            border: 2px solid #d4af37;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-card:hover {
+            background: rgba(212, 175, 55, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .category-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .bagua {
+                width: 150px;
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="title">易经八卦在线算命</h1>
+            <p class="subtitle">承古法，通天机，知命运，解迷津</p>
+        </header>
+
+        <div class="main-content">
+            <div class="bagua-container">
+                <div class="bagua" onclick="generateHexagram()">
+                    <div class="trigram" style="top: 10%; left: 50%; transform: translateX(-50%);">☰</div>
+                    <div class="trigram" style="top: 25%; right: 15%;">☱</div>
+                    <div class="trigram" style="top: 50%; right: 10%;">☲</div>
+                    <div class="trigram" style="bottom: 25%; right: 15%;">☳</div>
+                    <div class="trigram" style="bottom: 10%; left: 50%; transform: translateX(-50%);">☴</div>
+                    <div class="trigram" style="bottom: 25%; left: 15%;">☵</div>
+                    <div class="trigram" style="top: 50%; left: 10%;">☶</div>
+                    <div class="trigram" style="top: 25%; left: 15%;">☷</div>
+                </div>
+            </div>
+
+            <div class="input-section">
+                <h3 style="text-align: center; margin-bottom: 20px; color: #ffd700;">请输入您的信息</h3>
+                
+                <div class="form-group">
+                    <label for="name">姓名：</label>
+                    <input type="text" id="name" placeholder="请输入您的姓名">
+                </div>
+
+                <div class="form-group">
+                    <label for="birthdate">出生日期：</label>
+                    <input type="date" id="birthdate">
+                </div>
+
+                <div class="form-group">
+                    <label for="birthtime">出生时辰：</label>
+                    <select id="birthtime">
+                        <option value="">请选择时辰</option>
+                        <option value="子时">子时 (23:00-01:00)</option>
+                        <option value="丑时">丑时 (01:00-03:00)</option>
+                        <option value="寅时">寅时 (03:00-05:00)</option>
+                        <option value="卯时">卯时 (05:00-07:00)</option>
+                        <option value="辰时">辰时 (07:00-09:00)</option>
+                        <option value="巳时">巳时 (09:00-11:00)</option>
+                        <option value="午时">午时 (11:00-13:00)</option>
+                        <option value="未时">未时 (13:00-15:00)</option>
+                        <option value="申时">申时 (15:00-17:00)</option>
+                        <option value="酉时">酉时 (17:00-19:00)</option>
+                        <option value="戌时">戌时 (19:00-21:00)</option>
+                        <option value="亥时">亥时 (21:00-23:00)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="question">所求之事：</label>
+                    <textarea id="question" rows="3" placeholder="请详细描述您想要占卜的问题"></textarea>
+                </div>
+
+                <div class="divination-buttons">
+                    <button class="btn" onclick="generateHexagram()">摇卦占卜</button>
+                    <button class="btn" onclick="quickFortune()">快速测算</button>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3 style="text-align: center; margin-bottom: 20px; color: #ffd700;">卦象解析</h3>
+                <div id="result-content">
+                    <p style="text-align: center; color: #b8860b; margin-top: 50px;">
+                        点击"摇卦占卜"开始您的命运之旅<br>
+                        或选择下方具体项目进行测算
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="fortune-categories">
+            <div class="category-card" onclick="fortuneCategory('love')">
+                <div class="category-icon">💕</div>
+                <h4>姻缘情感</h4>
+                <p>测算桃花运势，姻缘配对</p>
+            </div>
+            
+            <div class="category-card" onclick="fortuneCategory('career')">
+                <div class="category-icon">💼</div>
+                <h4>事业财运</h4>
+                <p>职场发展，财富机遇</p>
+            </div>
+            
+            <div class="category-card" onclick="fortuneCategory('health')">
+                <div class="category-icon">🏥</div>
+                <h4>健康运势</h4>
+                <p>身体状况，疾病预防</p>
+            </div>
+            
+            <div class="category-card" onclick="fortuneCategory('study')">
+                <div class="category-icon">📚</div>
+                <h4>学业考试</h4>
+                <p>学习运势，考试成绩</p>
+            </div>
+            
+            <div class="category-card" onclick="fortuneCategory('travel')">
+                <div class="category-icon">✈️</div>
+                <h4>出行安全</h4>
+                <p>旅行吉凶，出行择日</p>
+            </div>
+            
+            <div class="category-card" onclick="fortuneCategory('family')">
+                <div class="category-icon">🏠</div>
+                <h4>家庭和睦</h4>
+                <p>家庭关系，子女运势</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 64卦数据
+        const hexagrams = [
+            {name: "乾为天", lines: "━━━\n━━━\n━━━\n━━━\n━━━\n━━━", meaning: "刚健中正，自强不息。大吉大利，万事亨通。"},
+            {name: "坤为地", lines: "━ ━\n━ ━\n━ ━\n━ ━\n━ ━\n━ ━", meaning: "厚德载物，包容万象。顺势而为，柔中带刚。"},
+            {name: "水雷屯", lines: "━ ━\n━━━\n━ ━\n━ ━\n━━━\n━ ━", meaning: "初生之难，积蓄力量。守正待时，终获成功。"},
+            {name: "山水蒙", lines: "━━━\n━ ━\n━ ━\n━ ━\n━━━\n━ ━", meaning: "启蒙教育，去除愚昧。虚心学习，智慧渐开。"},
+            {name: "水天需", lines: "━ ━\n━━━\n━ ━\n━━━\n━━━\n━━━", meaning: "等待时机，不可急进。诚心所至，必有所获。"},
+            {name: "天水讼", lines: "━━━\n━━━\n━━━\n━ ━\n━━━\n━ ━", meaning: "争讼之象，宜和为贵。退让三分，化干戈为玉帛。"},
+            {name: "地水师", lines: "━ ━\n━ ━\n━ ━\n━ ━\n━━━\n━ ━", meaning: "统帅之道，纪律严明。正义之师，必获胜利。"},
+            {name: "水地比", lines: "━ ━\n━━━\n━ ━\n━ ━\n━ ━\n━ ━", meaning: "亲密合作，团结一心。相互扶持，共创辉煌。"}
+        ];
+
+        const fortuneTexts = {
+            love: {
+                good: ["桃花运旺盛，有望遇到心仪之人", "感情稳定发展，婚姻美满", "夫妻和睦，恩爱如初"],
+                medium: ["感情需要耐心经营", "桃花运一般，需主动出击", "感情有小波折，需沟通"],
+                bad: ["感情运势低迷，需调整心态", "恋情不稳定，需谨慎处理", "婚姻有危机，需化解矛盾"]
+            },
+            career: {
+                good: ["事业蒸蒸日上，升职有望", "财运亨通，投资获利", "贵人相助，事业有成"],
+                medium: ["事业平稳发展，需努力进取", "财运一般，量入为出", "工作顺利，但需防小人"],
+                bad: ["事业遇阻，需调整策略", "财运不佳，避免投资", "工作压力大，需调节身心"]
+            },
+            health: {
+                good: ["身体健康，精力充沛", "疾病康复，身体好转", "体质增强，免疫力提升"],
+                medium: ["健康状况一般，需注意保养", "小病小痛，无大碍", "需要适当运动，增强体质"],
+                bad: ["健康运势不佳，需注意身体", "慢性疾病需要调理", "精神压力大，需要休息"]
+            },
+            study: {
+                good: ["学业进步，成绩优异", "考试顺利，金榜题名", "智慧开启，学有所成"],
+                medium: ["学习进展平稳，需要努力", "考试运势一般，需要准备", "学业有进步，但需坚持"],
+                bad: ["学习遇到困难，需要帮助", "考试运势不佳，需要加倍努力", "注意力不集中，需要调整"]
+            },
+            travel: {
+                good: ["出行顺利，一路平安", "旅途愉快，收获满满", "贵人相助，化险为夷"],
+                medium: ["出行需要注意安全", "旅途中有小波折", "选择吉日出行为佳"],
+                bad: ["出行不利，宜推迟", "路途多阻，需谨慎", "避免远行，就近活动"]
+            },
+            family: {
+                good: ["家庭和睦，其乐融融", "子女孝顺，家运兴旺", "家人健康，幸福美满"],
+                medium: ["家庭关系需要维护", "家人之间需要沟通", "家庭运势平稳"],
+                bad: ["家庭矛盾需要化解", "家人健康需要关注", "家庭运势低迷，需要调整"]
+            }
+        };
+
+        function generateHexagram() {
+            const name = document.getElementById('name').value;
+            if (!name) {
+                alert('请先输入您的姓名');
+                return;
+            }
+
+            // 随机生成卦象
+            const hexagram = hexagrams[Math.floor(Math.random() * hexagrams.length)];
+            
+            // 根据姓名和时间生成更个性化的解释
+            const personalizedMeaning = generatePersonalizedMeaning(name, hexagram);
+            
+            const resultContent = `
+                <div class="hexagram-display">
+                    <div class="hexagram-name">${hexagram.name}</div>
+                    <div class="hexagram-lines">${hexagram.lines}</div>
+                </div>
+                <div class="interpretation">
+                    <h4 style="color: #ffd700; margin-bottom: 10px;">卦象解析：</h4>
+                    <p>${hexagram.meaning}</p>
+                    <br>
+                    <h4 style="color: #ffd700; margin-bottom: 10px;">个人运势：</h4>
+                    <p>${personalizedMeaning}</p>
+                    <br>
+                    <h4 style="color: #ffd700; margin-bottom: 10px;">建议：</h4>
+                    <p>${generateAdvice()}</p>
+                </div>
+            `;
+            
+            document.getElementById('result-content').innerHTML = resultContent;
+        }
+
+        function generatePersonalizedMeaning(name, hexagram) {
+            const meanings = [
+                `${name}，根据您的卦象显示，近期运势整体向好，但需要保持谦逊的心态。`,
+                `${name}，您的命格中带有贵人运，在困难时会有人相助。`,
+                `${name}，您天生具有领导才能，适合在团队中发挥作用。`,
+                `${name}，您的性格温和，善于与人相处，人际关系良好。`,
+                `${name}，您做事认真负责，但有时过于追求完美，需要适当放松。`
+            ];
+            return meanings[Math.floor(Math.random() * meanings.length)];
+        }
+
+        function generateAdvice() {
+            const advices = [
+                "宜静不宜动，保持现状，等待时机。",
+                "积极进取，把握机遇，勇于创新。",
+                "与人为善，广结善缘，必有回报。",
+                "修身养性，提升内在，外在自然改善。",
+                "谨慎行事，三思而后行，避免冲动。",
+                "坚持不懈，持之以恒，终将成功。"
+            ];
+            return advices[Math.floor(Math.random() * advices.length)];
+        }
+
+        function quickFortune() {
+            const name = document.getElementById('name').value;
+            if (!name) {
+                alert('请先输入您的姓名');
+                return;
+            }
+
+            const quickResults = [
+                "今日运势：★★★★☆ 适合处理重要事务",
+                "今日运势：★★★☆☆ 平稳度过，无大起大落",
+                "今日运势：★★★★★ 大吉之日，诸事顺利",
+                "今日运势：★★☆☆☆ 需要谨慎，避免冲突",
+                "今日运势：★★★★☆ 贵人运佳，有人相助"
+            ];
+
+            const result = quickResults[Math.floor(Math.random() * quickResults.length)];
+            
+            const resultContent = `
+                <div style="text-align: center;">
+                    <h4 style="color: #ffd700; margin-bottom: 20px;">快速测算结果</h4>
+                    <div style="font-size: 1.5rem; color: #d4af37; margin: 20px 0;">
+                        ${result}
+                    </div>
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-top: 20px;">
+                        <p>幸运数字：${Math.floor(Math.random() * 9) + 1}</p>
+                        <p>幸运颜色：${['红色', '金色', '蓝色', '绿色', '紫色'][Math.floor(Math.random() * 5)]}</p>
+                        <p>幸运方位：${['东方', '南方', '西方', '北方', '东南', '西南', '东北', '西北'][Math.floor(Math.random() * 8)]}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('result-content').innerHTML = resultContent;
+        }
+
+        function fortuneCategory(category) {
+            const name = document.getElementById('name').value;
+            if (!name) {
+                alert('请先输入您的姓名');
+                return;
+            }
+
+            const categoryNames = {
+                love: '姻缘情感',
+                career: '事业财运',
+                health: '健康运势',
+                study: '学业考试',
+                travel: '出行安全',
+                family: '家庭和睦'
+            };
+
+            const levels = ['good', 'medium', 'bad'];
+            const level = levels[Math.floor(Math.random() * levels.length)];
+            const texts = fortuneTexts[category][level];
+            const result = texts[Math.floor(Math.random() * texts.length)];
+
+            const stars = level === 'good' ? '★★★★★' : level === 'medium' ? '★★★☆☆' : '★★☆☆☆';
+            
+            const resultContent = `
+                <div style="text-align: center;">
+                    <h4 style="color: #ffd700; margin-bottom: 20px;">${categoryNames[category]}测算</h4>
+                    <div style="font-size: 1.2rem; color: #d4af37; margin: 20px 0;">
+                        运势指数：${stars}
+                    </div>
+                    <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px; margin-top: 20px;">
+                        <p style="font-size: 1.1rem; line-height: 1.6;">${result}</p>
+                        <br>
+                        <p style="color: #b8860b;">
+                            ${generateCategoryAdvice(category, level)}
+                        </p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('result-content').innerHTML = resultContent;
+        }
+
+        function generateCategoryAdvice(category, level) {
+            const adviceMap = {
+                love: {
+                    good: "感情运势极佳，可以主动表白或考虑结婚。",
+                    medium: "感情需要用心经营，多关心对方。",
+                    bad: "感情运势低迷，需要调整心态，不宜冲动。"
+                },
+                career: {
+                    good: "事业运势旺盛，可以考虑投资或跳槽。",
+                    medium: "事业平稳发展，继续努力即可。",
+                    bad: "事业运势不佳，宜守不宜攻，避免重大决策。"
+                },
+                health: {
+                    good: "身体健康状况良好，可以适当增加运动量。",
+                    medium: "健康状况一般，注意劳逸结合。",
+                    bad: "健康需要特别关注，建议体检并调整作息。"
+                },
+                study: {
+                    good: "学习运势极佳，是考试和学习的好时机。",
+                    medium: "学习运势平稳，需要持续努力。",
+                    bad: "学习运势不佳，需要调整学习方法。"
+                },
+                travel: {
+                    good: "出行运势极佳，是旅行的好时机。",
+                    medium: "出行需要做好准备，注意安全。",
+                    bad: "出行运势不佳，建议推迟或就近活动。"
+                },
+                family: {
+                    good: "家庭运势和谐，是团聚的好时机。",
+                    medium: "家庭关系需要维护，多沟通交流。",
+                    bad: "家庭运势需要关注，避免争执。"
+                }
+            };
+            
+            return adviceMap[category][level];
+        }
+
+        // 页面加载时的动画效果
+        window.addEventListener('load', function() {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 1s ease-in-out';
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+    </script>
+</body>
+</html>
