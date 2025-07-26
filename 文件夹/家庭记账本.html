@@ -201,6 +201,23 @@
             background: #c0392b;
         }
         
+        /* 导航菜单优化 - 新增响应式菜单样式 */
+        .menu-toggle {
+            display: none;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 18px;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
         .nav-tabs {
             display: flex;
             background: white;
@@ -644,7 +661,7 @@
             background: #2980b9;
         }
         
-        /* 响应式设计 */
+        /* 响应式设计 - 重点优化导航菜单 */
         @media (max-width: 768px) {
             .app-container {
                 padding: 10px;
@@ -656,8 +673,21 @@
                 text-align: center;
             }
             
+            /* 移动端菜单切换按钮 */
+            .menu-toggle {
+                display: flex;
+            }
+            
+            /* 移动端导航菜单默认隐藏 */
             .nav-tabs {
+                display: none;
                 flex-direction: column;
+                margin-bottom: 20px;
+            }
+            
+            /* 显示菜单时的样式 */
+            .nav-tabs.show {
+                display: flex;
             }
             
             .nav-tab {
@@ -838,12 +868,21 @@
                 </button>
             </div>
             
+            <!-- 移动端菜单切换按钮 -->
+            <button 
+                class="menu-toggle" 
+                @click="toggleMenu"
+            >
+                <i class="fas fa-bars"></i>
+                {{ menuOpen ? '收起菜单' : '打开菜单' }}
+            </button>
+            
             <!-- 导航标签 -->
-            <div class="nav-tabs">
+            <div :class="['nav-tabs', { show: menuOpen }]">
                 <button 
                     v-for="tab in tabs" 
                     :key="tab.id"
-                    @click="activeTab = tab.id"
+                    @click="activeTab = tab.id; menuOpen = false"
                     :class="['nav-tab', { active: activeTab === tab.id }]"
                 >
                     <i :class="tab.icon"></i>
@@ -1664,6 +1703,9 @@
         createApp({
             data() {
                 return {
+                    // 新增：菜单开关状态
+                    menuOpen: false,
+                    
                     // 认证相关
                     isAuthenticated: false,
                     passwordInput: '',
@@ -1967,6 +2009,11 @@
             },
             
             methods: {
+                // 新增：切换菜单显示状态
+                toggleMenu() {
+                    this.menuOpen = !this.menuOpen;
+                },
+                
                 // 认证方法
                 setPassword() {
                     if (this.newPassword.length < 6) {
@@ -1998,7 +2045,8 @@
                         this.authErrorMessage = '密码错误';
                         setTimeout(() => {
                             this.authError = false;
-                        }, 3000);
+                        },
+                        3000);
                     }
                 },
                 
