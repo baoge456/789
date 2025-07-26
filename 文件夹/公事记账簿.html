@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公事记账簿</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.31/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .quick-add-card {
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        .record-item {
+            border-bottom: 1px solid #eee;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+        .record-item:last-child {
+            border-bottom: none;
+        }
+        .gift-item {
+            border-left: 3px solid #28a745;
+            padding-left: 8px;
+        }
+        .expense-item {
+            border-left: 3px solid #dc3545;
+            padding-left: 8px;
+        }
+        .btn-custom {
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 14px;
+        }
+        .form-control, .form-select {
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 8px 0;
+        }
+        .collapse-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+        .collapse-toggle:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        .quick-input {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .amount-input {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .compact-form .form-control {
+            margin-bottom: 8px;
+        }
+        .record-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .navbar-nav .nav-link {
+            color: white !important;
+            font-size: 13px;
+            padding: 4px 8px !important;
+        }
+        .navbar-nav .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        @media (max-width: 768px) {
+            .container-fluid { padding: 0 10px; }
+            .summary-card { padding: 10px; }
+            .summary-card h5 { font-size: 1rem; }
+            .summary-card h6 { font-size: 0.8rem; }
+            .btn-custom { padding: 4px 12px; font-size: 12px; }
+            .form-control, .form-select { font-size: 16px; } /* 防止iOS缩放 */
+            .navbar-nav .nav-link { font-size: 12px; }
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .container-fluid { max-width: none !important; }
+        }
+        .balance-positive { color: #28a745; font-weight: bold; }
+        .balance-negative { color: #dc3545; font-weight: bold; }
+        .balance-zero { color: #6c757d; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 导航栏 -->
+        <nav class="navbar navbar-dark no-print">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h6">
+                    <i class="bi bi-journal-text"></i> 公事记账簿
+                </span>
+                <ul class="navbar-nav d-flex flex-row">
+                    <li class="nav-item me-2">
+                        <a class="nav-link" href="#" @click.prevent="exportToExcel">导出电子表格</a>
+                    </li>
+                    <li class="nav-item me-2">
+                        <a class="nav-link" href="#" @click.prevent="exportToWord">导出Word文档</a>
+                    </li>
+                    <li class="nav-item me-2">
+                        <a class="nav-link" href="#" @click.prevent="printRecord">打印数据</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" @click.prevent="clearAllData">清空数据</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="container-fluid mt-2">
+            <!-- 财务汇总 -->
+            <div class="summary-card">
+                <div class="row text-center">
+                    <div class="col-3">
+                        <h6 class="mb-0">{{ totalGifts.toFixed(0) }}</h6>
+                        <small>收礼</small>
+                    </div>
+                    <div class="col-3">
+                        <h6 class="mb-0">{{ totalExpense.toFixed(0) }}</h6>
+                        <small>支出</small>
+                    </div>
+                    <div class="col-3">
+                        <h6 class="mb-0" :class="balanceClass">{{ balance.toFixed(0) }}</h6>
+                        <small>结余</small>
+                    </div>
+                    <div class="col-3">
+                        <h6 class="mb-0">{{ totalRecords }}</h6>
+                        <small>记录</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快速添加收礼记录 -->
+            <div class="quick-input">
+                <h6 class="text-success mb-2"><i class="bi bi-gift"></i> 快速记录收礼</h6>
+                <div class="row compact-form">
+                    <div class="col-6">
+                        <input type="text" class="form-control" v-model="newGift.name" placeholder="姓名" maxlength="10">
+                    </div>
+                    <div class="col-6">
+                        <input type="number" class="form-control amount-input" v-model.number="newGift.amount" placeholder="金额" step="1">
+                    </div>
+                    <div class="col-6">
+                        <select class="form-select" v-model="newGift.relationship">
+                            <option value="亲戚">亲戚</option>
+                            <option value="朋友">朋友</option>
+                            <option value="同事">同事</option>
+                            <option value="邻居">邻居</option>
+                            <option value="同学">同学</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <input type="text" class="form-control" v-model="newGift.notes" placeholder="备注(可选)" maxlength="20">
+                    </div>
+                </div>
+                <button class="btn btn-success w-100 btn-custom mt-2" @click="addGiftRecord" :disabled="!newGift.name || !newGift.amount">
+                    <i class="bi bi-plus-circle"></i> 添加收礼记录
+                </button>
+            </div>
+
+            <!-- 快速添加支出记录 - 默认隐藏 -->
+            <div class="card no-print">
+                <div class="card-header collapse-toggle p-2" @click="showExpenseForm = !showExpenseForm">
+                    <h6 class="mb-0 text-danger">
+                        <i class="bi bi-cash-stack"></i> 添加支出记录
+                        <i :class="showExpenseForm ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="float-end"></i>
+                    </h6>
+                </div>
+                <div class="collapse" :class="{ show: showExpenseForm }">
+                    <div class="card-body p-2">
+                        <div class="quick-input">
+                            <div class="row compact-form">
+                                <div class="col-6">
+                                    <input type="text" class="form-control" v-model="newExpense.item" placeholder="支出项目" maxlength="15">
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" class="form-control amount-input" v-model.number="newExpense.amount" placeholder="金额" step="1">
+                                </div>
+                                <div class="col-6">
+                                    <select class="form-select" v-model="newExpense.category">
+                                        <option value="餐饮">餐饮</option>
+                                        <option value="场地">场地</option>
+                                        <option value="装饰">装饰</option>
+                                        <option value="服务">服务</option>
+                                        <option value="用品">用品</option>
+                                        <option value="其他">其他</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" class="form-control" v-model="newExpense.notes" placeholder="备注(可选)" maxlength="20">
+                                </div>
+                            </div>
+                            <button class="btn btn-danger w-100 btn-custom mt-2" @click="addExpenseRecord" :disabled="!newExpense.item || !newExpense.amount">
+                                <i class="bi bi-plus-circle"></i> 添加支出记录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 基本信息折叠面板 -->
+            <div class="card no-print">
+                <div class="card-header collapse-toggle p-2" @click="showBasicInfo = !showBasicInfo">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i> 基本信息 
+                        <i :class="showBasicInfo ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="float-end"></i>
+                    </h6>
+                </div>
+                <div class="collapse" :class="{ show: showBasicInfo }">
+                    <div class="card-body p-2">
+                        <div class="row compact-form">
+                            <div class="col-6">
+                                <input type="text" class="form-control" v-model="accountInfo.name" placeholder="活动名称">
+                            </div>
+                            <div class="col-6">
+                                <input type="text" class="form-control" v-model="accountInfo.type" placeholder="活动类型" list="activityTypes">
+                                <datalist id="activityTypes">
+                                    <option value="婚礼">
+                                    <option value="生日宴">
+                                    <option value="满月酒">
+                                    <option value="升学宴">
+                                    <option value="乔迁宴">
+                                    <option value="丧事">
+                                </datalist>
+                            </div>
+                            <div class="col-4">
+                                <input type="date" class="form-control" v-model="accountInfo.date">
+                            </div>
+                            <div class="col-4">
+                                <input type="text" class="form-control" v-model="accountInfo.recorder" placeholder="记账人">
+                            </div>
+                            <div class="col-4">
+                                <input type="text" class="form-control" v-model="accountInfo.keeper" placeholder="保管人">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 记录列表折叠面板 -->
+            <div class="card no-print mt-2">
+                <div class="card-header collapse-toggle p-2" @click="showRecords = !showRecords">
+                    <h6 class="mb-0">
+                        <i class="bi bi-list-ul"></i> 记录列表 ({{ totalRecords }}条)
+                        <i :class="showRecords ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="float-end"></i>
+                    </h6>
+                </div>
+                <div class="collapse" :class="{ show: showRecords }">
+                    <div class="card-body p-2">
+                        <!-- 收礼记录 -->
+                        <div class="mb-3">
+                            <h6 class="text-success mb-2">收礼记录 ({{ giftRecords.length }}条)</h6>
+                            <div class="record-list">
+                                <div v-if="giftRecords.length === 0" class="text-muted text-center py-2">
+                                    暂无收礼记录
+                                </div>
+                                <div v-for="(record, index) in giftRecords" :key="index" class="record-item gift-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="flex-grow-1">
+                                            <strong>{{ record.name }}</strong> 
+                                            <span class="text-muted">({{ record.relationship }})</span>
+                                            <span class="text-success fw-bold ms-2">¥{{ record.amount }}</span>
+                                            <div v-if="record.notes" class="small text-muted">{{ record.notes }}</div>
+                                            <div class="small text-muted">{{ record.date }}</div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger" @click="removeGiftRecord(index)">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 支出记录 -->
+                        <div>
+                            <h6 class="text-danger mb-2">支出记录 ({{ expenseRecords.length }}条)</h6>
+                            <div class="record-list">
+                                <div v-if="expenseRecords.length === 0" class="text-muted text-center py-2">
+                                    暂无支出记录
+                                </div>
+                                <div v-for="(record, index) in expenseRecords" :key="index" class="record-item expense-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="flex-grow-1">
+                                            <strong>{{ record.item }}</strong> 
+                                            <span class="text-muted">({{ record.category }})</span>
+                                            <span class="text-danger fw-bold ms-2">¥{{ record.amount }}</span>
+                                            <div v-if="record.notes" class="small text-muted">{{ record.notes }}</div>
+                                            <div class="small text-muted">{{ record.date }}</div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger" @click="removeExpenseRecord(index)">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 打印内容 -->
+        <div id="printContent" style="display: none;">
+            <!-- 打印内容将在JavaScript中动态生成 -->
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    showBasicInfo: false,
+                    showRecords: false,
+                    showExpenseForm: false,
+                    accountInfo: {
+                        name: '',
+                        type: '',
+                        date: new Date().toISOString().split('T')[0],
+                        recorder: '',
+                        keeper: '',
+                        notes: ''
+                    },
+                    newGift: {
+                        date: new Date().toISOString().split('T')[0],
+                        name: '',
+                        relationship: '亲戚',
+                        amount: '',
+                        notes: ''
+                    },
+                    newExpense: {
+                        date: new Date().toISOString().split('T')[0],
+                        item: '',
+                        category: '餐饮',
+                        amount: '',
+                        notes: ''
+                    },
+                    giftRecords: [],
+                    expenseRecords: [],
+                    // 保存最后一次导出/打印时的数据快照
+                    lastSnapshot: null
+                }
+            },
+            computed: {
+                totalGifts() {
+                    return this.giftRecords.reduce((sum, record) => sum + record.amount, 0);
+                },
+                totalExpense() {
+                    return this.expenseRecords.reduce((sum, record) => sum + record.amount, 0);
+                },
+                balance() {
+                    return this.totalGifts - this.totalExpense;
+                },
+                balanceClass() {
+                    if (this.balance > 0) return 'balance-positive';
+                    if (this.balance < 0) return 'balance-negative';
+                    return 'balance-zero';
+                },
+                totalRecords() {
+                    return this.giftRecords.length + this.expenseRecords.length;
+                }
+            },
+            methods: {
+                addGiftRecord() {
+                    if (!this.newGift.name || !this.newGift.amount) {
+                        return;
+                    }
+                    this.giftRecords.unshift({...this.newGift});
+                    this.resetGiftForm();
+                    this.saveToLocalStorage();
+                },
+                addExpenseRecord() {
+                    if (!this.newExpense.item || !this.newExpense.amount) {
+                        return;
+                    }
+                    this.expenseRecords.unshift({...this.newExpense});
+                    this.resetExpenseForm();
+                    this.saveToLocalStorage();
+                },
+                removeGiftRecord(index) {
+                    if (confirm('确定删除？')) {
+                        this.giftRecords.splice(index, 1);
+                        this.saveToLocalStorage();
+                    }
+                },
+                removeExpenseRecord(index) {
+                    if (confirm('确定删除？')) {
+                        this.expenseRecords.splice(index, 1);
+                        this.saveToLocalStorage();
+                    }
+                },
+                resetGiftForm() {
+                    this.newGift = {
+                        date: new Date().toISOString().split('T')[0],
+                        name: '',
+                        relationship: '亲戚',
+                        amount: '',
+                        notes: ''
+                    };
+                },
+                resetExpenseForm() {
+                    this.newExpense = {
+                        date: new Date().toISOString().split('T')[0],
+                        item: '',
+                        category: '餐饮',
+                        amount: '',
+                        notes: ''
+                    };
+                },
+                // 创建数据快照
+                createSnapshot() {
+                    return {
+                        accountInfo: JSON.parse(JSON.stringify(this.accountInfo)),
+                        giftRecords: JSON.parse(JSON.stringify(this.giftRecords)),
+                        expenseRecords: JSON.parse(JSON.stringify(this.expenseRecords)),
+                        timestamp: new Date().toISOString()
+                    };
+                },
+                exportToExcel() {
+                    // 保存当前数据快照
+                    this.lastSnapshot = this.createSnapshot();
+                    this.saveSnapshotToLocalStorage();
+                    
+                    const wb = XLSX.utils.book_new();
+                    
+                    // 创建基本信息工作表
+                    const basicInfoData = [
+                        ['公事记账簿 - 基本信息'],
+                        [],
+                        ['活动名称', this.accountInfo.name || '未填写'],
+                        ['活动类型', this.accountInfo.type || '未填写'],
+                        ['举办日期', this.accountInfo.date || '未填写'],
+                        ['记账人', this.accountInfo.recorder || '未填写'],
+                        ['保管人', this.accountInfo.keeper || '未填写'],
+                        ['生成时间', new Date().toLocaleString('zh-CN')],
+                        [],
+                        ['财务汇总'],
+                        ['收礼总额', this.totalGifts.toFixed(2)],
+                        ['总支出', this.totalExpense.toFixed(2)],
+                        ['结余', this.balance.toFixed(2)]
+                    ];
+                    
+                    const basicInfoWs = XLSX.utils.aoa_to_sheet(basicInfoData);
+                    basicInfoWs['!cols'] = [
+                        { wch: 15 },
+                        { wch: 25 }
+                    ];
+                    
+                    // 设置基本信息工作表的样式
+                    const basicInfoRange = XLSX.utils.decode_range(basicInfoWs['!ref']);
+                    for (let R = basicInfoRange.s.r; R <= basicInfoRange.e.r; R++) {
+                        for (let C = basicInfoRange.s.c; C <= basicInfoRange.e.c; C++) {
+                            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                            if (!basicInfoWs[cellAddress]) continue;
+                            
+                            if (R === 0) {
+                                // 标题行
+                                basicInfoWs[cellAddress].s = {
+                                    font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } },
+                                    fill: { fgColor: { rgb: "4472C4" } },
+                                    alignment: { horizontal: "center" }
+                                };
+                            } else if (R === 2 || R === 9) {
+                                // 分类标题
+                                basicInfoWs[cellAddress].s = {
+                                    font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+                                    fill: { fgColor: { rgb: "70AD47" } },
+                                    alignment: { horizontal: "left" }
+                                };
+                            } else if (R > 2 && R < 8) {
+                                // 基本信息行
+                                basicInfoWs[cellAddress].s = {
+                                    font: { sz: 11 },
+                                    fill: { fgColor: { rgb: "F2F2F2" } },
+                                    alignment: { horizontal: "left" }
+                                };
+                            } else if (R > 9) {
+                                // 财务汇总行
+                                basicInfoWs[cellAddress].s = {
+                                    font: { bold: true, sz: 11 },
+                                    fill: { fgColor: { rgb: "E7E6E6" } },
+                                    alignment: { horizontal: "left" }
+                                };
+                            }
+                        }
+                    }
+                    
+                    // 创建收礼记录工作表
+                    const giftData = [
+                        ['收礼记录明细'],
+                        [],
+                        ['日期', '姓名', '关系', '金额', '备注']
+                    ];
+                    
+                    this.giftRecords.forEach(record => {
+                        giftData.push([
+                            record.date,
+                            record.name,
+                            record.relationship,
+                            record.amount,
+                            record.notes || ''
+                        ]);
+                    });
+                    
+                    const giftWs = XLSX.utils.aoa_to_sheet(giftData);
+                    giftWs['!cols'] = [
+                        { wch: 12 },
+                        { wch: 15 },
+                        { wch: 10 },
+                        { wch: 12 },
+                        { wch: 25 }
+                    ];
+                    
+                    // 设置收礼记录工作表的样式
+                    const giftRange = XLSX.utils.decode_range(giftWs['!ref']);
+                    for (let R = giftRange.s.r; R <= giftRange.e.r; R++) {
+                        for (let C = giftRange.s.c; C <= giftRange.e.c; C++) {
+                            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                            if (!giftWs[cellAddress]) continue;
+                            
+                            if (R === 0) {
+                                // 标题行
+                                giftWs[cellAddress].s = {
+                                    font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } },
+                                    fill: { fgColor: { rgb: "70AD47" } },
+                                    alignment: { horizontal: "center" }
+                                };
+                            } else if (R === 2) {
+                                // 表头行
+                                giftWs[cellAddress].s = {
+                                    font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+                                    fill: { fgColor: { rgb: "4472C4" } },
+                                    alignment: { horizontal: "center" },
+                                    border: {
+                                        top: { style: "thin" },
+                                        bottom: { style: "thin" },
+                                        left: { style: "thin" },
+                                        right: { style: "thin" }
+                                    }
+                                };
+                            } else if (R > 2) {
+                                // 数据行
+                                giftWs[cellAddress].s = {
+                                    font: { sz: 11 },
+                                    alignment: { horizontal: C === 3 ? "right" : "left" },
+                                    border: {
+                                        top: { style: "thin" },
+                                        bottom: { style: "thin" },
+                                        left: { style: "thin" },
+                                        right: { style: "thin" }
+                                    }
+                                };
+                                // 金额列特殊格式
+                                if (C === 3) {
+                                    giftWs[cellAddress].z = '#,##0.00';
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 创建支出记录工作表
+                    const expenseData = [
+                        ['支出记录明细'],
+                        [],
+                        ['日期', '项目', '分类', '金额', '备注']
+                    ];
+                    
+                    this.expenseRecords.forEach(record => {
+                        expenseData.push([
+                            record.date,
+                            record.item,
+                            record.category,
+                            record.amount,
+                            record.notes || ''
+                        ]);
+                    });
+                    
+                    const expenseWs = XLSX.utils.aoa_to_sheet(expenseData);
+                    expenseWs['!cols'] = [
+                        { wch: 12 },
+                        { wch: 20 },
+                        { wch: 10 },
+                        { wch: 12 },
+                        { wch: 25 }
+                    ];
+                    
+                    // 设置支出记录工作表的样式
+                    const expenseRange = XLSX.utils.decode_range(expenseWs['!ref']);
+                    for (let R = expenseRange.s.r; R <= expenseRange.e.r; R++) {
+                        for (let C = expenseRange.s.c; C <= expenseRange.e.c; C++) {
+                            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                            if (!expenseWs[cellAddress]) continue;
+                            
+                            if (R === 0) {
+                                // 标题行
+                                expenseWs[cellAddress].s = {
+                                    font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } },
+                                    fill: { fgColor: { rgb: "C5504B" } },
+                                    alignment: { horizontal: "center" }
+                                };
+                            } else if (R === 2) {
+                                // 表头行
+                                expenseWs[cellAddress].s = {
+                                    font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+                                    fill: { fgColor: { rgb: "4472C4" } },
+                                    alignment: { horizontal: "center" },
+                                    border: {
+                                        top: { style: "thin" },
+                                        bottom: { style: "thin" },
+                                        left: { style: "thin" },
+                                        right: { style: "thin" }
+                                    }
+                                };
+                            } else if (R > 2) {
+                                // 数据行
+                                expenseWs[cellAddress].s = {
+                                    font: { sz: 11 },
+                                    alignment: { horizontal: C === 3 ? "right" : "left" },
+                                    border: {
+                                        top: { style: "thin" },
+                                        bottom: { style: "thin" },
+                                        left: { style: "thin" },
+                                        right: { style: "thin" }
+                                    }
+                                };
+                                // 金额列特殊格式
+                                if (C === 3) {
+                                    expenseWs[cellAddress].z = '#,##0.00';
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 创建汇总工作表
+                    const summaryData = [
+                        ['公事记账簿 - 汇总报表'],
+                        [],
+                        ['日期', '类型', '姓名/项目', '关系/分类', '金额', '备注']
+                    ];
+                    
+                    const allRecords = [
+                        ...this.giftRecords.map(r => ({
+                            日期: r.date,
+                            类型: '收礼',
+                            姓名项目: r.name,
+                            关系: r.relationship,
+                            金额: r.amount,
+                            备注: r.notes || ''
+                        })),
+                        ...this.expenseRecords.map(r => ({
+                            日期: r.date,
+                            类型: '支出',
+                            姓名项目: r.item,
+                            关系: r.category,
+                            金额: -r.amount,
+                            备注: r.notes || ''
+                        }))
+                    ].sort((a, b) => new Date(a.日期) - new Date(b.日期));
+                    
+                    allRecords.forEach(record => {
+                        summaryData.push([
+                            record.日期,
+                            record.类型,
+                            record.姓名项目,
+                            record.关系,
+                            record.金额,
+                            record.备注
+                        ]);
+                    });
+                    
+                    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+                    summaryWs['!cols'] = [
+                        { wch: 12 },
+                        { wch: 8 },
+                        { wch: 20 },
+                        { wch: 10 },
+                        { wch: 12 },
+                        { wch: 25 }
+                    ];
+                    
+                    // 设置汇总工作表的样式
+                    const summaryRange = XLSX.utils.decode_range(summaryWs['!ref']);
+                    for (let R = summaryRange.s.r; R <= summaryRange.e.r; R++) {
+                        for (let C = summaryRange.s.c; C <= summaryRange.e.c; C++) {
+                            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                            if (!summaryWs[cellAddress]) continue;
+                            
+                            if (R === 0) {
+                                // 标题行
+                                summaryWs[cellAddress].s = {
+                                    font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } },
+                                    fill: { fgColor: { rgb: "4472C4" } },
+                                    alignment: { horizontal: "center" }
+                                };
+                            } else if (R === 2) {
+                                // 表头行
+                                summaryWs[cellAddress].s = {
+                                    font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+                                    fill: { fgColor: { rgb: "70AD47" } },
+                                    alignment: { horizontal: "center" },
+                                    border: {
+                                        top: { style: "thin" },
+                                        bottom: { style: "thin" },
+                                        left: { style: "thin" },
+                                        right: { style: "thin" }
+                                    }
+                                };
+                            } else if (R > 2) {
+                                // 数据行
+                                summaryWs[cellAddress].s = {
+                                    font: { sz: 11 },
+                                    alignment: { horizontal: C === 4 ? "right" : "left" },
+                                    border: {
+                                        top: { style: "thin" },
+                                        bottom: { style: "thin" },
+                                        left: { style: "thin" },
+                                        right: { style: "thin" }
+                                    }
+                                };
+                                // 金额列特殊格式
+                                if (C === 4) {
+                                    summaryWs[cellAddress].z = '#,##0.00';
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 添加所有工作表到工作簿
+                    XLSX.utils.book_append_sheet(wb, basicInfoWs, '基本信息');
+                    XLSX.utils.book_append_sheet(wb, giftWs, '收礼记录');
+                    XLSX.utils.book_append_sheet(wb, expenseWs, '支出记录');
+                    XLSX.utils.book_append_sheet(wb, summaryWs, '汇总报表');
+                    
+                    const fileName = `${this.accountInfo.name || '公事记账簿'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+                },
+                exportToWord() {
+                    // 保存当前数据快照
+                    this.lastSnapshot = this.createSnapshot();
+                    this.saveSnapshotToLocalStorage();
+                    
+                    // 生成Word文档内容
+                    const wordContent = this.generateWordContent();
+                    
+                    // 创建包含Word格式的HTML文档
+                    const wordDocument = `
+                        <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+                              xmlns:w='urn:schemas-microsoft-com:office:word' 
+                              xmlns='http://www.w3.org/TR/REC-html40'>
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>公事记账簿 - ${this.accountInfo.name}</title>
+                            <!--[if gte mso 9]>
+                            <xml>
+                                <w:WordDocument>
+                                    <w:View>Print</w:View>
+                                    <w:Zoom>100</w:Zoom>
+                                    <w:DoNotShowRevisions/>
+                                    <w:DoNotPrintRevisions/>
+                                    <w:DisplayHorizontalDrawingGridEvery>0</w:DisplayHorizontalDrawingGridEvery>
+                                    <w:DisplayVerticalDrawingGridEvery>2</w:DisplayVerticalDrawingGridEvery>
+                                    <w:UseMarginsForDrawingGridOrigin/>
+                                    <w:ValidateAgainstSchemas/>
+                                    <w:SaveIfXMLInvalid>false</w:SaveIfXMLInvalid>
+                                    <w:IgnoreMixedContent>false</w:IgnoreMixedContent>
+                                    <w:AlwaysShowPlaceholderText>false</w:AlwaysShowPlaceholderText>
+                                    <w:Compatibility>
+                                        <w:BreakWrappedTables/>
+                                        <w:SnapToGridInCell/>
+                                        <w:WrapTextWithPunct/>
+                                        <w:UseAsianBreakRules/>
+                                        <w:DontGrowAutofit/>
+                                        <w:UseFELayout/>
+                                    </w:Compatibility>
+                                </w:WordDocument>
+                            </xml>
+                            <![endif]-->
+                            <style>
+                                body { font-family: "Microsoft YaHei", Arial, sans-serif; margin: 20px; }
+                                .header { text-align: center; margin-bottom: 30px; }
+                                .header h1 { font-size: 24pt; font-weight: bold; margin-bottom: 10px; }
+                                .header h2 { font-size: 18pt; font-weight: bold; color: #333; }
+                                .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                                .info-table td { padding: 8px; border: 1px solid #000; font-size: 12pt; }
+                                .info-table td:first-child { font-weight: bold; background-color: #f0f0f0; }
+                                .records-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                                .records-table th, .records-table td { padding: 8px; border: 1px solid #000; text-align: left; font-size: 11pt; }
+                                .records-table th { background-color: #e0e0e0; font-weight: bold; }
+                                .summary { margin-top: 20px; }
+                                .gift-amount { color: #008000; font-weight: bold; }
+                                .expense-amount { color: #FF0000; font-weight: bold; }
+                                h3 { font-size: 16pt; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
+                                .page-break { page-break-before: always; }
+                            </style>
+                        </head>
+                        <body>
+                            ${wordContent}
+                        </body>
+                        </html>
+                    `;
+                    
+                    // 创建Blob并下载
+                    const blob = new Blob([wordDocument], { type: 'application/msword' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${this.accountInfo.name || '公事记账簿'}_${new Date().toISOString().split('T')[0]}.doc`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                },
+                printRecord() {
+                    // 检查是否有数据可打印
+                    if (this.totalRecords === 0 && this.lastSnapshot) {
+                        if (confirm('当前没有数据，是否打印上次保存的数据？')) {
+                            this.printSnapshot(this.lastSnapshot);
+                            return;
+                        }
+                    }
+                    
+                    // 保存当前数据快照
+                    this.lastSnapshot = this.createSnapshot();
+                    this.saveSnapshotToLocalStorage();
+                    
+                    const printContent = this.generatePrintContent();
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(printContent);
+                    printWindow.document.close();
+                    printWindow.print();
+                },
+                printSnapshot(snapshot) {
+                    const printContent = this.generatePrintContentFromSnapshot(snapshot);
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(printContent);
+                    printWindow.document.close();
+                    printWindow.print();
+                },
+                generatePrintContent() {
+                    return this.generatePrintContentFromData(this.accountInfo, this.giftRecords, this.expenseRecords);
+                },
+                generatePrintContentFromSnapshot(snapshot) {
+                    return this.generatePrintContentFromData(snapshot.accountInfo, snapshot.giftRecords, snapshot.expenseRecords);
+                },
+                generatePrintContentFromData(accountInfo, giftRecords, expenseRecords) {
+                    const totalGifts = giftRecords.reduce((sum, record) => sum + record.amount, 0);
+                    const totalExpense = expenseRecords.reduce((sum, record) => sum + record.amount, 0);
+                    const balance = totalGifts - totalExpense;
+                    const eventType = accountInfo.type || '未指定';
+                    
+                    return `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>公事记账簿 - ${accountInfo.name}</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                .header { text-align: center; margin-bottom: 30px; }
+                                .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                                .info-table td { padding: 8px; border: 1px solid #ddd; }
+                                .records-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                                .records-table th, .records-table td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+                                .records-table th { background-color: #f5f5f5; }
+                                .summary { margin-top: 20px; }
+                                .gift-amount { color: green; }
+                                .expense-amount { color: red; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header">
+                                <h1>公事记账簿</h1>
+                                <h2>${accountInfo.name}</h2>
+                            </div>
+                            
+                            <table class="info-table">
+                                <tr><td><strong>活动名称</strong></td><td>${accountInfo.name}</td></tr>
+                                <tr><td><strong>活动类型</strong></td><td>${eventType}</td></tr>
+                                <tr><td><strong>举办日期</strong></td><td>${accountInfo.date}</td></tr>
+                                <tr><td><strong>记账人</strong></td><td>${accountInfo.recorder}</td></tr>
+                                <tr><td><strong>保管人</strong></td><td>${accountInfo.keeper}</td></tr>
+                            </table>
+
+                            <h3>收礼记录</h3>
+                            <table class="records-table">
+                                <thead>
+                                    <tr><th>日期</th><th>姓名</th><th>关系</th><th>金额</th><th>备注</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${giftRecords.map(record => `
+                                        <tr>
+                                            <td>${record.date}</td>
+                                            <td>${record.name}</td>
+                                            <td>${record.relationship}</td>
+                                            <td class="gift-amount">¥${record.amount.toFixed(2)}</td>
+                                            <td>${record.notes}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+
+                            <h3>支出记录</h3>
+                            <table class="records-table">
+                                <thead>
+                                    <tr><th>日期</th><th>项目</th><th>分类</th><th>金额</th><th>备注</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${expenseRecords.map(record => `
+                                        <tr>
+                                            <td>${record.date}</td>
+                                            <td>${record.item}</td>
+                                            <td>${record.category}</td>
+                                            <td class="expense-amount">¥${record.amount.toFixed(2)}</td>
+                                            <td>${record.notes}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+
+                            <div class="summary">
+                                <h3>财务汇总</h3>
+                                <table class="info-table">
+                                    <tr><td><strong>收礼总额</strong></td><td class="gift-amount">¥${totalGifts.toFixed(2)}</td></tr>
+                                    <tr><td><strong>总支出</strong></td><td class="expense-amount">¥${totalExpense.toFixed(2)}</td></tr>
+                                    <tr><td><strong>结余</strong></td><td><strong>¥${balance.toFixed(2)}</strong></td></tr>
+                                </table>
+                            </div>
+                        </body>
+                        </html>
+                    `;
+                },
+                generateWordContent() {
+                    const totalGifts = this.giftRecords.reduce((sum, record) => sum + record.amount, 0);
+                    const totalExpense = this.expenseRecords.reduce((sum, record) => sum + record.amount, 0);
+                    const balance = totalGifts - totalExpense;
+                    const eventType = this.accountInfo.type || '未指定';
+                    
+                    // 生成Word文档的主体内容
+                    return `
+                        <div class="header">
+                            <h1>公事记账簿</h1>
+                            <h2>${this.accountInfo.name || '未命名活动'}</h2>
+                        </div>
+                        
+                        <table class="info-table">
+                            <tr><td>活动名称</td><td>${this.accountInfo.name || '未填写'}</td></tr>
+                            <tr><td>活动类型</td><td>${eventType}</td></tr>
+                            <tr><td>举办日期</td><td>${this.accountInfo.date || '未填写'}</td></tr>
+                            <tr><td>记账人</td><td>${this.accountInfo.recorder || '未填写'}</td></tr>
+                            <tr><td>保管人</td><td>${this.accountInfo.keeper || '未填写'}</td></tr>
+                        </table>
+
+                        <h3>收礼记录 (共${this.giftRecords.length}条)</h3>
+                        ${this.giftRecords.length > 0 ? `
+                            <table class="records-table">
+                                <thead>
+                                    <tr><th>日期</th><th>姓名</th><th>关系</th><th>金额</th><th>备注</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${this.giftRecords.map(record => `
+                                        <tr>
+                                            <td>${record.date}</td>
+                                            <td>${record.name}</td>
+                                            <td>${record.relationship}</td>
+                                            <td class="gift-amount">¥${record.amount.toFixed(2)}</td>
+                                            <td>${record.notes || ''}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : '<p>暂无收礼记录</p>'}
+
+                        <h3>支出记录 (共${this.expenseRecords.length}条)</h3>
+                        ${this.expenseRecords.length > 0 ? `
+                            <table class="records-table">
+                                <thead>
+                                    <tr><th>日期</th><th>项目</th><th>分类</th><th>金额</th><th>备注</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${this.expenseRecords.map(record => `
+                                        <tr>
+                                            <td>${record.date}</td>
+                                            <td>${record.item}</td>
+                                            <td>${record.category}</td>
+                                            <td class="expense-amount">¥${record.amount.toFixed(2)}</td>
+                                            <td>${record.notes || ''}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : '<p>暂无支出记录</p>'}
+
+                        <div class="summary">
+                            <h3>财务汇总</h3>
+                            <table class="info-table">
+                                <tr><td>收礼总额</td><td class="gift-amount">¥${totalGifts.toFixed(2)}</td></tr>
+                                <tr><td>总支出</td><td class="expense-amount">¥${totalExpense.toFixed(2)}</td></tr>
+                                <tr><td>结余</td><td style="font-weight: bold; font-size: 14pt;">¥${balance.toFixed(2)}</td></tr>
+                            </table>
+                        </div>
+                        
+                        <div style="margin-top: 30px; text-align: center; font-size: 10pt; color: #666;">
+                            <p>生成时间：${new Date().toLocaleString('zh-CN')}</p>
+                            <p>记账人：${this.accountInfo.recorder || '未填写'} | 保管人：${this.accountInfo.keeper || '未填写'}</p>
+                        </div>
+                    `;
+                },
+                clearAllData() {
+                    if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                        this.accountInfo = {
+                            name: '',
+                            type: '',
+                            date: new Date().toISOString().split('T')[0],
+                            recorder: '',
+                            keeper: '',
+                            notes: ''
+                        };
+                        this.giftRecords = [];
+                        this.expenseRecords = [];
+                        this.resetGiftForm();
+                        this.resetExpenseForm();
+                        localStorage.removeItem('accountBookData');
+                    }
+                },
+                saveToLocalStorage() {
+                    const data = {
+                        accountInfo: this.accountInfo,
+                        giftRecords: this.giftRecords,
+                        expenseRecords: this.expenseRecords
+                    };
+                    localStorage.setItem('accountBookData', JSON.stringify(data));
+                },
+                saveSnapshotToLocalStorage() {
+                    if (this.lastSnapshot) {
+                        localStorage.setItem('accountBookSnapshot', JSON.stringify(this.lastSnapshot));
+                    }
+                },
+                loadFromLocalStorage() {
+                    const data = localStorage.getItem('accountBookData');
+                    if (data) {
+                        const parsed = JSON.parse(data);
+                        this.accountInfo = parsed.accountInfo || this.accountInfo;
+                        this.giftRecords = parsed.giftRecords || [];
+                        this.expenseRecords = parsed.expenseRecords || [];
+                    }
+                    
+                    // 加载快照数据
+                    const snapshot = localStorage.getItem('accountBookSnapshot');
+                    if (snapshot) {
+                        this.lastSnapshot = JSON.parse(snapshot);
+                    }
+                }
+            },
+            watch: {
+                accountInfo: {
+                    handler() {
+                        this.saveToLocalStorage();
+                    },
+                    deep: true
+                }
+            },
+            mounted() {
+                this.loadFromLocalStorage();
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
