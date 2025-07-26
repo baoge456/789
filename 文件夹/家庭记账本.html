@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭记账本</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #6c757d;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .type-option {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .type-option.income {
+            color: #28a745;
+        }
+
+        .type-option.expense {
+            color: #dc3545;
+        }
+
+        .type-option.selected {
+            border-color: currentColor;
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .category-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .category-tab {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #6c757d;
+            transition: all 0.3s;
+        }
+
+        .category-tab.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .icon-option {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .icon-option:hover {
+            border-color: #007bff;
+            transform: scale(1.05);
+        }
+
+        .icon-option.selected {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+            transform: scale(1.1);
+        }
+
+        .records-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s;
+        }
+
+        .record-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .record-info {
+            flex: 1;
+        }
+
+        .record-category {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .record-date {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .record-amount {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .record-amount.income {
+            color: #28a745;
+        }
+
+        .record-amount.expense {
+            color: #dc3545;
+        }
+
+        .record-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .btn-edit {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .category-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .category-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            background: white;
+            transition: all 0.3s;
+        }
+
+        .category-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .category-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .category-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .category-actions {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .filter-group {
+            flex: 1;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .filter-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-item {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .summary-amount {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .summary-amount.income {
+            color: #28a745;
+        }
+
+        .summary-amount.expense {
+            color: #dc3545;
+        }
+
+        .summary-amount.balance {
+            color: #007bff;
+        }
+
+        .backup-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .backup-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        #restore-input {
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+            }
+
+            .summary {
+                grid-template-columns: 1fr;
+            }
+
+            .category-list {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .form-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 家庭记账本</h1>
+            <p>轻松管理您的收支</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="records">记账</button>
+            <button class="tab-btn" data-tab="categories">分类</button>
+            <button class="tab-btn" data-tab="accounts">账户</button>
+            <button class="tab-btn" data-tab="reports">报表</button>
+            <button class="tab-btn" data-tab="settings">设置</button>
+        </div>
+
+        <!-- 记账页面 -->
+        <div id="records" class="tab-content active">
+            <form id="record-form">
+                <div class="type-selector">
+                    <label class="type-option expense selected">
+                        <input type="radio" name="type" value="expense" checked style="display: none;">
+                        <div>💸 支出</div>
+                    </label>
+                    <label class="type-option income">
+                        <input type="radio" name="type" value="income" style="display: none;">
+                        <div>💰 收入</div>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>金额</label>
+                    <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+                </div>
+
+                <div class="form-group">
+                    <label>分类</label>
+                    <select id="category" required>
+                        <option value="">请选择分类</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>账户</label>
+                    <select id="account" required>
+                        <option value="">请选择账户</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>备注</label>
+                    <input type="text" id="note" placeholder="备注信息（可选）">
+                </div>
+
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">添加记录</button>
+            </form>
+
+            <div class="filters">
+                <div class="filter-group">
+                    <label>月份</label>
+                    <select id="filter-month">
+                        <option value="">全部月份</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>类型</label>
+                    <select id="filter-type">
+                        <option value="">全部类型</option>
+                        <option value="income">收入</option>
+                        <option value="expense">支出</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="summary-label">总收入</div>
+                    <div class="summary-amount income" id="total-income">¥0.00</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">总支出</div>
+                    <div class="summary-amount expense" id="total-expense">¥0.00</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">余额</div>
+                    <div class="summary-amount balance" id="balance">¥0.00</div>
+                </div>
+            </div>
+
+            <div class="records-list" id="records-list"></div>
+        </div>
+
+        <!-- 分类管理页面 -->
+        <div id="categories" class="tab-content">
+            <div class="category-tabs">
+                <button class="category-tab active" data-type="expense">支出分类</button>
+                <button class="category-tab" data-type="income">收入分类</button>
+            </div>
+
+            <form id="category-form">
+                <div class="form-group">
+                    <label>分类名称</label>
+                    <input type="text" id="category-name" placeholder="输入分类名称" required>
+                </div>
+
+                <div class="form-group">
+                    <label>选择图标</label>
+                    <div class="icon-grid" id="icon-grid"></div>
+                </div>
+
+                <div class="form-buttons">
+                    <button type="submit" class="btn btn-primary">添加分类</button>
+                    <button type="button" class="btn btn-secondary" onclick="app.cancelCategoryEdit()">取消</button>
+                </div>
+            </form>
+
+            <div class="category-list" id="category-list"></div>
+        </div>
+
+        <!-- 账户管理页面 -->
+        <div id="accounts" class="tab-content">
+            <form id="account-form">
+                <div class="form-group">
+                    <label>账户名称</label>
+                    <input type="text" id="account-name" placeholder="如：现金、银行卡" required>
+                </div>
+
+                <div class="form-group">
+                    <label>初始余额</label>
+                    <input type="number" id="initial-balance" step="0.01" placeholder="0.00" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">添加账户</button>
+            </form>
+
+            <div class="category-list" id="account-list"></div>
+        </div>
+
+        <!-- 报表页面 -->
+        <div id="reports" class="tab-content">
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="summary-label">本月收入</div>
+                    <div class="summary-amount income" id="month-income">¥0.00</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">本月支出</div>
+                    <div class="summary-amount expense" id="month-expense">¥0.00</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">本月结余</div>
+                    <div class="summary-amount balance" id="month-balance">¥0.00</div>
+                </div>
+            </div>
+
+            <div id="charts-container">
+                <p style="text-align: center; color: #6c757d; padding: 40px;">
+                    📊 图表功能开发中...
+                </p>
+            </div>
+        </div>
+
+        <!-- 设置页面 -->
+        <div id="settings" class="tab-content">
+            <div class="backup-section">
+                <h3>数据备份与恢复</h3>
+                <p style="margin: 10px 0; color: #6c757d;">定期备份您的数据，避免数据丢失</p>
+                
+                <div class="backup-buttons">
+                    <button id="backup-btn" class="btn btn-primary">备份数据</button>
+                    <button id="restore-btn" class="btn btn-secondary">恢复数据</button>
+                </div>
+                
+                <input type="file" id="restore-input" accept=".json">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class AccountingApp {
+            constructor() {
+                this.records = JSON.parse(localStorage.getItem('accounting_records') || '[]');
+                this.categories = JSON.parse(localStorage.getItem('accounting_categories') || '[]');
+                this.accounts = JSON.parse(localStorage.getItem('accounting_accounts') || '[]');
+                this.currentTab = 'records';
+                this.currentCategoryType = 'expense';
+                this.editingItem = null;
+                
+                this.icons = [
+                    '🍔', '🍕', '🍜', '☕', '🚗', '⛽', '🏠', '💡', '📱', '👕',
+                    '🎬', '🎮', '📚', '💊', '🏥', '✈️', '🚌', '🛒', '💰', '💳',
+                    '🎁', '🎉', '💼', '📊', '🏆', '🎯', '⚽', '🎸', '🎨', '🌟'
+                ];
+
+                this.initializeDefaultData();
+                this.bindEvents();
+                this.renderAll();
+                this.setDefaultDate();
+            }
+
+            initializeDefaultData() {
+                if (this.categories.length === 0) {
+                    this.categories = [
+                        { id: 1, name: '餐饮', type: 'expense', icon: '🍔' },
+                        { id: 2, name: '交通', type: 'expense', icon: '🚗' },
+                        { id: 3, name: '购物', type: 'expense', icon: '🛒' },
+                        { id: 4, name: '娱乐', type: 'expense', icon: '🎬' },
+                        { id: 5, name: '工资', type: 'income', icon: '💰' },
+                        { id: 6, name: '奖金', type: 'income', icon: '🎁' }
+                    ];
+                    this.saveCategories();
+                }
+
+                if (this.accounts.length === 0) {
+                    this.accounts = [
+                        { id: 1, name: '现金', balance: 1000 },
+                        { id: 2, name: '银行卡', balance: 5000 }
+                    ];
+                    this.saveAccounts();
+                }
+            }
+
+            bindEvents() {
+                // 标签页切换
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.switchTab(e.target.dataset.tab);
+                    });
+                });
+
+                // 表单提交
+                document.getElementById('record-form').addEventListener('submit', (e) => this.handleRecordSubmit(e));
+                document.getElementById('category-form').addEventListener('submit', (e) => this.handleCategorySubmit(e));
+                document.getElementById('account-form').addEventListener('submit', (e) => this.handleAccountSubmit(e));
+
+                // 类型选择器
+                document.querySelectorAll('input[name="type"]').forEach(radio => {
+                    radio.addEventListener('change', () => this.updateCategoryOptions());
+                });
+
+                // 类型选择器点击
+                document.querySelectorAll('.type-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const radio = option.querySelector('input[type="radio"]');
+                        if (radio) {
+                            radio.checked = true;
+                            this.updateTypeSelection();
+                            this.updateCategoryOptions();
+                        }
+                    });
+                });
+
+                // 分类标签页
+                this.bindCategoryTabs();
+
+                // 备份恢复
+                document.getElementById('backup-btn').addEventListener('click', () => this.backupData());
+                document.getElementById('restore-btn').addEventListener('click', () => this.showRestoreDialog());
+                document.getElementById('restore-input').addEventListener('change', (e) => this.restoreData(e));
+
+                // 筛选器
+                document.getElementById('filter-month').addEventListener('change', () => this.filterRecords());
+                document.getElementById('filter-type').addEventListener('change', () => this.filterRecords());
+            }
+
+            bindCategoryTabs() {
+                document.querySelectorAll('.category-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.switchCategoryTab(e.target.dataset.type);
+                    });
+                });
+            }
+
+            bindIconEvents() {
+                document.querySelectorAll('.icon-option').forEach(icon => {
+                    icon.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.selectIcon(e.target.dataset.icon);
+                    });
+                });
+            }
+
+            updateTypeSelection() {
+                document.querySelectorAll('.type-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                const checkedRadio = document.querySelector('input[name="type"]:checked');
+                if (checkedRadio) {
+                    checkedRadio.closest('.type-option').classList.add('selected');
+                }
+            }
+
+            switchTab(tab) {
+                this.currentTab = tab;
+                
+                // 更新标签按钮状态
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+                // 更新内容区域
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tab).classList.add('active');
+
+                // 根据标签页渲染相应内容
+                if (tab === 'categories') {
+                    this.renderIconGrid();
+                    this.renderCategories();
+                } else if (tab === 'accounts') {
+                    this.renderAccounts();
+                } else if (tab === 'records') {
+                    this.renderRecords();
+                    this.updateSummary();
+                } else if (tab === 'reports') {
+                    this.updateMonthlyReport();
+                }
+            }
+
+            switchCategoryTab(type) {
+                this.currentCategoryType = type;
+                
+                // 更新标签页样式
+                document.querySelectorAll('.category-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                const activeTab = document.querySelector(`[data-type="${type}"]`);
+                if (activeTab) {
+                    activeTab.classList.add('active');
+                }
+                
+                // 重新渲染分类列表
+                this.renderCategories();
+                
+                // 如果不是编辑状态，清空表单
+                if (!this.editingItem) {
+                    this.resetCategoryForm();
+                }
+            }
+
+            renderIconGrid() {
+                const container = document.getElementById('icon-grid');
+                container.innerHTML = '';
+                
+                this.icons.forEach(icon => {
+                    const div = document.createElement('div');
+                    div.className = 'icon-option';
+                    div.dataset.icon = icon;
+                    div.textContent = icon;
+                    container.appendChild(div);
+                });
+                
+                // 重新绑定图标点击事件
+                this.bindIconEvents();
+            }
+
+            selectIcon(icon) {
+                // 清除所有图标的选中状态
+                document.querySelectorAll('.icon-option').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                
+                // 选中指定图标
+                const iconEl = document.querySelector(`[data-icon="${icon}"]`);
+                if (iconEl) {
+                    iconEl.classList.add('selected');
+                    // 滚动到选中的图标
+                    iconEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+
+            clearIconSelection() {
+                document.querySelectorAll('.icon-option').forEach(el => {
+                    el.classList.remove('selected');
+                });
+            }
+
+            setDefaultDate() {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('date').value = today;
+            }
+
+            updateCategoryOptions() {
+                const type = document.querySelector('input[name="type"]:checked').value;
+                const categorySelect = document.getElementById('category');
+                const categories = this.categories.filter(c => c.type === type);
+                
+                categorySelect.innerHTML = '<option value="">请选择分类</option>';
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = `${category.icon} ${category.name}`;
+                    categorySelect.appendChild(option);
+                });
+            }
+
+            updateAccountOptions() {
+                const accountSelect = document.getElementById('account');
+                accountSelect.innerHTML = '<option value="">请选择账户</option>';
+                
+                this.accounts.forEach(account => {
+                    const option = document.createElement('option');
+                    option.value = account.id;
+                    option.textContent = `${account.name} (¥${account.balance.toFixed(2)})`;
+                    accountSelect.appendChild(option);
+                });
+            }
+
+            handleRecordSubmit(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(e.target);
+                const type = formData.get('type');
+                const amount = parseFloat(formData.get('amount') || document.getElementById('amount').value);
+                const categoryId = parseInt(document.getElementById('category').value);
+                const accountId = parseInt(document.getElementById('account').value);
+                const note = document.getElementById('note').value;
+                const date = document.getElementById('date').value;
+
+                if (!amount || !categoryId || !accountId || !date) {
+                    alert('请填写所有必填字段');
+                    return;
+                }
+
+                const category = this.categories.find(c => c.id === categoryId);
+                const account = this.accounts.find(a => a.id === accountId);
+
+                if (!category || !account) {
+                    alert('分类或账户不存在');
+                    return;
+                }
+
+                const record = {
+                    id: Date.now(),
+                    type,
+                    amount,
+                    categoryId,
+                    categoryName: category.name,
+                    categoryIcon: category.icon,
+                    accountId,
+                    accountName: account.name,
+                    note,
+                    date,
+                    timestamp: new Date().toISOString()
+                };
+
+                // 更新账户余额
+                if (type === 'expense') {
+                    account.balance -= amount;
+                } else {
+                    account.balance += amount;
+                }
+
+                this.records.push(record);
+                this.saveRecords();
+                this.saveAccounts();
+                
+                // 重置表单
+                e.target.reset();
+                this.setDefaultDate();
+                this.updateTypeSelection();
+                
+                // 更新界面
+                this.renderRecords();
+                this.updateSummary();
+                this.updateAccountOptions();
+                
+                alert('记录添加成功！');
+            }
+
+            handleCategorySubmit(e) {
+                e.preventDefault();
+                
+                const nameInput = document.getElementById('category-name');
+                const name = nameInput.value.trim();
+                const selectedIcon = document.querySelector('.icon-option.selected');
+                
+                // 验证输入
+                if (!name) {
+                    alert('请输入分类名称');
+                    nameInput.focus();
+                    return;
+                }
+                
+                if (!selectedIcon) {
+                    alert('请选择一个图标');
+                    return;
+                }
+
+                const categoryData = {
+                    name: name,
+                    type: this.currentCategoryType,
+                    icon: selectedIcon.dataset.icon
+                };
+
+                if (this.editingItem) {
+                    // 编辑模式：更新现有分类
+                    const index = this.categories.findIndex(c => c.id === this.editingItem.id);
+                    if (index !== -1) {
+                        this.categories[index] = {
+                            ...this.editingItem,
+                            ...categoryData
+                        };
+                    }
+                    
+                    alert('分类更新成功！');
+                    this.editingItem = null;
+                    
+                    // 恢复按钮文本
+                    const submitBtn = document.querySelector('#category-form button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.textContent = '添加分类';
+                    }
+                } else {
+                    // 新增模式：创建新分类
+                    const newCategory = {
+                        id: Date.now(),
+                        ...categoryData
+                    };
+                    this.categories.push(newCategory);
+                    alert('分类添加成功！');
+                }
+
+                // 保存数据并更新界面
+                this.saveCategories();
+                this.renderCategories();
+                this.updateCategoryOptions();
+                
+                // 清空表单
+                this.resetCategoryForm();
+            }
+
+            handleAccountSubmit(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('account-name').value.trim();
+                const balance = parseFloat(document.getElementById('initial-balance').value);
+
+                if (!name || isNaN(balance)) {
+                    alert('请填写所有字段');
+                    return;
+                }
+
+                const account = {
+                    id: Date.now(),
+                    name,
+                    balance
+                };
+
+                this.accounts.push(account);
+                this.saveAccounts();
+                this.renderAccounts();
+                this.updateAccountOptions();
+                
+                e.target.reset();
+                alert('账户添加成功！');
+            }
+
+            editCategory(id) {
+                const category = this.categories.find(c => c.id === id);
+                if (!category) return;
+                
+                this.editingItem = category;
+                this.currentCategoryType = category.type;
+                
+                // 切换到分类页面
+                this.switchTab('categories');
+                
+                // 切换到对应的分类标签页
+                this.switchCategoryTab(category.type);
+                
+                // 延迟填充表单，确保DOM已更新
+                setTimeout(() => {
+                    // 填充分类名称
+                    const nameInput = document.getElementById('category-name');
+                    if (nameInput) {
+                        nameInput.value = category.name;
+                    }
+                    
+                    // 选中对应图标
+                    this.selectIcon(category.icon);
+                    
+                    // 更新提交按钮文本
+                    const submitBtn = document.querySelector('#category-form button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.textContent = '更新分类';
+                    }
+                    
+                    // 滚动到表单区域
+                    document.getElementById('category-form').scrollIntoView({ behavior: 'smooth' });
+                }, 150);
+            }
+
+            deleteCategory(id) {
+                if (confirm('确定要删除这个分类吗？')) {
+                    this.categories = this.categories.filter(c => c.id !== id);
+                    this.saveCategories();
+                    this.renderCategories();
+                    this.updateCategoryOptions();
+                }
+            }
+
+            deleteAccount(id) {
+                if (confirm('确定要删除这个账户吗？')) {
+                    this.accounts = this.accounts.filter(a => a.id !== id);
+                    this.saveAccounts();
+                    this.renderAccounts();
+                    this.updateAccountOptions();
+                }
+            }
+
+            deleteRecord(id) {
+                if (confirm('确定要删除这条记录吗？')) {
+                    const record = this.records.find(r => r.id === id);
+                    if (record) {
+                        // 恢复账户余额
+                        const account = this.accounts.find(a => a.id === record.accountId);
+                        if (account) {
+                            if (record.type === 'expense') {
+                                account.balance += record.amount;
+                            } else {
+                                account.balance -= record.amount;
+                            }
+                            this.saveAccounts();
+                        }
+                    }
+                    
+                    this.records = this.records.filter(r => r.id !== id);
+                    this.saveRecords();
+                    this.renderRecords();
+                    this.updateSummary();
+                    this.updateAccountOptions();
+                }
+            }
+
+            resetCategoryForm() {
+                const form = document.getElementById('category-form');
+                if (form) {
+                    form.reset();
+                }
+                
+                this.clearIconSelection();
+                this.editingItem = null;
+                
+                // 恢复按钮文本
+                const submitBtn = document.querySelector('#category-form button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.textContent = '添加分类';
+                }
+            }
+
+            cancelCategoryEdit() {
+                this.resetCategoryForm();
+                alert('已取消编辑');
+            }
+
+            renderCategories() {
+                const container = document.getElementById('category-list');
+                const categories = this.categories.filter(c => c.type === this.currentCategoryType);
+                
+                if (categories.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📂</div>
+                            <p>暂无${this.currentCategoryType === 'expense' ? '支出' : '收入'}分类</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = categories.map(category => `
+                    <div class="category-item">
+                        <div class="category-icon">${category.icon}</div>
+                        <div class="category-name">${category.name}</div>
+                        <div class="category-actions">
+                            <button class="btn-sm btn-edit" onclick="app.editCategory(${category.id})">编辑</button>
+                            <button class="btn-sm btn-delete" onclick="app.deleteCategory(${category.id})">删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderAccounts() {
+                const container = document.getElementById('account-list');
+                
+                if (this.accounts.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">💳</div>
+                            <p>暂无账户</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.accounts.map(account => `
+                    <div class="category-item">
+                        <div class="category-icon">💳</div>
+                        <div class="category-name">${account.name}</div>
+                        <div style="font-size: 14px; color: #007bff; margin: 5px 0;">¥${account.balance.toFixed(2)}</div>
+                        <div class="category-actions">
+                            <button class="btn-sm btn-delete" onclick="app.deleteAccount(${account.id})">删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderRecords() {
+                const container = document.getElementById('records-list');
+                let records = [...this.records].sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                // 应用筛选
+                const filterMonth = document.getElementById('filter-month').value;
+                const filterType = document.getElementById('filter-type').value;
+                
+                if (filterMonth) {
+                    records = records.filter(r => r.date.startsWith(filterMonth));
+                }
+                
+                if (filterType) {
+                    records = records.filter(r => r.type === filterType);
+                }
+                
+                if (records.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📝</div>
+                            <p>暂无记录</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = records.map(record => `
+                    <div class="record-item">
+                        <div class="record-info">
+                            <div class="record-category">${record.categoryIcon} ${record.categoryName}</div>
+                            <div class="record-date">${record.date} • ${record.accountName}</div>
+                            ${record.note ? `<div style="font-size: 12px; color: #6c757d;">${record.note}</div>` : ''}
+                        </div>
+                        <div class="record-amount ${record.type}">
+                            ${record.type === 'expense' ? '-' : '+'}¥${record.amount.toFixed(2)}
+                        </div>
+                        <div class="record-actions">
+                            <button class="btn-sm btn-delete" onclick="app.deleteRecord(${record.id})">删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateSummary() {
+                const totalIncome = this.records
+                    .filter(r => r.type === 'income')
+                    .reduce((sum, r) => sum + r.amount, 0);
+                
+                const totalExpense = this.records
+                    .filter(r => r.type === 'expense')
+                    .reduce((sum, r) => sum + r.amount, 0);
+                
+                const balance = totalIncome - totalExpense;
+
+                document.getElementById('total-income').textContent = `¥${totalIncome.toFixed(2)}`;
+                document.getElementById('total-expense').textContent = `¥${totalExpense.toFixed(2)}`;
+                document.getElementById('balance').textContent = `¥${balance.toFixed(2)}`;
+            }
+
+            updateMonthlyReport() {
+                const currentMonth = new Date().toISOString().slice(0, 7);
+                const monthRecords = this.records.filter(r => r.date.startsWith(currentMonth));
+                
+                const monthIncome = monthRecords
+                    .filter(r => r.type === 'income')
+                    .reduce((sum, r) => sum + r.amount, 0);
+                
+                const monthExpense = monthRecords
+                    .filter(r => r.type === 'expense')
+                    .reduce((sum, r) => sum + r.amount, 0);
+                
+                const monthBalance = monthIncome - monthExpense;
+
+                document.getElementById('month-income').textContent = `¥${monthIncome.toFixed(2)}`;
+                document.getElementById('month-expense').textContent = `¥${monthExpense.toFixed(2)}`;
+                document.getElementById('month-balance').textContent = `¥${monthBalance.toFixed(2)}`;
+            }
+
+            filterRecords() {
+                this.renderRecords();
+            }
+
+            initializeFilters() {
+                const monthSelect = document.getElementById('filter-month');
+                const months = [...new Set(this.records.map(r => r.date.slice(0, 7)))].sort().reverse();
+                
+                monthSelect.innerHTML = '<option value="">全部月份</option>';
+                months.forEach(month => {
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.textContent = month;
+                    monthSelect.appendChild(option);
+                });
+            }
+
+            backupData() {
+                const data = {
+                    records: this.records,
+                    categories: this.categories,
+                    accounts: this.accounts,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `accounting_backup_${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                alert('数据备份成功！');
+            }
+
+            showRestoreDialog() {
+                document.getElementById('restore-input').click();
+            }
+
+            restoreData(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        if (data.records && data.categories && data.accounts) {
+                            if (confirm('确定要恢复数据吗？这将覆盖当前所有数据！')) {
+                                this.records = data.records;
+                                this.categories = data.categories;
+                                this.accounts = data.accounts;
+                                
+                                this.saveRecords();
+                                this.saveCategories();
+                                this.saveAccounts();
+                                
+                                this.renderAll();
+                                alert('数据恢复成功！');
+                            }
+                        } else {
+                            alert('备份文件格式不正确！');
+                        }
+                    } catch (error) {
+                        alert('备份文件解析失败！');
+                    }
+                };
+                reader.readAsText(file);
+                
+                // 清空文件输入
+                e.target.value = '';
+            }
+
+            saveRecords() {
+                localStorage.setItem('accounting_records', JSON.stringify(this.records));
+            }
+
+            saveCategories() {
+                localStorage.setItem('accounting_categories', JSON.stringify(this.categories));
+            }
+
+            saveAccounts() {
+                localStorage.setItem('accounting_accounts', JSON.stringify(this.accounts));
+            }
+
+            renderAll() {
+                this.updateCategoryOptions();
+                this.updateAccountOptions();
+                this.renderRecords();
+                this.updateSummary();
+                this.initializeFilters();
+                this.renderIconGrid();
+                this.renderCategories();
+                this.renderAccounts();
+                this.updateMonthlyReport();
+            }
+        }
+
+        // 初始化应用
+        const app = new AccountingApp();
+    </script>
+</body>
+</html>
