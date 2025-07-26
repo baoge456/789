@@ -661,6 +661,109 @@
             background: #2980b9;
         }
         
+        /* 统计分析页面样式 */
+        .analysis-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .quick-report-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .quick-report-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #667eea;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .quick-report-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+        
+        .report-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .report-summary h4 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .report-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .report-stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .report-stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .report-stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .report-stat-value.positive {
+            color: #27ae60;
+        }
+        
+        .report-stat-value.negative {
+            color: #e74c3c;
+        }
+        
+        /* 响应式设计 - 统计分析页面 */
+        @media (max-width: 768px) {
+            .analysis-filters {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-report-buttons {
+                flex-direction: column;
+            }
+            
+            .quick-report-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .report-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
         /* 响应式设计 - 重点优化导航菜单 */
         @media (max-width: 768px) {
             .app-container {
@@ -1385,6 +1488,374 @@
                     </div>
                 </div>
                 
+                <!-- 统计分析页面 -->
+                <div v-if="activeTab === 'analysis'">
+                    <h2 style="margin-bottom: 20px;">
+                        <i class="fas fa-chart-bar"></i>
+                        统计分析
+                    </h2>
+                    
+                    <!-- 查询条件 -->
+                    <div class="form-container">
+                        <h3 style="margin-bottom: 15px;">
+                            <i class="fas fa-filter"></i>
+                            查询条件
+                        </h3>
+                        <div class="analysis-filters">
+                            <div class="form-group">
+                                <label>开始日期</label>
+                                <input type="date" v-model="analysisForm.startDate">
+                            </div>
+                            <div class="form-group">
+                                <label>结束日期</label>
+                                <input type="date" v-model="analysisForm.endDate">
+                            </div>
+                            <div class="form-group">
+                                <label>交易类型</label>
+                                <select v-model="analysisForm.type">
+                                    <option value="all">全部</option>
+                                    <option value="income">收入</option>
+                                    <option value="expense">支出</option>
+                                    <option value="transfer">转账</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>分类</label>
+                                <select v-model="analysisForm.category">
+                                    <option value="">全部分类</option>
+                                    <option v-for="category in categories" :key="category.id" :value="category.id">
+                                        {{ category.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>账户</label>
+                                <select v-model="analysisForm.account">
+                                    <option value="">全部账户</option>
+                                    <option v-for="account in accounts" :key="account.id" :value="account.id">
+                                        {{ account.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>分组方式</label>
+                                <select v-model="analysisForm.groupBy">
+                                    <option v-for="option in groupByOptions" :key="option.id" :value="option.id">
+                                        {{ option.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>报表类型</label>
+                                <select v-model="analysisForm.reportType">
+                                    <option v-for="type in reportTypes" :key="type.id" :value="type.id">
+                                        {{ type.name }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap;">
+                            <button @click="generateReport" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                                生成报表
+                            </button>
+                            <button @click="exportReport" class="btn btn-secondary" :disabled="!reportData">
+                                <i class="fas fa-download"></i>
+                                导出报表
+                            </button>
+                            <button @click="clearReport" class="btn btn-danger">
+                                <i class="fas fa-trash"></i>
+                                清空报表
+                            </button>
+                        </div>
+                        
+                        <!-- 高级分析选项 -->
+                        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                            <h4 style="margin-bottom: 10px; color: #333;">
+                                <i class="fas fa-chart-line"></i>
+                                高级分析选项
+                            </h4>
+                            <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" v-model="advancedAnalysis.showTrend">
+                                    <span>显示趋势分析</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" v-model="advancedAnalysis.showComparison">
+                                    <span>显示对比分析</span>
+                                </label>
+                                <div v-if="advancedAnalysis.showComparison" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>对比期间：</span>
+                                    <select v-model="advancedAnalysis.comparisonPeriod" style="padding: 4px 8px; border-radius: 4px;">
+                                        <option value="previous">上一期间</option>
+                                        <option value="same_period_last_year">去年同期</option>
+                                    </select>
+                                </div>
+                                <div v-if="advancedAnalysis.showTrend" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>趋势期间数：</span>
+                                    <input type="number" v-model="advancedAnalysis.trendPeriods" min="3" max="12" style="width: 60px; padding: 4px 8px; border-radius: 4px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 报表结果 -->
+                    <div v-if="reportData" style="margin-top: 30px;">
+                        <!-- 汇总统计 -->
+                        <div class="overview-grid" style="margin-bottom: 30px;">
+                            <div class="overview-card">
+                                <h3>总交易笔数</h3>
+                                <div class="amount">{{ reportData.totalCount }}</div>
+                                <div class="subtitle">笔交易</div>
+                            </div>
+                            <div class="overview-card income">
+                                <h3>总收入</h3>
+                                <div class="amount">¥{{ reportData.totalIncome.toFixed(2) }}</div>
+                                <div class="subtitle">{{ reportData.incomeCount }} 笔收入</div>
+                            </div>
+                            <div class="overview-card expense">
+                                <h3>总支出</h3>
+                                <div class="amount">¥{{ reportData.totalExpense.toFixed(2) }}</div>
+                                <div class="subtitle">{{ reportData.expenseCount }} 笔支出</div>
+                            </div>
+                            <div class="overview-card balance">
+                                <h3>净收入</h3>
+                                <div class="amount">¥{{ reportData.netIncome.toFixed(2) }}</div>
+                                <div class="subtitle">{{ reportData.netIncome >= 0 ? '盈余' : '亏损' }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 汇总报表 -->
+                        <div v-if="analysisForm.reportType === 'summary'" class="stats-grid">
+                            <div class="stats-card">
+                                <h3>
+                                    <i class="fas fa-table"></i>
+                                    汇总数据
+                                </h3>
+                                <div class="records-table" style="overflow-x: auto;">
+                                    <table style="width: 100%;">
+                                        <thead>
+                                            <tr>
+                                                <th>{{ getGroupByLabel() }}</th>
+                                                <th>收入</th>
+                                                <th>支出</th>
+                                                <th>净收入</th>
+                                                <th>交易笔数</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="item in reportData.summary" :key="item.group">
+                                                <td>{{ item.group }}</td>
+                                                <td class="amount-income">¥{{ item.income.toFixed(2) }}</td>
+                                                <td class="amount-expense">¥{{ item.expense.toFixed(2) }}</td>
+                                                <td :class="item.net >= 0 ? 'amount-income' : 'amount-expense'">
+                                                    ¥{{ item.net.toFixed(2) }}
+                                                </td>
+                                                <td>{{ item.count }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 明细报表 -->
+                        <div v-if="analysisForm.reportType === 'detail'" class="stats-grid">
+                            <div class="stats-card">
+                                <h3>
+                                    <i class="fas fa-list-alt"></i>
+                                    明细数据
+                                </h3>
+                                <div class="records-table" style="overflow-x: auto;">
+                                    <table style="width: 100%;">
+                                        <thead>
+                                            <tr>
+                                                <th>日期</th>
+                                                <th>类型</th>
+                                                <th>金额</th>
+                                                <th>分类</th>
+                                                <th>账户</th>
+                                                <th>描述</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="record in reportData.details" :key="record.id">
+                                                <td>{{ record.date }}</td>
+                                                <td>
+                                                    <span v-if="record.type === 'income'" class="amount-income">收入</span>
+                                                    <span v-else-if="record.type === 'expense'" class="amount-expense">支出</span>
+                                                    <span v-else class="amount-transfer">转账</span>
+                                                </td>
+                                                <td>
+                                                    <span :class="'amount-' + record.type">
+                                                        ¥{{ record.amount.toFixed(2) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span v-if="record.type !== 'transfer'">
+                                                        {{ getCategoryName(record.category) }}
+                                                    </span>
+                                                    <span v-else>-</span>
+                                                </td>
+                                                <td>
+                                                    <span v-if="record.type !== 'transfer'">
+                                                        {{ getAccountName(record.account) }}
+                                                    </span>
+                                                    <span v-else>
+                                                        {{ getAccountName(record.fromAccount) }} → {{ getAccountName(record.toAccount) }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ record.description }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 趋势分析 -->
+                        <div v-if="advancedAnalysis.showTrend && reportData.trend" class="stats-grid">
+                            <div class="stats-card">
+                                <h3>
+                                    <i class="fas fa-chart-line"></i>
+                                    趋势分析
+                                </h3>
+                                <div class="records-table" style="overflow-x: auto;">
+                                    <table style="width: 100%;">
+                                        <thead>
+                                            <tr>
+                                                <th>期间</th>
+                                                <th>收入</th>
+                                                <th>支出</th>
+                                                <th>净收入</th>
+                                                <th>交易笔数</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="item in reportData.trend" :key="item.period">
+                                                <td>{{ item.period }}</td>
+                                                <td class="amount-income">¥{{ item.income.toFixed(2) }}</td>
+                                                <td class="amount-expense">¥{{ item.expense.toFixed(2) }}</td>
+                                                <td :class="item.net >= 0 ? 'amount-income' : 'amount-expense'">
+                                                    ¥{{ item.net.toFixed(2) }}
+                                                </td>
+                                                <td>{{ item.count }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 对比分析 -->
+                        <div v-if="advancedAnalysis.showComparison && reportData.comparison" class="stats-grid">
+                            <div class="stats-card">
+                                <h3>
+                                    <i class="fas fa-balance-scale"></i>
+                                    对比分析
+                                </h3>
+                                <div class="records-table" style="overflow-x: auto;">
+                                    <table style="width: 100%;">
+                                        <thead>
+                                            <tr>
+                                                <th>指标</th>
+                                                <th>当前期间</th>
+                                                <th>对比期间</th>
+                                                <th>变化率</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>收入</td>
+                                                <td class="amount-income">¥{{ reportData.comparison.current.income.toFixed(2) }}</td>
+                                                <td class="amount-income">¥{{ reportData.comparison.comparison.income.toFixed(2) }}</td>
+                                                <td :class="parseFloat(reportData.comparison.changes.income) >= 0 ? 'amount-income' : 'amount-expense'">
+                                                    {{ reportData.comparison.changes.income }}%
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>支出</td>
+                                                <td class="amount-expense">¥{{ reportData.comparison.current.expense.toFixed(2) }}</td>
+                                                <td class="amount-expense">¥{{ reportData.comparison.comparison.expense.toFixed(2) }}</td>
+                                                <td :class="parseFloat(reportData.comparison.changes.expense) <= 0 ? 'amount-income' : 'amount-expense'">
+                                                    {{ reportData.comparison.changes.expense }}%
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>净收入</td>
+                                                <td :class="reportData.comparison.current.net >= 0 ? 'amount-income' : 'amount-expense'">
+                                                    ¥{{ reportData.comparison.current.net.toFixed(2) }}
+                                                </td>
+                                                <td :class="reportData.comparison.comparison.net >= 0 ? 'amount-income' : 'amount-expense'">
+                                                    ¥{{ reportData.comparison.comparison.net.toFixed(2) }}
+                                                </td>
+                                                <td :class="parseFloat(reportData.comparison.changes.net) >= 0 ? 'amount-income' : 'amount-expense'">
+                                                    {{ reportData.comparison.changes.net }}%
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>交易笔数</td>
+                                                <td>{{ reportData.comparison.current.count }}</td>
+                                                <td>{{ reportData.comparison.comparison.count }}</td>
+                                                <td :class="parseFloat(reportData.comparison.changes.count) >= 0 ? 'amount-income' : 'amount-expense'">
+                                                    {{ reportData.comparison.changes.count }}%
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 图表分析 -->
+                        <div v-if="analysisForm.reportType === 'chart'" class="stats-grid">
+                            <div class="stats-card">
+                                <h3>
+                                    <i class="fas fa-chart-line"></i>
+                                    图表分析
+                                </h3>
+                                <div style="height: 300px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">
+                                    <div style="text-align: center; color: #666;">
+                                        <i class="fas fa-chart-line" style="font-size: 48px; margin-bottom: 15px;"></i>
+                                        <p>图表功能需要集成图表库（如Chart.js）</p>
+                                        <p>当前显示数据：{{ reportData.summary.length }} 个数据点</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 快速报表模板 -->
+                    <div style="margin-top: 30px;">
+                        <h3 style="margin-bottom: 15px;">
+                            <i class="fas fa-rocket"></i>
+                            快速报表
+                        </h3>
+                        <div class="quick-report-buttons">
+                            <button @click="quickReport('month')" class="quick-report-btn">
+                                <i class="fas fa-calendar-alt"></i>
+                                本月报表
+                            </button>
+                            <button @click="quickReport('quarter')" class="quick-report-btn">
+                                <i class="fas fa-calendar-week"></i>
+                                本季度报表
+                            </button>
+                            <button @click="quickReport('year')" class="quick-report-btn">
+                                <i class="fas fa-calendar"></i>
+                                本年报表
+                            </button>
+                            <button @click="quickReport('category')" class="quick-report-btn">
+                                <i class="fas fa-tags"></i>
+                                分类汇总
+                            </button>
+                            <button @click="quickReport('account')" class="quick-report-btn">
+                                <i class="fas fa-university"></i>
+                                账户汇总
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- 记录页面 -->
                 <div v-if="activeTab === 'records'">
                     <div class="records-header">
@@ -1726,6 +2197,7 @@
                         { id: 'transfer', name: '转账', icon: 'fas fa-exchange-alt' },
                         { id: 'loan', name: '借贷', icon: 'fas fa-handshake' },
                         { id: 'records', name: '记录', icon: 'fas fa-list' },
+                        { id: 'analysis', name: '统计分析', icon: 'fas fa-chart-bar' },
                         { id: 'categories', name: '分类', icon: 'fas fa-tags' },
                         { id: 'accounts', name: '账户', icon: 'fas fa-university' },
                         { id: 'settings', name: '设置', icon: 'fas fa-cog' }
@@ -1787,7 +2259,46 @@
                     pageSize: 20,
                     
                     // 编辑状态
-                    editingRecord: null
+                    editingRecord: null,
+                    
+                    // 统计分析相关
+                    analysisForm: {
+                        startDate: '',
+                        endDate: '',
+                        type: 'all',
+                        category: '',
+                        account: '',
+                        groupBy: 'month', // month, quarter, year, category, account
+                        reportType: 'summary' // summary, detail, chart
+                    },
+                    
+                    // 报表数据
+                    reportData: null,
+                    chartData: null,
+                    
+                    // 报表类型
+                    reportTypes: [
+                        { id: 'summary', name: '汇总报表', icon: 'fas fa-table' },
+                        { id: 'detail', name: '明细报表', icon: 'fas fa-list-alt' },
+                        { id: 'chart', name: '图表分析', icon: 'fas fa-chart-line' }
+                    ],
+                    
+                    // 分组方式
+                    groupByOptions: [
+                        { id: 'month', name: '按月分组', icon: 'fas fa-calendar-alt' },
+                        { id: 'quarter', name: '按季度分组', icon: 'fas fa-calendar-week' },
+                        { id: 'year', name: '按年分组', icon: 'fas fa-calendar' },
+                        { id: 'category', name: '按分类分组', icon: 'fas fa-tags' },
+                        { id: 'account', name: '按账户分组', icon: 'fas fa-university' }
+                    ],
+                    
+                    // 高级分析选项
+                    advancedAnalysis: {
+                        showTrend: false,
+                        showComparison: false,
+                        comparisonPeriod: 'previous', // previous, same_period_last_year
+                        trendPeriods: 6
+                    }
                 }
             },
             
@@ -2589,6 +3100,548 @@
                             alert('所有数据已清空');
                         }
                     }
+                },
+                
+                // 统计分析相关方法
+                generateReport() {
+                    // 过滤数据
+                    let filteredRecords = this.filterRecords();
+                    
+                    if (filteredRecords.length === 0) {
+                        alert('没有找到符合条件的记录');
+                        return;
+                    }
+                    
+                    // 生成报表数据
+                    this.reportData = this.createReportData(filteredRecords);
+                    
+                    alert(`报表生成成功！共找到 ${filteredRecords.length} 条记录`);
+                },
+                
+                filterRecords() {
+                    let filtered = this.records;
+                    
+                    // 日期筛选
+                    if (this.analysisForm.startDate) {
+                        filtered = filtered.filter(record => record.date >= this.analysisForm.startDate);
+                    }
+                    if (this.analysisForm.endDate) {
+                        filtered = filtered.filter(record => record.date <= this.analysisForm.endDate);
+                    }
+                    
+                    // 类型筛选
+                    if (this.analysisForm.type !== 'all') {
+                        filtered = filtered.filter(record => record.type === this.analysisForm.type);
+                    }
+                    
+                    // 分类筛选
+                    if (this.analysisForm.category) {
+                        filtered = filtered.filter(record => record.category === parseInt(this.analysisForm.category));
+                    }
+                    
+                    // 账户筛选
+                    if (this.analysisForm.account) {
+                        filtered = filtered.filter(record => 
+                            record.account === parseInt(this.analysisForm.account) ||
+                            record.fromAccount === parseInt(this.analysisForm.account) ||
+                            record.toAccount === parseInt(this.analysisForm.account)
+                        );
+                    }
+                    
+                    return filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+                },
+                
+                createReportData(records) {
+                    const data = {
+                        totalCount: records.length,
+                        totalIncome: 0,
+                        totalExpense: 0,
+                        incomeCount: 0,
+                        expenseCount: 0,
+                        summary: [],
+                        details: records
+                    };
+                    
+                    // 计算总体统计
+                    records.forEach(record => {
+                        if (record.type === 'income') {
+                            data.totalIncome += record.amount;
+                            data.incomeCount++;
+                        } else if (record.type === 'expense') {
+                            data.totalExpense += record.amount;
+                            data.expenseCount++;
+                        }
+                    });
+                    
+                    data.netIncome = data.totalIncome - data.totalExpense;
+                    
+                    // 根据分组方式生成汇总数据
+                    data.summary = this.generateSummary(records);
+                    
+                    // 添加趋势分析
+                    data.trend = this.calculateTrend(records);
+                    
+                    // 添加对比分析
+                    data.comparison = this.calculateComparison(records);
+                    
+                    return data;
+                },
+                
+                generateSummary(records) {
+                    const summary = {};
+                    
+                    records.forEach(record => {
+                        let groupKey = this.getGroupKey(record);
+                        
+                        if (!summary[groupKey]) {
+                            summary[groupKey] = {
+                                group: groupKey,
+                                income: 0,
+                                expense: 0,
+                                count: 0
+                            };
+                        }
+                        
+                        if (record.type === 'income') {
+                            summary[groupKey].income += record.amount;
+                        } else if (record.type === 'expense') {
+                            summary[groupKey].expense += record.amount;
+                        }
+                        
+                        summary[groupKey].count++;
+                    });
+                    
+                    // 计算净收入并排序
+                    return Object.values(summary).map(item => {
+                        item.net = item.income - item.expense;
+                        return item;
+                    }).sort((a, b) => {
+                        // 按分组方式排序
+                        if (this.analysisForm.groupBy === 'month' || this.analysisForm.groupBy === 'quarter' || this.analysisForm.groupBy === 'year') {
+                            return a.group.localeCompare(b.group);
+                        } else {
+                            return b.net - a.net; // 按净收入排序
+                        }
+                    });
+                },
+                
+                getGroupKey(record) {
+                    const date = new Date(record.date);
+                    
+                    switch (this.analysisForm.groupBy) {
+                        case 'month':
+                            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                        case 'quarter':
+                            const quarter = Math.floor(date.getMonth() / 3) + 1;
+                            return `${date.getFullYear()}年第${quarter}季度`;
+                        case 'year':
+                            return `${date.getFullYear()}年`;
+                        case 'category':
+                            return this.getCategoryName(record.category);
+                        case 'account':
+                            return this.getAccountName(record.account);
+                        default:
+                            return record.date;
+                    }
+                },
+                
+                getGroupByLabel() {
+                    const labels = {
+                        'month': '月份',
+                        'quarter': '季度',
+                        'year': '年份',
+                        'category': '分类',
+                        'account': '账户'
+                    };
+                    return labels[this.analysisForm.groupBy] || '分组';
+                },
+                
+                exportReport() {
+                    if (!this.reportData) {
+                        alert('请先生成报表');
+                        return;
+                    }
+                    
+                    const exportType = prompt('请选择导出格式：\n1. 文本格式 (.txt)\n2. CSV格式 (.csv)\n3. JSON格式 (.json)\n\n请输入数字 1-3：', '1');
+                    
+                    if (!exportType) return;
+                    
+                    let content, filename, mimeType;
+                    
+                    switch (exportType) {
+                        case '1':
+                            content = this.generateReportContent();
+                            filename = `家庭记账报表_${new Date().toISOString().split('T')[0]}.txt`;
+                            mimeType = 'text/plain;charset=utf-8';
+                            break;
+                        case '2':
+                            content = this.generateCSVContent();
+                            filename = `家庭记账报表_${new Date().toISOString().split('T')[0]}.csv`;
+                            mimeType = 'text/csv;charset=utf-8';
+                            break;
+                        case '3':
+                            content = this.generateJSONContent();
+                            filename = `家庭记账报表_${new Date().toISOString().split('T')[0]}.json`;
+                            mimeType = 'application/json;charset=utf-8';
+                            break;
+                        default:
+                            alert('无效的选择');
+                            return;
+                    }
+                    
+                    const blob = new Blob([content], { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    alert('报表导出成功！');
+                },
+                
+                generateReportContent() {
+                    const data = this.reportData;
+                    let content = '';
+                    
+                    content += '='.repeat(50) + '\n';
+                    content += '家庭记账本 - 统计分析报表\n';
+                    content += '='.repeat(50) + '\n\n';
+                    
+                    content += `报表生成时间：${new Date().toLocaleString()}\n`;
+                    content += `查询条件：${this.getQueryConditions()}\n\n`;
+                    
+                    content += '总体统计：\n';
+                    content += `- 总交易笔数：${data.totalCount} 笔\n`;
+                    content += `- 总收入：¥${data.totalIncome.toFixed(2)}\n`;
+                    content += `- 总支出：¥${data.totalExpense.toFixed(2)}\n`;
+                    content += `- 净收入：¥${data.netIncome.toFixed(2)}\n`;
+                    content += `- 收入笔数：${data.incomeCount} 笔\n`;
+                    content += `- 支出笔数：${data.expenseCount} 笔\n\n`;
+                    
+                    content += `${this.getGroupByLabel()}汇总：\n`;
+                    content += '-'.repeat(50) + '\n';
+                    
+                    data.summary.forEach(item => {
+                        content += `${item.group}：\n`;
+                        content += `  收入：¥${item.income.toFixed(2)}\n`;
+                        content += `  支出：¥${item.expense.toFixed(2)}\n`;
+                        content += `  净收入：¥${item.net.toFixed(2)}\n`;
+                        content += `  交易笔数：${item.count} 笔\n\n`;
+                    });
+                    
+                    if (this.analysisForm.reportType === 'detail') {
+                        content += '明细记录：\n';
+                        content += '-'.repeat(50) + '\n';
+                        
+                        data.details.forEach(record => {
+                            content += `${record.date} | ${record.type === 'income' ? '收入' : record.type === 'expense' ? '支出' : '转账'} | ¥${record.amount.toFixed(2)} | ${this.getCategoryName(record.category)} | ${this.getAccountName(record.account)} | ${record.description}\n`;
+                        });
+                    }
+                    
+                    return content;
+                },
+                
+                getQueryConditions() {
+                    const conditions = [];
+                    
+                    if (this.analysisForm.startDate) {
+                        conditions.push(`开始日期：${this.analysisForm.startDate}`);
+                    }
+                    if (this.analysisForm.endDate) {
+                        conditions.push(`结束日期：${this.analysisForm.endDate}`);
+                    }
+                    if (this.analysisForm.type !== 'all') {
+                        conditions.push(`交易类型：${this.analysisForm.type === 'income' ? '收入' : this.analysisForm.type === 'expense' ? '支出' : '转账'}`);
+                    }
+                    if (this.analysisForm.category) {
+                        conditions.push(`分类：${this.getCategoryName(parseInt(this.analysisForm.category))}`);
+                    }
+                    if (this.analysisForm.account) {
+                        conditions.push(`账户：${this.getAccountName(parseInt(this.analysisForm.account))}`);
+                    }
+                    
+                    return conditions.length > 0 ? conditions.join('，') : '无筛选条件';
+                },
+                
+                generateCSVContent() {
+                    const data = this.reportData;
+                    let csv = '';
+                    
+                    // 添加BOM以支持中文
+                    csv += '\ufeff';
+                    
+                    // 总体统计
+                    csv += '总体统计\n';
+                    csv += '总交易笔数,总收入,总支出,净收入,收入笔数,支出笔数\n';
+                    csv += `${data.totalCount},${data.totalIncome.toFixed(2)},${data.totalExpense.toFixed(2)},${data.netIncome.toFixed(2)},${data.incomeCount},${data.expenseCount}\n\n`;
+                    
+                    // 汇总数据
+                    csv += `${this.getGroupByLabel()}汇总\n`;
+                    csv += `${this.getGroupByLabel()},收入,支出,净收入,交易笔数\n`;
+                    
+                    data.summary.forEach(item => {
+                        csv += `${item.group},${item.income.toFixed(2)},${item.expense.toFixed(2)},${item.net.toFixed(2)},${item.count}\n`;
+                    });
+                    
+                    // 明细数据
+                    if (this.analysisForm.reportType === 'detail') {
+                        csv += '\n明细记录\n';
+                        csv += '日期,类型,金额,分类,账户,描述\n';
+                        
+                        data.details.forEach(record => {
+                            const type = record.type === 'income' ? '收入' : record.type === 'expense' ? '支出' : '转账';
+                            const category = record.type !== 'transfer' ? this.getCategoryName(record.category) : '-';
+                            const account = record.type !== 'transfer' ? this.getAccountName(record.account) : 
+                                          `${this.getAccountName(record.fromAccount)} → ${this.getAccountName(record.toAccount)}`;
+                            
+                            csv += `${record.date},${type},${record.amount.toFixed(2)},${category},${account},"${record.description}"\n`;
+                        });
+                    }
+                    
+                    return csv;
+                },
+                
+                generateJSONContent() {
+                    const data = this.reportData;
+                    const jsonData = {
+                        reportInfo: {
+                            title: '家庭记账本 - 统计分析报表',
+                            generateTime: new Date().toISOString(),
+                            queryConditions: this.getQueryConditions(),
+                            groupBy: this.analysisForm.groupBy,
+                            reportType: this.analysisForm.reportType
+                        },
+                        summary: {
+                            totalCount: data.totalCount,
+                            totalIncome: data.totalIncome,
+                            totalExpense: data.totalExpense,
+                            netIncome: data.netIncome,
+                            incomeCount: data.incomeCount,
+                            expenseCount: data.expenseCount
+                        },
+                        groupedData: data.summary,
+                        details: this.analysisForm.reportType === 'detail' ? data.details : null
+                    };
+                    
+                    return JSON.stringify(jsonData, null, 2);
+                },
+                
+                clearReport() {
+                    this.reportData = null;
+                    this.chartData = null;
+                },
+                
+                quickReport(type) {
+                    const now = new Date();
+                    const currentYear = now.getFullYear();
+                    const currentMonth = now.getMonth() + 1;
+                    
+                    // 重置表单
+                    this.analysisForm = {
+                        startDate: '',
+                        endDate: '',
+                        type: 'all',
+                        category: '',
+                        account: '',
+                        groupBy: type,
+                        reportType: 'summary'
+                    };
+                    
+                    switch (type) {
+                        case 'month':
+                            // 本月报表
+                            this.analysisForm.startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+                            this.analysisForm.endDate = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0];
+                            break;
+                        case 'quarter':
+                            // 本季度报表
+                            const quarter = Math.floor((currentMonth - 1) / 3);
+                            const quarterStartMonth = quarter * 3 + 1;
+                            this.analysisForm.startDate = `${currentYear}-${String(quarterStartMonth).padStart(2, '0')}-01`;
+                            this.analysisForm.endDate = new Date(currentYear, quarterStartMonth + 2, 0).toISOString().split('T')[0];
+                            break;
+                        case 'year':
+                            // 本年报表
+                            this.analysisForm.startDate = `${currentYear}-01-01`;
+                            this.analysisForm.endDate = `${currentYear}-12-31`;
+                            break;
+                        case 'category':
+                        case 'account':
+                            // 分类/账户汇总（不设置日期范围）
+                            break;
+                    }
+                    
+                    // 自动生成报表
+                    this.generateReport();
+                },
+                
+                // 趋势分析
+                calculateTrend(records) {
+                    if (!this.advancedAnalysis.showTrend) return null;
+                    
+                    const trendData = [];
+                    const periods = this.advancedAnalysis.trendPeriods;
+                    
+                    // 根据分组方式计算趋势
+                    for (let i = periods - 1; i >= 0; i--) {
+                        const periodRecords = this.getPeriodRecords(records, i);
+                        const periodData = {
+                            period: this.getPeriodLabel(i),
+                            income: periodRecords.income,
+                            expense: periodRecords.expense,
+                            net: periodRecords.income - periodRecords.expense,
+                            count: periodRecords.count
+                        };
+                        trendData.push(periodData);
+                    }
+                    
+                    return trendData;
+                },
+                
+                getPeriodRecords(records, offset) {
+                    const now = new Date();
+                    let startDate, endDate;
+                    
+                    switch (this.analysisForm.groupBy) {
+                        case 'month':
+                            startDate = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+                            endDate = new Date(now.getFullYear(), now.getMonth() - offset + 1, 0);
+                            break;
+                        case 'quarter':
+                            const quarter = Math.floor(now.getMonth() / 3);
+                            const targetQuarter = quarter - offset;
+                            const targetYear = now.getFullYear() + Math.floor(targetQuarter / 4);
+                            const targetQuarterInYear = ((targetQuarter % 4) + 4) % 4;
+                            startDate = new Date(targetYear, targetQuarterInYear * 3, 1);
+                            endDate = new Date(targetYear, targetQuarterInYear * 3 + 3, 0);
+                            break;
+                        case 'year':
+                            startDate = new Date(now.getFullYear() - offset, 0, 1);
+                            endDate = new Date(now.getFullYear() - offset, 11, 31);
+                            break;
+                        default:
+                            return { income: 0, expense: 0, count: 0 };
+                    }
+                    
+                    const periodRecords = records.filter(record => {
+                        const recordDate = new Date(record.date);
+                        return recordDate >= startDate && recordDate <= endDate;
+                    });
+                    
+                    let income = 0, expense = 0;
+                    periodRecords.forEach(record => {
+                        if (record.type === 'income') income += record.amount;
+                        else if (record.type === 'expense') expense += record.amount;
+                    });
+                    
+                    return { income, expense, count: periodRecords.length };
+                },
+                
+                getPeriodLabel(offset) {
+                    const now = new Date();
+                    
+                    switch (this.analysisForm.groupBy) {
+                        case 'month':
+                            const month = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+                            return `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
+                        case 'quarter':
+                            const quarter = Math.floor(now.getMonth() / 3);
+                            const targetQuarter = quarter - offset;
+                            const targetYear = now.getFullYear() + Math.floor(targetQuarter / 4);
+                            const targetQuarterInYear = ((targetQuarter % 4) + 4) % 4;
+                            return `${targetYear}年第${targetQuarterInYear + 1}季度`;
+                        case 'year':
+                            return `${now.getFullYear() - offset}年`;
+                        default:
+                            return `期间${offset + 1}`;
+                    }
+                },
+                
+                // 对比分析
+                calculateComparison(records) {
+                    if (!this.advancedAnalysis.showComparison) return null;
+                    
+                    const currentPeriod = this.getCurrentPeriodData(records);
+                    const comparisonPeriod = this.getComparisonPeriodData(records);
+                    
+                    if (!currentPeriod || !comparisonPeriod) return null;
+                    
+                    return {
+                        current: currentPeriod,
+                        comparison: comparisonPeriod,
+                        changes: {
+                            income: this.calculateChange(currentPeriod.income, comparisonPeriod.income),
+                            expense: this.calculateChange(currentPeriod.expense, comparisonPeriod.expense),
+                            net: this.calculateChange(currentPeriod.net, comparisonPeriod.net),
+                            count: this.calculateChange(currentPeriod.count, comparisonPeriod.count)
+                        }
+                    };
+                },
+                
+                getCurrentPeriodData(records) {
+                    if (!this.analysisForm.startDate || !this.analysisForm.endDate) return null;
+                    
+                    const currentRecords = records.filter(record => 
+                        record.date >= this.analysisForm.startDate && 
+                        record.date <= this.analysisForm.endDate
+                    );
+                    
+                    let income = 0, expense = 0;
+                    currentRecords.forEach(record => {
+                        if (record.type === 'income') income += record.amount;
+                        else if (record.type === 'expense') expense += record.amount;
+                    });
+                    
+                    return {
+                        income,
+                        expense,
+                        net: income - expense,
+                        count: currentRecords.length
+                    };
+                },
+                
+                getComparisonPeriodData(records) {
+                    if (!this.analysisForm.startDate || !this.analysisForm.endDate) return null;
+                    
+                    const startDate = new Date(this.analysisForm.startDate);
+                    const endDate = new Date(this.analysisForm.endDate);
+                    const duration = endDate - startDate;
+                    
+                    let comparisonStart, comparisonEnd;
+                    
+                    if (this.advancedAnalysis.comparisonPeriod === 'previous') {
+                        // 上一期间
+                        comparisonStart = new Date(startDate.getTime() - duration);
+                        comparisonEnd = new Date(startDate.getTime() - 1);
+                    } else {
+                        // 去年同期
+                        comparisonStart = new Date(startDate.getFullYear() - 1, startDate.getMonth(), startDate.getDate());
+                        comparisonEnd = new Date(endDate.getFullYear() - 1, endDate.getMonth(), endDate.getDate());
+                    }
+                    
+                    const comparisonRecords = records.filter(record => {
+                        const recordDate = new Date(record.date);
+                        return recordDate >= comparisonStart && recordDate <= comparisonEnd;
+                    });
+                    
+                    let income = 0, expense = 0;
+                    comparisonRecords.forEach(record => {
+                        if (record.type === 'income') income += record.amount;
+                        else if (record.type === 'expense') expense += record.amount;
+                    });
+                    
+                    return {
+                        income,
+                        expense,
+                        net: income - expense,
+                        count: comparisonRecords.length
+                    };
+                },
+                
+                calculateChange(current, previous) {
+                    if (previous === 0) return current > 0 ? 100 : 0;
+                    return ((current - previous) / previous * 100).toFixed(2);
                 }
             },
             
