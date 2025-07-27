@@ -135,6 +135,7 @@
             display: flex;
             gap: 10px;
             justify-content: space-between;
+            margin-top: 20px;
         }
         
         .login-buttons .btn {
@@ -195,6 +196,74 @@
             display: flex;
             align-items: center;
             gap: 4px;
+        }
+        
+        .btn-tiny {
+            padding: 4px 6px;
+            font-size: 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+        }
+        
+        /* 分类管理样式 */
+        .category-section {
+            margin-bottom: 25px;
+        }
+        
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .category-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .category-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .category-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .sub-categories {
+            border-top: 1px solid #f0f0f0;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+        
+        .sub-category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .sub-category-name {
+            flex: 1;
         }
         
         .error-message {
@@ -1039,6 +1108,30 @@
                 align-items: stretch;
             }
             
+            /* 分类管理移动端优化 */
+            .category-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .category-card {
+                padding: 8px;
+            }
+            
+            .category-name {
+                font-size: 12px;
+            }
+            
+            .sub-category-item {
+                font-size: 10px;
+            }
+            
+            .btn-tiny {
+                width: 18px;
+                height: 18px;
+                font-size: 8px;
+            }
+            
             .account-actions,
             .loan-actions {
                 justify-content: center;
@@ -1474,7 +1567,7 @@
                                         :key="category.id" 
                                         :value="category.id"
                                     >
-                                        {{ category.name }}
+                                        {{ getCategoryDisplayName(category) }}
                                     </option>
                                 </select>
                             </div>
@@ -1546,7 +1639,7 @@
                                         :key="category.id" 
                                         :value="category.id"
                                     >
-                                        {{ category.name }}
+                                        {{ getCategoryDisplayName(category) }}
                                     </option>
                                 </select>
                             </div>
@@ -2045,7 +2138,7 @@
                                 <select v-model="analysisForm.category">
                                     <option value="">全部分类</option>
                                     <option v-for="category in categories" :key="category.id" :value="category.id">
-                                        {{ category.name }}
+                                        {{ getCategoryDisplayName(category) }}
                                     </option>
                                 </select>
                             </div>
@@ -2553,7 +2646,7 @@
                                         :key="category.id" 
                                         :value="category.id"
                                     >
-                                        {{ category.name }}
+                                        {{ getCategoryDisplayName(category) }}
                                     </option>
                                     <option 
                                         v-if="editingRecord.type === 'expense'"
@@ -2561,7 +2654,7 @@
                                         :key="category.id" 
                                         :value="category.id"
                                     >
-                                        {{ category.name }}
+                                        {{ getCategoryDisplayName(category) }}
                                     </option>
                                 </select>
                             </div>
@@ -2667,6 +2760,19 @@
                                     <option value="expense">支出分类</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label>父分类</label>
+                                <select v-model="categoryForm.parentId">
+                                    <option value="">顶级分类</option>
+                                    <option 
+                                        v-for="parent in getParentCategories(categoryForm.type)" 
+                                        :key="parent.id" 
+                                        :value="parent.id"
+                                    >
+                                        {{ parent.name }}
+                                    </option>
+                                </select>
+                            </div>
                         </div>
                         <button @click="addCategory" class="btn btn-primary">
                             <i class="fas fa-plus"></i>
@@ -2676,17 +2782,65 @@
                     
                     <!-- 分类列表 -->
                     <h3 style="margin: 30px 0 15px 0;">现有分类</h3>
-                    <div v-for="category in categories" :key="category.id" class="category-item">
-                        <div class="category-info">
-                            <span class="category-name">{{ category.name }}</span>
-                            <span :class="['category-type', category.type]">
-                                {{ category.type === 'income' ? '收入' : '支出' }}
-                            </span>
+                    
+                    <!-- 收入分类 -->
+                    <div class="category-section">
+                        <h4 style="color: #27ae60; margin-bottom: 10px;">
+                            <i class="fas fa-plus-circle"></i> 收入分类
+                        </h4>
+                        <div class="category-grid">
+                            <div v-for="category in getTopLevelCategories('income')" :key="category.id" class="category-card">
+                                <div class="category-header">
+                                    <span class="category-name">{{ category.name }}</span>
+                                    <div class="category-actions">
+                                        <button @click="addSubCategory(category)" class="btn-tiny btn-secondary">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button @click="deleteCategory(category.id)" class="btn-tiny btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="getSubCategories(category.id).length > 0" class="sub-categories">
+                                    <div v-for="subCategory in getSubCategories(category.id)" :key="subCategory.id" class="sub-category-item">
+                                        <span class="sub-category-name">{{ subCategory.name }}</span>
+                                        <button @click="deleteCategory(subCategory.id)" class="btn-tiny btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <button @click="deleteCategory(category.id)" class="btn-small btn-danger">
-                            <i class="fas fa-trash"></i>
-                            删除
-                        </button>
+                    </div>
+                    
+                    <!-- 支出分类 -->
+                    <div class="category-section">
+                        <h4 style="color: #e74c3c; margin-bottom: 10px;">
+                            <i class="fas fa-minus-circle"></i> 支出分类
+                        </h4>
+                        <div class="category-grid">
+                            <div v-for="category in getTopLevelCategories('expense')" :key="category.id" class="category-card">
+                                <div class="category-header">
+                                    <span class="category-name">{{ category.name }}</span>
+                                    <div class="category-actions">
+                                        <button @click="addSubCategory(category)" class="btn-tiny btn-secondary">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button @click="deleteCategory(category.id)" class="btn-tiny btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-if="getSubCategories(category.id).length > 0" class="sub-categories">
+                                    <div v-for="subCategory in getSubCategories(category.id)" :key="subCategory.id" class="sub-category-item">
+                                        <span class="sub-category-name">{{ subCategory.name }}</span>
+                                        <button @click="deleteCategory(subCategory.id)" class="btn-tiny btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -2973,7 +3127,8 @@
                     },
                     categoryForm: {
                         name: '',
-                        type: 'expense'
+                        type: 'expense',
+                        parentId: null // 父分类ID，null表示顶级分类
                     },
                     accountForm: {
                         name: '',
@@ -3078,11 +3233,41 @@
                 
                 // 分类筛选
                 incomeCategories() {
-                    return this.categories.filter(cat => cat.type === 'income');
+                    // 获取所有收入分类
+                    const allIncomeCategories = this.categories.filter(cat => cat.type === 'income');
+                    
+                    // 过滤：只显示没有子分类的父分类，或者所有子分类
+                    return allIncomeCategories.filter(cat => {
+                        // 如果是子分类，直接显示
+                        if (cat.parentId) {
+                            return true;
+                        }
+                        // 如果是父分类，检查是否有子分类
+                        const hasSubCategories = this.categories.some(subCat => 
+                            subCat.parentId === cat.id
+                        );
+                        // 没有子分类的父分类才显示
+                        return !hasSubCategories;
+                    });
                 },
                 
                 expenseCategories() {
-                    return this.categories.filter(cat => cat.type === 'expense');
+                    // 获取所有支出分类
+                    const allExpenseCategories = this.categories.filter(cat => cat.type === 'expense');
+                    
+                    // 过滤：只显示没有子分类的父分类，或者所有子分类
+                    return allExpenseCategories.filter(cat => {
+                        // 如果是子分类，直接显示
+                        if (cat.parentId) {
+                            return true;
+                        }
+                        // 如果是父分类，检查是否有子分类
+                        const hasSubCategories = this.categories.some(subCat => 
+                            subCat.parentId === cat.id
+                        );
+                        // 没有子分类的父分类才显示
+                        return !hasSubCategories;
+                    });
                 },
                 
                 // 账户筛选
@@ -3578,15 +3763,31 @@
                     this.categories = [
                         // 收入分类
                         { id: 1, name: '工资收入', type: 'income' },
+                        { id: 101, name: '基本工资', type: 'income', parentId: 1 },
+                        { id: 102, name: '奖金', type: 'income', parentId: 1 },
                         { id: 2, name: '投资收益', type: 'income' },
+                        { id: 201, name: '股票收益', type: 'income', parentId: 2 },
+                        { id: 202, name: '基金收益', type: 'income', parentId: 2 },
                         { id: 3, name: '兼职收入', type: 'income' },
                         { id: 4, name: '其他收入', type: 'income' },
                         
                         // 支出分类
                         { id: 5, name: '餐饮美食', type: 'expense' },
+                        { id: 501, name: '早餐', type: 'expense', parentId: 5 },
+                        { id: 502, name: '午餐', type: 'expense', parentId: 5 },
+                        { id: 503, name: '晚餐', type: 'expense', parentId: 5 },
+                        { id: 504, name: '零食', type: 'expense', parentId: 5 },
                         { id: 6, name: '交通出行', type: 'expense' },
+                        { id: 601, name: '公交地铁', type: 'expense', parentId: 6 },
+                        { id: 602, name: '打车', type: 'expense', parentId: 6 },
+                        { id: 603, name: '加油', type: 'expense', parentId: 6 },
                         { id: 7, name: '购物消费', type: 'expense' },
+                        { id: 701, name: '服装鞋帽', type: 'expense', parentId: 7 },
+                        { id: 702, name: '数码产品', type: 'expense', parentId: 7 },
                         { id: 8, name: '生活缴费', type: 'expense' },
+                        { id: 801, name: '水费', type: 'expense', parentId: 8 },
+                        { id: 802, name: '电费', type: 'expense', parentId: 8 },
+                        { id: 803, name: '燃气费', type: 'expense', parentId: 8 },
                         { id: 9, name: '医疗健康', type: 'expense' },
                         { id: 10, name: '学习教育', type: 'expense' },
                         { id: 11, name: '娱乐休闲', type: 'expense' },
@@ -3881,7 +4082,8 @@
                     const category = {
                         id: Date.now(),
                         name: this.categoryForm.name,
-                        type: this.categoryForm.type
+                        type: this.categoryForm.type,
+                        parentId: this.categoryForm.parentId || null
                     };
                     
                     this.categories.push(category);
@@ -3890,10 +4092,45 @@
                     // 重置表单
                     this.categoryForm = {
                         name: '',
-                        type: 'expense'
+                        type: 'expense',
+                        parentId: null
                     };
                     
                     alert('分类添加成功');
+                },
+                
+                // 获取父分类选项
+                getParentCategories(type) {
+                    return this.categories.filter(cat => 
+                        cat.type === type && !cat.parentId
+                    );
+                },
+                
+                // 获取顶级分类
+                getTopLevelCategories(type) {
+                    return this.categories.filter(cat => 
+                        cat.type === type && !cat.parentId
+                    );
+                },
+                
+                // 获取子分类
+                getSubCategories(parentId) {
+                    return this.categories.filter(cat => 
+                        cat.parentId === parentId
+                    );
+                },
+                
+                // 添加子分类
+                addSubCategory(parentCategory) {
+                    this.categoryForm.parentId = parentCategory.id;
+                    this.categoryForm.type = parentCategory.type;
+                    // 聚焦到分类名称输入框
+                    setTimeout(() => {
+                        const nameInput = document.querySelector('input[placeholder="请输入分类名称"]');
+                        if (nameInput) {
+                            nameInput.focus();
+                        }
+                    }, 100);
                 },
                 
                 deleteCategory(id) {
@@ -3904,9 +4141,19 @@
                         return;
                     }
                     
-                    if (confirm('确定要删除这个分类吗？')) {
-                        this.categories = this.categories.filter(cat => cat.id !== id);
-                        this.saveCategories();
+                    // 检查是否有子分类
+                    const hasSubCategories = this.categories.some(cat => cat.parentId === id);
+                    if (hasSubCategories) {
+                        if (confirm('该分类下有子分类，删除将同时删除所有子分类，确定继续吗？')) {
+                            // 删除父分类和所有子分类
+                            this.categories = this.categories.filter(cat => cat.id !== id && cat.parentId !== id);
+                            this.saveCategories();
+                        }
+                    } else {
+                        if (confirm('确定要删除这个分类吗？')) {
+                            this.categories = this.categories.filter(cat => cat.id !== id);
+                            this.saveCategories();
+                        }
                     }
                 },
                 
@@ -4061,7 +4308,29 @@
                 // 工具方法
                 getCategoryName(categoryId) {
                     const category = this.categories.find(cat => cat.id === categoryId);
-                    return category ? category.name : '未知分类';
+                    if (!category) return '未知分类';
+                    
+                    // 如果有父分类，显示完整路径
+                    if (category.parentId) {
+                        const parentCategory = this.categories.find(cat => cat.id === category.parentId);
+                        if (parentCategory) {
+                            return `${parentCategory.name} > ${category.name}`;
+                        }
+                    }
+                    
+                    return category.name;
+                },
+                
+                getCategoryDisplayName(category) {
+                    // 如果有父分类，显示完整路径
+                    if (category.parentId) {
+                        const parentCategory = this.categories.find(cat => cat.id === category.parentId);
+                        if (parentCategory) {
+                            return `${parentCategory.name} > ${category.name}`;
+                        }
+                    }
+                    
+                    return category.name;
                 },
                 
                 getAccountName(accountId) {
