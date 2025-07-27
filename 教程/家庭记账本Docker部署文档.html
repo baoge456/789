@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>家庭记账本 Docker 部署文档</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif; background: #f8f9fa; color: #222; margin: 0; padding: 0; }
+    .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 12px #0001; padding: 32px 24px; }
+    h1, h2, h3 { color: #2d6cdf; }
+    h1 { font-size: 2.2em; margin-bottom: 0.2em; }
+    h2 { margin-top: 2em; }
+    pre, code { background: #f3f3f3; border-radius: 4px; padding: 2px 6px; font-size: 1em; }
+    pre { padding: 12px; overflow-x: auto; }
+    ul, ol { margin-left: 1.5em; }
+    .tip { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 10px 16px; border-radius: 4px; margin: 16px 0; }
+    .warn { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px 16px; border-radius: 4px; margin: 16px 0; }
+    .success { background: #e6ffed; border-left: 4px solid #52c41a; padding: 10px 16px; border-radius: 4px; margin: 16px 0; }
+    .file-list { background: #f9f9f9; border: 1px solid #eee; border-radius: 4px; padding: 10px 16px; margin: 16px 0; }
+    @media (max-width: 600px) {
+      .container { padding: 10px 2vw; }
+      h1 { font-size: 1.3em; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>家庭记账本 Docker 部署文档</h1>
+  <div class="tip">
+    <b>适用对象：</b>个人/家庭/小团队记账，支持本地、VPS、云服务器部署。<br>
+    <b>多端访问：</b>内网穿透或VPS部署后，所有终端访问的都是同一份数据。
+  </div>
+  <h2>1. 目录结构</h2>
+  <div class="file-list">
+    docker-accounting-app/<br>
+    ├── Dockerfile<br>
+    ├── docker-compose.yml<br>
+    ├── docker-compose.prod.yml<br>
+    ├── nginx.conf<br>
+    ├── deploy.bat<br>
+    ├── deploy.sh<br>
+    ├── README.md<br>
+    ├── QUICK_START.md<br>
+    ├── app/<br>
+    │&nbsp;&nbsp;└── index.html<br>
+    ├── data/<br>
+    ├── config/<br>
+    └── logs/<br>
+  </div>
+
+  <h2>2. 前置要求</h2>
+  <ul>
+    <li>已安装 <b>Docker Desktop</b>（Windows/Mac）或 <b>Docker Engine</b>（Linux）</li>
+    <li>已安装 <b>docker-compose</b></li>
+    <li>已准备好 <b>家庭记账本.html</b> 应用文件</li>
+  </ul>
+  <h2>3. 快速部署步骤</h2>
+  <ol>
+    <li>
+      <b>复制应用文件</b><br>
+      <pre>copy "d:\记事本\家庭记账本.html" docker-accounting-app\app\index.html</pre>
+    </li>
+    <li>
+      <b>启动应用</b><br>
+      <pre>
+cd docker-accounting-app
+deploy.bat   （Windows）
+# 或
+./deploy.sh  （Linux/Mac，需先 chmod +x deploy.sh）
+      </pre>
+    </li>
+    <li>
+      <b>访问应用</b><br>
+      <pre>http://localhost:8080</pre>
+      <div class="tip">首次使用授权码：<b>baoge888</b></div>
+    </li>
+  </ol>
+  <h2>4. 常用命令</h2>
+  <pre>
+docker-compose up -d           # 启动服务
+docker-compose down            # 停止服务
+docker-compose logs -f         # 查看日志
+docker-compose restart         # 重启服务
+docker-compose build           # 重新构建镜像
+  </pre>
+
+  <h2>5. 数据存储与备份</h2>
+  <ul>
+    <li>所有账本数据都存储在 <b>data/</b> 目录下</li>
+    <li>容器重启、电脑重启、升级镜像，数据都不会丢失</li>
+    <li>建议定期备份 <b>data/</b> 目录</li>
+  </ul>
+  <pre>
+# 手动备份
+tar -czf accounting-backup-$(date +%Y%m%d).tar.gz data/
+
+# 恢复数据
+tar -xzf accounting-backup-20231201.tar.gz
+  </pre>
+  <h2>6. 进阶部署（生产环境/云服务器）</h2>
+  <ol>
+    <li>
+      <b>使用生产环境配置</b><br>
+      <pre>docker-compose -f docker-compose.prod.yml up -d</pre>
+    </li>
+    <li>
+      <b>内网穿透/端口映射</b><br>
+      <div class="tip">将 <b>8080</b> 端口映射到公网，所有终端访问同一份数据</div>
+    </li>
+    <li>
+      <b>自动备份</b><br>
+      <div class="tip">生产环境配置内置自动备份服务，备份文件在 <b>backups/</b> 目录</div>
+    </li>
+  </ol>
+
+  <h2>7. 常见问题</h2>
+<ul>
+  <li>
+    <b>Q: 数据会丢失吗？</b><br>
+    <b>A:不会，所有数据都在 data/ 目录，除非你手动删除。  </li>
+  <li>
+    <b>Q: 多端访问是同一份数据吗？</b><br>
+    <b>A:是的，无论本地、手机、远程访问，都是同一份账本。
+  </li>
+  <li>
+    <b>Q: 支持多用户吗？</b><br>
+    <b>A:不支持。所有人访问的都是同一份账本，没有分用户、分权限功能。  </li>
+  <li>
+    <b>Q: 如何升级应用？</b><br>
+    <b>A:</b>
+    <pre>
+# 替换 app/index.html 为新版本
+docker-compose build
+docker-compose up -d
+    </pre>
+  </li>
+  <li>
+    <b>Q: 如何修改端口？</b><br>
+    <b>A:</b> 编辑 <b>docker-compose.yml</b>，将 <code>8080:80</code> 改为你想要的端口。
+  </li>
+</ul>
+
+  <h2>8. 安全建议</h2>
+  <ul>
+    <li>如需公网访问，建议设置防火墙，仅允许可信IP访问</li>
+    <li>定期备份 <b>data/</b> 目录</li>
+    <li>如需HTTPS，需自行配置Nginx证书</li>
+  </ul>
+
+  <h2>9. 技术栈</h2>
+  <ul>
+    <li>前端：Vue.js 3 + HTML5 + CSS3</li>
+    <li>容器：Docker + Nginx</li>
+    <li>数据存储：localStorage（浏览器） + 文件系统（服务器）</li>
+    <li>部署：Docker Compose</li>
+  </ul>
+
+  <div class="tip">
+    如有问题，欢迎随时咨询！
+  </div>
+</div>
+</body>
+</html>
