@@ -134,7 +134,7 @@ section {
     align-items: center;
     justify-content: center;
     margin: 0;
-    padding: 6px 16px;
+    padding: 6px 12px;
     background: linear-gradient(135deg, #eaf3ff 0%, #f0f4ff 100%);
     border: 1px solid #b8c6ff;
     border-radius: 8px;
@@ -142,7 +142,7 @@ section {
     position: relative;
     overflow: hidden;
     width: fit-content;
-    max-width: 200px;
+    min-width: 140px;
     height: 32px;
 }
 
@@ -186,9 +186,10 @@ section {
     box-shadow: 0 2px 4px rgba(106, 76, 255, 0.3);
 }
 .mode-row {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 16px;
     margin-bottom: 4px; font-size: 1em; color: #6a4cff; font-weight: 500;
     flex-wrap: wrap;
+    padding: 0 18px;
 }
 .mode-switch-btn {
     background: #fff; border: 1px solid #e6e6ff; border-radius: 50%;
@@ -617,14 +618,16 @@ body.hide-icons .bookmark a { margin-left: 0; }
   <div class="mode-row">
     <div id="currentUserInfo" class="user-info-display" style="display: none;">
       <div class="user-icon">👤</div>
-      <div class="user-text">当前用户：</div>
+      
       <div class="user-badge">未登录</div>
     </div>
     <button id="adminEnterBtn" style="margin-left:16px;padding:6px 16px;border-radius:8px;border:1px solid #b8c6ff;background:#fff;color:#6a4cff;font-weight:600;cursor:pointer;display:inline-block;" onclick="enterAdmin()" title="进入后台">后台管理</button>
     <button id="adminLoginBtn" style="margin-left:8px;padding:6px 16px;border-radius:8px;border:1px solid #b8c6ff;background:#fff;color:#6a4cff;font-weight:600;cursor:pointer;display:none;" class="admin-only" onclick="logoutAdmin()" title="退出后台">退出后台</button>
+    <!-- 手机端重置按钮 - 长按3秒显示 -->
+    <button id="resetAuthBtn" style="margin-left:8px;padding:6px 12px;border-radius:8px;border:1px solid #ff6b6b;background:#fff;color:#ff6b6b;font-weight:600;cursor:pointer;display:none;font-size:0.8em;" onclick="resetAuth()" title="重置授权">重置</button>
   </div>
   
-  Pi  生态导航   &copy;  2023 非官方出品  宝哥制作
+  Pi  生态导航       &copy;  2023 非官方出品      宝哥制作
 </div>
 </div>
 <script type="application/json" id="nav-json">
@@ -746,9 +749,11 @@ document.getElementById('iconToggleBtn').addEventListener('click', toggleIcons);
 const AUTH_KEY = 'bookmark_auth_status';
 const AUTH_USER_KEY = 'bookmark_auth_user';
 
-// 授权码组配置 - 格式：授权码: 用户名
-const AUTH_CODES = {
+  // 授权码组配置 - 格式：授权码: 用户名
+  const AUTH_CODES = {
     'baoge888': '宝哥',  // 默认授权码，用户：宝哥
+    'baoge777': '宝哥1',
+    'baoge666': '宝哥2'
     // 可以在这里添加更多授权码和用户
     // 示例格式：
     // 'admin123': '管理员',
@@ -774,6 +779,13 @@ function getCurrentUser() {
 function clearAuthData() {
     localStorage.removeItem(AUTH_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
+}
+
+// 添加清除授权数据的函数（用于调试）
+function resetAuth() {
+    clearAuthData();
+    alert('授权数据已清除，请刷新页面重新授权');
+    location.reload();
 }
 
 // 验证授权码
@@ -1273,6 +1285,14 @@ return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
 // 页面授权验证初始化
 function initAuthCheck() {
+    // 检查URL参数是否需要重置授权
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('reset') === '1') {
+        clearAuthData();
+        // 移除URL参数
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     const authOverlay = document.getElementById('authOverlay');
     const mainContainer = document.getElementById('mainContainer');
     const authInput = document.getElementById('authCodeInput');
@@ -1372,6 +1392,63 @@ function showCurrentUserInfo() {
     }
 }
 
+// 长按显示重置按钮（支持手机和电脑）
+function initLongPressResetButton() {
+    const userInfoElement = document.getElementById('currentUserInfo');
+    const resetBtn = document.getElementById('resetAuthBtn');
+    let pressTimer = null;
+    
+    if (userInfoElement && resetBtn) {
+        // 触摸事件（手机端）
+        userInfoElement.addEventListener('touchstart', function(e) {
+            pressTimer = setTimeout(() => {
+                resetBtn.style.display = 'inline-block';
+                setTimeout(() => {
+                    resetBtn.style.display = 'none';
+                }, 5000); // 5秒后自动隐藏
+            }, 3000); // 长按3秒
+        });
+        
+        userInfoElement.addEventListener('touchend', function(e) {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+        
+        userInfoElement.addEventListener('touchmove', function(e) {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+        
+        // 鼠标事件（电脑端）
+        userInfoElement.addEventListener('mousedown', function(e) {
+            pressTimer = setTimeout(() => {
+                resetBtn.style.display = 'inline-block';
+                setTimeout(() => {
+                    resetBtn.style.display = 'none';
+                }, 5000); // 5秒后自动隐藏
+            }, 3000); // 长按3秒
+        });
+        
+        userInfoElement.addEventListener('mouseup', function(e) {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+        
+        userInfoElement.addEventListener('mouseleave', function(e) {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+    }
+}
+
 // 初始化主页面
 function initMainPage() {
     let groupOrder = null, bookmarkGroups = null;
@@ -1417,6 +1494,9 @@ function initMainPage() {
     
     // 显示当前用户信息
     showCurrentUserInfo();
+    
+    // 初始化长按重置按钮（支持手机和电脑）
+    initLongPressResetButton();
 }
 
 // 确保DOM完全加载后初始化
