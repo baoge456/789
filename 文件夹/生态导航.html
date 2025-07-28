@@ -127,6 +127,64 @@ section {
     text-align: center; color: #888; font-size: 0.85em; padding: 20px 0 10px 0;
     border-top: 1px solid #eee; background: #f8faff; position: sticky; bottom: 0; z-index: 2;
 }
+
+/* 用户信息装饰样式 */
+.user-info-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, #eaf3ff 0%, #f0f4ff 100%);
+    border: 1px solid #b8c6ff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(106, 76, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    width: fit-content;
+    max-width: 200px;
+    height: 32px;
+}
+
+.user-info-display::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(106, 76, 255, 0.1), transparent);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.user-info-display .user-icon {
+    font-size: 1.2em;
+    margin-right: 8px;
+    color: #6a4cff;
+}
+
+.user-info-display .user-text {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #6a4cff;
+    text-shadow: 0 1px 2px rgba(106, 76, 255, 0.1);
+}
+
+.user-info-display .user-badge {
+    background: #6a4cff;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 500;
+    margin-left: 8px;
+    box-shadow: 0 2px 4px rgba(106, 76, 255, 0.3);
+}
 .mode-row {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     margin-bottom: 4px; font-size: 1em; color: #6a4cff; font-weight: 500;
@@ -145,6 +203,12 @@ section {
     background: #fff; border: 1px solid #e6e6ff; border-radius: 12px;
     box-shadow: 0 6px 24px rgba(106, 76, 255, 0.13); padding: 8px 0;
     z-index: 9999; min-width: 120px; display: none;
+}
+
+/* 后台模式下的光线模式菜单位置调整 */
+body.admin-mode .mode-menu {
+    bottom: auto; top: 100%; left: 0; transform: none;
+    margin-top: 4px;
 }
 .mode-menu.active { display: block; }
 .mode-menu-item {
@@ -513,6 +577,37 @@ body.hide-icons .bookmark a { margin-left: 0; }
         <option value="all">全部</option>
       </select>
       <button id="clearBtn" class="admin-danger-btn admin-only">清空</button>
+      
+      <!-- 光线模式设置 -->
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+        <span style="color: #6a4cff; font-weight: 500;">光线模式：</span>
+        <div class="mode-switch-btn" id="modeSwitchBtn" title="切换光线模式">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="5" fill="#FFD600"/>
+            <g stroke="#FFD600" stroke-width="2">
+              <line x1="12" y1="2" x2="12" y2="4"/>
+              <line x1="12" y1="20" x2="12" y2="22"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="2" y1="12" x2="4" y2="12"/>
+              <line x1="20" y1="12" x2="22" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </g>
+          </svg>
+          <div class="mode-menu" id="modeMenu">
+            <button class="mode-menu-item"><span class="dot light-mode"></span>集中光线</button>
+            <button class="mode-menu-item"><span class="dot focus-mode"></span>专注光线</button>
+            <button class="mode-menu-item"><span class="dot giant-mode"></span>巨人队</button>
+            <button class="mode-menu-item"><span class="dot dawn-mode"></span>晨曦光线</button>
+            <button class="mode-menu-item"><span class="dot night-mode"></span>极夜光线</button>
+            <button class="mode-menu-item"><span class="dot green-mode"></span>绿野光线</button>
+            <button class="mode-menu-item"><span class="dot ocean-mode"></span>海洋光线</button>
+            <button class="mode-menu-item"><span class="dot rose-mode"></span>玫瑰光线</button>
+          </div>
+        </div>
+      </div>
+      
       <input type="file" id="importFileInput" accept="application/json" style="display:none;" />
     </div>
     <div class="bookmark-area" id="bookmarkContainer"></div>
@@ -520,37 +615,15 @@ body.hide-icons .bookmark a { margin-left: 0; }
 </div>
 <div class="footer">
   <div class="mode-row">
-    点击
-    <div class="mode-switch-btn" id="modeSwitchBtn" title="切换光线模式">
-      <svg viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="5" fill="#FFD600"/>
-        <g stroke="#FFD600" stroke-width="2">
-          <line x1="12" y1="2" x2="12" y2="4"/>
-          <line x1="12" y1="20" x2="12" y2="22"/>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-          <line x1="2" y1="12" x2="4" y2="12"/>
-          <line x1="20" y1="12" x2="22" y2="12"/>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-        </g>
-      </svg>
-      <div class="mode-menu" id="modeMenu">
-        <button class="mode-menu-item"><span class="dot light-mode"></span>集中光线</button>
-        <button class="mode-menu-item"><span class="dot focus-mode"></span>专注光线</button>
-        <button class="mode-menu-item"><span class="dot giant-mode"></span>巨人队</button>
-        <button class="mode-menu-item"><span class="dot dawn-mode"></span>晨曦光线</button>
-        <button class="mode-menu-item"><span class="dot night-mode"></span>极夜光线</button>
-        <button class="mode-menu-item"><span class="dot green-mode"></span>绿野光线</button>
-        <button class="mode-menu-item"><span class="dot ocean-mode"></span>海洋光线</button>
-        <button class="mode-menu-item"><span class="dot rose-mode"></span>玫瑰光线</button>
-      </div>
+    <div id="currentUserInfo" class="user-info-display" style="display: none;">
+      <div class="user-icon">👤</div>
+      <div class="user-text">当前用户：</div>
+      <div class="user-badge">未登录</div>
     </div>
-    ，选择光线模式
     <button id="adminEnterBtn" style="margin-left:16px;padding:6px 16px;border-radius:8px;border:1px solid #b8c6ff;background:#fff;color:#6a4cff;font-weight:600;cursor:pointer;display:inline-block;" onclick="enterAdmin()" title="进入后台">后台管理</button>
     <button id="adminLoginBtn" style="margin-left:8px;padding:6px 16px;border-radius:8px;border:1px solid #b8c6ff;background:#fff;color:#6a4cff;font-weight:600;cursor:pointer;display:none;" class="admin-only" onclick="logoutAdmin()" title="退出后台">退出后台</button>
-    <span id="currentUserInfo" style="margin-left:8px;color:#6a4cff;font-weight:500;"></span>
   </div>
+  
   Pi  生态导航   &copy;  2023 非官方出品  宝哥制作
 </div>
 </div>
@@ -1092,14 +1165,13 @@ document.getElementById('exportBtn').onclick = function() {
     const sel = document.getElementById('exportSelect');
     let data, filename;
     if (sel.value === 'all') {
-      data = JSON.stringify({
-        groupOrder: window.groupOrder,
-        bookmarkGroups: window.bookmarkGroups
-      }, null, 2);
-      filename = 'bookmarks.json';
+      // 导出全部时使用旧格式，不包含groupOrder
+      data = JSON.stringify(window.bookmarkGroups, null, 2);
+      filename = '生态导航().json';
     } else {
+      // 导出单个分组时使用数组格式
       data = JSON.stringify(window.bookmarkGroups[sel.value] || [], null, 2);
-      filename = sel.value + '.json';
+      filename = '生态导航(' + sel.value + ').json';
     }
     const blob = new Blob([data], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
@@ -1285,9 +1357,18 @@ function showAuthMessage(message, type) {
 function showCurrentUserInfo() {
     const currentUser = getCurrentUser();
     const userInfoElement = document.getElementById('currentUserInfo');
-    if (userInfoElement && currentUser) {
-        userInfoElement.textContent = `当前用户：${currentUser}`;
-        userInfoElement.style.display = 'inline';
+    if (userInfoElement) {
+        if (currentUser) {
+            // 显示用户信息
+            userInfoElement.style.display = 'flex';
+            const userBadge = userInfoElement.querySelector('.user-badge');
+            if (userBadge) {
+                userBadge.textContent = currentUser;
+            }
+        } else {
+            // 隐藏用户信息
+            userInfoElement.style.display = 'none';
+        }
     }
 }
 
