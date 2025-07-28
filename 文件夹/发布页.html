@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发布页</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        #main {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .brand {
+            text-align: center;
+            padding: 30px 20px;
+            background: #007bff;
+            color: white;
+        }
+
+        .brand-title {
+            font-size: 2.5em;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .card {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .card:last-child {
+            border-bottom: none;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        .enter-button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .enter-button:hover {
+            background: #0056b3;
+        }
+
+        .title {
+            color: #333;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .link-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .link-list li {
+            margin: 4px 0;
+            line-height: 1.4;
+            font-size: 14px;
+        }
+
+        .link-list a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .link-list a:hover {
+            text-decoration: underline;
+        }
+
+        .tip-item {
+            margin: 10px 0;
+        }
+
+        .browser-tip {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0;
+            padding: 8px 0;
+            color: #666;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+            background-size: contain;
+        }
+
+
+
+        @media (max-width: 768px) {
+            body {
+                padding: 4px;
+            }
+
+            .brand {
+                padding: 15px 10px;
+            }
+
+            .brand-title {
+                font-size: 1.5em;
+            }
+
+            .card {
+                padding: 8px 10px;
+                margin-bottom: 8px;
+            }
+
+            .title {
+                font-size: 0.9em;
+                margin-bottom: 6px;
+            }
+
+            .link-list li {
+                margin: 2px 0;
+                font-size: 12px;
+                line-height: 1.3;
+            }
+
+            .button-group {
+                flex-direction: row;
+                gap: 4px;
+                flex-wrap: wrap;
+                margin-bottom: 8px;
+            }
+
+            .enter-button {
+                text-align: center;
+                padding: 6px 8px;
+                font-size: 11px;
+                flex: 1;
+                min-width: 0;
+            }
+
+            .tool-buttons {
+                gap: 2px;
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .tool-button {
+                padding: 4px 2px;
+                font-size: 9px;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                min-width: 0;
+            }
+
+            .tip-item {
+                margin: 6px 0;
+            }
+
+            .tip-item p {
+                font-size: 12px;
+                margin-top: 6px;
+                line-height: 1.3;
+            }
+
+            .collapse-toggle {
+                padding: 6px 10px;
+                font-size: 12px;
+                min-width: 150px;
+            }
+
+            .tips-content {
+                margin-top: 10px;
+            }
+        }
+
+
+
+        /* 收藏方法卡片优化 */
+        .save-method {
+            margin-top: 10px;
+        }
+
+        /* 折叠按钮样式 */
+        .collapse-toggle {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: auto;
+            min-width: 200px;
+            text-align: center;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .collapse-toggle:hover {
+            background: #218838;
+        }
+
+        .toggle-text {
+            font-weight: 600;
+        }
+
+        .tips-content {
+            margin-top: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 书签导航工具按钮样式 */
+        .tool-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .tool-button {
+            background: #007bff;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 12px;
+            transition: background-color 0.3s ease;
+        }
+
+        .tool-button:hover {
+            background: #0056b3;
+        }
+
+        @media (max-width: 768px) {
+            .save-method {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 2px;
+            }
+
+            .brand {
+                padding: 10px 8px;
+            }
+
+            .brand-title {
+                font-size: 1.3em;
+            }
+
+            .card {
+                padding: 6px 8px;
+                margin-bottom: 6px;
+            }
+
+            .title {
+                font-size: 0.85em;
+                margin-bottom: 4px;
+            }
+
+            .link-list li {
+                margin: 1px 0;
+                font-size: 11px;
+                line-height: 1.2;
+            }
+
+            .button-group {
+                gap: 3px;
+                margin-bottom: 6px;
+            }
+
+            .enter-button {
+                padding: 5px 6px;
+                font-size: 10px;
+            }
+
+            .tool-buttons {
+                gap: 1px;
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .tool-button {
+                padding: 3px 1px;
+                font-size: 8px;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                min-width: 0;
+            }
+
+            .tip-item {
+                margin: 4px 0;
+            }
+
+            .tip-item p {
+                font-size: 11px;
+                margin-top: 4px;
+                line-height: 1.2;
+            }
+
+            .collapse-toggle {
+                padding: 5px 8px;
+                font-size: 11px;
+                min-width: 120px;
+            }
+
+            .tips-content {
+                margin-top: 8px;
+            }
+        }
+
+
+    </style>
+</head>
+<body>
+    
+    <div id="main">
+        <div class="brand">
+            <div class="brand-title">发布页</div>
+        </div>
+
+        <div class="card">
+            <div class="button-group">
+                <a href="https://nav.653827.xyz/" target="_blank" class="enter-button">
+                    发现导航
+                </a>
+                <a href="https://teamnav.baoge.wang/#/" target="_blank" class="enter-button">
+                    宝哥团队导航
+                </a>
+                <a href="https://onenav.baoge.wang/#/" target="_blank" class="enter-button">
+                    OneNav
+                </a>
+                <a href="https://weblog.baoge.wang/" target="_blank" class="enter-button">
+                    weblog
+                </a>
+            </div>
+            <div style="text-align: center; margin-top: 20px; color: #666;">
+                页面失效或使用过程中遇到问题请联系作者
+            </div>
+        </div>
+
+        <div class="card">
+            <h4 class="title">联系我</h4>
+            <ul class="link-list">
+                <li>作者：宝哥 | 邮箱：<a href="mailto:wangsir666998@outlook.com">wangsir666998@outlook.com</a> | 永久地址：<a href="https://wang.baoge.wang">https://wang.baoge.wang</a></li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h4 class="title">推荐</h4>
+            <div class="tip-item">
+                <b>1、书签导航工具推荐</b>
+                <p style="color: #666; margin-top: 10px;">
+                    优选了部分导航工具页，请点击体验：
+                </p>
+                <div class="tool-buttons">
+                    <a href="https://nav.baoge.wang/" target="_blank" class="tool-button">网址导航 一</a>
+                    <a href="https://dh.baoge.wang/" target="_blank" class="tool-button">网址导航 二</a>
+                    <a href="https://file.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/%E5%AF%BC%E8%88%AA%E8%8F%9C%E5%8D%951" target="_blank" class="tool-button">导航菜单</a>
+                    <a href="https://navpage.653827.xyz/" target="_blank" class="tool-button">导航页</a>
+                    <a href="https://file.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/sqkp" target="_blank" class="tool-button">书签卡片</a>
+                    <a href="https://sqdh.653827.xyz/" target="_blank" class="tool-button">书签导航</a>
+                    <a href="https://xpi.baoge.wang/" target="_blank" class="tool-button">生态导航</a>
+                </div>
+            </div>
+            
+            <div class="tip-item">
+                <b>2、记账类工具推荐</b>
+                <p style="color: #666; margin-top: 10px;">
+                    专业的记账工具，帮助您管理财务：
+                </p>
+                <div class="tool-buttons">
+                    <a href="https://jzb.baoge.wang/" target="_blank" class="tool-button">家庭记账本</a>
+                    <a href="https://renqingwanglai.baoge.wang/" target="_blank" class="tool-button">人情往来记账本</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <button class="collapse-toggle" onclick="toggleTips()">
+                <span class="toggle-text">温馨提示，请展开查看 ▼</span>
+            </button>
+            <div id="tipsContent" class="tips-content" style="display: none;">
+                <div class="tip-item">
+                    <b>1、使用方法</b>
+                    <p style="color: #666; margin-top: 10px;">
+                        建议使用 Edge、Chrome、Carbon、Firefox、Safari 等主流浏览器访问本站，以获得最佳体验。使用方法和授权码，请联系作者获取
+                    </p>
+                </div>
+                
+                <div class="tip-item">
+                    <b>2、集思广益</b>
+                    <p style="color: #666; margin-top: 10px;">
+                        持续更新中，有好的资源链接可以推荐给作者，在对应后台添加。例如宝哥团队导航，让作者给你在后台添加好用户资料，可以直接在宝哥团队导航页面中申请卡片完成添加。
+                    </p>
+                </div>
+                
+                <div class="tip-item">
+                    <div class="save-method">
+                        <b>收藏方法</b>
+                        <p style="color: #666; margin-top: 10px; line-height: 1.8;">
+                            电脑端：按 Ctrl + D 键收藏本站<br>
+                            手机端：点击浏览器菜单，添加到主屏幕
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTips() {
+            const content = document.getElementById('tipsContent');
+            const toggleText = document.querySelector('.toggle-text');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggleText.textContent = '温馨提示，请展开查看 ▲';
+            } else {
+                content.style.display = 'none';
+                toggleText.textContent = '温馨提示，请展开查看 ▼';
+            }
+        }
+    </script>
+
+</body>
+</html>
