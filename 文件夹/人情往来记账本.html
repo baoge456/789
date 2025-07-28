@@ -640,6 +640,29 @@
         .balance-negative { color: #dc3545; font-weight: bold; }
         .balance-zero { color: #6c757d; font-weight: bold; }
 
+        /* 代记账操作按钮样式 */
+        .proxy-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .proxy-action-btn {
+            padding: 12px 8px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            min-height: 44px;
+        }
+
+        .proxy-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
         /* 标准底角注释样式 */
         .footer {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
@@ -913,7 +936,18 @@
             }
 
             .tabs {
-                flex-direction: column;
+                flex-direction: row;
+                flex-wrap: wrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .tab {
+                flex: 0 0 auto;
+                min-width: 120px;
+                font-size: 14px;
+                padding: 12px 15px;
+                white-space: nowrap;
             }
 
             .tab-content {
@@ -943,6 +977,58 @@
 
             .table {
                 min-width: 600px;
+            }
+
+            .proxy-actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .proxy-action-btn {
+                padding: 10px 6px;
+                font-size: 13px;
+                min-height: 40px;
+            }
+        }
+
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .tabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .tabs::-webkit-scrollbar {
+                display: none;
+            }
+
+            .tab {
+                flex: 0 0 auto;
+                min-width: 100px;
+                font-size: 13px;
+                padding: 10px 12px;
+                white-space: nowrap;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .container {
+                padding: 5px;
+            }
+
+            .proxy-actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
+
+            .proxy-action-btn {
+                padding: 8px 4px;
+                font-size: 12px;
+                min-height: 36px;
             }
         }
     </style>
@@ -1317,49 +1403,6 @@
                     <div class="alert alert-warning" style="margin-bottom: 20px;">
                         <strong>⚠️ 独立功能：</strong>代记账功能数据完全独立，不与主账本数据共享，仅在本页面内统计和导出。
                     </div>
-                    
-                    <!-- 代记账基本信息 -->
-                    <div class="form-section">
-                        <div class="form-title">
-                            <span>📋</span>
-                            <span>代记账基本信息</span>
-                        </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>委托人姓名 *</label>
-                                <input type="text" v-model="proxyAccountInfo.clientName" placeholder="请输入委托人姓名" required>
-                            </div>
-                            <div class="form-group">
-                                <label>委托人电话</label>
-                                <input type="tel" v-model="proxyAccountInfo.clientPhone" placeholder="请输入委托人电话">
-                            </div>
-                            <div class="form-group">
-                                <label>活动名称 *</label>
-                                <input type="text" v-model="proxyAccountInfo.eventName" placeholder="请输入活动名称" required>
-                            </div>
-                            <div class="form-group">
-                                <label>活动类型</label>
-                                <select v-model="proxyAccountInfo.eventType">
-                                    <option value="">请选择类型</option>
-                                    <option value="婚礼">婚礼</option>
-                                    <option value="生日宴">生日宴</option>
-                                    <option value="满月酒">满月酒</option>
-                                    <option value="升学宴">升学宴</option>
-                                    <option value="乔迁宴">乔迁宴</option>
-                                    <option value="丧事">丧事</option>
-                                    <option value="其他">其他</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>活动日期</label>
-                                <input type="date" v-model="proxyAccountInfo.eventDate">
-                            </div>
-                            <div class="form-group">
-                                <label>记账人</label>
-                                <input type="text" v-model="proxyAccountInfo.recorder" placeholder="记账人姓名">
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- 代记账财务汇总 -->
                     <div class="summary-card">
@@ -1513,6 +1556,61 @@
                         </div>
                     </div>
 
+                    <!-- 代记账基本信息 - 可折叠 -->
+                    <div class="card no-print mt-2">
+                        <div class="card-header collapse-toggle p-2" @click="showProxyBasicInfo = !showProxyBasicInfo">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> 基本信息设置
+                                <i :class="showProxyBasicInfo ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="float-end"></i>
+                            </h6>
+                        </div>
+                        <div class="collapse" :class="{ show: showProxyBasicInfo }">
+                            <div class="card-body p-2">
+                                <div class="form-section" style="margin-bottom: 0;">
+                                    <div class="form-title">
+                                        <span>📋</span>
+                                        <span>代记账基本信息</span>
+                                    </div>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>委托人姓名 *</label>
+                                            <input type="text" v-model="proxyAccountInfo.clientName" placeholder="请输入委托人姓名" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>委托人电话</label>
+                                            <input type="tel" v-model="proxyAccountInfo.clientPhone" placeholder="请输入委托人电话">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>活动名称 *</label>
+                                            <input type="text" v-model="proxyAccountInfo.eventName" placeholder="请输入活动名称" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>活动类型</label>
+                                            <select v-model="proxyAccountInfo.eventType">
+                                                <option value="">请选择类型</option>
+                                                <option value="婚礼">婚礼</option>
+                                                <option value="生日宴">生日宴</option>
+                                                <option value="满月酒">满月酒</option>
+                                                <option value="升学宴">升学宴</option>
+                                                <option value="乔迁宴">乔迁宴</option>
+                                                <option value="丧事">丧事</option>
+                                                <option value="其他">其他</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>活动日期</label>
+                                            <input type="date" v-model="proxyAccountInfo.eventDate">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>记账人</label>
+                                            <input type="text" v-model="proxyAccountInfo.recorder" placeholder="记账人姓名">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 代记账操作按钮 -->
                     <div class="form-section">
                         <div class="form-title">
@@ -1522,18 +1620,18 @@
                         <div class="alert alert-info" style="margin-bottom: 15px;">
                             <strong>💡 说明：</strong>代记账数据独立存储，仅支持本功能内的导出和打印，不参与主账本统计。
                         </div>
-                        <div style="text-align: center; margin-top: 20px;">
-                            <button class="btn btn-primary" @click="exportProxyToExcel">
-                                📊 导出Excel报表
+                        <div class="proxy-actions-grid">
+                            <button class="btn btn-primary proxy-action-btn" @click="exportProxyToExcel">
+                                📊 Excel
                             </button>
-                            <button class="btn btn-info" @click="exportProxyToWord" style="margin-left: 10px;">
-                                📄 导出Word文档
+                            <button class="btn btn-info proxy-action-btn" @click="exportProxyToWord">
+                                📄 Word
                             </button>
-                            <button class="btn btn-warning" @click="printProxyRecord" style="margin-left: 10px;">
-                                🖨️ 打印数据
+                            <button class="btn btn-warning proxy-action-btn" @click="printProxyRecord">
+                                🖨️ 打印
                             </button>
-                            <button class="btn btn-danger" @click="clearProxyData" style="margin-left: 10px;">
-                                🗑️ 清空数据
+                            <button class="btn btn-danger proxy-action-btn" @click="clearProxyData">
+                                🗑️ 清空
                             </button>
                         </div>
                     </div>
@@ -2030,7 +2128,7 @@
                     </div>
                 </div>
             </div>
-                </div>
+        </div>
     </div>
 
         <!-- 标准底角注释 -->
@@ -2134,6 +2232,7 @@
                     // 代记账数据
                     showProxyExpenseForm: false,
                     showProxyRecords: false,
+                    showProxyBasicInfo: false,
                     proxyAccountInfo: {
                         clientName: '',
                         clientPhone: '',
@@ -3397,11 +3496,11 @@
                 
                 // 如果已授权，加载数据
                 if (this.isAuthorized) {
-                    this.loadData();
+                this.loadData();
                     this.loadAccountBookData();
                     this.loadProxyData();
                     this.checkForNewImportedData();
-                }
+            }
             },
         }).mount('#app');
     </script>
