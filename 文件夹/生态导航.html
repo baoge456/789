@@ -256,10 +256,235 @@ body.admin-mode .admin-only { display: inline-block !important; }
 /* 隐藏图标时的样式 */
 body.hide-icons .bookmark img { display: none; }
 body.hide-icons .bookmark a { margin-left: 0; }
+
+/* 授权验证页面样式 */
+.auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.auth-modal {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    animation: authModalFadeIn 0.5s ease;
+}
+
+@keyframes authModalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.auth-header {
+    margin-bottom: 30px;
+}
+
+.auth-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.auth-logo img {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 8px 20px rgba(106, 76, 255, 0.2);
+}
+
+.auth-logo span {
+    font-size: 1.2em;
+    color: #6a4cff;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.auth-header h2 {
+    color: #333;
+    font-size: 1.8em;
+    margin: 0 0 10px 0;
+    font-weight: 600;
+}
+
+.auth-subtitle {
+    color: #666;
+    font-size: 1em;
+    margin: 0;
+}
+
+.auth-content {
+    text-align: left;
+}
+
+.auth-input-group {
+    margin-bottom: 20px;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 15px 20px;
+    border: 2px solid #e0e0ff;
+    border-radius: 12px;
+    font-size: 1em;
+    outline: none;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    margin-bottom: 15px;
+    background: white;
+    color: #333;
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.auth-input:focus {
+    border-color: #6a4cff;
+    box-shadow: 0 0 0 3px rgba(106, 76, 255, 0.1);
+}
+
+.auth-submit-btn {
+    width: 100%;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #6a4cff 0%, #5a3ce8 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(106, 76, 255, 0.3);
+}
+
+.auth-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(106, 76, 255, 0.4);
+}
+
+.auth-submit-btn:active {
+    transform: translateY(0);
+}
+
+.auth-message {
+    margin: 15px 0;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    min-height: 20px;
+}
+
+.auth-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.auth-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.auth-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.warning-icon {
+    font-size: 1.5em;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.warning-text {
+    color: #856404;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+/* 手机端适配 */
+@media (max-width: 480px) {
+    .auth-modal {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .auth-logo img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .auth-header h2 {
+        font-size: 1.5em;
+    }
+    
+    .auth-input,
+    .auth-submit-btn {
+        padding: 12px 16px;
+        font-size: 0.95em;
+    }
+}
 </style>
 </head>
 <body>
-<div class="container">
+<!-- 授权验证遮罩层 -->
+<div id="authOverlay" class="auth-overlay" style="display: none;">
+    <div class="auth-modal">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <img src="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png" alt="Pi Network Logo" />
+                <span>生态导航</span>
+            </div>
+            <h2>授权验证</h2>
+            <p class="auth-subtitle">请输入授权码以访问页面</p>
+        </div>
+        <div class="auth-content">
+            <div class="auth-input-group">
+                <input type="password" id="authCodeInput" class="auth-input" placeholder="请输入授权码" />
+                <button id="authSubmitBtn" class="auth-submit-btn">验证授权</button>
+            </div>
+            <div id="authMessage" class="auth-message"></div>
+            <div class="auth-warning">
+                <div class="warning-icon">⚠️</div>
+                <div class="warning-text">
+                    <strong>重要提醒：</strong><br>
+                    请务必保管好您的授权码，忘记后将无法进入页面！
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container" id="mainContainer" style="display: none;">
 <div class="top-info-bar" style="position: sticky; top: 0; background: #f8faff;">
     <div class="top-info-logo">
         <img src="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png" alt="Pi Network Logo" />
@@ -324,6 +549,7 @@ body.hide-icons .bookmark a { margin-left: 0; }
     ，选择光线模式
     <button id="adminEnterBtn" style="margin-left:16px;padding:6px 16px;border-radius:8px;border:1px solid #b8c6ff;background:#fff;color:#6a4cff;font-weight:600;cursor:pointer;display:inline-block;" onclick="enterAdmin()" title="进入后台">后台管理</button>
     <button id="adminLoginBtn" style="margin-left:8px;padding:6px 16px;border-radius:8px;border:1px solid #b8c6ff;background:#fff;color:#6a4cff;font-weight:600;cursor:pointer;display:none;" class="admin-only" onclick="logoutAdmin()" title="退出后台">退出后台</button>
+    <span id="currentUserInfo" style="margin-left:8px;color:#6a4cff;font-weight:500;"></span>
   </div>
   Pi  生态导航   &copy;  2023 非官方出品  宝哥制作
 </div>
@@ -443,46 +669,97 @@ if (iconState === 'hidden') {
 document.getElementById('iconToggleBtn').addEventListener('click', toggleIcons);
 });
 
-// 后台模式 - 支持多个密码
-const ADMIN_KEY = 'bookmark_admin_mode';
-const ADMIN_PASSWORDS = ['baoge888', 'baoge', 'baoge666', 'baoge777']; // 可以在这里添加更多密码
+// 授权码验证系统
+const AUTH_KEY = 'bookmark_auth_status';
+const AUTH_USER_KEY = 'bookmark_auth_user';
+
+// 授权码组配置 - 格式：授权码: 用户名
+const AUTH_CODES = {
+    'baoge888': '宝哥',  // 默认授权码，用户：宝哥
+    // 可以在这里添加更多授权码和用户
+    // 示例格式：
+    // 'admin123': '管理员',
+    // 'user001': '用户001',
+    // 'test2024': '测试用户'
+};
+
 let defaultData = null;
 let currentGroup = null;
 
+// 检查授权状态
+function isAuthorized() {
+    const authStatus = localStorage.getItem(AUTH_KEY);
+    return authStatus === '1';
+}
+
+// 获取当前授权用户
+function getCurrentUser() {
+    return localStorage.getItem(AUTH_USER_KEY) || '';
+}
+
+// 清除授权数据
+function clearAuthData() {
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+}
+
+// 验证授权码
+function verifyAuthCode(authCode) {
+    const trimmedCode = authCode.trim();
+    if (AUTH_CODES[trimmedCode]) {
+        // 设置授权状态（永久有效）
+        localStorage.setItem(AUTH_KEY, '1');
+        localStorage.setItem(AUTH_USER_KEY, AUTH_CODES[trimmedCode]);
+        
+        return {
+            success: true,
+            user: AUTH_CODES[trimmedCode]
+        };
+    }
+    return {
+        success: false,
+        message: '授权码无效'
+    };
+}
+
 function isAdmin() {
-return localStorage.getItem(ADMIN_KEY) === '1';
+    return isAuthorized();
 }
+
 function setAdminMode(on) {
-if (on) {
-localStorage.setItem(ADMIN_KEY, '1');
-document.body.classList.add('admin-mode');
-document.getElementById('adminEnterBtn').style.display = 'none';
-document.getElementById('adminLoginBtn').style.display = '';
-renderGroupList();
-if (!currentGroup) {
-  const keys = window.groupOrder;
-  if (keys.length) currentGroup = keys[0];
+    if (on) {
+        document.body.classList.add('admin-mode');
+        document.getElementById('adminEnterBtn').style.display = 'none';
+        document.getElementById('adminLoginBtn').style.display = '';
+        
+        renderGroupList();
+        if (!currentGroup) {
+            const keys = window.groupOrder;
+            if (keys.length) currentGroup = keys[0];
+        }
+    } else {
+        document.body.classList.remove('admin-mode');
+        document.getElementById('adminEnterBtn').style.display = '';
+        document.getElementById('adminLoginBtn').style.display = 'none';
+        
+        currentGroup = null;
+    }
+    renderBookmarksGroup(window.bookmarkGroups);
 }
-} else {
-localStorage.removeItem(ADMIN_KEY);
-document.body.classList.remove('admin-mode');
-document.getElementById('adminEnterBtn').style.display = '';
-document.getElementById('adminLoginBtn').style.display = 'none';
-currentGroup = null;
-}
-renderBookmarksGroup(window.bookmarkGroups);
-}
+
 function enterAdmin() {
-let input = prompt('请输入后台密码：');
-if (input === null) return;
-if (ADMIN_PASSWORDS.includes(input)) {
-setAdminMode(true);
-} else {
-alert('密码错误');
+    // 直接进入后台（因为已经通过页面授权验证）
+    setAdminMode(true);
 }
-}
+
 function logoutAdmin() {
-setAdminMode(false);
+    // 自动保存当前修改
+    saveAndRender();
+    
+    // 退出后台模式（不清除授权信息）
+    setAdminMode(false);
+    
+    alert('已退出后台管理，修改已自动保存');
 }
 
 // 渲染分组列表
@@ -922,26 +1199,105 @@ const seconds = String(date.getSeconds()).padStart(2, '0');
 return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-window.onload = function() {
-let groupOrder = null, bookmarkGroups = null;
-const saved = localStorage.getItem('importedBookmarks');
-if (saved) {
-    try {
-      const data = JSON.parse(saved);
-      if (data.groupOrder && data.bookmarkGroups) {
-        groupOrder = data.groupOrder;
-        bookmarkGroups = data.bookmarkGroups;
-      } else if (typeof data === 'object' && !Array.isArray(data)) {
-        bookmarkGroups = data;
-        groupOrder = Object.keys(data);
-      }
-    } catch {}
+// 页面授权验证初始化
+function initAuthCheck() {
+    const authOverlay = document.getElementById('authOverlay');
+    const mainContainer = document.getElementById('mainContainer');
+    const authInput = document.getElementById('authCodeInput');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authMessage = document.getElementById('authMessage');
+    
+    // 检查是否已授权
+    if (isAuthorized()) {
+        // 已授权，显示主页面
+        authOverlay.style.display = 'none';
+        mainContainer.style.display = 'flex';
+        initMainPage();
+    } else {
+        // 未授权，显示授权页面
+        authOverlay.style.display = 'flex';
+        mainContainer.style.display = 'none';
+        
+        // 确保元素存在后再绑定事件
+        if (authSubmitBtn && authInput) {
+            // 绑定授权验证事件
+            authSubmitBtn.addEventListener('click', handleAuthSubmit);
+            authInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleAuthSubmit();
+                }
+            });
+            
+            // 自动聚焦到输入框
+            setTimeout(() => {
+                authInput.focus();
+            }, 100);
+        }
+    }
 }
-if (!groupOrder || !bookmarkGroups) {
-    const jsonScript = document.getElementById('nav-json');
-    if (jsonScript) {
+
+// 处理授权验证提交
+function handleAuthSubmit() {
+    console.log('授权验证提交被调用');
+    const authInput = document.getElementById('authCodeInput');
+    const authMessage = document.getElementById('authMessage');
+    
+    if (!authInput) {
+        console.error('找不到授权码输入框');
+        return;
+    }
+    
+    const authCode = authInput.value.trim();
+    console.log('输入的授权码:', authCode);
+    
+    if (!authCode) {
+        showAuthMessage('请输入授权码', 'error');
+        return;
+    }
+    
+    const result = verifyAuthCode(authCode);
+    console.log('验证结果:', result);
+    
+    if (result.success) {
+        showAuthMessage(`授权成功！欢迎 ${result.user} 使用生态导航。`, 'success');
+        
+        // 延迟显示主页面
+        setTimeout(() => {
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'flex';
+            initMainPage();
+        }, 1500);
+    } else {
+        showAuthMessage(result.message || '授权码无效，请重新输入', 'error');
+        authInput.value = '';
+        authInput.focus();
+    }
+}
+
+// 显示授权消息
+function showAuthMessage(message, type) {
+    const authMessage = document.getElementById('authMessage');
+    authMessage.textContent = message;
+    authMessage.className = `auth-message ${type}`;
+}
+
+// 显示当前用户信息
+function showCurrentUserInfo() {
+    const currentUser = getCurrentUser();
+    const userInfoElement = document.getElementById('currentUserInfo');
+    if (userInfoElement && currentUser) {
+        userInfoElement.textContent = `当前用户：${currentUser}`;
+        userInfoElement.style.display = 'inline';
+    }
+}
+
+// 初始化主页面
+function initMainPage() {
+    let groupOrder = null, bookmarkGroups = null;
+    const saved = localStorage.getItem('importedBookmarks');
+    if (saved) {
         try {
-          const data = JSON.parse(jsonScript.textContent);
+          const data = JSON.parse(saved);
           if (data.groupOrder && data.bookmarkGroups) {
             groupOrder = data.groupOrder;
             bookmarkGroups = data.bookmarkGroups;
@@ -951,20 +1307,51 @@ if (!groupOrder || !bookmarkGroups) {
           }
         } catch {}
     }
+    if (!groupOrder || !bookmarkGroups) {
+        const jsonScript = document.getElementById('nav-json');
+        if (jsonScript) {
+            try {
+              const data = JSON.parse(jsonScript.textContent);
+              if (data.groupOrder && data.bookmarkGroups) {
+                groupOrder = data.groupOrder;
+                bookmarkGroups = data.bookmarkGroups;
+              } else if (typeof data === 'object' && !Array.isArray(data)) {
+                bookmarkGroups = data;
+                groupOrder = Object.keys(data);
+              }
+            } catch {}
+        }
+    }
+    if (!groupOrder) groupOrder = [];
+    if (!bookmarkGroups) bookmarkGroups = {};
+    window.groupOrder = groupOrder;
+    window.bookmarkGroups = bookmarkGroups;
+    defaultData = {
+      groupOrder: groupOrder.slice(),
+      bookmarkGroups: JSON.parse(JSON.stringify(bookmarkGroups))
+    };
+    
+    // 默认进入前端模式（不进入后台）
+    setAdminMode(false);
+    
+    // 显示当前用户信息
+    showCurrentUserInfo();
 }
-if (!groupOrder) groupOrder = [];
-if (!bookmarkGroups) bookmarkGroups = {};
-window.groupOrder = groupOrder;
-window.bookmarkGroups = bookmarkGroups;
-defaultData = {
-  groupOrder: groupOrder.slice(),
-  bookmarkGroups: JSON.parse(JSON.stringify(bookmarkGroups))
-};
-if (isAdmin()) {
-  setAdminMode(true);
-} else {
-  setAdminMode(false);
-}
+
+// 确保DOM完全加载后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 延迟一点执行，确保所有元素都已渲染
+    setTimeout(() => {
+        initAuthCheck();
+    }, 50);
+});
+
+// 备用初始化方式
+window.onload = function() {
+    if (!document.body.classList.contains('initialized')) {
+        document.body.classList.add('initialized');
+        initAuthCheck();
+    }
 }
 </script>
 </body>
