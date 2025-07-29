@@ -15,17 +15,51 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+            min-height: 100vh;
+        }
+        body, #app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            flex: 1 0 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding: 0;
+            max-width: 100vw;
+        }
+        .header {
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px 0 12px 0;
+            margin-bottom: 0;
+        }
+        .main-content {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            background: white;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            -webkit-overflow-scrolling: touch;
+        }
+        .footer {
+            flex-shrink: 0;
+            width: 100%;
+            z-index: 99;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
         body {
             font-family: 'Microsoft YaHei', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
         }
 
         .header {
@@ -1564,6 +1598,9 @@
                 min-height: 36px;
             }
         }
+
+        /* 隐藏数据备份页面上面一行导出按钮 */
+        .export-options:first-of-type { display: none !important; }
     </style>
 </head>
 <body>
@@ -1926,6 +1963,9 @@
                                                     <div v-if="record.notes" class="small text-muted">{{ record.notes }}</div>
                                                     <div class="small text-muted">{{ record.date }}</div>
                                                 </div>
+                                                <button class="btn btn-sm btn-outline-warning" @click="editAccountBookRecord(index, 'gift')" title="编辑收礼记录">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
                                                 <button class="btn btn-sm btn-outline-danger" @click="removeGiftRecord(index)" title="删除收礼记录">
                                                     <i class="bi bi-x"></i>
                                                 </button>
@@ -1950,6 +1990,9 @@
                                                     <div v-if="record.notes" class="small text-muted">{{ record.notes }}</div>
                                                     <div class="small text-muted">{{ record.date }}</div>
                                                 </div>
+                                                <button class="btn btn-sm btn-outline-warning" @click="editAccountBookRecord(index, 'expense')" title="编辑支出记录">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
                                                 <button class="btn btn-sm btn-outline-danger" @click="removeExpenseRecord(index)" title="删除支出记录">
                                                     <i class="bi bi-x"></i>
                                                 </button>
@@ -2083,8 +2126,11 @@
                                                     <span class="text-muted">({{ record.relationship }})</span>
                                                     <span class="text-success fw-bold ms-2">¥{{ record.amount }}</span>
                                                     <div v-if="record.notes" class="small text-muted">{{ record.notes }}</div>
-                                                    <div class="small text-muted">{{ record.date }}</div>
+                                                    <div class="small text-muted">{{ proxyAccountInfo.eventDate }}</div>
                                                 </div>
+                                                <button class="btn btn-sm btn-outline-warning" @click="editProxyRecord(index, 'gift')" title="编辑收礼记录">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
                                                 <button class="btn btn-sm btn-outline-danger" @click="removeProxyGiftRecord(index)" title="删除代记账收礼记录">
                                                     <i class="bi bi-x"></i>
                                                 </button>
@@ -2107,8 +2153,11 @@
                                                     <span class="text-muted">({{ record.category }})</span>
                                                     <span class="text-danger fw-bold ms-2">¥{{ record.amount }}</span>
                                                     <div v-if="record.notes" class="small text-muted">{{ record.notes }}</div>
-                                                    <div class="small text-muted">{{ record.date }}</div>
+                                                    <div class="small text-muted">{{ proxyAccountInfo.eventDate }}</div>
                                                 </div>
+                                                <button class="btn btn-sm btn-outline-warning" @click="editProxyRecord(index, 'expense')" title="编辑支出记录">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
                                                 <button class="btn btn-sm btn-outline-danger" @click="removeProxyExpenseRecord(index)" title="删除代记账支出记录">
                                                     <i class="bi bi-x"></i>
                                                 </button>
@@ -2299,7 +2348,7 @@
                     <div class="pagination" v-if="totalPages > 1">
                         <button @click="currentPage = 1" :disabled="currentPage === 1">首页</button>
                         <button @click="currentPage--" :disabled="currentPage === 1">上一页</button>
-                        <button v-for="page in visiblePages" :key="page" 
+                        <button v-for="page in getVisiblePages(totalPages, currentPage)" :key="page" 
                                 @click="currentPage = page" 
                                 :class="{ active: currentPage === page }">
                             {{ page }}
@@ -2327,9 +2376,12 @@
                     <div class="search-filter">
                         <input type="text" v-model="contactSearch" placeholder="🔍 搜索联系人...">
                         <input type="text" v-model="contactRelationFilter" placeholder="筛选关系...">
+                        <button class="btn btn-info" @click="resetContactsFilters">
+                            🔄 重置筛选
+                        </button>
                     </div>
 
-                    <div v-for="contact in filteredContacts" :key="contact.name" class="contact-card">
+                    <div v-for="contact in paginatedContacts" :key="contact.name" class="contact-card">
                         <div class="contact-header">
                             <div class="contact-name">
                                 {{ contact.name }}
@@ -2371,6 +2423,25 @@
 
                     <div v-if="filteredContacts.length === 0" style="text-align: center; padding: 40px; color: #6c757d;">
                         暂无联系人记录
+                    </div>
+                    
+                    <!-- 人情往来分页 -->
+                    <div class="pagination" v-if="contactsTotalPages > 1">
+                        <button @click="contactsCurrentPage = 1" :disabled="contactsCurrentPage === 1">首页</button>
+                        <button @click="contactsCurrentPage--" :disabled="contactsCurrentPage === 1">上一页</button>
+                        <button v-for="page in getVisiblePages(contactsTotalPages, contactsCurrentPage)" :key="page" 
+                                @click="contactsCurrentPage = page" 
+                                :class="{ active: contactsCurrentPage === page }">
+                            {{ page }}
+                        </button>
+                        <button @click="contactsCurrentPage++" :disabled="contactsCurrentPage === contactsTotalPages">下一页</button>
+                        <button @click="contactsCurrentPage = contactsTotalPages" :disabled="contactsCurrentPage === contactsTotalPages">末页</button>
+                    </div>
+                    
+                    <!-- 分页信息 -->
+                    <div v-if="filteredContacts.length > 0" style="text-align: center; margin-top: 15px; color: #6c757d; font-size: 14px;">
+                        显示第 {{ (contactsCurrentPage - 1) * contactsPageSize + 1 }} - {{ Math.min(contactsCurrentPage * contactsPageSize, filteredContacts.length) }} 条，
+                        共 {{ filteredContacts.length }} 条记录
                     </div>
                 </div>
 
@@ -2623,18 +2694,6 @@
                             <button class="btn btn-secondary" @click="exportJSON">
                                 💾 导出JSON备份
                             </button>
-                        </div>
-
-                        <div class="alert alert-info clickable-help" style="cursor: pointer;" @click="toggleDataShareHelp">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <strong>🔄 数据共享说明</strong>
-                                <i :class="showDataShareHelp ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="help-toggle"></i>
-                            </div>
-                            <div v-show="showDataShareHelp" style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.8); border-radius: 5px;" class="help-content">
-                                <div style="line-height: 1.6;">
-                                    <strong>🔄 数据共享：</strong>自家公事数据已自动与对外人情数据共享，无需手动导入。
-                                </div>
-                            </div>
                         </div>
 
                         <div class="form-group">
@@ -2942,6 +3001,9 @@
                     // 分页
                     currentPage: 1,
                     pageSize: 10,
+                    // 人情往来分页
+                    contactsCurrentPage: 1,
+                    contactsPageSize: 8,
                     
                     // 编辑
                     showEditModal: false,
@@ -3240,17 +3302,7 @@
                     return this.filteredEvents.slice(start, start + this.pageSize);
                 },
                 
-                visiblePages() {
-                    const pages = [];
-                    const start = Math.max(1, this.currentPage - 2);
-                    const end = Math.min(this.totalPages, this.currentPage + 2);
-                    
-                    for (let i = start; i <= end; i++) {
-                        pages.push(i);
-                    }
-                    
-                    return pages;
-                },
+
                 
                 // 联系人汇总
                 contactsSummary() {
@@ -3396,6 +3448,18 @@
                         
                         return new Date(dateB) - new Date(dateA);
                     });
+                },
+                
+                // 分页后的人情往来联系人
+                paginatedContacts() {
+                    const start = (this.contactsCurrentPage - 1) * this.contactsPageSize;
+                    const end = start + this.contactsPageSize;
+                    return this.filteredContacts.slice(start, end);
+                },
+                
+                // 人情往来总页数
+                contactsTotalPages() {
+                    return Math.ceil(this.filteredContacts.length / this.contactsPageSize);
                 },
                 
                 // 年度统计
@@ -4167,6 +4231,13 @@
                     this.currentPage = 1;
                 },
                 
+                // 重置人情往来筛选
+                resetContactsFilters() {
+                    this.contactSearch = '';
+                    this.contactRelationFilter = '';
+                    this.contactsCurrentPage = 1;
+                },
+                
                 // 重置统计筛选
                 resetStatsFilters() {
                     this.statsYearFilter = '';
@@ -4244,11 +4315,9 @@
                     if (!this.newGift.name || !this.newGift.amount) {
                         return;
                     }
-                    // 确保日期格式正确
                     const record = {...this.newGift};
-                    if (!record.date) {
-                        record.date = this.getFormattedDate();
-                    }
+                    // 优先用accountInfo.date
+                    record.date = this.accountInfo.date || this.getFormattedDate();
                     this.giftRecords.unshift(record);
                     this.resetGiftForm();
                     this.saveAccountBookData();
@@ -4257,11 +4326,9 @@
                     if (!this.newExpense.item || !this.newExpense.amount) {
                         return;
                     }
-                    // 确保日期格式正确
                     const record = {...this.newExpense};
-                    if (!record.date) {
-                        record.date = this.getFormattedDate();
-                    }
+                    // 优先用accountInfo.date
+                    record.date = this.accountInfo.date || this.getFormattedDate();
                     this.expenseRecords.unshift(record);
                     this.resetExpenseForm();
                     this.saveAccountBookData();
@@ -4330,11 +4397,9 @@
                     if (!this.proxyNewGift.name || !this.proxyNewGift.amount) {
                         return;
                     }
-                    // 确保日期格式正确
                     const record = {...this.proxyNewGift};
-                    if (!record.date) {
-                        record.date = this.getFormattedDate();
-                    }
+                    // 优先用proxyAccountInfo.date
+                    record.date = this.proxyAccountInfo.eventDate || this.getFormattedDate();
                     this.proxyGiftRecords.unshift(record);
                     this.resetProxyGiftForm();
                     this.saveProxyData();
@@ -4343,11 +4408,9 @@
                     if (!this.proxyNewExpense.item || !this.proxyNewExpense.amount) {
                         return;
                     }
-                    // 确保日期格式正确
                     const record = {...this.proxyNewExpense};
-                    if (!record.date) {
-                        record.date = this.getFormattedDate();
-                    }
+                    // 优先用proxyAccountInfo.date
+                    record.date = this.proxyAccountInfo.eventDate || this.getFormattedDate();
                     this.proxyExpenseRecords.unshift(record);
                     this.resetProxyExpenseForm();
                     this.saveProxyData();
@@ -4611,6 +4674,7 @@
                         '联系电话': contact.phone || '',
                         '关系': contact.relationship || '',
                         '给出礼金': contact.given,
+                        '收到礼金': contact.received, // 新增
                         '往来次数': contact.count,
                         '最近往来': contact.lastDate ? this.formatDate(contact.lastDate) : ''
                     }));
@@ -5610,6 +5674,55 @@
                 // 切换最近记录显示状态
                 toggleRecentRecords() {
                     this.showRecentRecords = !this.showRecentRecords;
+                },
+                
+                // 获取可见的页码
+                getVisiblePages(totalPages, currentPage) {
+                    const pages = [];
+                    const maxVisible = 5;
+                    
+                    if (totalPages <= maxVisible) {
+                        for (let i = 1; i <= totalPages; i++) {
+                            pages.push(i);
+                        }
+                    } else {
+                        let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                        let end = Math.min(totalPages, start + maxVisible - 1);
+                        
+                        if (end - start + 1 < maxVisible) {
+                            start = Math.max(1, end - maxVisible + 1);
+                        }
+                        
+                        for (let i = start; i <= end; i++) {
+                            pages.push(i);
+                        }
+                    }
+                    
+                    return pages;
+                },
+                editAccountBookRecord(index, type) {
+                    this.editingEvent = {
+                        source: 'accountBook',
+                        type: type,
+                        hostName: this.giftRecords[index].name,
+                        relationship: this.giftRecords[index].relationship,
+                        amount: this.giftRecords[index].amount,
+                        date: this.giftRecords[index].date,
+                        notes: this.giftRecords[index].notes
+                    };
+                    this.showEditModal = true;
+                },
+                editProxyRecord(index, type) {
+                    this.editingEvent = {
+                        source: 'proxy',
+                        type: type,
+                        name: this.proxyGiftRecords[index].name,
+                        relationship: this.proxyGiftRecords[index].relationship,
+                        amount: this.proxyGiftRecords[index].amount,
+                        date: this.proxyGiftRecords[index].date,
+                        notes: this.proxyGiftRecords[index].notes
+                    };
+                    this.showEditModal = true;
                 }
             },
             
@@ -5619,6 +5732,10 @@
                 typeFilter() { this.currentPage = 1; },
                 relationshipFilter() { this.currentPage = 1; },
                 yearFilter() { this.currentPage = 1; },
+                
+                // 监听人情往来筛选条件变化，重置分页
+                contactSearch() { this.contactsCurrentPage = 1; },
+                contactRelationFilter() { this.contactsCurrentPage = 1; },
                 
                 // 监听公事记账簿数据变化
                 accountInfo: {
@@ -5659,5 +5776,4 @@
         }).mount('#app');
     </script>
 </body>
-</html>
 </html>
