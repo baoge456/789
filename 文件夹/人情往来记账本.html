@@ -745,12 +745,55 @@
             }
         }
 
+        /* 可点击姓名样式 */
+        .name-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            max-width: 200px;
+        }
+        
+        .clickable-name {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #bbdefb;
+            white-space: nowrap;
+        }
+        
+        .clickable-name:hover {
+            background: #1976d2;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+        }
+        
+        .clickable-name:active {
+            transform: translateY(0);
+        }
+        
         /* 优化表格在移动端的显示 */
         @media (max-width: 576px) {
             .table th,
             .table td {
                 padding: 6px 4px;
                 font-size: 11px;
+            }
+            
+            .name-list {
+                max-width: 150px;
+                gap: 2px;
+            }
+            
+            .clickable-name {
+                padding: 1px 4px;
+                font-size: 10px;
+                border-radius: 8px;
             }
             
             .table td.event-detail-cell {
@@ -2155,7 +2198,7 @@
                     <div class="form-section">
                         <div class="form-title">
                             <span>📅</span>
-                            <span>年度统计</span>
+                            <span>{{ getYearlyStatsTitle() }}</span>
                         </div>
                         <div class="table-container">
                             <table class="table">
@@ -2201,19 +2244,21 @@
                     <div class="form-section">
                         <div class="form-title">
                             <span>👥</span>
-                            <span>关系统计</span>
+                            <span>{{ getRelationshipStatsTitle() }}</span>
                         </div>
                         <div class="table-container">
                             <table class="table">
                                 <thead>
                                     <tr>
                                         <th>关系类型</th>
+                                        <th>姓名列表</th>
                                         <th colspan="2" class="text-center">我给出的</th>
                                         <th colspan="2" class="text-center">我收到的</th>
                                         <th colspan="2" class="text-center">汇总</th>
                                     </tr>
                                     <tr>
                                         <th>关系类型</th>
+                                        <th>点击姓名查看详情</th>
                                         <th>次数</th>
                                         <th>金额</th>
                                         <th>次数</th>
@@ -2222,8 +2267,18 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="stat in relationshipStats" :key="stat.relationship">
+                                    <tr v-for="stat in filteredRelationshipStats" :key="stat.relationship">
                                         <td><strong>{{ stat.relationship || '未分类' }}</strong></td>
+                                        <td>
+                                            <div class="name-list">
+                                                <span v-for="name in stat.peopleList" :key="name" 
+                                                      class="clickable-name" 
+                                                      @click="viewPersonRecords(name)"
+                                                      :title="`点击查看 ${name} 的详细记录`">
+                                                    {{ name }}
+                                                </span>
+                                            </div>
+                                        </td>
                                         <td>{{ stat.outgoingCount }}次</td>
                                         <td class="amount negative">¥{{ stat.outgoingAmount.toFixed(2) }}</td>
                                         <td>{{ stat.incomingCount }}次</td>
@@ -3219,40 +3274,292 @@
                 
                 // 筛选后的年度统计
                 filteredYearlyStats() {
-                    let filtered = this.yearlyStats;
+                    // 重新计算基于所有筛选条件的年度统计
+                    const filteredStats = {};
                     
-                    // 年份筛选
-                    if (this.statsYearFilter) {
-                        filtered = filtered.filter(stat => stat.year == this.statsYearFilter);
-                    }
-                    
-                    // 统计类型筛选
-                    if (this.statsTypeFilter) {
-                        if (this.statsTypeFilter === 'outgoing') {
-                            filtered = filtered.filter(stat => stat.outgoingTotalCount > 0);
-                        } else if (this.statsTypeFilter === 'incoming') {
-                            filtered = filtered.filter(stat => stat.incomingTotalCount > 0);
+                    // 处理对外人情记录
+                    this.events.forEach(event => {
+                        const eventDate = this.validateAndFixDate(event.eventDate);
+                        if (!eventDate) return;
+                        
+                        const year = new Date(eventDate).getFullYear();
+                        
+                        // 年份筛选
+                        if (this.statsYearFilter && year != this.statsYearFilter) return;
+                        
+                        // 判断事件类型
+                        let eventCategory = 'other';
+                        if (event.type) {
+                            const lowerType = event.type.toLowerCase();
+                            if (lowerType.includes('红') || lowerType.includes('喜') || lowerType.includes('结婚') || 
+                                lowerType.includes('生子') || lowerType.includes('满月') || lowerType.includes('周岁') ||
+                                lowerType.includes('乔迁') || lowerType.includes('开业') || lowerType.includes('升学')) {
+                                eventCategory = 'red';
+                            } else if (lowerType.includes('白') || lowerType.includes('丧') || lowerType.includes('去世') ||
+                                       lowerType.includes('悼') || lowerType.includes('祭')) {
+                                eventCategory = 'white';
+                            }
                         }
-                    }
-                    
-                    // 事件类型筛选
-                    if (this.statsEventTypeFilter) {
-                        if (this.statsEventTypeFilter === 'red') {
-                            filtered = filtered.filter(stat => 
-                                stat.outgoingRedCount > 0 || stat.incomingRedCount > 0
-                            );
-                        } else if (this.statsEventTypeFilter === 'white') {
-                            filtered = filtered.filter(stat => 
-                                stat.outgoingWhiteCount > 0 || stat.incomingWhiteCount > 0
-                            );
-                        } else if (this.statsEventTypeFilter === 'other') {
-                            filtered = filtered.filter(stat => 
-                                stat.outgoingOtherCount > 0 || stat.incomingOtherCount > 0
-                            );
+                        
+                        // 事件类型筛选
+                        if (this.statsEventTypeFilter && this.statsEventTypeFilter !== eventCategory) return;
+                        
+                        // 统计类型筛选
+                        if (this.statsTypeFilter) {
+                            if (this.statsTypeFilter === 'outgoing' && event.direction !== 'out') return;
+                            if (this.statsTypeFilter === 'incoming' && event.direction !== 'in') return;
                         }
-                    }
+                        
+                        if (!filteredStats[year]) {
+                            filteredStats[year] = {
+                                year: year,
+                                outgoingRedCount: 0,
+                                outgoingWhiteCount: 0,
+                                outgoingOtherCount: 0,
+                                outgoingTotalCount: 0,
+                                outgoingTotalAmount: 0,
+                                incomingRedCount: 0,
+                                incomingWhiteCount: 0,
+                                incomingOtherCount: 0,
+                                incomingTotalCount: 0,
+                                incomingTotalAmount: 0,
+                                totalCount: 0,
+                                totalAmount: 0,
+                                netAmount: 0
+                            };
+                        }
+                        
+                        if (event.direction === 'out') {
+                            filteredStats[year].outgoingTotalCount++;
+                            filteredStats[year].outgoingTotalAmount += event.myGift;
+                            if (eventCategory === 'red') {
+                                filteredStats[year].outgoingRedCount++;
+                            } else if (eventCategory === 'white') {
+                                filteredStats[year].outgoingWhiteCount++;
+                            } else {
+                                filteredStats[year].outgoingOtherCount++;
+                            }
+                        } else {
+                            filteredStats[year].incomingTotalCount++;
+                            filteredStats[year].incomingTotalAmount += event.myGift;
+                            if (eventCategory === 'red') {
+                                filteredStats[year].incomingRedCount++;
+                            } else if (eventCategory === 'white') {
+                                filteredStats[year].incomingWhiteCount++;
+                            } else {
+                                filteredStats[year].incomingOtherCount++;
+                            }
+                        }
+                        
+                        filteredStats[year].totalCount++;
+                        filteredStats[year].totalAmount += event.myGift;
+                    });
                     
-                    return filtered;
+                    // 处理自家公事记录
+                    this.giftRecords.forEach(record => {
+                        const recordDate = this.validateAndFixDate(record.date);
+                        if (!recordDate) return;
+                        
+                        const year = new Date(recordDate).getFullYear();
+                        
+                        // 年份筛选
+                        if (this.statsYearFilter && year != this.statsYearFilter) return;
+                        
+                        // 判断事件类型（基于自家公事类型）
+                        let eventCategory = 'other';
+                        const eventType = this.accountInfo.type || '公事';
+                        if (eventType) {
+                            const lowerType = eventType.toLowerCase();
+                            if (lowerType.includes('红') || lowerType.includes('喜') || lowerType.includes('结婚') || 
+                                lowerType.includes('生子') || lowerType.includes('满月') || lowerType.includes('周岁') ||
+                                lowerType.includes('乔迁') || lowerType.includes('开业') || lowerType.includes('升学')) {
+                                eventCategory = 'red';
+                            } else if (lowerType.includes('白') || lowerType.includes('丧') || lowerType.includes('去世') ||
+                                       lowerType.includes('悼') || lowerType.includes('祭')) {
+                                eventCategory = 'white';
+                            }
+                        }
+                        
+                        // 事件类型筛选
+                        if (this.statsEventTypeFilter && this.statsEventTypeFilter !== eventCategory) return;
+                        
+                        // 统计类型筛选（自家公事都是别人给我随礼）
+                        if (this.statsTypeFilter && this.statsTypeFilter !== 'incoming') return;
+                        
+                        if (!filteredStats[year]) {
+                            filteredStats[year] = {
+                                year: year,
+                                outgoingRedCount: 0,
+                                outgoingWhiteCount: 0,
+                                outgoingOtherCount: 0,
+                                outgoingTotalCount: 0,
+                                outgoingTotalAmount: 0,
+                                incomingRedCount: 0,
+                                incomingWhiteCount: 0,
+                                incomingOtherCount: 0,
+                                incomingTotalCount: 0,
+                                incomingTotalAmount: 0,
+                                totalCount: 0,
+                                totalAmount: 0,
+                                netAmount: 0
+                            };
+                        }
+                        
+                        // 自家公事都是别人给我随礼
+                        filteredStats[year].incomingTotalCount++;
+                        filteredStats[year].incomingTotalAmount += record.amount;
+                        if (eventCategory === 'red') {
+                            filteredStats[year].incomingRedCount++;
+                        } else if (eventCategory === 'white') {
+                            filteredStats[year].incomingWhiteCount++;
+                        } else {
+                            filteredStats[year].incomingOtherCount++;
+                        }
+                        
+                        filteredStats[year].totalCount++;
+                        filteredStats[year].totalAmount += record.amount;
+                    });
+                    
+                    // 计算净金额
+                    Object.values(filteredStats).forEach(stat => {
+                        stat.netAmount = stat.incomingTotalAmount - stat.outgoingTotalAmount;
+                    });
+                    
+                    return Object.values(filteredStats).sort((a, b) => b.year - a.year);
+                },
+                
+                // 筛选后的关系统计
+                filteredRelationshipStats() {
+                    // 重新计算基于所有筛选条件的关系统计
+                    const filteredStats = {};
+                    
+                    // 处理对外人情记录
+                    this.events.forEach(event => {
+                        const eventDate = this.validateAndFixDate(event.eventDate);
+                        if (!eventDate) return;
+                        
+                        const year = new Date(eventDate).getFullYear();
+                        
+                        // 年份筛选
+                        if (this.statsYearFilter && year != this.statsYearFilter) return;
+                        
+                        // 判断事件类型
+                        let eventCategory = 'other';
+                        if (event.type) {
+                            const lowerType = event.type.toLowerCase();
+                            if (lowerType.includes('红') || lowerType.includes('喜') || lowerType.includes('结婚') || 
+                                lowerType.includes('生子') || lowerType.includes('满月') || lowerType.includes('周岁') ||
+                                lowerType.includes('乔迁') || lowerType.includes('开业') || lowerType.includes('升学')) {
+                                eventCategory = 'red';
+                            } else if (lowerType.includes('白') || lowerType.includes('丧') || lowerType.includes('去世') ||
+                                       lowerType.includes('悼') || lowerType.includes('祭')) {
+                                eventCategory = 'white';
+                            }
+                        }
+                        
+                        // 事件类型筛选
+                        if (this.statsEventTypeFilter && this.statsEventTypeFilter !== eventCategory) return;
+                        
+                        // 统计类型筛选
+                        if (this.statsTypeFilter) {
+                            if (this.statsTypeFilter === 'outgoing' && event.direction !== 'out') return;
+                            if (this.statsTypeFilter === 'incoming' && event.direction !== 'in') return;
+                        }
+                        
+                        const rel = event.relationship || '未分类';
+                        if (!filteredStats[rel]) {
+                            filteredStats[rel] = {
+                                relationship: rel,
+                                people: new Set(),
+                                outgoingPeople: new Set(),
+                                incomingPeople: new Set(),
+                                outgoingCount: 0,
+                                incomingCount: 0,
+                                outgoingAmount: 0,
+                                incomingAmount: 0,
+                                totalAmount: 0
+                            };
+                        }
+                        
+                        filteredStats[rel].people.add(event.hostName);
+                        if (event.direction === 'out') {
+                            filteredStats[rel].outgoingPeople.add(event.hostName);
+                            filteredStats[rel].outgoingCount++;
+                            filteredStats[rel].outgoingAmount += event.myGift;
+                            filteredStats[rel].totalAmount += event.myGift;
+                        } else {
+                            filteredStats[rel].incomingPeople.add(event.hostName);
+                            filteredStats[rel].incomingCount++;
+                            filteredStats[rel].incomingAmount += event.myGift;
+                            filteredStats[rel].totalAmount -= event.myGift;
+                        }
+                    });
+                    
+                    // 处理自家公事记录
+                    this.giftRecords.forEach(record => {
+                        const recordDate = this.validateAndFixDate(record.date);
+                        if (!recordDate) return;
+                        
+                        const year = new Date(recordDate).getFullYear();
+                        
+                        // 年份筛选
+                        if (this.statsYearFilter && year != this.statsYearFilter) return;
+                        
+                        // 判断事件类型（基于自家公事类型）
+                        let eventCategory = 'other';
+                        const eventType = this.accountInfo.type || '公事';
+                        if (eventType) {
+                            const lowerType = eventType.toLowerCase();
+                            if (lowerType.includes('红') || lowerType.includes('喜') || lowerType.includes('结婚') || 
+                                lowerType.includes('生子') || lowerType.includes('满月') || lowerType.includes('周岁') ||
+                                lowerType.includes('乔迁') || lowerType.includes('开业') || lowerType.includes('升学')) {
+                                eventCategory = 'red';
+                            } else if (lowerType.includes('白') || lowerType.includes('丧') || lowerType.includes('去世') ||
+                                       lowerType.includes('悼') || lowerType.includes('祭')) {
+                                eventCategory = 'white';
+                            }
+                        }
+                        
+                        // 事件类型筛选
+                        if (this.statsEventTypeFilter && this.statsEventTypeFilter !== eventCategory) return;
+                        
+                        // 统计类型筛选（自家公事都是别人给我随礼）
+                        if (this.statsTypeFilter && this.statsTypeFilter !== 'incoming') return;
+                        
+                        const rel = record.relationship || '未分类';
+                        if (!filteredStats[rel]) {
+                            filteredStats[rel] = {
+                                relationship: rel,
+                                people: new Set(),
+                                outgoingPeople: new Set(),
+                                incomingPeople: new Set(),
+                                outgoingCount: 0,
+                                incomingCount: 0,
+                                outgoingAmount: 0,
+                                incomingAmount: 0,
+                                totalAmount: 0
+                            };
+                        }
+                        
+                        filteredStats[rel].people.add(record.name);
+                        filteredStats[rel].incomingPeople.add(record.name);
+                        filteredStats[rel].incomingCount++;
+                        filteredStats[rel].incomingAmount += record.amount;
+                        filteredStats[rel].totalAmount -= record.amount;
+                    });
+                    
+                    return Object.values(filteredStats).map(stat => ({
+                        relationship: stat.relationship,
+                        peopleCount: stat.people.size,
+                        peopleList: Array.from(stat.people).sort(),
+                        outgoingPeopleCount: stat.outgoingPeople.size,
+                        incomingPeopleCount: stat.incomingPeople.size,
+                        outgoingCount: stat.outgoingCount,
+                        incomingCount: stat.incomingCount,
+                        outgoingAmount: stat.outgoingAmount,
+                        incomingAmount: stat.incomingAmount,
+                        totalAmount: stat.totalAmount
+                    })).sort((a, b) => Math.abs(b.totalAmount) - Math.abs(a.totalAmount));
                 },
                 
                 // 关系统计
@@ -3317,6 +3624,7 @@
                     return Object.values(stats).map(stat => ({
                         relationship: stat.relationship,
                         peopleCount: stat.people.size,
+                        peopleList: Array.from(stat.people).sort(),
                         outgoingPeopleCount: stat.outgoingPeople.size,
                         incomingPeopleCount: stat.incomingPeople.size,
                         outgoingCount: stat.outgoingCount,
@@ -4650,7 +4958,59 @@
                     }
                 },
                 
-
+                // 生成年度统计标题
+                getYearlyStatsTitle() {
+                    let title = '年度统计';
+                    const conditions = [];
+                    
+                    if (this.statsYearFilter) {
+                        conditions.push(`${this.statsYearFilter}年`);
+                    }
+                    if (this.statsTypeFilter) {
+                        conditions.push(this.statsTypeFilter === 'outgoing' ? '我给出的' : '我收到的');
+                    }
+                    if (this.statsEventTypeFilter) {
+                        const eventTypeNames = {
+                            'red': '红事',
+                            'white': '白事',
+                            'other': '其他'
+                        };
+                        conditions.push(eventTypeNames[this.statsEventTypeFilter] || this.statsEventTypeFilter);
+                    }
+                    
+                    if (conditions.length > 0) {
+                        title = `${conditions.join(' - ')}统计`;
+                    }
+                    
+                    return title;
+                },
+                
+                // 生成关系统计标题
+                getRelationshipStatsTitle() {
+                    let title = '关系统计';
+                    const conditions = [];
+                    
+                    if (this.statsYearFilter) {
+                        conditions.push(`${this.statsYearFilter}年`);
+                    }
+                    if (this.statsTypeFilter) {
+                        conditions.push(this.statsTypeFilter === 'outgoing' ? '我给出的' : '我收到的');
+                    }
+                    if (this.statsEventTypeFilter) {
+                        const eventTypeNames = {
+                            'red': '红事',
+                            'white': '白事',
+                            'other': '其他'
+                        };
+                        conditions.push(eventTypeNames[this.statsEventTypeFilter] || this.statsEventTypeFilter);
+                    }
+                    
+                    if (conditions.length > 0) {
+                        title = `${conditions.join(' - ')}关系统计`;
+                    }
+                    
+                    return title;
+                },
                 
                 // 切换帮助显示状态的方法
                 toggleRecordsHelp() {
@@ -4795,6 +5155,23 @@
                     
                     // 更新输入框的值
                     event.target.value = value;
+                },
+                
+                // 查看指定人员的记录
+                viewPersonRecords(personName) {
+                    // 切换到公事记录页面
+                    this.activeTab = 'records';
+                    
+                    // 设置搜索关键词为人员姓名
+                    this.searchKeyword = personName;
+                    
+                    // 重置分页到第一页
+                    this.currentPage = 1;
+                    
+                    // 显示提示信息
+                    setTimeout(() => {
+                        alert(`已跳转到公事记录页面，正在搜索 "${personName}" 的记录`);
+                    }, 100);
                 }
             },
             
