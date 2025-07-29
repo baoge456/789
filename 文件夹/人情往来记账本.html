@@ -30,24 +30,26 @@
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             color: white;
+        }
+        
+        .header-main {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
         }
 
         .header h1 {
             font-size: 2.5rem;
-            margin-bottom: 10px;
+            margin: 0;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            margin: 10px 0 15px 0;
         }
         
         .user-info {
-            margin-top: 10px;
+            margin: 0;
         }
         
         .user-badge {
@@ -909,6 +911,11 @@
             border: 1px solid #e9ecef;
         }
         
+        .recent-records-content {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
         .recent-records-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1008,6 +1015,23 @@
             font-size: 13px;
         }
         
+        /* 最近记录标题样式 */
+        .recent-records-section .form-title {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin: -8px -12px 15px -12px;
+        }
+        
+        .recent-records-section .form-title:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        
+        .recent-records-section .form-title .help-toggle {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+        }
+        
         /* 移动端优化 */
         @media (max-width: 768px) {
             .recent-records-grid {
@@ -1076,8 +1100,8 @@
         .footer {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
-            padding: 20px 0;
-            margin-top: 50px;
+            padding: 15px 0;
+            margin-top: 30px;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
             position: relative;
             overflow: hidden;
@@ -1106,14 +1130,15 @@
         .footer-main {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 5px;
         }
 
         .footer-logo {
             display: flex;
             align-items: center;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
+            gap: 8px;
         }
 
         .logo-icon {
@@ -1135,7 +1160,7 @@
         }
 
         .footer-copyright {
-            font-size: 13px;
+            font-size: 11px;
             color: #b8c5d6;
         }
 
@@ -1313,12 +1338,21 @@
         @media (max-width: 768px) {
             .footer-content {
                 flex-direction: column;
-                gap: 15px;
+                gap: 10px;
                 text-align: center;
             }
 
             .footer-features {
                 justify-content: center;
+            }
+            
+            .footer-logo {
+                font-size: 14px;
+                gap: 6px;
+            }
+            
+            .footer-copyright {
+                font-size: 10px;
             }
 
             .auth-modal {
@@ -1341,7 +1375,12 @@
             }
 
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.8rem;
+            }
+            
+            .header-main {
+                flex-direction: column;
+                gap: 10px;
             }
 
             .tabs {
@@ -1422,7 +1461,11 @@
             }
 
             .header h1 {
-                font-size: 1.5rem;
+                font-size: 1.4rem;
+            }
+            
+            .header-main {
+                gap: 8px;
             }
 
             .container {
@@ -1487,10 +1530,11 @@
         
         <div class="container">
             <div class="header">
-                <h1>🎊人情往来记账本</h1>
-                <p>专业的人情往来管理系统</p>
-                <div v-if="currentUser" class="user-info">
-                    <span class="user-badge">👤 {{ currentUser }}</span>
+                <div class="header-main">
+                    <h1>🎊人情往来记账本</h1>
+                    <div v-if="currentUser" class="user-info">
+                        <span class="user-badge">👤 {{ currentUser }}</span>
+                    </div>
                 </div>
             </div>
 
@@ -1607,32 +1651,35 @@
                     
                     <!-- 最近三次记录 -->
                     <div class="recent-records-section" v-if="recentRecords.length > 0">
-                        <div class="form-title">
+                        <div class="form-title clickable-help" @click="toggleRecentRecords" style="cursor: pointer;">
                             <span>📋</span>
-                            <span>最近三次记录</span>
+                            <span>最近三次记录 ({{ recentRecords.length }}条)</span>
+                            <i :class="showRecentRecords ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="help-toggle"></i>
                         </div>
-                        <div class="recent-records-grid">
-                            <div v-for="(record, index) in recentRecords" :key="record.id" 
-                                 class="recent-record-card" 
-                                 @click="viewRecordDetail(record)"
-                                 :title="`点击查看 ${record.hostName} 的详细记录`">
-                                <div class="record-header">
-                                    <span class="record-number">#{{ index + 1 }}</span>
-                                    <span class="record-date">{{ formatDate(record.eventDate) }}</span>
-                                </div>
-                                <div class="record-content">
-                                    <div class="record-name">{{ record.hostName }}</div>
-                                    <div class="record-detail">{{ record.eventDetail }}</div>
-                                    <div class="record-amount">¥{{ record.myGift.toFixed(2) }}</div>
-                                </div>
-                                <div class="record-footer">
-                                    <span class="record-type">{{ record.type }}</span>
-                                    <span class="record-relationship">{{ record.relationship || '未分类' }}</span>
+                        <div v-show="showRecentRecords" class="recent-records-content">
+                            <div class="recent-records-grid">
+                                <div v-for="(record, index) in recentRecords" :key="record.id" 
+                                     class="recent-record-card" 
+                                     @click="viewRecordDetail(record)"
+                                     :title="`点击查看 ${record.hostName} 的详细记录`">
+                                    <div class="record-header">
+                                        <span class="record-number">#{{ index + 1 }}</span>
+                                        <span class="record-date">{{ formatDate(record.eventDate) }}</span>
+                                    </div>
+                                    <div class="record-content">
+                                        <div class="record-name">{{ record.hostName }}</div>
+                                        <div class="record-detail">{{ record.eventDetail }}</div>
+                                        <div class="record-amount">¥{{ record.myGift.toFixed(2) }}</div>
+                                    </div>
+                                    <div class="record-footer">
+                                        <span class="record-type">{{ record.type }}</span>
+                                        <span class="record-relationship">{{ record.relationship || '未分类' }}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="recent-records-tip">
-                            💡 点击记录卡片可查看详细信息，帮助您避免重复记录
+                            <div class="recent-records-tip">
+                                💡 点击记录卡片可查看详细信息，帮助您避免重复记录
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2757,9 +2804,7 @@
                     <span class="logo-icon">📊</span>
                     <span class="logo-text">人情往来记账本</span>
                     <span class="registered-mark">®</span>
-                </div>
-                <div class="footer-copyright">
-                    © 2025 宝哥开发工作室. All Rights Reserved.
+                    <span class="footer-copyright">© 2025 宝哥开发工作室</span>
                 </div>
             </div>
             <div class="footer-features">
@@ -2894,6 +2939,7 @@
                     showStatsHelp: false,
                     showExportHelp: false,
                     showDataShareHelp: false,
+                    showRecentRecords: false, // 最近三次记录显示状态
                     
                     // 卡片检索状态
                     cardFilterType: '',
@@ -5476,6 +5522,11 @@
                     setTimeout(() => {
                         alert(`已跳转到公事记录页面，正在搜索 "${record.hostName}" 的记录\n\n详细信息：\n姓名：${record.hostName}\n事由：${record.eventDetail}\n日期：${this.formatDate(record.eventDate)}\n金额：¥${record.myGift.toFixed(2)}\n类型：${record.type}\n关系：${record.relationship || '未分类'}`);
                     }, 100);
+                },
+                
+                // 切换最近记录显示状态
+                toggleRecentRecords() {
+                    this.showRecentRecords = !this.showRecentRecords;
                 }
             },
             
