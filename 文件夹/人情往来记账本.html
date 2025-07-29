@@ -897,7 +897,135 @@
             -webkit-user-select: none;
         }
         .collapse-toggle:hover {
-            background-color: rgba(0,0,0,0.05);
+            background-color: #f8f9fa;
+        }
+        
+        /* 最近三次记录样式 */
+        .recent-records-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .recent-records-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .recent-record-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .recent-record-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border-color: #007bff;
+        }
+        
+        .recent-record-card:active {
+            transform: translateY(0);
+        }
+        
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .record-number {
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .record-date {
+            color: #6c757d;
+            font-size: 12px;
+        }
+        
+        .record-content {
+            margin-bottom: 12px;
+        }
+        
+        .record-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #212529;
+            margin-bottom: 4px;
+        }
+        
+        .record-detail {
+            color: #495057;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        
+        .record-amount {
+            font-size: 18px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        
+        .record-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        
+        .record-type {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 6px;
+            border-radius: 8px;
+        }
+        
+        .record-relationship {
+            color: #6c757d;
+        }
+        
+        .recent-records-tip {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            color: #6c757d;
+            font-size: 13px;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .recent-records-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .recent-record-card {
+                padding: 12px;
+            }
+            
+            .record-name {
+                font-size: 14px;
+            }
+            
+            .record-amount {
+                font-size: 16px;
+            }
         }
         .quick-input {
             background: #f8f9fa;
@@ -1441,12 +1569,8 @@
                             </div>
                             
                             <div class="form-group">
-                                <label>往来方向 *</label>
-                                <select v-model="eventForm.direction" required>
-                                    <option value="">请选择方向</option>
-                                    <option value="out">我给别人随礼</option>
-                                    <option value="in">别人给我随礼</option>
-                                </select>
+                                <label>往来方向</label>
+                                <input type="text" value="我给别人随礼" readonly style="background-color: #f8f9fa; color: #6c757d;">
                             </div>
                             
                             <div class="form-group">
@@ -1463,10 +1587,7 @@
                                 </select>
                             </div>
                             
-                            <div class="form-group">
-                                <label>我的公事类型</label>
-                                <input type="text" v-model="eventForm.myEventType" placeholder="如：结婚、生子、乔迁等（仅当别人给我随礼时填写）">
-                            </div>
+
                         </div>
                         
                         <div class="form-group">
@@ -1481,6 +1602,37 @@
                             <button class="btn btn-secondary" @click="resetForm" style="margin-left: 10px;">
                                 🔄 重置表单
                             </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 最近三次记录 -->
+                    <div class="recent-records-section" v-if="recentRecords.length > 0">
+                        <div class="form-title">
+                            <span>📋</span>
+                            <span>最近三次记录</span>
+                        </div>
+                        <div class="recent-records-grid">
+                            <div v-for="(record, index) in recentRecords" :key="record.id" 
+                                 class="recent-record-card" 
+                                 @click="viewRecordDetail(record)"
+                                 :title="`点击查看 ${record.hostName} 的详细记录`">
+                                <div class="record-header">
+                                    <span class="record-number">#{{ index + 1 }}</span>
+                                    <span class="record-date">{{ formatDate(record.eventDate) }}</span>
+                                </div>
+                                <div class="record-content">
+                                    <div class="record-name">{{ record.hostName }}</div>
+                                    <div class="record-detail">{{ record.eventDetail }}</div>
+                                    <div class="record-amount">¥{{ record.myGift.toFixed(2) }}</div>
+                                </div>
+                                <div class="record-footer">
+                                    <span class="record-type">{{ record.type }}</span>
+                                    <span class="record-relationship">{{ record.relationship || '未分类' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="recent-records-tip">
+                            💡 点击记录卡片可查看详细信息，帮助您避免重复记录
                         </div>
                     </div>
                 </div>
@@ -1943,6 +2095,9 @@
                         </select>
                         <button class="btn btn-info" @click="resetFilters">
                             🔄 重置筛选
+                        </button>
+                        <button class="btn btn-warning" @click="checkDuplicates">
+                            🔍 去重检查
                         </button>
                     </div>
 
@@ -2573,10 +2728,7 @@
                             </select>
                         </div>
                         
-                        <div class="form-group">
-                            <label>我的公事类型</label>
-                            <input type="text" v-model="editingEvent.myEventType" placeholder="如：结婚、生子、乔迁等（仅当别人给我随礼时填写）">
-                        </div>
+
                     </div>
                     
                     <div class="form-group">
@@ -2640,10 +2792,9 @@
                         eventDate: '',
                         location: '',
                         myGift: '',
-                        direction: '',
+                        direction: 'out',
                         attendees: '',
                         attended: 'yes',
-                        myEventType: '',
                         notes: ''
                     },
                     
@@ -2835,6 +2986,19 @@
                         ...this.giftRecords.map(r => r.name)
                     ]);
                     return uniqueNames.size;
+                },
+                
+                // 最近三次记录
+                recentRecords() {
+                    // 只显示对外人情记录（不包括自家公事）
+                    return this.events
+                        .sort((a, b) => {
+                            // 按创建时间倒序排列
+                            const dateA = a.createTime ? new Date(a.createTime) : new Date(a.eventDate);
+                            const dateB = b.createTime ? new Date(b.createTime) : new Date(b.eventDate);
+                            return dateB - dateA;
+                        })
+                        .slice(0, 3); // 只取最近3条
                 },
                 
 
@@ -3712,10 +3876,9 @@
                         eventDate: this.getFormattedDate(),
                         location: '',
                         myGift: '',
-                        direction: '',
+                        direction: 'out',
                         attendees: '',
                         attended: 'yes',
-                        myEventType: '',
                         notes: ''
                     };
                 },
@@ -4179,7 +4342,7 @@
                         '随礼日期': event.eventDate,
                         '举办地点': event.location || '',
                         '礼金金额': event.myGift,
-                        '我的公事类型': event.myEventType || '',
+                        '公事类型': event.source === 'accountBook' ? (event.myEventType || '') : (event.type || ''),
                         '参与人员': event.attendees || '',
                         '参与情况': event.attended === 'yes' ? '参加' : event.attended === 'no' ? '未参加' : '委托他人',
                         '备注说明': event.notes || '',
@@ -4297,7 +4460,7 @@
                         '随礼日期': event.eventDate,
                         '举办地点': event.location || '',
                         '礼金金额': event.myGift,
-                        '我的公事类型': event.myEventType || '',
+                        '公事类型': event.source === 'accountBook' ? (event.myEventType || '') : (event.type || ''),
                         '参与情况': event.attended === 'yes' ? '参加' : event.attended === 'no' ? '未参加' : '委托他人',
                         '备注说明': event.notes || '',
                         '数据来源': event.source === 'accountBook' ? '自家公事' : '对外人情'
@@ -4346,7 +4509,7 @@
                         '随礼日期': event.eventDate,
                         '举办地点': event.location || '',
                         '礼金金额': event.myGift,
-                        '我的公事类型': event.myEventType || '',
+                        '公事类型': event.type || '',
                         '参与人员': event.attendees || '',
                         '参与情况': event.attended === 'yes' ? '参加' : event.attended === 'no' ? '未参加' : '委托他人',
                         '备注说明': event.notes || '',
@@ -4438,6 +4601,19 @@
                             accountInfo: this.accountInfo,
                             giftRecords: this.giftRecords,
                             expenseRecords: this.expenseRecords
+                        },
+                        // 包含最近三次记录的元数据，便于导入后恢复
+                        recentRecordsMeta: {
+                            lastThreeEvents: this.recentRecords.map(record => ({
+                                id: record.id,
+                                hostName: record.hostName,
+                                eventDetail: record.eventDetail,
+                                eventDate: record.eventDate,
+                                myGift: record.myGift,
+                                type: record.type,
+                                relationship: record.relationship,
+                                createTime: record.createTime
+                            }))
                         },
                         exportTime: new Date().toISOString(),
                         version: '2.0'
@@ -5171,6 +5347,134 @@
                     // 显示提示信息
                     setTimeout(() => {
                         alert(`已跳转到公事记录页面，正在搜索 "${personName}" 的记录`);
+                    }, 100);
+                },
+                
+                // 去重检查
+                checkDuplicates() {
+                    const allRecords = [...this.events];
+                    
+                    // 添加自家公事记录
+                    this.giftRecords.forEach((record, index) => {
+                        allRecords.push({
+                            id: 'account_' + Date.now() + Math.random(),
+                            type: this.accountInfo.type || '公事',
+                            hostName: record.name,
+                            hostPhone: '',
+                            relationship: record.relationship || '其他',
+                            eventDetail: this.accountInfo.name || '自家公事',
+                            eventDate: record.date || '',
+                            location: '',
+                            myGift: record.amount,
+                            direction: 'in', // 别人给我随礼
+                            attendees: '',
+                            attended: 'yes',
+                            myEventType: this.accountInfo.type || '',
+                            notes: record.notes || '',
+                            createTime: new Date().toISOString(),
+                            source: 'accountBook', // 标记数据来源
+                            originalIndex: index // 保存原始索引
+                        });
+                    });
+                    
+                    // 查找重复记录
+                    const duplicates = [];
+                    const seen = new Map();
+                    
+                    allRecords.forEach((record, index) => {
+                        // 创建唯一标识符（基于关键字段）
+                        const key = `${record.hostName}_${record.eventDate}_${record.myGift}_${record.direction}_${record.eventDetail}`;
+                        
+                        if (seen.has(key)) {
+                            // 找到重复记录
+                            const originalIndex = seen.get(key);
+                            const originalRecord = allRecords[originalIndex];
+                            
+                            duplicates.push({
+                                original: originalRecord,
+                                duplicate: record,
+                                originalIndex: originalIndex,
+                                duplicateIndex: index,
+                                key: key
+                            });
+                        } else {
+                            seen.set(key, index);
+                        }
+                    });
+                    
+                    if (duplicates.length === 0) {
+                        alert('✅ 检查完成！未发现重复记录。');
+                        return;
+                    }
+                    
+                    // 显示重复记录
+                    let message = `🔍 发现 ${duplicates.length} 组重复记录：\n\n`;
+                    
+                    duplicates.forEach((dup, index) => {
+                        const original = dup.original;
+                        const duplicate = dup.duplicate;
+                        
+                        message += `${index + 1}. 重复记录：\n`;
+                        message += `   姓名：${original.hostName}\n`;
+                        message += `   日期：${original.eventDate}\n`;
+                        message += `   金额：${original.myGift}\n`;
+                        message += `   事由：${original.eventDetail}\n`;
+                        message += `   方向：${original.direction === 'out' ? '我给出' : '我收到'}\n`;
+                        message += `   来源：${original.source === 'accountBook' ? '自家公事' : '对外人情'}\n\n`;
+                    });
+                    
+                    message += '是否要删除重复记录？\n\n';
+                    message += '注意：将保留较早的记录，删除较新的重复记录。';
+                    
+                    if (confirm(message)) {
+                        this.removeDuplicates(duplicates);
+                    }
+                },
+                
+                // 删除重复记录
+                removeDuplicates(duplicates) {
+                    let deletedCount = 0;
+                    
+                    duplicates.forEach(dup => {
+                        if (dup.duplicate.source === 'accountBook') {
+                            // 删除自家公事记录
+                            if (dup.duplicate.originalIndex !== undefined && 
+                                dup.duplicate.originalIndex >= 0 && 
+                                dup.duplicate.originalIndex < this.giftRecords.length) {
+                                this.giftRecords.splice(dup.duplicate.originalIndex, 1);
+                                deletedCount++;
+                            }
+                        } else {
+                            // 删除对外人情记录
+                            const index = this.events.findIndex(e => e.id === dup.duplicate.id);
+                            if (index !== -1) {
+                                this.events.splice(index, 1);
+                                deletedCount++;
+                            }
+                        }
+                    });
+                    
+                    // 保存数据
+                    this.saveData();
+                    this.saveAccountBookData();
+                    
+                    alert(`✅ 已删除 ${deletedCount} 条重复记录！`);
+                },
+                
+                // 查看记录详情
+                viewRecordDetail(record) {
+                    // 切换到公事记录页面
+                    this.activeTab = 'records';
+                    
+                    // 设置搜索关键词为人员姓名
+                    this.searchKeyword = record.hostName;
+                    
+                    // 重置分页到第一页
+                    this.currentPage = 1;
+                    
+                    // 显示提示信息
+                    setTimeout(() => {
+                        alert(`已跳转到公事记录页面，正在搜索 "${record.hostName}" 的记录\n\n详细信息：\n姓名：${record.hostName}\n事由：${record.eventDetail}\n日期：${this.formatDate(record.eventDate)}\n金额：¥${record.myGift.toFixed(2)}\n类型：${record.type}\n关系：${record.relationship || '未分类'}`);
                     }, 100);
                 }
             },
