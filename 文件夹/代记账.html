@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代记账管理系统</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        /* 基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        /* 优化后的导航菜单 - 绿色圆形卡片样式 */
+        .nav-menu {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #f1f1f1;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: #e8f5e9;
+            transform: translateY(-5px);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(86, 171, 47, 0.4);
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            width: 10px;
+            height: 10px;
+            background: #56ab2f;
+            transform: rotate(45deg);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .nav-text {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* 记录区域 */
+        .section {
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .section-header:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+
+        .section-header h2 {
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-icon {
+            font-size: 1.2em;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            padding: 20px;
+            display: none;
+        }
+
+        .section-content.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 表单样式 */
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 5px 15px rgba(86, 171, 47, 0.4);
+        }
+
+        /* 记录列表样式 */
+        .records-list {
+            margin-top: 20px;
+            border-top: 1px dashed #e1e5e9;
+            padding-top: 20px;
+        }
+
+        .record-item {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .record-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .record-summary {
+            padding: 14px 18px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .record-text {
+            flex: 1;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .record-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #0056b3;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #bd2130;
+        }
+
+        .expand-icon {
+            color: #666;
+            font-size: 16px;
+            transition: transform 0.3s ease;
+            width: 20px;
+            text-align: center;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .record-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+
+        .record-details.expanded {
+            max-height: 500px;
+            padding: 18px;
+        }
+
+        .record-details p {
+            margin: 8px 0;
+            color: #555;
+        }
+
+        .record-details strong {
+            color: #333;
+        }
+
+        .edit-form {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+
+        .edit-form.expanded {
+            max-height: 500px;
+            padding: 18px;
+        }
+
+        .form-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-save {
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* 展开/折叠所有记录按钮 */
+        .toggle-all-btn {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .toggle-all-btn button {
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-all-btn button:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        /* 统计汇总 */
+        .summary {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .summary h3 {
+            color: #8b4513;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .summary-total {
+            border-top: 2px solid #8b4513;
+            padding-top: 10px;
+            margin-top: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        /* 数据管理 */
+        .data-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn-import {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                margin: 0;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .data-actions {
+                flex-direction: column;
+            }
+
+            .record-summary {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .record-actions {
+                align-self: flex-end;
+            }
+
+            /* 移动端导航菜单优化 */
+            .nav-menu {
+                gap: 10px;
+            }
+
+            .nav-item {
+                width: 70px;
+                height: 70px;
+            }
+
+            .nav-icon {
+                font-size: 20px;
+            }
+
+            .nav-text {
+                font-size: 10px;
+            }
+
+            /* 防止键盘遮挡输入框 */
+            .form-group {
+                margin-bottom: 15px;
+            }
+            
+            /* 移动端按钮样式优化 */
+            .btn {
+                width: 100%;
+                margin-right: 0;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .btn-save, .btn-cancel {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>🎉 代记账管理系统</h1>
+                <p>专业的礼金收支记录管理工具</p>
+            </div>
+
+            <div class="content">
+                <!-- 优化后的导航菜单 - 绿色圆形卡片样式 -->
+                <div class="nav-menu">
+                    <div class="nav-item active" @click="navigateTo('gifts')">
+                        <div class="nav-icon">💰</div>
+                        <div class="nav-text">收礼记录</div>
+                    </div>
+                    <div class="nav-item" @click="navigateTo('expenses')">
+                        <div class="nav-icon">💸</div>
+                        <div class="nav-text">支出记录</div>
+                    </div>
+                    <div class="nav-item" @click="navigateTo('basicInfo')">
+                        <div class="nav-icon">ℹ️</div>
+                        <div class="nav-text">基本信息</div>
+                    </div>
+                    <div class="nav-item" @click="navigateTo('dataManagement')">
+                        <div class="nav-icon">🔧</div>
+                        <div class="nav-text">数据管理</div>
+                    </div>
+                </div>
+
+                <!-- 收礼记录部分 -->
+                <div class="section" id="gifts-section">
+                    <div class="section-header" @click="showGifts = !showGifts">
+                        <h2>💰 收礼记录</h2>
+                        <span class="toggle-icon" :class="{ expanded: showGifts }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showGifts }">
+                        <!-- 添加收礼记录表单 -->
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>随礼人：</label>
+                                <input type="text" v-model="newGift.giver" placeholder="请输入随礼人姓名">
+                            </div>
+                            <div class="form-group">
+                                <label>关系（选填）：</label>
+                                <input type="text" v-model="newGift.relationship" list="relationshipList" placeholder="可选，不填则空白">
+                                <datalist id="relationshipList">
+                                    <option value="亲戚">
+                                    <option value="朋友">
+                                    <option value="同事">
+                                    <option value="同学">
+                                    <option value="邻居">
+                                    <option value="其他">
+                                </datalist>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>金额：</label>
+                                <input type="number" v-model.number="newGift.amount" placeholder="请输入金额">
+                            </div>
+                            <div class="form-group">
+                                <label>备注：</label>
+                                <input type="text" v-model="newGift.note" placeholder="请输入备注（可选）">
+                            </div>
+                        </div>
+                        <button @click="addGift" class="btn btn-success">添加收礼记录</button>
+
+                        <!-- 收礼记录列表 -->
+                        <div v-if="proxyGifts.length > 0" class="records-list">
+                            <!-- 只显示最近3条 -->
+                            <div v-for="(gift, index) in displayGifts" :key="index" class="record-item">
+                                <div class="record-summary" @click="toggleGiftExpand(index)">
+                                    <span class="record-text">
+                                        {{ gift.giver }} 
+                                        <span v-if="gift.relationship"> - {{ gift.relationship }}</span>
+                                        - ¥{{ gift.amount }}
+                                    </span>
+                                    <div class="record-actions">
+                                        <button @click.stop="editGift(index)" class="btn-edit">编辑</button>
+                                        <button @click.stop="deleteGift(index)" class="btn-delete">删除</button>
+                                        <span class="expand-icon" :class="{ expanded: gift.expanded }">▶</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="edit-form" :class="{ expanded: gift.editing }">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>随礼人：</label>
+                                            <input type="text" v-model="gift.giver" placeholder="请输入随礼人姓名">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>关系（选填）：</label>
+                                            <input type="text" v-model="gift.relationship" list="relationshipList">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>金额：</label>
+                                            <input type="number" v-model.number="gift.amount" placeholder="请输入金额">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>备注：</label>
+                                            <input type="text" v-model="gift.note">
+                                        </div>
+                                    </div>
+                                    <div class="form-actions">
+                                        <button @click="saveGiftEdit(index)" class="btn-save">保存</button>
+                                        <button @click="cancelGiftEdit(index)" class="btn-cancel">取消</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="record-details" :class="{ expanded: gift.expanded && !gift.editing }">
+                                    <p><strong>随礼人：</strong>{{ gift.giver }}</p>
+                                    <p v-if="gift.relationship"><strong>关系：</strong>{{ gift.relationship }}</p>
+                                    <p v-if="!gift.relationship"><strong>关系：</strong>（未填写）</p>
+                                    <p><strong>金额：</strong>¥{{ gift.amount }}</p>
+                                    <p v-if="gift.note"><strong>备注：</strong>{{ gift.note }}</p>
+                                    <p v-if="!gift.note"><strong>备注：</strong>（无）</p>
+                                </div>
+                            </div>
+
+                            <!-- 超过3条时显示展开按钮 -->
+                            <div v-if="proxyGifts.length > 3" class="toggle-all-btn">
+                                <button @click="toggleShowAllGifts">{{ showAllGifts ? '收起记录' : '展开查看全部' }} (共{{ proxyGifts.length }}条)</button>
+                            </div>
+                        </div>
+
+                        <div v-else class="empty-state">
+                            <div>📝 暂无收礼记录</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 支出记录部分 -->
+                <div class="section" id="expenses-section">
+                    <div class="section-header" @click="showExpenses = !showExpenses">
+                        <h2>💸 支出记录</h2>
+                        <span class="toggle-icon" :class="{ expanded: showExpenses }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showExpenses }">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>支出项目：</label>
+                                <input type="text" v-model="newExpense.item" placeholder="请输入支出项目">
+                            </div>
+                            <div class="form-group">
+                                <label>金额：</label>
+                                <input type="number" v-model.number="newExpense.amount" placeholder="请输入金额">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>备注：</label>
+                            <input type="text" v-model="newExpense.note" placeholder="请输入备注（可选）">
+                        </div>
+                        <button @click="addExpense" class="btn btn-success">添加支出记录</button>
+
+                        <div v-if="proxyExpenses.length > 0" class="records-list">
+                            <!-- 只显示最近3条 -->
+                            <div v-for="(expense, index) in displayExpenses" :key="index" class="record-item">
+                                <div class="record-summary" @click="toggleExpenseExpand(index)">
+                                    <span class="record-text">
+                                        {{ expense.item }} - ¥{{ expense.amount }}
+                                    </span>
+                                    <div class="record-actions">
+                                        <button @click.stop="editExpense(index)" class="btn-edit">编辑</button>
+                                        <button @click.stop="deleteExpense(index)" class="btn-delete">删除</button>
+                                        <span class="expand-icon" :class="{ expanded: expense.expanded }">▶</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="edit-form" :class="{ expanded: expense.editing }">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>支出项目：</label>
+                                            <input type="text" v-model="expense.item">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>金额：</label>
+                                            <input type="number" v-model.number="expense.amount">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>备注：</label>
+                                        <input type="text" v-model="expense.note">
+                                    </div>
+                                    <div class="form-actions">
+                                        <button @click="saveExpenseEdit(index)" class="btn-save">保存</button>
+                                        <button @click="cancelExpenseEdit(index)" class="btn-cancel">取消</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="record-details" :class="{ expanded: expense.expanded && !expense.editing }">
+                                    <p><strong>支出项目：</strong>{{ expense.item }}</p>
+                                    <p><strong>金额：</strong>¥{{ expense.amount }}</p>
+                                    <p v-if="expense.note"><strong>备注：</strong>{{ expense.note }}</p>
+                                    <p v-if="!expense.note"><strong>备注：</strong>（无）</p>
+                                </div>
+                            </div>
+
+                            <!-- 超过3条时显示展开按钮 -->
+                            <div v-if="proxyExpenses.length > 3" class="toggle-all-btn">
+                                <button @click="toggleShowAllExpenses">{{ showAllExpenses ? '收起记录' : '展开查看全部' }} (共{{ proxyExpenses.length }}条)</button>
+                            </div>
+                        </div>
+
+                        <div v-else class="empty-state">
+                            <div>💰 暂无支出记录</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 基本信息部分 -->
+                <div class="section" id="basic-info-section">
+                    <div class="section-header" @click="showBasicInfo = !showBasicInfo">
+                        <h2>ℹ️ 基本信息</h2>
+                        <span class="toggle-icon" :class="{ expanded: showBasicInfo }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showBasicInfo }">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>委托人：</label>
+                                <input type="text" v-model="proxyBasicInfo.client" placeholder="请输入委托人姓名">
+                            </div>
+                            <div class="form-group">
+                                <label>事件类型：</label>
+                                <input type="text" 
+                                       v-model="proxyBasicInfo.eventType" 
+                                       list="eventTypeList"
+                                       placeholder="请输入或选择事件类型">
+                                <datalist id="eventTypeList">
+                                    <option value="婚礼">
+                                    <option value="生日宴">
+                                    <option value="满月酒">
+                                    <option value="升学宴">
+                                    <option value="乔迁宴">
+                                    <option value="开业庆典">
+                                    <option value="其他">
+                                </datalist>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>事件日期：</label>
+                                <input type="date" v-model="proxyBasicInfo.eventDate">
+                            </div>
+                            <div class="form-group">
+                                <label>地点：</label>
+                                <input type="text" v-model="proxyBasicInfo.location" placeholder="请输入地点">
+                            </div>
+                        </div>
+                        <button @click="saveBasicInfo" class="btn btn-success">保存基本信息</button>
+
+                        <div v-if="proxyGifts.length > 0 || proxyExpenses.length > 0" class="summary">
+                            <h3>📊 统计汇总</h3>
+                            <div class="summary-item">
+                                <span>收礼总额：</span>
+                                <span>¥{{ totalGifts }}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>支出总额：</span>
+                                <span>¥{{ totalExpenses }}</span>
+                            </div>
+                            <div class="summary-item summary-total">
+                                <span>净收入：</span>
+                                <span :style="{ color: netIncome >= 0 ? '#28a745' : '#dc3545' }">
+                                    ¥{{ netIncome }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 数据管理部分 -->
+                <div class="section" id="data-management-section">
+                    <div class="section-header" @click="showDataManagement = !showDataManagement">
+                        <h2>🔧 数据管理</h2>
+                        <span class="toggle-icon" :class="{ expanded: showDataManagement }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showDataManagement }">
+                        <div class="data-actions">
+                            <button @click="exportToWord" class="btn btn-export">导出Word</button>
+                            <button @click="exportToExcel" class="btn btn-export">导出Excel</button>
+                            <button @click="exportToJSON" class="btn btn-export">导出JSON</button>
+                            <input type="file" ref="jsonFileInput" @change="importFromJSON" accept=".json" style="display: none;">
+                            <button @click="$refs.jsonFileInput.click()" class="btn btn-import">导入JSON</button>
+                            <button @click="clearAllData" class="btn btn-clear">清空数据</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    showGifts: true,
+                    showExpenses: false,
+                    showBasicInfo: false,
+                    showDataManagement: false,
+                    
+                    activeNav: 'gifts',
+                    
+                    proxyBasicInfo: {
+                        client: '',
+                        eventType: '',
+                        eventDate: '',
+                        location: '',
+                        isSet: false
+                    },
+                    
+                    newGift: {
+                        giver: '',
+                        relationship: '',
+                        amount: '',
+                        note: ''
+                    },
+                    
+                    newExpense: {
+                        item: '',
+                        amount: '',
+                        note: ''
+                    },
+                    
+                    proxyGifts: [],
+                    proxyExpenses: [],
+                    
+                    // 控制是否显示全部记录
+                    showAllGifts: false,
+                    showAllExpenses: false
+                };
+            },
+            
+            computed: {
+                // 计算属性控制显示的收礼记录
+                displayGifts() {
+                    return this.showAllGifts 
+                        ? [...this.proxyGifts] 
+                        : this.proxyGifts.slice(0, 3);
+                },
+                
+                // 计算属性控制显示的支出记录
+                displayExpenses() {
+                    return this.showAllExpenses 
+                        ? [...this.proxyExpenses] 
+                        : this.proxyExpenses.slice(0, 3);
+                },
+                
+                totalGifts() {
+                    return this.proxyGifts.reduce((sum, gift) => sum + (gift.amount || 0), 0);
+                },
+                
+                totalExpenses() {
+                    return this.proxyExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+                },
+                
+                netIncome() {
+                    return this.totalGifts - this.totalExpenses;
+                }
+            },
+            
+            methods: {
+                // 导航到指定区域
+                navigateTo(section) {
+                    // 移除所有导航项的活动状态
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    
+                    // 添加当前导航项的活动状态
+                    const activeItem = document.querySelector(`.nav-item[data-section="${section}"]` || 
+                                                     `.nav-item:nth-child(${['gifts', 'expenses', 'basicInfo', 'dataManagement'].indexOf(section) + 1})`);
+                    if (activeItem) {
+                        activeItem.classList.add('active');
+                    }
+                    
+                    // 更新活动导航状态
+                    this.activeNav = section;
+                    
+                    // 隐藏所有内容区域
+                    this.showGifts = false;
+                    this.showExpenses = false;
+                    this.showBasicInfo = false;
+                    this.showDataManagement = false;
+                    
+                    // 显示当前内容区域
+                    if (section === 'gifts') this.showGifts = true;
+                    else if (section === 'expenses') this.showExpenses = true;
+                    else if (section === 'basicInfo') this.showBasicInfo = true;
+                    else if (section === 'dataManagement') this.showDataManagement = true;
+                },
+                
+                // 收礼记录相关方法
+                saveBasicInfo() {
+                    this.proxyBasicInfo.isSet = true;
+                    alert('基本信息保存成功！');
+                },
+                
+                addGift() {
+                    if (!this.newGift.giver || !this.newGift.amount) {
+                        alert('请填写随礼人和金额');
+                        return;
+                    }
+                    
+                    this.proxyGifts.push({
+                        ...this.newGift,
+                        expanded: false,
+                        editing: false
+                    });
+                    
+                    this.newGift = {
+                        giver: '',
+                        relationship: '',
+                        amount: '',
+                        note: ''
+                    };
+                },
+                
+                toggleGiftExpand(index) {
+                    if (!this.displayGifts[index].editing) {
+                        this.displayGifts[index].expanded = !this.displayGifts[index].expanded;
+                    }
+                },
+                
+                editGift(index) {
+                    this.displayGifts[index].originalData = { ...this.displayGifts[index] };
+                    this.displayGifts[index].editing = true;
+                    this.displayGifts[index].expanded = false;
+                },
+                
+                saveGiftEdit(index) {
+                    if (!this.displayGifts[index].giver || !this.displayGifts[index].amount) {
+                        alert('请填写随礼人和金额');
+                        return;
+                    }
+                    delete this.displayGifts[index].originalData;
+                    this.displayGifts[index].editing = false;
+                },
+                
+                cancelGiftEdit(index) {
+                    Object.assign(this.displayGifts[index], this.displayGifts[index].originalData);
+                    delete this.displayGifts[index].originalData;
+                    this.displayGifts[index].editing = false;
+                },
+                
+                deleteGift(index) {
+                    if (confirm('确定要删除这条记录吗？')) {
+                        // 从完整列表中删除，而不是显示列表
+                        const realIndex = this.proxyGifts.findIndex(
+                            item => item.giver === this.displayGifts[index].giver && 
+                                    item.amount === this.displayGifts[index].amount &&
+                                    item.relationship === this.displayGifts[index].relationship
+                        );
+                        
+                        if (realIndex !== -1) {
+                            this.proxyGifts.splice(realIndex, 1);
+                        }
+                    }
+                },
+                
+                toggleShowAllGifts() {
+                    this.showAllGifts = !this.showAllGifts;
+                    
+                    // 展开时默认折叠所有记录
+                    if (this.showAllGifts) {
+                        this.proxyGifts.forEach(gift => {
+                            gift.expanded = false;
+                            gift.editing = false;
+                        });
+                    }
+                },
+                
+                // 支出记录相关方法
+                addExpense() {
+                    if (!this.newExpense.item || !this.newExpense.amount) {
+                        alert('请填写支出项目和金额');
+                        return;
+                    }
+                    
+                    this.proxyExpenses.push({
+                        ...this.newExpense,
+                        expanded: false,
+                        editing: false
+                    });
+                    
+                    this.newExpense = {
+                        item: '',
+                        amount: '',
+                        note: ''
+                    };
+                },
+                
+                toggleExpenseExpand(index) {
+                    if (!this.displayExpenses[index].editing) {
+                        this.displayExpenses[index].expanded = !this.displayExpenses[index].expanded;
+                    }
+                },
+                
+                editExpense(index) {
+                    this.displayExpenses[index].originalData = { ...this.displayExpenses[index] };
+                    this.displayExpenses[index].editing = true;
+                    this.displayExpenses[index].expanded = false;
+                },
+                
+                saveExpenseEdit(index) {
+                    if (!this.displayExpenses[index].item || !this.displayExpenses[index].amount) {
+                        alert('请填写支出项目和金额');
+                        return;
+                    }
+                    delete this.displayExpenses[index].originalData;
+                    this.displayExpenses[index].editing = false;
+                },
+                
+                cancelExpenseEdit(index) {
+                    Object.assign(this.displayExpenses[index], this.displayExpenses[index].originalData);
+                    delete this.displayExpenses[index].originalData;
+                    this.displayExpenses[index].editing = false;
+                },
+                
+                deleteExpense(index) {
+                    if (confirm('确定要删除这条记录吗？')) {
+                        const realIndex = this.proxyExpenses.findIndex(
+                            item => item.item === this.displayExpenses[index].item && 
+                                    item.amount === this.displayExpenses[index].amount
+                        );
+                        
+                        if (realIndex !== -1) {
+                            this.proxyExpenses.splice(realIndex, 1);
+                        }
+                    }
+                },
+                
+                toggleShowAllExpenses() {
+                    this.showAllExpenses = !this.showAllExpenses;
+                    
+                    // 展开时默认折叠所有记录
+                    if (this.showAllExpenses) {
+                        this.proxyExpenses.forEach(expense => {
+                            expense.expanded = false;
+                            expense.editing = false;
+                        });
+                    }
+                },
+                
+                // 数据导出导入方法
+                exportToWord() {
+                    const content = this.generateReportContent();
+                    const blob = new Blob([content], { type: 'application/msword' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `代记账报告_${new Date().toLocaleDateString()}.doc`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+                
+                exportToExcel() {
+                    const wb = XLSX.utils.book_new();
+                    const basicInfoData = [
+                        ['项目', '内容'],
+                        ['委托人', this.proxyBasicInfo.client],
+                        ['事件类型', this.proxyBasicInfo.eventType],
+                        ['事件日期', this.proxyBasicInfo.eventDate],
+                        ['地点', this.proxyBasicInfo.location]
+                    ];
+                    const basicInfoWS = XLSX.utils.aoa_to_sheet(basicInfoData);
+                    XLSX.utils.book_append_sheet(wb, basicInfoWS, '基本信息');
+                    
+                    if (this.proxyGifts.length > 0) {
+                        const giftsData = [
+                            ['随礼人', '关系', '金额', '备注'],
+                            ...this.proxyGifts.map(gift => [gift.giver, gift.relationship || '', gift.amount, gift.note || ''])
+                        ];
+                        const giftsWS = XLSX.utils.aoa_to_sheet(giftsData);
+                        XLSX.utils.book_append_sheet(wb, giftsWS, '收礼记录');
+                    }
+                    
+                    if (this.proxyExpenses.length > 0) {
+                        const expensesData = [
+                            ['支出项目', '金额', '备注'],
+                            ...this.proxyExpenses.map(expense => [expense.item, expense.amount, expense.note || ''])
+                        ];
+                        const expensesWS = XLSX.utils.aoa_to_sheet(expensesData);
+                        XLSX.utils.book_append_sheet(wb, expensesWS, '支出记录');
+                    }
+                    
+                    const summaryData = [
+                        ['项目', '金额'],
+                        ['收礼总额', this.totalGifts],
+                        ['支出总额', this.totalExpenses],
+                        ['净收入', this.netIncome]
+                    ];
+                    const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
+                    XLSX.utils.book_append_sheet(wb, summaryWS, '统计汇总');
+                    
+                    XLSX.writeFile(wb, `代记账报告_${new Date().toLocaleDateString()}.xlsx`);
+                },
+                
+                exportToJSON() {
+                    const data = {
+                        proxyBasicInfo: this.proxyBasicInfo,
+                        proxyGifts: this.proxyGifts.map(gift => ({
+                            giver: gift.giver,
+                            relationship: gift.relationship,
+                            amount: gift.amount,
+                            note: gift.note
+                        })),
+                        proxyExpenses: this.proxyExpenses.map(expense => ({
+                            item: expense.item,
+                            amount: expense.amount,
+                            note: expense.note
+                        })),
+                        exportDate: new Date().toISOString()
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `代记账数据_${new Date().toLocaleDateString()}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+                
+                importFromJSON(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (confirm('导入数据将覆盖当前所有数据，确定要继续吗？')) {
+                                this.proxyBasicInfo = data.proxyBasicInfo || this.proxyBasicInfo;
+                                this.proxyGifts = (data.proxyGifts || []).map(gift => ({
+                                    ...gift,
+                                    expanded: false,
+                                    editing: false
+                                }));
+                                this.proxyExpenses = (data.proxyExpenses || []).map(expense => ({
+                                    ...expense,
+                                    expanded: false,
+                                    editing: false
+                                }));
+                                
+                                // 重置展开状态
+                                this.showAllGifts = false;
+                                this.showAllExpenses = false;
+                                
+                                alert('数据导入成功！所有记录已默认折叠');
+                            }
+                        } catch (error) {
+                            alert('文件格式错误，请选择正确的JSON文件');
+                        }
+                    };
+                    reader.readAsText(file);
+                    event.target.value = '';
+                },
+                
+                clearAllData() {
+                    if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                        this.proxyBasicInfo = {
+                            client: '',
+                            eventType: '',
+                            eventDate: '',
+                            location: '',
+                            isSet: false
+                        };
+                        this.proxyGifts = [];
+                        this.proxyExpenses = [];
+                        this.newGift = {
+                            giver: '',
+                            relationship: '',
+                            amount: '',
+                            note: ''
+                        };
+                        this.newExpense = {
+                            item: '',
+                            amount: '',
+                            note: ''
+                        };
+                        
+                        // 重置展开状态
+                        this.showAllGifts = false;
+                        this.showAllExpenses = false;
+                        
+                        alert('数据已清空！');
+                    }
+                },
+                
+                generateReportContent() {
+                    let content = `
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+                                th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+                                th { background-color: #f2f2f2; }
+                                h1, h2 { color: #333; text-align: center; }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>代记账报告</h1>
+                    `;
+                    
+                    content += `
+                        <h2>基本信息</h2>
+                        <table>
+                            <tr><th>委托人</th><td>${this.proxyBasicInfo.client}</td></tr>
+                            <tr><th>事件类型</th><td>${this.proxyBasicInfo.eventType}</td></tr>
+                            <tr><th>事件日期</th><td>${this.proxyBasicInfo.eventDate}</td></tr>
+                            <tr><th>地点</th><td>${this.proxyBasicInfo.location}</td></tr>
+                        </table>
+                    `;
+                    
+                    if (this.proxyGifts.length > 0) {
+                        content += `
+                            <h2>收礼记录</h2>
+                            <table>
+                                <tr><th>随礼人</th><th>关系</th><th>金额</th><th>备注</th></tr>
+                        `;
+                        this.proxyGifts.forEach(gift => {
+                            content += `<tr><td>${gift.giver}</td><td>${gift.relationship || ''}</td><td>¥${gift.amount}</td><td>${gift.note || ''}</td></tr>`;
+                        });
+                        content += '</table>';
+                    }
+                    
+                    if (this.proxyExpenses.length > 0) {
+                        content += `
+                            <h2>支出记录</h2>
+                            <table>
+                                <tr><th>支出项目</th><th>金额</th><th>备注</th></tr>
+                        `;
+                        this.proxyExpenses.forEach(expense => {
+                            content += `<tr><td>${expense.item}</td><td>¥${expense.amount}</td><td>${expense.note || ''}</td></tr>`;
+                        });
+                        content += '</table>';
+                    }
+                    
+                    content += `
+                        <div style="margin: 20px 0; padding: 15px; background: #f9f9f9;">
+                            <h2>统计汇总</h2>
+                            <table>
+                                <tr><th>收礼总额</th><td>¥${this.totalGifts}</td></tr>
+                                <tr><th>支出总额</th><td>¥${this.totalExpenses}</td></tr>
+                                <tr><th>净收入</th><td>¥${this.netIncome}</td></tr>
+                            </table>
+                        </div>
+                        <p style="text-align: center; margin-top: 30px; color: #666;">
+                            报告生成时间：${new Date().toLocaleString()}
+                        </p>
+                        </body>
+                        </html>
+                    `;
+                    
+                    return content;
+                },
+                
+                // 本地存储相关
+                saveToLocalStorage() {
+                    const data = {
+                        proxyBasicInfo: this.proxyBasicInfo,
+                        proxyGifts: this.proxyGifts,
+                        proxyExpenses: this.proxyExpenses,
+                        showAllGifts: this.showAllGifts,
+                        showAllExpenses: this.showAllExpenses
+                    };
+                    localStorage.setItem('proxyAccountingData', JSON.stringify(data));
+                },
+                
+                loadFromLocalStorage() {
+                    const data = localStorage.getItem('proxyAccountingData');
+                    if (data) {
+                        try {
+                            const parsedData = JSON.parse(data);
+                            this.proxyBasicInfo = parsedData.proxyBasicInfo || this.proxyBasicInfo;
+                            this.proxyGifts = parsedData.proxyGifts || [];
+                            this.proxyExpenses = parsedData.proxyExpenses || [];
+                            
+                            // 恢复展开状态
+                            this.showAllGifts = parsedData.showAllGifts || false;
+                            this.showAllExpenses = parsedData.showAllExpenses || false;
+                            
+                            // 确保所有记录默认折叠
+                            this.proxyGifts.forEach(gift => {
+                                gift.expanded = false;
+                                gift.editing = false;
+                            });
+                            
+                            this.proxyExpenses.forEach(expense => {
+                                expense.expanded = false;
+                                expense.editing = false;
+                            });
+                        } catch (error) {
+                            console.error('加载本地数据失败:', error);
+                        }
+                    }
+                }
+            },
+            
+            watch: {
+                proxyBasicInfo: {
+                    handler() {
+                        this.saveToLocalStorage();
+                    },
+                    deep: true
+                },
+                proxyGifts: {
+                    handler() {
+                        this.saveToLocalStorage();
+                    },
+                    deep: true
+                },
+                proxyExpenses: {
+                    handler() {
+                        this.saveToLocalStorage();
+                    },
+                    deep: true
+                },
+                showAllGifts() {
+                    this.saveToLocalStorage();
+                },
+                showAllExpenses() {
+                    this.saveToLocalStorage();
+                }
+            },
+            
+            mounted() {
+                this.loadFromLocalStorage();
+                if (!this.proxyBasicInfo.isSet && this.proxyGifts.length === 0 && this.proxyExpenses.length === 0) {
+                    this.showBasicInfo = true;
+                }
+                
+                // 初始化导航状态
+                this.navigateTo('gifts');
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
