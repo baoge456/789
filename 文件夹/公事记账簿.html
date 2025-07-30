@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>代记账管理系统</title>
+    <title>公事记账簿</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -66,19 +66,21 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            width: 80px;
-            height: 80px;
+            width: 110px;
+            height: 110px;
             border-radius: 50%;
-            background: #f1f1f1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
             position: relative;
+            color: white;
         }
 
         .nav-item:hover {
-            background: #e8f5e9;
-            transform: translateY(-5px);
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(255, 65, 108, 0.4);
         }
 
         .nav-item.active {
@@ -97,14 +99,45 @@
             transform: rotate(45deg);
         }
 
+        /* 统一所有菜单项的背景颜色 */
+        .nav-item:nth-child(1),
+        .nav-item:nth-child(2),
+        .nav-item:nth-child(3),
+        .nav-item:nth-child(4),
+        .nav-item:nth-child(5) {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .nav-item:nth-child(1):hover,
+        .nav-item:nth-child(2):hover,
+        .nav-item:nth-child(3):hover,
+        .nav-item:nth-child(4):hover,
+        .nav-item:nth-child(5):hover {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            box-shadow: 0 8px 25px rgba(255, 65, 108, 0.4);
+            color: white;
+        }
+
+        /* 选中菜单项显示绿色 */
+        .nav-item.active {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .nav-item.active:hover {
+            background: linear-gradient(135deg, #218838 0%, #1ea085 100%) !important;
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        }
+
         .nav-icon {
             font-size: 24px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         .nav-text {
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 16px;
+            font-weight: 600;
         }
 
         /* 记录区域 */
@@ -347,6 +380,7 @@
             margin-top: 15px;
             display: flex;
             gap: 10px;
+            justify-content: flex-end;
         }
 
         .btn-save {
@@ -356,15 +390,25 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-save:hover {
+            background: #218838;
         }
 
         .btn-cancel {
-            background: #6c757d;
+            background: #ff6b6b;
             color: white;
             padding: 8px 16px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-cancel:hover {
+            background: #ff5252;
         }
 
         /* 展开/折叠所有记录按钮 */
@@ -422,9 +466,23 @@
         /* 数据管理 */
         .data-actions {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            flex-direction: column;
+            gap: 12px;
             margin-top: 20px;
+        }
+
+        .data-actions-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .data-actions .btn {
+            padding: 8px 12px;
+            font-size: 14px;
+            min-width: auto;
+            flex: 1;
+            min-width: 120px;
         }
 
         .btn-export {
@@ -443,6 +501,189 @@
             text-align: center;
             padding: 40px 20px;
             color: #666;
+        }
+
+        /* 检索功能样式 */
+        .search-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .search-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .search-form {
+            margin-bottom: 15px;
+        }
+
+        .search-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .search-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .search-group label {
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .search-select, .search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 120px;
+        }
+
+        .search-input {
+            min-width: 150px;
+        }
+
+        .btn-search {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-search:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-1px);
+        }
+
+        .btn-clear-search {
+            background: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-clear-search:hover {
+            background: #5a6268;
+        }
+
+        .search-results {
+            margin-top: 15px;
+        }
+
+        .search-results h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .no-search-results {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 支出记录检索样式 */
+        .search-section h4 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .search-container {
+            margin-bottom: 15px;
+        }
+
+        .search-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-group label {
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* 检索按钮横向排列样式 */
+        .search-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* 新的清空按钮颜色 */
+        .btn-clear-gift {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-clear-gift:hover {
+            background: linear-gradient(135deg, #ff5252 0%, #e74c3c 100%);
+            transform: translateY(-1px);
+        }
+
+        .btn-clear-expense {
+            background: linear-gradient(135deg, #ff9ff3 0%, #f368e0 100%);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-clear-expense:hover {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            transform: translateY(-1px);
         }
 
         /* 移动端适配 */
@@ -474,16 +715,40 @@
 
             .data-actions {
                 flex-direction: column;
+                gap: 8px;
+            }
+
+            .data-actions-row {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+
+            .data-actions .btn {
+                padding: 6px 8px;
+                font-size: 12px;
+                min-width: 80px;
+                flex: 1;
+            }
+
+            /* 手机端统计表格优化 */
+            .statistics-table table {
+                font-size: 12px;
+            }
+
+            .statistics-table th,
+            .statistics-table td {
+                padding: 10px 8px;
             }
 
             .record-summary {
-                flex-direction: column;
-                align-items: flex-start;
+                flex-direction: row;
+                align-items: center;
                 gap: 10px;
             }
 
             .record-actions {
-                align-self: flex-end;
+                align-self: center;
             }
 
             /* 移动端导航菜单优化 */
@@ -516,13 +781,366 @@
             }
 
             .form-actions {
-                flex-direction: column;
+                flex-direction: row;
+                justify-content: flex-end;
+                gap: 8px;
             }
 
             .btn-save, .btn-cancel {
-                width: 100%;
-                margin-bottom: 10px;
+                width: auto;
+                margin-bottom: 0;
+                padding: 6px 12px;
+                font-size: 14px;
             }
+
+            /* 移动端统计汇总样式优化 */
+
+            .statistics-details {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .detail-section h3 {
+                font-size: 16px;
+            }
+
+            .detail-item {
+                font-size: 14px;
+                padding: 8px 0;
+            }
+
+            /* 移动端检索功能优化 */
+            .search-section {
+                padding: 15px;
+            }
+
+            .search-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .search-group {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .search-group label {
+                min-width: 80px;
+                font-size: 13px;
+            }
+
+            .search-select, .search-input {
+                flex: 1;
+                min-width: auto;
+                font-size: 13px;
+            }
+
+            .btn-search, .btn-clear-search, .btn-secondary, .btn-clear-gift, .btn-clear-expense {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+
+            /* 移动端支出记录检索优化 */
+            .search-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .search-group label {
+                min-width: auto;
+                font-size: 13px;
+            }
+
+            .search-input {
+                width: 100%;
+                min-width: auto;
+            }
+
+            /* 移动端搜索按钮横向排列优化 */
+            .search-buttons {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 10px;
+            }
+
+            .search-buttons .btn {
+                flex: 1;
+                max-width: 120px;
+            }
+
+            /* 移动端金额区间输入优化 */
+            .amount-range-inputs {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .range-separator {
+                text-align: center;
+                margin: 5px 0;
+            }
+
+                    /* 移动端检索结果优化 */
+        .search-result-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .result-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+
+        .result-actions {
+            align-self: flex-end;
+        }
+        }
+
+        /* 统计汇总样式 */
+        .statistics-content {
+            padding: 20px 0;
+        }
+
+        .statistics-table {
+            margin-bottom: 30px;
+        }
+
+        .statistics-table table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .statistics-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .statistics-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        .statistics-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .statistics-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .net-income-row {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .statistics-details {
+            display: flex;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .detail-section {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .detail-section h3 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 18px;
+            border-bottom: 2px solid #e1e5e9;
+            padding-bottom: 8px;
+        }
+
+        .detail-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 15px;
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-item span:first-child {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .detail-item span:last-child {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .detail-with-record {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .detail-with-record:hover {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px 8px;
+            margin: 0 -8px;
+        }
+
+        .record-link {
+            color: #007bff !important;
+            text-decoration: underline;
+            font-weight: 500 !important;
+        }
+
+        .record-link:hover {
+            color: #0056b3 !important;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .no-data-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .no-data-text {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* 金额区间输入样式 */
+        .amount-range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .range-input {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .range-separator {
+            color: #666;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        /* 检索结果单行样式 */
+        .search-results-list {
+            margin-top: 15px;
+        }
+
+        .search-result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .search-result-item:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            background: #f8f9fa;
+        }
+
+        .result-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 14px;
+        }
+
+        .result-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-relationship {
+            color: #666;
+        }
+
+        .result-amount {
+            font-weight: 600;
+            color: #28a745;
+        }
+
+        .result-note {
+            color: #666;
+            font-style: italic;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-edit-small, .btn-delete-small {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit-small {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-edit-small:hover {
+            background: #0056b3;
+        }
+
+        .btn-delete-small {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete-small:hover {
+            background: #bd2130;
         }
     </style>
 </head>
@@ -530,26 +1148,30 @@
     <div id="app">
         <div class="container">
             <div class="header">
-                <h1>🎉 代记账管理系统</h1>
+                <h1>🎉 公事记账簿</h1>
                 <p>专业的礼金收支记录管理工具</p>
             </div>
 
             <div class="content">
                 <!-- 优化后的导航菜单 - 绿色圆形卡片样式 -->
                 <div class="nav-menu">
-                    <div class="nav-item active" @click="navigateTo('gifts')">
+                    <div class="nav-item" :class="{ active: activeNav === 'gifts' }" @click="navigateTo('gifts')" data-section="gifts">
                         <div class="nav-icon">💰</div>
                         <div class="nav-text">收礼记录</div>
                     </div>
-                    <div class="nav-item" @click="navigateTo('expenses')">
+                    <div class="nav-item" :class="{ active: activeNav === 'expenses' }" @click="navigateTo('expenses')" data-section="expenses">
                         <div class="nav-icon">💸</div>
                         <div class="nav-text">支出记录</div>
                     </div>
-                    <div class="nav-item" @click="navigateTo('basicInfo')">
+                    <div class="nav-item" :class="{ active: activeNav === 'basicInfo' }" @click="navigateTo('basicInfo')" data-section="basicInfo">
                         <div class="nav-icon">ℹ️</div>
                         <div class="nav-text">基本信息</div>
                     </div>
-                    <div class="nav-item" @click="navigateTo('dataManagement')">
+                                                <div class="nav-item" :class="{ active: activeNav === 'statistics' }" @click="navigateTo('statistics')" data-section="statistics">
+                                <div class="nav-icon">📊</div>
+                                <div class="nav-text">统计汇总</div>
+                            </div>
+                    <div class="nav-item" :class="{ active: activeNav === 'dataManagement' }" @click="navigateTo('dataManagement')" data-section="dataManagement">
                         <div class="nav-icon">🔧</div>
                         <div class="nav-text">数据管理</div>
                     </div>
@@ -592,6 +1214,74 @@
                             </div>
                         </div>
                         <button @click="addGift" class="btn btn-success">添加收礼记录</button>
+
+                        <!-- 检索功能 -->
+                        <div class="search-section">
+                            <h3>🔍 检索收礼记录</h3>
+                            <div class="search-form">
+                                <div class="search-row">
+                                    <div class="search-group">
+                                        <label>检索方式：</label>
+                                        <select v-model="searchType" class="search-select">
+                                            <option value="universal">万能检索</option>
+                                            <option value="name">按姓名</option>
+                                            <option value="relationship">按关系</option>
+                                            <option value="amount">按金额</option>
+                                            <option value="amountRange">按金额区间</option>
+                                            <option value="note">按备注有无</option>
+                                        </select>
+                                    </div>
+                                                            <div class="search-group" v-if="searchType !== 'note' && searchType !== 'amountRange'">
+                            <label>检索词：</label>
+                            <input type="text" v-model="searchKeyword" :placeholder="searchPlaceholder" class="search-input">
+                        </div>
+                                    <div class="search-group" v-if="searchType === 'amountRange'">
+                                        <label>金额区间：</label>
+                                        <div class="amount-range-inputs">
+                                            <input type="number" v-model.number="amountRange.min" placeholder="最小值" class="search-input range-input">
+                                            <span class="range-separator">至</span>
+                                            <input type="number" v-model.number="amountRange.max" placeholder="最大值" class="search-input range-input">
+                                        </div>
+                                    </div>
+                                    <div class="search-group" v-if="searchType === 'note'">
+                                        <label>备注状态：</label>
+                                        <select v-model="noteStatus" class="search-select">
+                                            <option value="has">有备注</option>
+                                            <option value="no">无备注</option>
+                                        </select>
+                                    </div>
+                                    <div class="search-group">
+                                        <div class="search-buttons">
+                                            <button @click="searchGifts" class="btn btn-search">检索</button>
+                                            <button @click="clearSearch" class="btn btn-clear-gift">清空</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 检索结果 -->
+                            <div v-if="searchResults.length > 0" class="search-results">
+                                <h4>检索结果 ({{ searchResults.length }}条)</h4>
+                                <div class="search-results-list">
+                                    <div v-for="(gift, index) in searchResults" :key="'search-' + index" class="search-result-item">
+                                        <div class="result-info">
+                                            <span class="result-name">{{ gift.giver }}</span>
+                                            <span v-if="gift.relationship" class="result-relationship"> - {{ gift.relationship }}</span>
+                                            <span class="result-amount"> - ¥{{ gift.amount.toLocaleString() }}</span>
+                                            <span v-if="gift.note" class="result-note"> - {{ gift.note }}</span>
+                                        </div>
+                                        <div class="result-actions">
+                                            <button @click="editGiftFromSearch(index)" class="btn-edit-small">编辑</button>
+                                            <button @click="deleteGiftFromSearch(index)" class="btn-delete-small">删除</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div v-else-if="hasSearched && searchResults.length === 0" class="no-search-results">
+                                <p>未找到匹配的记录</p>
+                            </div>
+                        </div>
 
                         <!-- 收礼记录列表 -->
                         <div v-if="proxyGifts.length > 0" class="records-list">
@@ -681,6 +1371,39 @@
                             <input type="text" v-model="newExpense.note" placeholder="请输入备注（可选）">
                         </div>
                         <button @click="addExpense" class="btn btn-success">添加支出记录</button>
+
+                        <!-- 支出记录检索 -->
+                        <div v-if="proxyExpenses.length > 0" class="search-section">
+                            <h4>🔍 支出记录检索</h4>
+                            <div class="search-container">
+                                <div class="search-group">
+                                    <label>万能检索：</label>
+                                    <input type="text" v-model="expenseSearchKeyword" placeholder="输入支出项目、金额或备注关键词" class="search-input">
+                                    <div class="search-buttons">
+                                        <button @click="searchExpenses" class="btn btn-primary">检索</button>
+                                        <button @click="clearExpenseSearch" class="btn btn-clear-expense">清空</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 检索结果 -->
+                            <div v-if="expenseSearchResults.length > 0" class="search-results">
+                                <h4>检索结果 ({{ expenseSearchResults.length }}条)</h4>
+                                <div class="search-results-list">
+                                    <div v-for="(expense, index) in expenseSearchResults" :key="'expense-search-' + index" class="search-result-item">
+                                        <div class="result-info">
+                                            <span class="result-name">{{ expense.item }}</span>
+                                            <span class="result-amount"> - ¥{{ expense.amount.toLocaleString() }}</span>
+                                            <span v-if="expense.note" class="result-note"> - {{ expense.note }}</span>
+                                        </div>
+                                        <div class="result-actions">
+                                            <button @click="editExpenseFromSearch(index)" class="btn-edit-small">编辑</button>
+                                            <button @click="deleteExpenseFromSearch(index)" class="btn-delete-small">删除</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <div v-if="proxyExpenses.length > 0" class="records-list">
                             <!-- 只显示最近3条 -->
@@ -777,23 +1500,89 @@
                             </div>
                         </div>
                         <button @click="saveBasicInfo" class="btn btn-success">保存基本信息</button>
+                    </div>
+                </div>
 
-                        <div v-if="proxyGifts.length > 0 || proxyExpenses.length > 0" class="summary">
-                            <h3>📊 统计汇总</h3>
-                            <div class="summary-item">
-                                <span>收礼总额：</span>
-                                <span>¥{{ totalGifts }}</span>
+                <!-- 统计汇总部分 -->
+                <div class="section" id="statistics-section">
+                    <div class="section-header" @click="showStatistics = !showStatistics">
+                        <h2>📊 统计汇总</h2>
+                        <span class="toggle-icon" :class="{ expanded: showStatistics }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showStatistics }">
+                        <div v-if="proxyGifts.length > 0 || proxyExpenses.length > 0" class="statistics-content">
+                            <div class="statistics-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>统计项目</th>
+                                            <th>金额</th>
+                                            <th>记录数</th>
+                                            <th>状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>💰 收礼总额</td>
+                                            <td>¥{{ totalGifts.toLocaleString() }}</td>
+                                            <td>{{ proxyGifts.length }} 笔</td>
+                                            <td>收入</td>
+                                        </tr>
+                                        <tr>
+                                            <td>💸 支出总额</td>
+                                            <td>¥{{ totalExpenses.toLocaleString() }}</td>
+                                            <td>{{ proxyExpenses.length }} 笔</td>
+                                            <td>支出</td>
+                                        </tr>
+                                        <tr class="net-income-row">
+                                            <td>📈 净收入</td>
+                                            <td :style="{ color: netIncome >= 0 ? '#28a745' : '#dc3545', fontWeight: 'bold' }">
+                                                ¥{{ netIncome.toLocaleString() }}
+                                            </td>
+                                            <td>-</td>
+                                            <td :style="{ color: netIncome >= 0 ? '#28a745' : '#dc3545', fontWeight: 'bold' }">
+                                                {{ netIncome >= 0 ? '盈利' : '亏损' }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="summary-item">
-                                <span>支出总额：</span>
-                                <span>¥{{ totalExpenses }}</span>
+                            
+                            <div class="statistics-details">
+                                <div class="detail-section">
+                                    <h3>📋 收礼明细统计</h3>
+                                    <div v-if="proxyGifts.length > 0" class="detail-list">
+                                        <div class="detail-item detail-with-record" @click="showRecordDetails('gift', 'max')">
+                                            <span>最高随礼人：</span>
+                                            <span class="record-link">{{ getMaxGiftRecord().giver || '（未填写姓名）' }} - ¥{{ getMaxGiftRecord().amount }}</span>
+                                        </div>
+                                        <div class="detail-item detail-with-record" @click="showRecordDetails('gift', 'min')">
+                                            <span>最低随礼人：</span>
+                                            <span class="record-link">{{ getMinGiftRecord().giver || '（未填写姓名）' }} - ¥{{ getMinGiftRecord().amount }}</span>
+                                        </div>
+                                    </div>
+                                    <div v-else class="no-data">暂无收礼记录</div>
+                                </div>
+                                
+                                <div class="detail-section">
+                                    <h3>📋 支出明细统计</h3>
+                                    <div v-if="proxyExpenses.length > 0" class="detail-list">
+                                        <div class="detail-item detail-with-record" @click="showRecordDetails('expense', 'max')">
+                                            <span>最高支出项目：</span>
+                                            <span class="record-link">{{ getMaxExpenseRecord().item }} - ¥{{ getMaxExpenseRecord().amount }}</span>
+                                        </div>
+                                        <div class="detail-item detail-with-record" @click="showRecordDetails('expense', 'min')">
+                                            <span>最低支出项目：</span>
+                                            <span class="record-link">{{ getMinExpenseRecord().item }} - ¥{{ getMinExpenseRecord().amount }}</span>
+                                        </div>
+                                    </div>
+                                    <div v-else class="no-data">暂无支出记录</div>
+                                </div>
                             </div>
-                            <div class="summary-item summary-total">
-                                <span>净收入：</span>
-                                <span :style="{ color: netIncome >= 0 ? '#28a745' : '#dc3545' }">
-                                    ¥{{ netIncome }}
-                                </span>
-                            </div>
+                        </div>
+                        <div v-else class="no-data-message">
+                            <div class="no-data-icon">📊</div>
+                            <div class="no-data-text">暂无数据，请先添加收礼或支出记录</div>
                         </div>
                     </div>
                 </div>
@@ -806,12 +1595,18 @@
                     </div>
                     <div class="section-content" :class="{ show: showDataManagement }">
                         <div class="data-actions">
-                            <button @click="exportToWord" class="btn btn-export">导出Word</button>
-                            <button @click="exportToExcel" class="btn btn-export">导出Excel</button>
-                            <button @click="exportToJSON" class="btn btn-export">导出JSON</button>
-                            <input type="file" ref="jsonFileInput" @change="importFromJSON" accept=".json" style="display: none;">
-                            <button @click="$refs.jsonFileInput.click()" class="btn btn-import">导入JSON</button>
-                            <button @click="clearAllData" class="btn btn-clear">清空数据</button>
+                            <div class="data-actions-row">
+                                <button @click="exportToWord" class="btn btn-export">导出Word</button>
+                                <button @click="exportToExcel" class="btn btn-export">导出Excel</button>
+                            </div>
+                            <div class="data-actions-row">
+                                <button @click="exportToJSON" class="btn btn-export">导出JSON</button>
+                                <input type="file" ref="jsonFileInput" @change="importFromJSON" accept=".json" style="display: none;">
+                                <button @click="$refs.jsonFileInput.click()" class="btn btn-import">导入JSON</button>
+                            </div>
+                            <div class="data-actions-row">
+                                <button @click="clearAllData" class="btn btn-clear">清空数据</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -828,6 +1623,7 @@
                     showGifts: true,
                     showExpenses: false,
                     showBasicInfo: false,
+                    showStatistics: false,
                     showDataManagement: false,
                     
                     activeNav: 'gifts',
@@ -858,7 +1654,22 @@
                     
                     // 控制是否显示全部记录
                     showAllGifts: false,
-                    showAllExpenses: false
+                    showAllExpenses: false,
+                    
+                    // 检索功能相关数据
+                    searchType: 'universal',
+                    searchKeyword: '',
+                    noteStatus: 'has',
+                    amountRange: {
+                        min: null,
+                        max: null
+                    },
+                    searchResults: [],
+                    hasSearched: false,
+                    
+                    // 支出记录检索相关数据
+                    expenseSearchKeyword: '',
+                    expenseSearchResults: []
                 };
             },
             
@@ -887,24 +1698,27 @@
                 
                 netIncome() {
                     return this.totalGifts - this.totalExpenses;
+                },
+                
+                searchPlaceholder() {
+                    switch (this.searchType) {
+                        case 'universal':
+                            return '输入姓名、关系、金额或备注关键词';
+                        case 'name':
+                            return '输入随礼人姓名';
+                        case 'relationship':
+                            return '输入关系类型，如：同事、朋友、亲戚等';
+                        case 'amount':
+                            return '输入金额数字，如：500、1000等';
+                        default:
+                            return '请输入检索词';
+                    }
                 }
             },
             
             methods: {
                 // 导航到指定区域
                 navigateTo(section) {
-                    // 移除所有导航项的活动状态
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        item.classList.remove('active');
-                    });
-                    
-                    // 添加当前导航项的活动状态
-                    const activeItem = document.querySelector(`.nav-item[data-section="${section}"]` || 
-                                                     `.nav-item:nth-child(${['gifts', 'expenses', 'basicInfo', 'dataManagement'].indexOf(section) + 1})`);
-                    if (activeItem) {
-                        activeItem.classList.add('active');
-                    }
-                    
                     // 更新活动导航状态
                     this.activeNav = section;
                     
@@ -912,12 +1726,14 @@
                     this.showGifts = false;
                     this.showExpenses = false;
                     this.showBasicInfo = false;
+                    this.showStatistics = false;
                     this.showDataManagement = false;
                     
                     // 显示当前内容区域
                     if (section === 'gifts') this.showGifts = true;
                     else if (section === 'expenses') this.showExpenses = true;
                     else if (section === 'basicInfo') this.showBasicInfo = true;
+                    else if (section === 'statistics') this.showStatistics = true;
                     else if (section === 'dataManagement') this.showDataManagement = true;
                 },
                 
@@ -1073,6 +1889,68 @@
                     }
                 },
                 
+                // 支出记录检索方法
+                searchExpenses() {
+                    if (!this.expenseSearchKeyword.trim()) {
+                        alert('请输入检索关键词');
+                        return;
+                    }
+                    
+                    const keyword = this.expenseSearchKeyword.trim().toLowerCase();
+                    this.expenseSearchResults = this.proxyExpenses.filter(expense => {
+                        // 搜索支出项目
+                        if (expense.item && expense.item.toLowerCase().includes(keyword)) {
+                            return true;
+                        }
+                        // 搜索金额
+                        if (expense.amount && expense.amount.toString().includes(keyword)) {
+                            return true;
+                        }
+                        // 搜索备注
+                        if (expense.note && expense.note.toLowerCase().includes(keyword)) {
+                            return true;
+                        }
+                        return false;
+                    });
+                },
+                
+                clearExpenseSearch() {
+                    this.expenseSearchKeyword = '';
+                    this.expenseSearchResults = [];
+                },
+                
+                editExpenseFromSearch(index) {
+                    const expense = this.expenseSearchResults[index];
+                    const realIndex = this.proxyExpenses.findIndex(
+                        item => item.item === expense.item && 
+                                item.amount === expense.amount &&
+                                item.note === expense.note
+                    );
+                    
+                    if (realIndex !== -1) {
+                        this.proxyExpenses[realIndex].originalData = { ...this.proxyExpenses[realIndex] };
+                        this.proxyExpenses[realIndex].editing = true;
+                        this.proxyExpenses[realIndex].expanded = false;
+                    }
+                },
+                
+                deleteExpenseFromSearch(index) {
+                    const expense = this.expenseSearchResults[index];
+                    if (confirm('确定要删除这条记录吗？')) {
+                        const realIndex = this.proxyExpenses.findIndex(
+                            item => item.item === expense.item && 
+                                    item.amount === expense.amount &&
+                                    item.note === expense.note
+                        );
+                        
+                        if (realIndex !== -1) {
+                            this.proxyExpenses.splice(realIndex, 1);
+                            // 从搜索结果中也删除
+                            this.expenseSearchResults.splice(index, 1);
+                        }
+                    }
+                },
+                
                 // 数据导出导入方法
                 exportToWord() {
                     const content = this.generateReportContent();
@@ -1216,6 +2094,202 @@
                         this.showAllExpenses = false;
                         
                         alert('数据已清空！');
+                    }
+                },
+                
+                // 获取最高收礼记录
+                getMaxGiftRecord() {
+                    if (this.proxyGifts.length === 0) return {};
+                    const maxAmount = Math.max(...this.proxyGifts.map(g => g.amount || 0));
+                    return this.proxyGifts.find(g => g.amount === maxAmount) || {};
+                },
+                
+                // 获取最低收礼记录
+                getMinGiftRecord() {
+                    if (this.proxyGifts.length === 0) return {};
+                    const minAmount = Math.min(...this.proxyGifts.map(g => g.amount || 0));
+                    return this.proxyGifts.find(g => g.amount === minAmount) || {};
+                },
+                
+                // 获取最高支出记录
+                getMaxExpenseRecord() {
+                    if (this.proxyExpenses.length === 0) return {};
+                    const maxAmount = Math.max(...this.proxyExpenses.map(e => e.amount || 0));
+                    return this.proxyExpenses.find(e => e.amount === maxAmount) || {};
+                },
+                
+                // 获取最低支出记录
+                getMinExpenseRecord() {
+                    if (this.proxyExpenses.length === 0) return {};
+                    const minAmount = Math.min(...this.proxyExpenses.map(e => e.amount || 0));
+                    return this.proxyExpenses.find(e => e.amount === minAmount) || {};
+                },
+                
+                // 显示记录详情
+                showRecordDetails(type, extremum) {
+                    let record = {};
+                    let title = '';
+                    let details = '';
+                    
+                    if (type === 'gift') {
+                        if (extremum === 'max') {
+                            record = this.getMaxGiftRecord();
+                            title = '最高随礼记录详情';
+                        } else {
+                            record = this.getMinGiftRecord();
+                            title = '最低随礼记录详情';
+                        }
+                        
+                        details = `
+随礼人：${record.giver || '（未填写）'}
+关系：${record.relationship || '（未填写）'}
+金额：¥${record.amount || 0}
+备注：${record.note || '（无）'}
+                        `;
+                    } else if (type === 'expense') {
+                        if (extremum === 'max') {
+                            record = this.getMaxExpenseRecord();
+                            title = '最高支出记录详情';
+                        } else {
+                            record = this.getMinExpenseRecord();
+                            title = '最低支出记录详情';
+                        }
+                        
+                        details = `
+支出项目：${record.item || '（未填写）'}
+金额：¥${record.amount || 0}
+备注：${record.note || '（无）'}
+                        `;
+                    }
+                    
+                    alert(`${title}\n\n${details}`);
+                },
+                
+                // 检索功能相关方法
+                searchGifts() {
+                    this.hasSearched = true;
+                    this.searchResults = [];
+                    
+                    if (this.searchType === 'universal') {
+                        // 万能检索
+                        if (!this.searchKeyword.trim()) {
+                            alert('请输入检索词');
+                            return;
+                        }
+                        
+                        this.searchResults = this.proxyGifts.filter(gift => {
+                            const keyword = this.searchKeyword.toLowerCase();
+                            return (
+                                (gift.giver && gift.giver.toLowerCase().includes(keyword)) ||
+                                (gift.relationship && gift.relationship.toLowerCase().includes(keyword)) ||
+                                (gift.amount && gift.amount.toString().includes(keyword)) ||
+                                (gift.note && gift.note.toLowerCase().includes(keyword))
+                            );
+                        });
+                    } else if (this.searchType === 'name') {
+                        // 按姓名检索
+                        if (!this.searchKeyword.trim()) {
+                            alert('请输入姓名');
+                            return;
+                        }
+                        
+                        this.searchResults = this.proxyGifts.filter(gift => 
+                            gift.giver && gift.giver.toLowerCase().includes(this.searchKeyword.toLowerCase())
+                        );
+                    } else if (this.searchType === 'relationship') {
+                        // 按关系检索
+                        if (!this.searchKeyword.trim()) {
+                            alert('请输入关系');
+                            return;
+                        }
+                        
+                        this.searchResults = this.proxyGifts.filter(gift => 
+                            gift.relationship && gift.relationship.toLowerCase().includes(this.searchKeyword.toLowerCase())
+                        );
+                    } else if (this.searchType === 'amount') {
+                        // 按金额检索
+                        if (!this.searchKeyword.trim()) {
+                            alert('请输入金额');
+                            return;
+                        }
+                        
+                        this.searchResults = this.proxyGifts.filter(gift => 
+                            gift.amount && gift.amount.toString().includes(this.searchKeyword)
+                        );
+                    } else if (this.searchType === 'amountRange') {
+                        // 按金额区间检索
+                        if (this.amountRange.min === null && this.amountRange.max === null) {
+                            alert('请输入金额区间');
+                            return;
+                        }
+                        
+                        this.searchResults = this.proxyGifts.filter(gift => {
+                            const amount = gift.amount || 0;
+                            const min = this.amountRange.min !== null ? this.amountRange.min : 0;
+                            const max = this.amountRange.max !== null ? this.amountRange.max : Number.MAX_SAFE_INTEGER;
+                            
+                            return amount >= min && amount <= max;
+                        });
+                    } else if (this.searchType === 'note') {
+                        // 按备注有无检索
+                        if (this.noteStatus === 'has') {
+                            this.searchResults = this.proxyGifts.filter(gift => 
+                                gift.note && gift.note.trim()
+                            );
+                        } else {
+                            this.searchResults = this.proxyGifts.filter(gift => 
+                                !gift.note || !gift.note.trim()
+                            );
+                        }
+                    }
+                    
+                    // 为检索结果添加展开状态
+                    this.searchResults.forEach(result => {
+                        result.expanded = false;
+                    });
+                },
+                
+                clearSearch() {
+                    this.searchType = 'universal';
+                    this.searchKeyword = '';
+                    this.noteStatus = 'has';
+                    this.amountRange = {
+                        min: null,
+                        max: null
+                    };
+                    this.searchResults = [];
+                    this.hasSearched = false;
+                },
+                
+
+                
+                editGiftFromSearch(index) {
+                    const searchResult = this.searchResults[index];
+                    // 找到原始记录并编辑
+                    const originalIndex = this.proxyGifts.findIndex(gift => 
+                        gift.giver === searchResult.giver && 
+                        gift.amount === searchResult.amount &&
+                        gift.relationship === searchResult.relationship
+                    );
+                    
+                    if (originalIndex !== -1) {
+                        this.editGift(originalIndex);
+                    }
+                },
+                
+                deleteGiftFromSearch(index) {
+                    const searchResult = this.searchResults[index];
+                    // 找到原始记录并删除
+                    const originalIndex = this.proxyGifts.findIndex(gift => 
+                        gift.giver === searchResult.giver && 
+                        gift.amount === searchResult.amount &&
+                        gift.relationship === searchResult.relationship
+                    );
+                    
+                    if (originalIndex !== -1) {
+                        this.deleteGift(originalIndex);
+                        // 从检索结果中移除
+                        this.searchResults.splice(index, 1);
                     }
                 },
                 
