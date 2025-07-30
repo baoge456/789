@@ -1142,13 +1142,128 @@
         .btn-delete-small:hover {
             background: #bd2130;
         }
+
+        /* 授权验证弹窗样式 */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .auth-modal {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .auth-modal h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .auth-input {
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .auth-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .auth-error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        /* 用户信息显示样式 */
+        .user-info {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+            margin-left: 15px;
+            vertical-align: middle;
+        }
+
+        .user-info .username {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div id="app">
-        <div class="container">
+        <!-- 授权验证弹窗 -->
+        <div v-if="!isAuthorized" class="auth-overlay">
+            <div class="auth-modal">
+                <h2>🔐 授权验证</h2>
+                <div class="auth-form">
+                    <input 
+                        type="password" 
+                        v-model="authForm.authCode" 
+                        placeholder="请输入授权码" 
+                        class="auth-input"
+                        @keyup.enter="validateAuth"
+                    >
+                    <button @click="validateAuth" class="auth-btn">验证授权</button>
+                    <div v-if="authError" class="auth-error">{{ authError }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主要内容区域 - 只有授权后才显示 -->
+        <div v-if="isAuthorized" class="container">
             <div class="header">
-                <h1>🎉 公事记账簿</h1>
+                <h1>🎉 公事记账簿
+                    <!-- 用户信息显示在标题后面 -->
+                    <div class="user-info">
+                        👤 <span class="username">{{ currentUser }}</span>
+                    </div>
+                </h1>
                 <p>专业的礼金收支记录管理工具</p>
             </div>
 
@@ -1469,16 +1584,16 @@
                     <div class="section-content" :class="{ show: showBasicInfo }">
                         <div class="form-row">
                             <div class="form-group">
-                                <label>委托人：</label>
-                                <input type="text" v-model="proxyBasicInfo.client" placeholder="请输入委托人姓名">
+                                <label>主办方：</label>
+                                <input type="text" v-model="proxyBasicInfo.organizer" placeholder="请输入主办方姓名">
                             </div>
                             <div class="form-group">
-                                <label>事件类型：</label>
+                                <label>公事类型：</label>
                                 <input type="text" 
-                                       v-model="proxyBasicInfo.eventType" 
-                                       list="eventTypeList"
-                                       placeholder="请输入或选择事件类型">
-                                <datalist id="eventTypeList">
+                                       v-model="proxyBasicInfo.publicAffairType" 
+                                       list="publicAffairTypeList"
+                                       placeholder="请输入或选择公事类型">
+                                <datalist id="publicAffairTypeList">
                                     <option value="婚礼">
                                     <option value="生日宴">
                                     <option value="满月酒">
@@ -1491,8 +1606,8 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>事件日期：</label>
-                                <input type="date" v-model="proxyBasicInfo.eventDate">
+                                <label>记账时间：</label>
+                                <input type="date" v-model="proxyBasicInfo.accountingDate">
                             </div>
                             <div class="form-group">
                                 <label>地点：</label>
@@ -1620,6 +1735,50 @@
         createApp({
             data() {
                 return {
+                    // 授权验证相关
+                    isAuthorized: false,
+                    currentUser: '',
+                    authForm: {
+                        authCode: ''
+                    },
+                    authError: '',
+                    
+                    // ========================================
+                    // 🔐 授权码配置区域 - 在此处添加新的授权码
+                    // ========================================
+                    // 
+                    // 格式说明：
+                    // {
+                    //     username: '用户名',     // 用户名，用于显示当前用户
+                    //     authCode: '授权码'     // 授权码，用于验证访问权限
+                    // }
+                    //
+                    // 示例：
+                    // { username: 'admin', authCode: 'admin123' }
+                    // { username: 'manager', authCode: 'manager456' }
+                    // { username: 'user1', authCode: 'user789' }
+                    //
+                    // 添加新授权码步骤：
+                    // 1. 在下方 authCodes 数组中添加新的对象
+                    // 2. 确保 username 和 authCode 都是唯一的
+                    // 3. 保存文件后重新加载页面即可生效
+                    //
+                    // 注意事项：
+                    // - 用户名和授权码区分大小写
+                    // - 建议使用安全的授权码（包含字母、数字、特殊字符）
+                    // - 最多支持 100 个授权码
+                    // - 验证时只需要输入授权码，用户名会自动匹配
+                    //
+                    // ========================================
+                    
+                    // 默认授权码组
+                    authCodes: [
+                        { username: 'baoge', authCode: 'baoge888' }
+                        // 在此处添加新的授权码，格式如下：
+                        // { username: '新用户名', authCode: '新授权码' },
+                        // { username: '另一个用户', authCode: '另一个授权码' }
+                    ],
+                    
                     showGifts: true,
                     showExpenses: false,
                     showBasicInfo: false,
@@ -1629,9 +1788,9 @@
                     activeNav: 'gifts',
                     
                     proxyBasicInfo: {
-                        client: '',
-                        eventType: '',
-                        eventDate: '',
+                        organizer: '',
+                        publicAffairType: '',
+                        accountingDate: '',
                         location: '',
                         isSet: false
                     },
@@ -1717,6 +1876,59 @@
             },
             
             methods: {
+                // 授权验证方法
+                validateAuth() {
+                    const { authCode } = this.authForm;
+                    
+                    if (!authCode.trim()) {
+                        this.authError = '请输入授权码';
+                        return;
+                    }
+                    
+                    // 检查授权码
+                    const validAuth = this.authCodes.find(auth => 
+                        auth.authCode === authCode.trim()
+                    );
+                    
+                    if (validAuth) {
+                        this.isAuthorized = true;
+                        this.currentUser = validAuth.username;
+                        this.authError = '';
+                        
+                        // 保存授权状态到本地存储
+                        localStorage.setItem('proxyAccountingAuth', JSON.stringify({
+                            isAuthorized: true,
+                            currentUser: this.currentUser,
+                            authTime: new Date().toISOString()
+                        }));
+                        
+                        // 清空表单
+                        this.authForm.authCode = '';
+                    } else {
+                        this.authError = '授权码错误';
+                    }
+                },
+                
+                // 检查本地存储的授权状态
+                checkAuthStatus() {
+                    const authData = localStorage.getItem('proxyAccountingAuth');
+                    if (authData) {
+                        try {
+                            const parsed = JSON.parse(authData);
+                            if (parsed.isAuthorized && parsed.currentUser) {
+                                this.isAuthorized = true;
+                                this.currentUser = parsed.currentUser;
+                                return true;
+                            }
+                        } catch (error) {
+                            console.error('解析授权数据失败:', error);
+                        }
+                    }
+                    return false;
+                },
+                
+
+                
                 // 导航到指定区域
                 navigateTo(section) {
                     // 更新活动导航状态
@@ -1958,7 +2170,9 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `代记账报告_${new Date().toLocaleDateString()}.doc`;
+                    // 使用基本信息命名文件：主办方_公事类型_记账时间
+                    const fileName = `${this.proxyBasicInfo.organizer || '未知主办方'}_${this.proxyBasicInfo.publicAffairType || '未知公事'}_${this.proxyBasicInfo.accountingDate || '未知日期'}`;
+                    a.download = `代记账报告_${fileName}.doc`;
                     a.click();
                     URL.revokeObjectURL(url);
                 },
@@ -1967,9 +2181,9 @@
                     const wb = XLSX.utils.book_new();
                     const basicInfoData = [
                         ['项目', '内容'],
-                        ['委托人', this.proxyBasicInfo.client],
-                        ['事件类型', this.proxyBasicInfo.eventType],
-                        ['事件日期', this.proxyBasicInfo.eventDate],
+                        ['主办方', this.proxyBasicInfo.organizer],
+                        ['公事类型', this.proxyBasicInfo.publicAffairType],
+                        ['记账时间', this.proxyBasicInfo.accountingDate],
                         ['地点', this.proxyBasicInfo.location]
                     ];
                     const basicInfoWS = XLSX.utils.aoa_to_sheet(basicInfoData);
@@ -2002,7 +2216,9 @@
                     const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
                     XLSX.utils.book_append_sheet(wb, summaryWS, '统计汇总');
                     
-                    XLSX.writeFile(wb, `代记账报告_${new Date().toLocaleDateString()}.xlsx`);
+                    // 使用基本信息命名文件：主办方_公事类型_记账时间
+                    const fileName = `${this.proxyBasicInfo.organizer || '未知主办方'}_${this.proxyBasicInfo.publicAffairType || '未知公事'}_${this.proxyBasicInfo.accountingDate || '未知日期'}`;
+                    XLSX.writeFile(wb, `代记账报告_${fileName}.xlsx`);
                 },
                 
                 exportToJSON() {
@@ -2026,7 +2242,9 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `代记账数据_${new Date().toLocaleDateString()}.json`;
+                    // 使用基本信息进行命名：主办方_公事类型_记账时间
+                    const fileName = `${this.proxyBasicInfo.organizer || '未知主办方'}_${this.proxyBasicInfo.publicAffairType || '未知公事'}_${this.proxyBasicInfo.accountingDate || '未知日期'}`;
+                    a.download = `${fileName}.json`;
                     a.click();
                     URL.revokeObjectURL(url);
                 },
@@ -2040,7 +2258,16 @@
                         try {
                             const data = JSON.parse(e.target.result);
                             if (confirm('导入数据将覆盖当前所有数据，确定要继续吗？')) {
-                                this.proxyBasicInfo = data.proxyBasicInfo || this.proxyBasicInfo;
+                                // 处理基本信息字段名称兼容性（旧版本字段名到新版本字段名的映射）
+                                const importedBasicInfo = data.proxyBasicInfo || {};
+                                this.proxyBasicInfo = {
+                                    organizer: importedBasicInfo.organizer || importedBasicInfo.client || '',
+                                    publicAffairType: importedBasicInfo.publicAffairType || importedBasicInfo.eventType || '',
+                                    accountingDate: importedBasicInfo.accountingDate || importedBasicInfo.eventDate || '',
+                                    location: importedBasicInfo.location || '',
+                                    isSet: importedBasicInfo.isSet || false
+                                };
+                                
                                 this.proxyGifts = (data.proxyGifts || []).map(gift => ({
                                     ...gift,
                                     expanded: false,
@@ -2056,6 +2283,11 @@
                                 this.showAllGifts = false;
                                 this.showAllExpenses = false;
                                 
+                                // 如果有基本信息数据，自动展开基本信息面板
+                                if (this.proxyBasicInfo && (this.proxyBasicInfo.organizer || this.proxyBasicInfo.publicAffairType || this.proxyBasicInfo.accountingDate || this.proxyBasicInfo.location)) {
+                                    this.showBasicInfo = true;
+                                }
+                                
                                 alert('数据导入成功！所有记录已默认折叠');
                             }
                         } catch (error) {
@@ -2069,9 +2301,9 @@
                 clearAllData() {
                     if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
                         this.proxyBasicInfo = {
-                            client: '',
-                            eventType: '',
-                            eventDate: '',
+                            organizer: '',
+                            publicAffairType: '',
+                            accountingDate: '',
                             location: '',
                             isSet: false
                         };
@@ -2313,9 +2545,9 @@
                     content += `
                         <h2>基本信息</h2>
                         <table>
-                            <tr><th>委托人</th><td>${this.proxyBasicInfo.client}</td></tr>
-                            <tr><th>事件类型</th><td>${this.proxyBasicInfo.eventType}</td></tr>
-                            <tr><th>事件日期</th><td>${this.proxyBasicInfo.eventDate}</td></tr>
+                            <tr><th>主办方</th><td>${this.proxyBasicInfo.organizer}</td></tr>
+                            <tr><th>公事类型</th><td>${this.proxyBasicInfo.publicAffairType}</td></tr>
+                            <tr><th>记账时间</th><td>${this.proxyBasicInfo.accountingDate}</td></tr>
                             <tr><th>地点</th><td>${this.proxyBasicInfo.location}</td></tr>
                         </table>
                     `;
@@ -2370,7 +2602,8 @@
                         proxyGifts: this.proxyGifts,
                         proxyExpenses: this.proxyExpenses,
                         showAllGifts: this.showAllGifts,
-                        showAllExpenses: this.showAllExpenses
+                        showAllExpenses: this.showAllExpenses,
+                        showBasicInfo: this.showBasicInfo
                     };
                     localStorage.setItem('proxyAccountingData', JSON.stringify(data));
                 },
@@ -2380,13 +2613,29 @@
                     if (data) {
                         try {
                             const parsedData = JSON.parse(data);
-                            this.proxyBasicInfo = parsedData.proxyBasicInfo || this.proxyBasicInfo;
+                            
+                            // 处理基本信息字段名称兼容性（旧版本字段名到新版本字段名的映射）
+                            const storedBasicInfo = parsedData.proxyBasicInfo || {};
+                            this.proxyBasicInfo = {
+                                organizer: storedBasicInfo.organizer || storedBasicInfo.client || '',
+                                publicAffairType: storedBasicInfo.publicAffairType || storedBasicInfo.eventType || '',
+                                accountingDate: storedBasicInfo.accountingDate || storedBasicInfo.eventDate || '',
+                                location: storedBasicInfo.location || '',
+                                isSet: storedBasicInfo.isSet || false
+                            };
+                            
                             this.proxyGifts = parsedData.proxyGifts || [];
                             this.proxyExpenses = parsedData.proxyExpenses || [];
                             
                             // 恢复展开状态
                             this.showAllGifts = parsedData.showAllGifts || false;
                             this.showAllExpenses = parsedData.showAllExpenses || false;
+                            this.showBasicInfo = parsedData.showBasicInfo || false;
+                            
+                            // 如果有基本信息数据，自动展开基本信息面板
+                            if (this.proxyBasicInfo && (this.proxyBasicInfo.organizer || this.proxyBasicInfo.publicAffairType || this.proxyBasicInfo.accountingDate || this.proxyBasicInfo.location)) {
+                                this.showBasicInfo = true;
+                            }
                             
                             // 确保所有记录默认折叠
                             this.proxyGifts.forEach(gift => {
@@ -2429,10 +2678,20 @@
                 },
                 showAllExpenses() {
                     this.saveToLocalStorage();
+                },
+                showBasicInfo() {
+                    this.saveToLocalStorage();
                 }
             },
             
             mounted() {
+                // 首先检查授权状态
+                if (!this.checkAuthStatus()) {
+                    // 如果未授权，不加载其他数据，等待用户验证
+                    return;
+                }
+                
+                // 授权通过后，加载数据
                 this.loadFromLocalStorage();
                 if (!this.proxyBasicInfo.isSet && this.proxyGifts.length === 0 && this.proxyExpenses.length === 0) {
                     this.showBasicInfo = true;
