@@ -2826,7 +2826,11 @@
         <div class="modal" :class="{ show: showEditModal }">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 class="modal-title">{{ editingEvent && editingEvent.source === 'accountBook' ? '编辑自家公事记录' : '编辑对外人情记录' }}</h3>
+                    <h3 class="modal-title">
+                        <span v-if="editingEvent && editingEvent.source === 'accountBook'">编辑自家公事记录</span>
+                        <span v-else-if="editingEvent && editingEvent.source === 'proxy'">编辑代记账记录</span>
+                        <span v-else>编辑对外人情记录</span>
+                    </h3>
                     <button class="close" @click="closeEditModal" title="关闭编辑">&times;</button>
                 </div>
                 
@@ -2853,6 +2857,62 @@
                             <input type="text" v-model="editingEvent.eventDate" placeholder="如：2024-01-15" @input="formatDateInput($event, 'editingEvent.eventDate')" maxlength="10">
                         </div>
                     </div>
+                    
+                                         <!-- 代记账记录编辑表单 -->
+                     <div v-else-if="editingEvent.source === 'proxy'" class="form-grid">
+                         <!-- 代记账收礼记录编辑表单 -->
+                         <div v-if="editingEvent.type === 'gift'">
+                             <div class="form-group">
+                                 <label>姓名 *</label>
+                                 <input type="text" v-model="editingEvent.name" required>
+                             </div>
+                             
+                             <div class="form-group">
+                                 <label>关系</label>
+                                 <input type="text" v-model="editingEvent.relationship" placeholder="如：亲戚、朋友、同事、邻居、同学等">
+                             </div>
+                             
+                             <div class="form-group">
+                                 <label>礼金金额 *</label>
+                                 <input type="number" v-model="editingEvent.amount" min="0" step="0.01" required>
+                             </div>
+                             
+                             <div class="form-group">
+                                 <label>日期</label>
+                                 <input type="text" v-model="editingEvent.date" placeholder="如：2024-01-15" @input="formatDateInput($event, 'editingEvent.date')" maxlength="10">
+                             </div>
+                         </div>
+                         
+                         <!-- 代记账支出记录编辑表单 -->
+                         <div v-else-if="editingEvent.type === 'expense'">
+                             <div class="form-group">
+                                 <label>支出项目 *</label>
+                                 <input type="text" v-model="editingEvent.item" required>
+                             </div>
+                             
+                             <div class="form-group">
+                                 <label>支出类别</label>
+                                 <select v-model="editingEvent.category">
+                                     <option value="餐饮">餐饮</option>
+                                     <option value="场地">场地</option>
+                                     <option value="装饰">装饰</option>
+                                     <option value="服务">服务</option>
+                                     <option value="用品">用品</option>
+                                     <option value="其他">其他</option>
+                                 </select>
+                             </div>
+                             
+                             <div class="form-group">
+                                 <label>支出金额 *</label>
+                                 <input type="number" v-model="editingEvent.amount" min="0" step="0.01" required>
+                             </div>
+                             
+                             <div class="form-group">
+                                 <label>日期</label>
+                                 <input type="text" v-model="editingEvent.date" placeholder="如：2024-01-15" @input="formatDateInput($event, 'editingEvent.date')" maxlength="10">
+                             </div>
+                         </div>
+                     </div>
                     
                     <!-- 对外人情记录编辑表单 -->
                     <div v-else class="form-grid">
@@ -4140,6 +4200,57 @@
                             console.log('查找失败，编辑的数据:', this.editingEvent);
                             console.log('现有的giftRecords:', this.giftRecords);
                             alert('未找到对应的自家公事记录！请检查数据是否正确。');
+                        }
+                    } else if (this.editingEvent.source === 'proxy') {
+                        // 编辑代记账记录
+                        if (this.editingEvent.type === 'gift') {
+                            // 编辑代记账收礼记录
+                            const recordIndex = this.editingEvent.originalIndex;
+                            if (recordIndex !== undefined && recordIndex >= 0 && recordIndex < this.proxyGiftRecords.length) {
+                                // 确保日期格式正确
+                                let date = this.editingEvent.date;
+                                if (!date) {
+                                    date = this.getFormattedDate();
+                                }
+                                
+                                // 更新代记账收礼记录
+                                this.proxyGiftRecords[recordIndex] = {
+                                    name: this.editingEvent.name,
+                                    relationship: this.editingEvent.relationship || '其他',
+                                    amount: parseFloat(this.editingEvent.amount),
+                                    date: date,
+                                    notes: this.editingEvent.notes || ''
+                                };
+                                this.saveProxyData();
+                                this.closeEditModal();
+                                alert('代记账收礼记录修改保存成功！');
+                            } else {
+                                alert('未找到对应的代记账收礼记录！');
+                            }
+                        } else if (this.editingEvent.type === 'expense') {
+                            // 编辑代记账支出记录
+                            const recordIndex = this.editingEvent.originalIndex;
+                            if (recordIndex !== undefined && recordIndex >= 0 && recordIndex < this.proxyExpenseRecords.length) {
+                                // 确保日期格式正确
+                                let date = this.editingEvent.date;
+                                if (!date) {
+                                    date = this.getFormattedDate();
+                                }
+                                
+                                // 更新代记账支出记录
+                                this.proxyExpenseRecords[recordIndex] = {
+                                    item: this.editingEvent.item,
+                                    category: this.editingEvent.category || '其他',
+                                    amount: parseFloat(this.editingEvent.amount),
+                                    date: date,
+                                    notes: this.editingEvent.notes || ''
+                                };
+                                this.saveProxyData();
+                                this.closeEditModal();
+                                alert('代记账支出记录修改保存成功！');
+                            } else {
+                                alert('未找到对应的代记账支出记录！');
+                            }
                         }
                     } else {
                         // 编辑对外人情记录
@@ -5713,15 +5824,29 @@
                     this.showEditModal = true;
                 },
                 editProxyRecord(index, type) {
-                    this.editingEvent = {
-                        source: 'proxy',
-                        type: type,
-                        name: this.proxyGiftRecords[index].name,
-                        relationship: this.proxyGiftRecords[index].relationship,
-                        amount: this.proxyGiftRecords[index].amount,
-                        date: this.proxyGiftRecords[index].date,
-                        notes: this.proxyGiftRecords[index].notes
-                    };
+                    if (type === 'gift') {
+                        this.editingEvent = {
+                            source: 'proxy',
+                            type: type,
+                            originalIndex: index,
+                            name: this.proxyGiftRecords[index].name,
+                            relationship: this.proxyGiftRecords[index].relationship,
+                            amount: this.proxyGiftRecords[index].amount,
+                            date: this.proxyGiftRecords[index].date,
+                            notes: this.proxyGiftRecords[index].notes
+                        };
+                    } else if (type === 'expense') {
+                        this.editingEvent = {
+                            source: 'proxy',
+                            type: type,
+                            originalIndex: index,
+                            item: this.proxyExpenseRecords[index].item,
+                            category: this.proxyExpenseRecords[index].category,
+                            amount: this.proxyExpenseRecords[index].amount,
+                            date: this.proxyExpenseRecords[index].date,
+                            notes: this.proxyExpenseRecords[index].notes
+                        };
+                    }
                     this.showEditModal = true;
                 }
             },
