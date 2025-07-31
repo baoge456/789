@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级HTML密码验证工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 1.4em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="file"], input[type="text"], select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input[type="file"]:focus, input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        .password-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .password-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .password-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .password-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .password-code {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .password-type {
+            font-size: 0.9em;
+            color: #6c757d;
+            padding: 2px 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 15px;
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .password-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active {
+            background: #28a745;
+        }
+
+        .status-expired {
+            background: #dc3545;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .preview-container {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .test-result {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .test-result.error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border-color: #f5c6cb;
+        }
+
+        .test-result.show {
+            display: block;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: rgba(102, 126, 234, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #764ba2;
+        }
+
+        .file-upload-area.dragover {
+            background: rgba(102, 126, 234, 0.15);
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 高级HTML密码验证工具</h1>
+            <p>专业的HTML文件密码保护解决方案</p>
+        </div>
+
+        <div class="content">
+            <!-- 文件上传区域 -->
+            <div class="section">
+                <h2>📁 上传HTML文件</h2>
+                <div class="file-upload-area" id="fileUploadArea">
+                    <div class="upload-icon">📄</div>
+                    <p>点击选择文件或拖拽HTML文件到此处</p>
+                    <input type="file" id="fileInput" accept=".html,.htm" style="display: none;">
+                </div>
+                <div id="fileInfo" style="display: none; margin-top: 15px; padding: 15px; background: #e9ecef; border-radius: 10px;">
+                    <strong>已选择文件：</strong><span id="fileName"></span>
+                </div>
+            </div>
+
+            <!-- 密码管理区域 -->
+            <div class="section">
+                <h2>🔑 密码管理</h2>
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label for="authInput">密码</label>
+                        <input type="text" id="authInput" placeholder="输入密码">
+                    </div>
+                    <div class="form-group">
+                        <label for="passwordType">密码类型</label>
+                        <select id="passwordType">
+                            <option value="normal">普通密码（每次验证）</option>
+                            <option value="remember">记住密码（输入一次长期有效）</option>
+                            <option value="temporary">临时密码（7天有效期）</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: end;">
+                        <button class="btn" onclick="addAuthCode()">➕ 添加密码</button>
+                    </div>
+                </div>
+                
+                <div id="passwordStats" class="stats" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalPasswords">0</div>
+                        <div class="stat-label">总密码数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activePasswords">0</div>
+                        <div class="stat-label">有效密码</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="expiredPasswords">0</div>
+                        <div class="stat-label">过期密码</div>
+                    </div>
+                </div>
+
+                <ul id="authList" class="password-list"></ul>
+            </div>
+
+            
+
+            <!-- 导出区域 -->
+            <div class="section">
+                <h2>💾 导出文件</h2>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="exportFileName">导出文件名</label>
+                        <input type="text" id="exportFileName" placeholder="输入文件名（不含扩展名）">
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 10px; align-items: end;">
+                        <button class="btn btn-secondary" onclick="copyCode()">📋 复制代码</button>
+                        <button class="btn btn-success" onclick="exportFile()">💾 导出HTML</button>
+                    </div>
+                </div>
+            </div>
+
+            
+        </div>
+    </div>
+
+    <script>
+        let fileContent = '';
+        let authCodes = [];
+        let originalFileName = '';
+        let passwords = [];
+
+        // 文件上传处理
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        fileUploadArea.addEventListener('click', () => fileInput.click());
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('dragover');
+        });
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFileSelect(file);
+            }
+        });
+
+        function handleFileSelect(file) {
+            originalFileName = file.name.replace(/\.(html|htm)$/i, '');
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('exportFileName').value = `密码-${originalFileName}`;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                fileContent = e.target.result;
+                extractExistingPasswords(fileContent);
+                updatePreview();
+            };
+            reader.readAsText(file);
+        }
+
+        function addAuthCode() {
+            const code = document.getElementById('authInput').value.trim();
+            const type = document.getElementById('passwordType').value;
+            
+            if (!code) {
+                showNotification('请输入密码', 'error');
+                return;
+            }
+            
+            // 检查是否已存在相同密码
+            const existingIndex = passwords.findIndex(p => p.code === code);
+            if (existingIndex !== -1) {
+                showNotification('密码已存在！', 'error');
+                return;
+            }
+            
+            const password = {
+                code: code,
+                type: type,
+                createdAt: new Date().getTime()
+            };
+            
+            passwords.push(password);
+            authCodes.push(code);
+            updateAuthList();
+            updateStats();
+            document.getElementById('authInput').value = '';
+            showNotification('密码添加成功！', 'success');
+        }
+
+        function updateAuthList() {
+            const list = document.getElementById('authList');
+            list.innerHTML = '';
+            
+            if (passwords.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">暂无密码，请添加密码</p>';
+                return;
+            }
+            
+            passwords.forEach((password, index) => {
+                const li = document.createElement('li');
+                li.className = 'password-item';
+                
+                const typeText = {
+                    'normal': '普通密码',
+                    'remember': '记住密码',
+                    'temporary': '临时密码'
+                }[password.type];
+                
+                const isExpired = password.type === 'temporary' && isPasswordExpired(password);
+                const statusClass = isExpired ? 'status-expired' : 'status-active';
+                const statusText = isExpired ? '已过期' : '有效';
+                
+                li.innerHTML = `
+                    <div class="password-info">
+                        <div class="password-code">${password.code}</div>
+                        <div class="password-type">${typeText}</div>
+                        <small><span class="status-indicator ${statusClass}"></span>${statusText}</small>
+                    </div>
+                    <div class="password-actions">
+                        <button class="btn btn-small btn-secondary" onclick="testSinglePassword('${password.code}')">测试</button>
+                        <button class="btn btn-small btn-danger" onclick="deletePassword(${index})">删除</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+        
+        function isPasswordExpired(password) {
+            if (password.type !== 'temporary') return false;
+            const now = new Date().getTime();
+            const daysDiff = (now - password.createdAt) / (1000 * 60 * 60 * 24);
+            return daysDiff > 7;
+        }
+        
+        function deletePassword(index) {
+            if (confirm('确定要删除这个密码吗？')) {
+                passwords.splice(index, 1);
+                authCodes = passwords.map(p => p.code);
+                updateAuthList();
+                updateStats();
+                showNotification('密码已删除', 'success');
+            }
+        }
+
+        function updateStats() {
+            const statsDiv = document.getElementById('passwordStats');
+            if (passwords.length > 0) {
+                statsDiv.style.display = 'grid';
+                document.getElementById('totalPasswords').textContent = passwords.length;
+                
+                const activePasswords = passwords.filter(p => !isPasswordExpired(p)).length;
+                const expiredPasswords = passwords.filter(p => isPasswordExpired(p)).length;
+                
+                document.getElementById('activePasswords').textContent = activePasswords;
+                document.getElementById('expiredPasswords').textContent = expiredPasswords;
+            } else {
+                statsDiv.style.display = 'none';
+            }
+        }
+
+
+        
+        function generateAuthScript() {
+            const passwordsData = passwords.map(p => ({
+                code: p.code,
+                type: p.type,
+                createdAt: p.createdAt
+            }));
+            
+            return `
+            <script>
+                const passwordsData = ${JSON.stringify(passwordsData)};
+                
+                // 检查临时密码是否过期
+                function checkTemporaryPasswords() {
+                    const now = new Date().getTime();
+                    const validPasswords = passwordsData.filter(p => {
+                        if (p.type === 'temporary') {
+                            const daysDiff = (now - p.createdAt) / (1000 * 60 * 60 * 24);
+                            return daysDiff <= 7;
+                        }
+                        return true;
+                    });
+                    return validPasswords.map(p => p.code);
+                }
+                
+                // 检查是否已记住密码
+                function isRemembered() {
+                    return localStorage.getItem('auth_remembered') === 'true';
+                }
+                
+                // 设置记住密码
+                function setRemembered() {
+                    localStorage.setItem('auth_remembered', 'true');
+                }
+                
+                function checkAuth() {
+                    // 检查是否有记住的密码
+                    if (isRemembered()) {
+                        console.log('已记住密码，无需验证');
+                        return; // 已记住，无需验证
+                    }
+                    
+                    const validCodes = checkTemporaryPasswords();
+                    const code = prompt('请输入密码访问此页面');
+                    
+                    if (!code) {
+                        alert('必须输入密码才能访问！');
+                        checkAuth(); // 用户取消，重新提示
+                        return;
+                    }
+                    
+                    const password = passwordsData.find(p => p.code === code);
+                    if (!password) {
+                        alert('密码错误，请重新输入！');
+                        checkAuth();
+                        return;
+                    }
+                    
+                    // 检查临时密码是否过期
+                    if (password.type === 'temporary') {
+                        const now = new Date().getTime();
+                        const daysDiff = (now - password.createdAt) / (1000 * 60 * 60 * 24);
+                        if (daysDiff > 7) {
+                            alert('临时密码已过期，请使用其他密码！');
+                            checkAuth();
+                            return;
+                        }
+                    }
+                    
+                    // 如果是记住密码类型，设置记住状态
+                    if (password.type === 'remember') {
+                        setRemembered();
+                        alert('密码验证成功！已记住密码，下次访问无需重新输入。');
+                    } else if (password.type === 'normal') {
+                        alert('密码验证成功！每次访问都需要输入密码。');
+                    } else if (password.type === 'temporary') {
+                        const now = new Date().getTime();
+                        const daysLeft = 7 - Math.floor((now - password.createdAt) / (1000 * 60 * 60 * 24));
+                        alert('临时密码验证成功！剩余有效期：' + daysLeft + '天');
+                    }
+                }
+                
+                // 页面加载时执行验证
+                checkAuth();
+            <\/script>
+            `;
+        }
+
+        function extractExistingPasswords(content) {
+            const passwordsDataRegex = /const passwordsData = (\[.*?\]);/;
+            const match = content.match(passwordsDataRegex);
+            if (match) {
+                try {
+                    const existingPasswords = JSON.parse(match[1]);
+                    existingPasswords.forEach(password => {
+                        const existingIndex = passwords.findIndex(p => p.code === password.code);
+                        if (existingIndex === -1) {
+                            passwords.push(password);
+                            authCodes.push(password.code);
+                        }
+                    });
+                    updateAuthList();
+                    updateStats();
+                } catch (e) {
+                    console.log('解析现有密码失败');
+                }
+            }
+        }
+
+        function testPassword() {
+            if (authCodes.length === 0) {
+                showNotification('请先添加至少一个密码', 'error');
+                return;
+            }
+            
+            const testResult = document.getElementById('testResult');
+            testResult.className = 'test-result';
+            testResult.style.display = 'block';
+            
+            function promptPassword() {
+                const code = prompt('请输入密码进行测试验证');
+                if (code === null) {
+                    testResult.innerHTML = '<strong>测试已取消</strong>';
+                    testResult.classList.add('error');
+                    return;
+                }
+                
+                const password = passwords.find(p => p.code === code);
+                if (!password) {
+                    testResult.innerHTML = '<strong>❌ 密码错误</strong><br>请重新输入正确的密码';
+                    testResult.classList.add('error');
+                    setTimeout(() => promptPassword(), 1000);
+                    return;
+                }
+                
+                // 检查临时密码是否过期
+                if (password.type === 'temporary' && isPasswordExpired(password)) {
+                    testResult.innerHTML = '<strong>❌ 临时密码已过期</strong><br>该密码已超过7天有效期';
+                    testResult.classList.add('error');
+                    setTimeout(() => promptPassword(), 1000);
+                    return;
+                }
+                
+                let message = '<strong>✅ 密码验证成功！</strong><br>';
+                if (password.type === 'remember') {
+                    message += '• 记住密码类型：输入一次长期有效<br>';
+                    message += '• 下次访问无需重新输入密码';
+                } else if (password.type === 'normal') {
+                    message += '• 普通密码类型：每次访问都需要输入密码<br>';
+                    message += '• 每次登录都会要求验证';
+                } else if (password.type === 'temporary') {
+                    const now = new Date().getTime();
+                    const daysLeft = 7 - Math.floor((now - password.createdAt) / (1000 * 60 * 60 * 24));
+                    message += `• 临时密码类型：剩余${daysLeft}天有效期<br>`;
+                    message += '• 过期后需要重新设置密码';
+                }
+                
+                testResult.innerHTML = message;
+                testResult.classList.remove('error');
+            }
+            
+            promptPassword();
+        }
+
+        function testSinglePassword(code) {
+            const password = passwords.find(p => p.code === code);
+            if (!password) return;
+            
+            const testResult = document.getElementById('testResult');
+            testResult.style.display = 'block';
+            
+            if (password.type === 'temporary' && isPasswordExpired(password)) {
+                testResult.innerHTML = '<strong>❌ 密码已过期</strong><br>该临时密码已超过7天有效期';
+                testResult.classList.add('error');
+            } else {
+                let message = `<strong>✅ 密码 "${code}" 验证成功！</strong><br>`;
+                if (password.type === 'remember') {
+                    message += '• 记住密码类型：输入一次长期有效';
+                } else if (password.type === 'normal') {
+                    message += '• 普通密码类型：每次访问都需要输入密码';
+                } else if (password.type === 'temporary') {
+                    const now = new Date().getTime();
+                    const daysLeft = 7 - Math.floor((now - password.createdAt) / (1000 * 60 * 60 * 24));
+                    message += `• 临时密码类型：剩余${daysLeft}天有效期`;
+                }
+                
+                testResult.innerHTML = message;
+                testResult.classList.remove('error');
+            }
+        }
+
+        function copyCode() {
+            if (fileContent && authCodes.length > 0) {
+                const authScript = generateAuthScript();
+                const updatedContent = fileContent.replace('</body>', `${authScript}</body>`);
+                
+                navigator.clipboard.writeText(updatedContent).then(function() {
+                    showNotification('代码已复制到剪贴板！', 'success');
+                }).catch(function(err) {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = updatedContent;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showNotification('代码已复制到剪贴板！', 'success');
+                });
+            } else {
+                showNotification('请先上传HTML文件并添加至少一个密码', 'error');
+            }
+        }
+
+        function exportFile() {
+            if (fileContent && authCodes.length > 0) {
+                const authScript = generateAuthScript();
+                const updatedContent = fileContent.replace('</body>', `${authScript}</body>`);
+                const blob = new Blob([updatedContent], {type: 'text/html'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                const fileNameInput = document.getElementById('exportFileName');
+                const customName = fileNameInput.value.trim();
+                
+                if (customName) {
+                    a.download = `${customName}.html`;
+                } else if (originalFileName) {
+                    a.download = `密码-${originalFileName}.html`;
+                } else {
+                    a.download = `密码-${authCodes.join('-')}.html`;
+                }
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showNotification('文件导出成功！', 'success');
+            } else {
+                showNotification('请先上传HTML文件并添加至少一个密码', 'error');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 10px;
+                color: white;
+                font-weight: 600;
+                z-index: 1000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                max-width: 300px;
+            `;
+            
+            if (type === 'success') {
+                notification.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+            } else if (type === 'error') {
+                notification.style.background = 'linear-gradient(135deg, #dc3545 0%, #fd7e14 100%)';
+            } else {
+                notification.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            }
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // 显示动画
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 自动隐藏
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // 初始化
+        updateAuthList();
+        updateStats();
+    </script>
+</body>
+</html>
