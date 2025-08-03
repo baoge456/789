@@ -1793,6 +1793,46 @@
 
         /* 隐藏数据备份页面上面一行导出按钮 */
         .export-options:first-of-type { display: none !important; }
+        
+        /* 提示消息样式 */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 10000;
+            font-size: 14px;
+            font-weight: 500;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        .toast-notification.show {
+            transform: translateX(0);
+        }
+        
+        .toast-notification.success {
+            background: #28a745;
+        }
+        
+        .toast-notification.info {
+            background: #17a2b8;
+        }
+        
+        .toast-notification.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .toast-notification.error {
+            background: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -2853,7 +2893,13 @@
                                                 </span>
                                                 {{ event.eventDetail }} - {{ formatDate(event.eventDate) }}
                                             </span>
-                                            <span class="amount positive">¥{{ event.myGift.toFixed(2) }}</span>
+                                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                                <span v-if="event.direction === 'out'" class="amount negative" style="font-size: 14px;">-¥{{ event.myGift.toFixed(2) }}</span>
+                                                <span v-else class="amount positive" style="font-size: 14px;">+¥{{ event.myGift.toFixed(2) }}</span>
+                                                <span style="font-size: 12px; color: #6c757d; margin-top: 2px;">
+                                                    {{ event.direction === 'out' ? '我给出' : '我收到' }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2943,7 +2989,7 @@
                     
                     <div class="stats-grid">
                         <div class="stat-card clickable-card" @click="setCardFilter('all', '')" :class="{ 'active-filter': cardFilterType === 'all' }">
-                            <h3>{{ events.length + giftRecords.length }}</h3>
+                            <h3>{{ events.length + uniqueAccountBookEvents.length }}</h3>
                             <p>总公事</p>
                         </div>
                         <div class="stat-card red-event clickable-card" @click="setCardFilter('red', 'red')" :class="{ 'active-filter': cardFilterType === 'red' }">
@@ -2967,7 +3013,7 @@
                     <!-- 统计验证 -->
                     <div style="text-align: center; margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem; color: #6c757d;">
                         <strong>统计验证：</strong>红事({{ redEventCount }}) + 白事({{ whiteEventCount }}) + 其它({{ otherEventCount }}) = {{ redEventCount + whiteEventCount + otherEventCount }} 
-                        <span v-if="redEventCount + whiteEventCount + otherEventCount === events.length + giftRecords.length" style="color: #28a745;">✅ 正确</span>
+                        <span v-if="redEventCount + whiteEventCount + otherEventCount === events.length + uniqueAccountBookEvents.length" style="color: #28a745;">✅ 正确</span>
                         <span v-else style="color: #dc3545;">❌ 不匹配</span>
                         <div v-if="cardFilterType" style="margin-top: 8px; font-weight: 500; color: #007bff;">
                             🔍 当前筛选：{{ cardFilterType === 'all' ? '全部公事' : cardFilterType === 'red' ? '红事' : cardFilterType === 'white' ? '白事' : '其它公事' }}
@@ -2985,7 +3031,7 @@
                             </div>
                             <div>
                                 <p><strong>对外人情：</strong>{{ events.length }}条记录</p>
-                                <p><strong>自家公事：</strong>{{ giftRecords.length }}条记录</p>
+                                <p><strong>自家公事：</strong>{{ uniqueAccountBookEvents.length }}个公事 ({{ giftRecords.length }}条记录)</p>
                                 <p><strong>统计年份：</strong>{{ availableYears.length }}个年份</p>
                             </div>
                         </div>
@@ -3439,6 +3485,9 @@
         </div>
     </div>
 
+        <!-- 提示消息组件 -->
+        <div id="toastContainer"></div>
+        
         <!-- 标准底角注释 -->
         <footer class="footer">
         <div class="footer-content">
@@ -3621,12 +3670,44 @@
             
             computed: {
                 // 基础统计
+                // 获取自家公事的唯一事由列表（按批次分组）
+                uniqueAccountBookEvents() {
+                    const eventGroups = new Map();
+                    
+                    // 按批次ID和事由分组
+                    this.giftRecords.forEach(record => {
+                        if (record.source === 'imported' && record.batchId) {
+                            // 导入数据按批次分组
+                            const key = `batch_${record.batchId}`;
+                            if (!eventGroups.has(key)) {
+                                eventGroups.set(key, {
+                                    type: record.eventType || this.accountInfo.type || '公事',
+                                    reason: this.extractReasonFromNotes(record.notes),
+                                    batchId: record.batchId
+                                });
+                            }
+                        } else {
+                            // 手动录入的数据按事由分组
+                            const reason = this.extractReasonFromNotes(record.notes) || this.accountInfo.name || '自家公事';
+                            const key = `manual_${reason}`;
+                            if (!eventGroups.has(key)) {
+                                eventGroups.set(key, {
+                                    type: record.eventType || this.accountInfo.type || '公事',
+                                    reason: reason
+                                });
+                            }
+                        }
+                    });
+                    
+                    return Array.from(eventGroups.values());
+                },
+                
                 redEventCount() {
                     const allEvents = [...this.events];
-                    // 添加自家公事记录
-                    this.giftRecords.forEach(record => {
+                    // 添加自家公事记录（按事由分组，而不是按记录数量）
+                    this.uniqueAccountBookEvents.forEach(eventGroup => {
                         allEvents.push({
-                            type: record.eventType || this.accountInfo.type || '公事', // 优先使用记录中的公事类型
+                            type: eventGroup.type,
                             direction: 'in'
                         });
                     });
@@ -3642,9 +3723,9 @@
                 
                 whiteEventCount() {
                     const allEvents = [...this.events];
-                    this.giftRecords.forEach(record => {
+                    this.uniqueAccountBookEvents.forEach(eventGroup => {
                         allEvents.push({
-                            type: record.eventType || this.accountInfo.type || '公事', // 优先使用记录中的公事类型
+                            type: eventGroup.type,
                             direction: 'in'
                         });
                     });
@@ -3659,10 +3740,10 @@
                 
                 otherEventCount() {
                     const allEvents = [...this.events];
-                    // 添加自家公事记录
-                    this.giftRecords.forEach(record => {
+                    // 添加自家公事记录（按事由分组，而不是按记录数量）
+                    this.uniqueAccountBookEvents.forEach(eventGroup => {
                         allEvents.push({
-                            type: record.eventType || this.accountInfo.type || '公事', // 优先使用记录中的公事类型
+                            type: eventGroup.type,
                             direction: 'in'
                         });
                     });
@@ -4046,8 +4127,7 @@
                                 incomingTotalAmount: 0, // 我收到的总金额
                                 // 汇总统计
                                 totalCount: 0,
-                                totalAmount: 0,
-                                netAmount: 0
+                                totalAmount: 0
                             };
                         }
                         
@@ -4057,10 +4137,11 @@
                             const lowerType = event.type.toLowerCase();
                             if (lowerType.includes('红') || lowerType.includes('喜') || lowerType.includes('结婚') || 
                                 lowerType.includes('生子') || lowerType.includes('满月') || lowerType.includes('周岁') ||
-                                lowerType.includes('乔迁') || lowerType.includes('开业') || lowerType.includes('升学')) {
+                                lowerType.includes('乔迁') || lowerType.includes('开业') || lowerType.includes('升学') ||
+                                lowerType.includes('温居') || lowerType.includes('搬家') || lowerType.includes('新居')) {
                                 eventCategory = 'red';
                             } else if (lowerType.includes('白') || lowerType.includes('丧') || lowerType.includes('去世') ||
-                                       lowerType.includes('悼') || lowerType.includes('祭')) {
+                                       lowerType.includes('悼') || lowerType.includes('祭') || lowerType.includes('葬礼')) {
                                 eventCategory = 'white';
                             }
                         }
@@ -4093,10 +4174,22 @@
                         stats[year].totalAmount += event.myGift;
                     });
                     
-                    // 处理自家公事记录（都是别人给我随礼）
-                    this.giftRecords.forEach(record => {
+                    // 处理自家公事记录（都是别人给我随礼）- 按事由分组统计
+                    this.uniqueAccountBookEvents.forEach(eventGroup => {
+                        // 获取该事由组的第一条记录来确定日期
+                        const firstRecord = this.giftRecords.find(record => {
+                            if (eventGroup.batchId) {
+                                return record.source === 'imported' && record.batchId === eventGroup.batchId;
+                            } else {
+                                const reason = this.extractReasonFromNotes(record.notes) || this.accountInfo.name || '自家公事';
+                                return reason === eventGroup.reason;
+                            }
+                        });
+                        
+                        if (!firstRecord) return;
+                        
                         // 确保日期格式正确
-                        const recordDate = this.validateAndFixDate(record.recordDate || record.date);
+                        const recordDate = this.validateAndFixDate(firstRecord.recordDate || firstRecord.date);
                         if (!recordDate) return; // 如果日期无效，跳过
                         
                         const year = new Date(recordDate).getFullYear();
@@ -4118,15 +4211,31 @@
                                 incomingTotalAmount: 0,
                                 // 汇总统计
                                 totalCount: 0,
-                                totalAmount: 0,
-                                netAmount: 0
+                                totalAmount: 0
                             };
                         }
                         
-                        // 统计红白事数量（基于记录中的公事类型）
+                        // 统计红白事数量（基于事由组的公事类型和事由名称）
                         let eventCategory = 'other';
-                        const eventType = record.eventType || this.accountInfo.type || '公事';
-                        if (eventType) {
+                        const eventType = eventGroup.type;
+                        const reason = eventGroup.reason;
+                        
+                        // 首先检查事由名称（优先级更高）
+                        if (reason) {
+                            const lowerReason = reason.toLowerCase();
+                            if (lowerReason.includes('红') || lowerReason.includes('喜') || lowerReason.includes('结婚') || 
+                                lowerReason.includes('生子') || lowerReason.includes('满月') || lowerReason.includes('周岁') ||
+                                lowerReason.includes('乔迁') || lowerReason.includes('开业') || lowerReason.includes('升学') ||
+                                lowerReason.includes('温居') || lowerReason.includes('搬家') || lowerReason.includes('新居')) {
+                                eventCategory = 'red';
+                            } else if (lowerReason.includes('白') || lowerReason.includes('丧') || lowerReason.includes('去世') ||
+                                       lowerReason.includes('悼') || lowerReason.includes('祭') || lowerReason.includes('葬礼')) {
+                                eventCategory = 'white';
+                            }
+                        }
+                        
+                        // 如果事由没有明确分类，再检查公事类型
+                        if (eventCategory === 'other' && eventType) {
                             const lowerType = eventType.toLowerCase();
                             if (lowerType.includes('红') || lowerType.includes('喜') || lowerType.includes('结婚') || 
                                 lowerType.includes('生子') || lowerType.includes('满月') || lowerType.includes('周岁') ||
@@ -4138,9 +4247,28 @@
                             }
                         }
                         
-                        // 自家公事都是别人给我随礼
+                        // 计算该事由组的总金额
+                        let groupTotalAmount = 0;
+                        if (eventGroup.batchId) {
+                            // 导入数据按批次计算总金额
+                            this.giftRecords.forEach(record => {
+                                if (record.source === 'imported' && record.batchId === eventGroup.batchId) {
+                                    groupTotalAmount += record.amount || 0;
+                                }
+                            });
+                        } else {
+                            // 手动录入数据按事由计算总金额
+                            this.giftRecords.forEach(record => {
+                                const recordReason = this.extractReasonFromNotes(record.notes) || this.accountInfo.name || '自家公事';
+                                if (recordReason === eventGroup.reason) {
+                                    groupTotalAmount += record.amount || 0;
+                                }
+                            });
+                        }
+                        
+                        // 自家公事都是别人给我随礼（按事由组统计为1个公事）
                         stats[year].incomingTotalCount++;
-                        stats[year].incomingTotalAmount += record.amount;
+                        stats[year].incomingTotalAmount += groupTotalAmount;
                         if (eventCategory === 'red') {
                             stats[year].incomingRedCount++;
                         } else if (eventCategory === 'white') {
@@ -4150,7 +4278,7 @@
                         }
                         
                         stats[year].totalCount++;
-                        stats[year].totalAmount += record.amount;
+                        stats[year].totalAmount += groupTotalAmount;
                     });
                     
                     return Object.values(stats).sort((a, b) => b.year - a.year);
@@ -4237,8 +4365,7 @@
                                 incomingTotalCount: 0,
                                 incomingTotalAmount: 0,
                                 totalCount: 0,
-                                totalAmount: 0,
-                                netAmount: 0
+                                totalAmount: 0
                             };
                         }
                         
@@ -4268,9 +4395,21 @@
                         filteredStats[year].totalAmount += event.myGift;
                     });
                     
-                    // 处理自家公事记录
-                    this.giftRecords.forEach(record => {
-                        const recordDate = this.validateAndFixDate(record.recordDate || record.date);
+                    // 处理自家公事记录（按事由分组统计）
+                    this.uniqueAccountBookEvents.forEach(eventGroup => {
+                        // 获取该事由组的第一条记录来确定日期
+                        const firstRecord = this.giftRecords.find(record => {
+                            if (eventGroup.batchId) {
+                                return record.source === 'imported' && record.batchId === eventGroup.batchId;
+                            } else {
+                                const reason = this.extractReasonFromNotes(record.notes) || this.accountInfo.name || '自家公事';
+                                return reason === eventGroup.reason;
+                            }
+                        });
+                        
+                        if (!firstRecord) return;
+                        
+                        const recordDate = this.validateAndFixDate(firstRecord.recordDate || firstRecord.date);
                         if (!recordDate) return;
                         
                         const year = new Date(recordDate).getFullYear();
@@ -4278,10 +4417,27 @@
                         // 年份筛选
                         if (this.statsYearFilter && year != this.statsYearFilter) return;
                         
-                        // 判断事件类型（基于记录中的公事类型）
+                        // 判断事件类型（基于事由组的公事类型和事由名称）
                         let eventCategory = 'other';
-                        const eventType = record.eventType || this.accountInfo.type || '公事';
-                        if (eventType) {
+                        const eventType = eventGroup.type;
+                        const reason = eventGroup.reason;
+                        
+                        // 首先检查事由名称（优先级更高）
+                        if (reason) {
+                            const lowerReason = reason.toLowerCase();
+                            if (lowerReason.includes('红') || lowerReason.includes('喜') || lowerReason.includes('结婚') || 
+                                lowerReason.includes('生子') || lowerReason.includes('满月') || lowerReason.includes('周岁') ||
+                                lowerReason.includes('乔迁') || lowerReason.includes('开业') || lowerReason.includes('升学') ||
+                                lowerReason.includes('温居') || lowerReason.includes('搬家') || lowerReason.includes('新居')) {
+                                eventCategory = 'red';
+                            } else if (lowerReason.includes('白') || lowerReason.includes('丧') || lowerReason.includes('去世') ||
+                                       lowerReason.includes('悼') || lowerReason.includes('祭') || lowerReason.includes('葬礼')) {
+                                eventCategory = 'white';
+                            }
+                        }
+                        
+                        // 如果事由没有明确分类，再检查公事类型
+                        if (eventCategory === 'other' && eventType) {
                             const lowerType = eventType.toLowerCase();
                             if (lowerType.includes('红') || lowerType.includes('喜') || lowerType.includes('结婚') || 
                                 lowerType.includes('生子') || lowerType.includes('满月') || lowerType.includes('周岁') ||
@@ -4313,14 +4469,32 @@
                                 incomingTotalCount: 0,
                                 incomingTotalAmount: 0,
                                 totalCount: 0,
-                                totalAmount: 0,
-                                netAmount: 0
+                                totalAmount: 0
                             };
                         }
                         
-                        // 自家公事都是别人给我随礼
+                        // 计算该事由组的总金额
+                        let groupTotalAmount = 0;
+                        if (eventGroup.batchId) {
+                            // 导入数据按批次计算总金额
+                            this.giftRecords.forEach(record => {
+                                if (record.source === 'imported' && record.batchId === eventGroup.batchId) {
+                                    groupTotalAmount += record.amount || 0;
+                                }
+                            });
+                        } else {
+                            // 手动录入数据按事由计算总金额
+                            this.giftRecords.forEach(record => {
+                                const recordReason = this.extractReasonFromNotes(record.notes) || this.accountInfo.name || '自家公事';
+                                if (recordReason === eventGroup.reason) {
+                                    groupTotalAmount += record.amount || 0;
+                                }
+                            });
+                        }
+                        
+                        // 自家公事都是别人给我随礼（按事由组统计为1个公事）
                         filteredStats[year].incomingTotalCount++;
-                        filteredStats[year].incomingTotalAmount += record.amount;
+                        filteredStats[year].incomingTotalAmount += groupTotalAmount;
                         if (eventCategory === 'red') {
                             filteredStats[year].incomingRedCount++;
                         } else if (eventCategory === 'white') {
@@ -4330,12 +4504,7 @@
                         }
                         
                         filteredStats[year].totalCount++;
-                        filteredStats[year].totalAmount += record.amount;
-                    });
-                    
-                    // 计算净金额
-                    Object.values(filteredStats).forEach(stat => {
-                        stat.netAmount = stat.incomingTotalAmount - stat.outgoingTotalAmount;
+                        filteredStats[year].totalAmount += groupTotalAmount;
                     });
                     
                     return Object.values(filteredStats).sort((a, b) => b.year - a.year);
@@ -5257,50 +5426,41 @@
                         '给出红事': stat.outgoingRedCount,
                         '给出白事': stat.outgoingWhiteCount,
                         '给出其他': stat.outgoingOtherCount,
+                        '给出总金额': stat.outgoingTotalAmount,
                         '收到红事': stat.incomingRedCount,
                         '收到白事': stat.incomingWhiteCount,
                         '收到其他': stat.incomingOtherCount,
-                        '总金额': stat.totalAmount,
-                        '总次数': stat.totalCount
+                        '收到总金额': stat.incomingTotalAmount
                     }));
                     
                     const ws3 = XLSX.utils.json_to_sheet(yearlyData);
                     XLSX.utils.book_append_sheet(wb, ws3, '年度统计');
                     
-                    // 工作表4：关系统计
-                    const relationData = this.relationshipStats.map((stat, index) => ({
-                        '序号': index + 1,
-                        '关系类型': stat.relationship,
-                        '给出次数': stat.outgoingCount,
-                        '给出金额': stat.outgoingAmount,
-                        '收到次数': stat.incomingCount,
-                        '收到金额': stat.incomingAmount,
-                        '总人数': stat.peopleCount
-                    }));
-                    
-                    const ws4 = XLSX.utils.json_to_sheet(relationData);
-                    XLSX.utils.book_append_sheet(wb, ws4, '关系统计');
-                    
-                    // 工作表5：总体统计
+                    // 工作表4：总体统计
                     const summaryData = [
-                        { '统计项目': '总公事数量', '数值': (this.events.length + this.giftRecords.length) + '次' },
-                        { '统计项目': '红事', '数值': this.redEventCount + '次' },
-                        { '统计项目': '白事', '数值': this.whiteEventCount + '次' },
-                        { '统计项目': '其它公事', '数值': this.otherEventCount + '次' },
-
+                        { '统计项目': '对外人情记录', '数值': this.events.length + '条' },
+                        { '统计项目': '自家公事数量', '数值': this.uniqueAccountBookEvents.length + '个' },
+                        { '统计项目': '自家公事记录', '数值': this.giftRecords.length + '条' },
+                        { '统计项目': '总公事数量', '数值': (this.events.length + this.uniqueAccountBookEvents.length) + '次' },
+                        { '统计项目': '', '数值': '' },
+                        { '统计项目': '红事总数', '数值': this.redEventCount + '次' },
+                        { '统计项目': '白事总数', '数值': this.whiteEventCount + '次' },
+                        { '统计项目': '其它公事总数', '数值': this.otherEventCount + '次' },
+                        { '统计项目': '', '数值': '' },
                         { '统计项目': '往来人数', '数值': this.uniqueContactsCount + '人' },
+                        { '统计项目': '', '数值': '' },
                         { '统计项目': '导出时间', '数值': new Date().toLocaleString('zh-CN') },
-                        { '统计项目': '说明', '数值': '本统计包含对外人情和自家公事，包括导入的公事记账簿数据' }
+                        { '统计项目': '说明', '数值': '本统计包含对外人情和自家公事，包括导入的公事记账簿数据。自家公事按事由分组统计，同批次导入的显示为1个公事。事由名称优先用于判断红白事类型。' }
                     ];
                     
-                    const ws5 = XLSX.utils.json_to_sheet(summaryData);
-                    XLSX.utils.book_append_sheet(wb, ws5, '总体统计');
+                    const ws4 = XLSX.utils.json_to_sheet(summaryData);
+                    XLSX.utils.book_append_sheet(wb, ws4, '总体统计');
                     
                     // 保存文件
                     const fileName = `人情往来记账本_${new Date().toISOString().split('T')[0]}.xlsx`;
                     XLSX.writeFile(wb, fileName);
                     
-                    alert('Excel报表导出成功！');
+                    this.showToast('Excel报表导出成功！');
                 },
                 
                 // 仅导出记录
@@ -5353,6 +5513,7 @@
                     
                     const fileName = `公事记录_${new Date().toISOString().split('T')[0]}.xlsx`;
                     XLSX.writeFile(wb, fileName);
+                    this.showToast('公事记录导出成功！');
                 },
                 
                 // 仅导出联系人
@@ -5374,6 +5535,7 @@
                     
                     const fileName = `人情往来_${new Date().toISOString().split('T')[0]}.xlsx`;
                     XLSX.writeFile(wb, fileName);
+                    this.showToast('人情往来导出成功！');
                 },
                 
                 // 导出对外人情
@@ -5404,7 +5566,7 @@
                     
                     const fileName = `对外人情记录_${new Date().toISOString().split('T')[0]}.xlsx`;
                     XLSX.writeFile(wb, fileName);
-                    alert('对外人情记录导出成功！');
+                    this.showToast('对外人情记录导出成功！');
                 },
                 
                 // 导出自家公事
@@ -5473,7 +5635,7 @@
                     
                     const fileName = `自家公事_${this.accountInfo.name || '未命名'}_${new Date().toISOString().split('T')[0]}.xlsx`;
                     XLSX.writeFile(wb, fileName);
-                    alert('自家公事数据导出成功！');
+                    this.showToast('自家公事数据导出成功！');
                 },
                 
                 // 导出JSON
@@ -5509,6 +5671,7 @@
                     a.download = `人情往来记账本_${new Date().toISOString().split('T')[0]}.json`;
                     a.click();
                     URL.revokeObjectURL(url);
+                    this.showToast('JSON备份导出成功！');
                 },
                 
                 // 导入数据
@@ -5677,7 +5840,7 @@
                     
                     const fileName = `导入数据_${this.proxyAccountInfo.clientName || '未命名'}_${new Date().toISOString().split('T')[0]}.xlsx`;
                     XLSX.writeFile(wb, fileName);
-                                            alert('导入数据Excel报表导出成功！');
+                    this.showToast('导入数据Excel报表导出成功！');
                 },
                 
                 exportProxyToWord() {
@@ -5720,7 +5883,7 @@
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
-                                            alert('导入数据Word文档导出成功！');
+                    this.showToast('导入数据Word文档导出成功！');
                 },
                 
                 generateProxyWordContent() {
@@ -6704,6 +6867,46 @@
                         // 清空选择
                         this.selectedBatchId = '';
                     }
+                },
+                
+                // 显示提示消息
+                showToast(message, type = 'success', duration = 3000) {
+                    const container = document.getElementById('toastContainer');
+                    if (!container) return;
+                    
+                    const toast = document.createElement('div');
+                    toast.className = `toast-notification ${type}`;
+                    toast.textContent = message;
+                    
+                    container.appendChild(toast);
+                    
+                    // 显示动画
+                    setTimeout(() => {
+                        toast.classList.add('show');
+                    }, 100);
+                    
+                    // 自动隐藏
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                        setTimeout(() => {
+                            if (container.contains(toast)) {
+                                container.removeChild(toast);
+                            }
+                        }, 300);
+                    }, duration);
+                },
+                
+                // 从备注中提取事由
+                extractReasonFromNotes(notes) {
+                    if (!notes) return null;
+                    
+                    // 查找 "事由: " 开头的部分
+                    const reasonMatch = notes.match(/事由:\s*(.+?)(?:\s*\||$)/);
+                    if (reasonMatch) {
+                        return reasonMatch[1].trim();
+                    }
+                    
+                    return null;
                 },
                 
                 // 显示导入记录列表（用于单条撤回）
