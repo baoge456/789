@@ -644,6 +644,57 @@
             border-radius: 6px;
             font-size: 14px;
         }
+        
+        /* 筛选容器样式 */
+        .search-filter-container {
+            margin-bottom: 20px;
+        }
+        
+        .filter-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .filter-toggle:hover {
+            background: #e9ecef;
+        }
+        
+        .filter-toggle-icon {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+        
+        /* 手机端筛选优化 */
+        @media (max-width: 768px) {
+            .search-filter {
+                flex-direction: column;
+                gap: 8px;
+                padding: 10px;
+            }
+            
+            .search-filter input,
+            .search-filter select {
+                padding: 8px;
+                font-size: 13px;
+                min-width: 80px;
+                flex: 1;
+            }
+            
+            .search-filter .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                white-space: nowrap;
+            }
+        }
 
         .pagination {
             display: flex;
@@ -1290,6 +1341,25 @@
         }
         
         .recent-records-section .form-title:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        
+        /* 统计分析折叠内容样式 */
+        .yearly-stats-content,
+        .relationship-stats-content {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        /* 统计分析标题样式 */
+        .form-section .form-title.clickable-help {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin: -8px -12px 15px -12px;
+        }
+        
+        .form-section .form-title.clickable-help:hover {
             background-color: rgba(0, 123, 255, 0.1);
         }
         
@@ -2889,25 +2959,31 @@
                             </div>
                         </div>
                     </div>
-                    <div class="search-filter">
-                        <input type="text" v-model="searchKeyword" placeholder="🔍 搜索姓名、公事名称、地点...">
-                        <input type="text" v-model="typeFilter" placeholder="筛选公事类型...">
-                        <input type="text" v-model="relationshipFilter" placeholder="筛选关系...">
-                        <select v-model="yearFilter">
-                            <option value="">全部年份</option>
-                            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}年</option>
-                        </select>
-                        <select v-model="sourceFilter" class="source-filter">
-                            <option value="">全部来源</option>
-                            <option value="outgoing">📤 对外人情</option>
-                            <option value="accountBook">🏠 自家公事</option>
-                        </select>
-                        <button class="btn btn-info" @click="resetFilters">
-                            🔄 重置筛选
-                        </button>
-                        <button class="btn btn-warning" @click="checkDuplicates">
-                            🔍 去重检查
-                        </button>
+                    <div class="search-filter-container">
+                        <div class="filter-toggle" @click="toggleRecordsFilter">
+                            <span>🔍 筛选条件</span>
+                            <i :class="showRecordsFilter ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="filter-toggle-icon"></i>
+                        </div>
+                        <div class="search-filter" v-show="showRecordsFilter">
+                            <input type="text" v-model="searchKeyword" placeholder="🔍 搜索姓名、公事名称、地点...">
+                            <input type="text" v-model="typeFilter" placeholder="筛选公事类型...">
+                            <input type="text" v-model="relationshipFilter" placeholder="筛选关系...">
+                            <select v-model="yearFilter">
+                                <option value="">全部年份</option>
+                                <option v-for="year in availableYears" :key="year" :value="year">{{ year }}年</option>
+                            </select>
+                            <select v-model="sourceFilter" class="source-filter">
+                                <option v-for="option in availableSourceOptions" :key="option.value" :value="option.value">
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                            <button class="btn btn-info" @click="resetFilters">
+                                🔄 重置筛选
+                            </button>
+                            <button class="btn btn-warning" @click="checkDuplicates">
+                                🔍 去重检查
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-container">
@@ -3002,17 +3078,23 @@
                         </div>
                     </div>
 
-                    <div class="search-filter">
-                        <input type="text" v-model="contactSearch" placeholder="🔍 搜索联系人...">
-                        <input type="text" v-model="contactRelationFilter" placeholder="筛选关系...">
-                        <select v-model="contactSourceFilter" class="source-filter">
-                            <option value="">全部来源</option>
-                            <option value="outgoing">📤 对外人情</option>
-                            <option value="accountBook">🏠 自家公事</option>
-                        </select>
-                        <button class="btn btn-info" @click="resetContactsFilters">
-                            🔄 重置筛选
-                        </button>
+                    <div class="search-filter-container">
+                        <div class="filter-toggle" @click="toggleContactsFilter">
+                            <span>🔍 筛选条件</span>
+                            <i :class="showContactsFilter ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="filter-toggle-icon"></i>
+                        </div>
+                        <div class="search-filter" v-show="showContactsFilter">
+                            <input type="text" v-model="contactSearch" placeholder="🔍 搜索联系人...">
+                            <input type="text" v-model="contactRelationFilter" placeholder="筛选关系...">
+                            <select v-model="contactSourceFilter" class="source-filter">
+                                <option value="">全部来源</option>
+                                <option value="outgoing">📤 对外人情</option>
+                                <option value="accountBook">🏠 自家公事</option>
+                            </select>
+                            <button class="btn btn-info" @click="resetContactsFilters">
+                                🔄 重置筛选
+                            </button>
+                        </div>
                     </div>
 
                     <div v-for="contact in paginatedContacts" :key="contact.name" class="contact-card">
@@ -3103,41 +3185,35 @@
                     </div>
                     
                     <!-- 统计筛选条件 -->
-                    <div class="form-section" style="margin-bottom: 20px;">
-                        <div class="form-title">
-                            <span>🔍</span>
-                            <span>统计筛选</span>
+                    <div class="search-filter-container" style="margin-bottom: 20px;">
+                        <div class="filter-toggle" @click="toggleStatsFilter">
+                            <span>🔍 统计筛选</span>
+                            <i :class="showStatsFilter ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="filter-toggle-icon"></i>
                         </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>年份筛选</label>
-                                <select v-model="statsYearFilter" class="form-control">
-                                    <option value="">全部年份</option>
-                                    <option v-for="year in availableYears" :key="year" :value="year">{{ year }}年</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>统计类型</label>
-                                <select v-model="statsTypeFilter" class="form-control">
-                                    <option value="">全部类型</option>
-                                    <option value="outgoing">我给出的</option>
-                                    <option value="incoming">我收到的</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>事件类型</label>
-                                <select v-model="statsEventTypeFilter" class="form-control">
-                                    <option value="">全部事件</option>
-                                    <option value="red">红事</option>
-                                    <option value="white">白事</option>
-                                    <option value="other">其他</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <button class="btn btn-secondary" @click="resetStatsFilters">
-                                    🔄 重置筛选
-                                </button>
-                            </div>
+                        <div class="search-filter" v-show="showStatsFilter">
+                            <select v-model="statsYearFilter">
+                                <option value="">全部年份</option>
+                                <option v-for="year in availableYears" :key="year" :value="year">{{ year }}年</option>
+                            </select>
+                            <select v-model="statsTypeFilter">
+                                <option value="">全部类型</option>
+                                <option value="outgoing">我给出的</option>
+                                <option value="incoming">我收到的</option>
+                            </select>
+                            <select v-model="statsEventTypeFilter">
+                                <option value="">全部事件</option>
+                                <option value="red">红事</option>
+                                <option value="white">白事</option>
+                                <option value="other">其他</option>
+                            </select>
+                            <select v-model="statsSourceFilter">
+                                <option v-for="option in availableSourceOptions" :key="option.value" :value="option.value">
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                            <button class="btn btn-secondary" @click="resetStatsFilters">
+                                🔄 重置筛选
+                            </button>
                         </div>
                     </div>
                     
@@ -3175,6 +3251,18 @@
                         </div>
                     </div>
                     
+                    <!-- 筛选条件调试信息 -->
+                    <div v-if="statsYearFilter || statsTypeFilter || statsEventTypeFilter || statsSourceFilter" style="margin-bottom: 20px; padding: 10px; background: #e3f2fd; border-radius: 8px; font-size: 0.9rem; color: #1976d2;">
+                        <strong>🔍 当前筛选条件：</strong>
+                        <span v-if="statsYearFilter">年份: {{ statsYearFilter }}年</span>
+                        <span v-if="statsTypeFilter" style="margin-left: 10px;">类型: {{ statsTypeFilter === 'outgoing' ? '我给出的' : '我收到的' }}</span>
+                        <span v-if="statsEventTypeFilter" style="margin-left: 10px;">事件: {{ statsEventTypeFilter === 'red' ? '红事' : statsEventTypeFilter === 'white' ? '白事' : '其他' }}</span>
+                        <span v-if="statsSourceFilter" style="margin-left: 10px;">来源: {{ statsSourceFilter === 'outgoing' ? '对外人情' : statsSourceFilter === 'accountBook' ? '自家公事' : statsSourceFilter.startsWith('accountBook_') ? '自家公事~' + statsSourceFilter.replace('accountBook_', '') : statsSourceFilter }}</span>
+                        <div style="margin-top: 8px; font-size: 0.8rem;">
+                            📊 筛选结果：年度统计 {{ filteredYearlyStats.length }} 年，关系统计 {{ filteredRelationshipStats.length }} 种关系
+                        </div>
+                    </div>
+                    
                     <!-- 详细统计摘要 -->
                     <div class="stats-summary">
                         <h3>📊 详细统计摘要</h3>
@@ -3193,99 +3281,139 @@
 
                     <!-- 年度统计 -->
                     <div class="form-section">
-                        <div class="form-title">
+                        <div class="form-title clickable-help" @click="toggleYearlyStats" style="cursor: pointer;">
                             <span>📅</span>
-                            <span>{{ getYearlyStatsTitle() }}</span>
+                            <span>{{ getYearlyStatsTitle() }} ({{ filteredYearlyStats.length }}年)</span>
+                            <i :class="showYearlyStats ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="help-toggle"></i>
                         </div>
-                        <div class="table-container">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>年份</th>
-                                        <th colspan="4" class="text-center">我给出的</th>
-                                        <th colspan="4" class="text-center">我收到的</th>
-                                    </tr>
-                                    <tr>
-                                        <th>年份</th>
-                                        <th>红事</th>
-                                        <th>白事</th>
-                                        <th>其他</th>
-                                        <th>总金额</th>
-                                        <th>红事</th>
-                                        <th>白事</th>
-                                        <th>其他</th>
-                                        <th>总金额</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="stat in filteredYearlyStats" :key="stat.year">
-                                        <td><strong>{{ stat.year }}年</strong></td>
-                                        <td>{{ stat.outgoingRedCount }}次</td>
-                                        <td>{{ stat.outgoingWhiteCount }}次</td>
-                                        <td>{{ stat.outgoingOtherCount }}次</td>
-                                        <td class="amount negative">¥{{ stat.outgoingTotalAmount.toFixed(2) }}</td>
-                                        <td>{{ stat.incomingRedCount }}次</td>
-                                        <td>{{ stat.incomingWhiteCount }}次</td>
-                                        <td>{{ stat.incomingOtherCount }}次</td>
-                                        <td class="amount positive">¥{{ stat.incomingTotalAmount.toFixed(2) }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div v-show="showYearlyStats" class="yearly-stats-content">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>年份</th>
+                                            <th colspan="4" class="text-center">我给出的</th>
+                                            <th colspan="4" class="text-center">我收到的</th>
+                                        </tr>
+                                        <tr>
+                                            <th>年份</th>
+                                            <th>红事</th>
+                                            <th>白事</th>
+                                            <th>其他</th>
+                                            <th>总金额</th>
+                                            <th>红事</th>
+                                            <th>白事</th>
+                                            <th>其他</th>
+                                            <th>总金额</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="stat in paginatedYearlyStats" :key="stat.year">
+                                            <td><strong>{{ stat.year }}年</strong></td>
+                                            <td>{{ stat.outgoingRedCount }}次</td>
+                                            <td>{{ stat.outgoingWhiteCount }}次</td>
+                                            <td>{{ stat.outgoingOtherCount }}次</td>
+                                            <td class="amount negative">¥{{ stat.outgoingTotalAmount.toFixed(2) }}</td>
+                                            <td>{{ stat.incomingRedCount }}次</td>
+                                            <td>{{ stat.incomingWhiteCount }}次</td>
+                                            <td>{{ stat.incomingOtherCount }}次</td>
+                                            <td class="amount positive">¥{{ stat.incomingTotalAmount.toFixed(2) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 年度统计分页 -->
+                            <div class="pagination" v-if="yearlyStatsTotalPages > 1">
+                                <button @click="yearlyStatsCurrentPage = 1" :disabled="yearlyStatsCurrentPage === 1">首页</button>
+                                <button @click="yearlyStatsCurrentPage--" :disabled="yearlyStatsCurrentPage === 1">上一页</button>
+                                <button v-for="page in getVisiblePages(yearlyStatsTotalPages, yearlyStatsCurrentPage)" :key="page" 
+                                        @click="yearlyStatsCurrentPage = page" 
+                                        :class="{ active: yearlyStatsCurrentPage === page }">
+                                    {{ page }}
+                                </button>
+                                <button @click="yearlyStatsCurrentPage++" :disabled="yearlyStatsCurrentPage === yearlyStatsTotalPages">下一页</button>
+                                <button @click="yearlyStatsCurrentPage = yearlyStatsTotalPages" :disabled="yearlyStatsCurrentPage === yearlyStatsTotalPages">末页</button>
+                            </div>
+                            
+                            <!-- 分页信息 -->
+                            <div v-if="filteredYearlyStats.length > 0" style="text-align: center; margin-top: 15px; color: #6c757d; font-size: 14px;">
+                                显示第 {{ (yearlyStatsCurrentPage - 1) * yearlyStatsPageSize + 1 }} - {{ Math.min(yearlyStatsCurrentPage * yearlyStatsPageSize, filteredYearlyStats.length) }} 条，
+                                共 {{ filteredYearlyStats.length }} 条记录
+                            </div>
                         </div>
-                        
-
                     </div>
 
                     <!-- 关系统计 -->
                     <div class="form-section">
-                        <div class="form-title">
+                        <div class="form-title clickable-help" @click="toggleRelationshipStats" style="cursor: pointer;">
                             <span>👥</span>
-                            <span>{{ getRelationshipStatsTitle() }}</span>
+                            <span>{{ getRelationshipStatsTitle() }} ({{ filteredRelationshipStats.length }}种关系)</span>
+                            <i :class="showRelationshipStats ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="help-toggle"></i>
                         </div>
-                        <div class="table-container">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>关系类型</th>
-                                        <th>姓名列表</th>
-                                        <th colspan="2" class="text-center">我给出的</th>
-                                        <th colspan="2" class="text-center">我收到的</th>
-                                        <th colspan="2" class="text-center">汇总</th>
-                                    </tr>
-                                    <tr>
-                                        <th>关系类型</th>
-                                        <th>点击姓名查看详情</th>
-                                        <th>次数</th>
-                                        <th>金额</th>
-                                        <th>次数</th>
-                                        <th>金额</th>
-                                        <th>总人数</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="stat in filteredRelationshipStats" :key="stat.relationship">
-                                        <td><strong>{{ stat.relationship || '未分类' }}</strong></td>
-                                        <td>
-                                            <div class="name-list">
-                                                <span v-for="name in stat.peopleList" :key="name" 
-                                                      class="clickable-name" 
-                                                      @click="viewPersonRecords(name)"
-                                                      :title="`点击查看 ${name} 的详细记录`">
-                                                    {{ name }}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td>{{ stat.outgoingCount }}次</td>
-                                        <td class="amount negative">¥{{ stat.outgoingAmount.toFixed(2) }}</td>
-                                        <td>{{ stat.incomingCount }}次</td>
-                                        <td class="amount positive">¥{{ stat.incomingAmount.toFixed(2) }}</td>
-                                        <td>{{ stat.peopleCount }}人</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div v-show="showRelationshipStats" class="relationship-stats-content">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>关系类型</th>
+                                            <th>姓名列表</th>
+                                            <th colspan="2" class="text-center">我给出的</th>
+                                            <th colspan="2" class="text-center">我收到的</th>
+                                            <th colspan="2" class="text-center">汇总</th>
+                                        </tr>
+                                        <tr>
+                                            <th>关系类型</th>
+                                            <th>点击姓名查看详情</th>
+                                            <th>次数</th>
+                                            <th>金额</th>
+                                            <th>次数</th>
+                                            <th>金额</th>
+                                            <th>总人数</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="stat in paginatedRelationshipStats" :key="stat.relationship">
+                                            <td><strong>{{ stat.relationship || '未分类' }}</strong></td>
+                                            <td>
+                                                <div class="name-list">
+                                                    <span v-for="name in stat.peopleList" :key="name" 
+                                                          class="clickable-name" 
+                                                          @click="viewPersonRecords(name)"
+                                                          :title="`点击查看 ${name} 的详细记录`">
+                                                        {{ name }}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>{{ stat.outgoingCount }}次</td>
+                                            <td class="amount negative">¥{{ stat.outgoingAmount.toFixed(2) }}</td>
+                                            <td>{{ stat.incomingCount }}次</td>
+                                            <td class="amount positive">¥{{ stat.incomingAmount.toFixed(2) }}</td>
+                                            <td>{{ stat.peopleCount }}人</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 关系统计分页 -->
+                            <div class="pagination" v-if="relationshipStatsTotalPages > 1">
+                                <button @click="relationshipStatsCurrentPage = 1" :disabled="relationshipStatsCurrentPage === 1">首页</button>
+                                <button @click="relationshipStatsCurrentPage--" :disabled="relationshipStatsCurrentPage === 1">上一页</button>
+                                <button v-for="page in getVisiblePages(relationshipStatsTotalPages, relationshipStatsCurrentPage)" :key="page" 
+                                        @click="relationshipStatsCurrentPage = page" 
+                                        :class="{ active: relationshipStatsCurrentPage === page }">
+                                    {{ page }}
+                                </button>
+                                <button @click="relationshipStatsCurrentPage++" :disabled="relationshipStatsCurrentPage === relationshipStatsTotalPages">下一页</button>
+                                <button @click="relationshipStatsCurrentPage = relationshipStatsTotalPages" :disabled="relationshipStatsCurrentPage === relationshipStatsTotalPages">末页</button>
+                            </div>
+                            
+                            <!-- 分页信息 -->
+                            <div v-if="filteredRelationshipStats.length > 0" style="text-align: center; margin-top: 15px; color: #6c757d; font-size: 14px;">
+                                显示第 {{ (relationshipStatsCurrentPage - 1) * relationshipStatsPageSize + 1 }} - {{ Math.min(relationshipStatsCurrentPage * relationshipStatsPageSize, filteredRelationshipStats.length) }} 条，
+                                共 {{ filteredRelationshipStats.length }} 条记录
+                            </div>
                         </div>
-                        
-
                     </div>
                 </div>
 
@@ -3706,6 +3834,7 @@
                     statsYearFilter: '',
                     statsTypeFilter: '',
                     statsEventTypeFilter: '',
+                    statsSourceFilter: '', // 统计分析数据来源筛选
                     
                     // 分页
                     currentPage: 1,
@@ -3713,6 +3842,11 @@
                     // 人情往来分页
                     contactsCurrentPage: 1,
                     contactsPageSize: 8,
+                    // 统计分析分页
+                    yearlyStatsCurrentPage: 1,
+                    yearlyStatsPageSize: 5,
+                    relationshipStatsCurrentPage: 1,
+                    relationshipStatsPageSize: 5,
                     
                     // 编辑
                     showEditModal: false,
@@ -3772,6 +3906,11 @@
                     showExportHelp: false,
                     showDataShareHelp: false,
                     showRecentRecords: false, // 最近三次记录显示状态
+                    showYearlyStats: true, // 年度统计显示状态
+                    showRelationshipStats: true, // 关系统计显示状态
+                    showRecordsFilter: false, // 公事记录筛选显示状态
+                    showContactsFilter: false, // 人情往来筛选显示状态
+                    showStatsFilter: false, // 统计分析筛选显示状态
                     
                     // 卡片检索状态
                     cardFilterType: '',
@@ -4026,8 +4165,17 @@
                         filtered = filtered.filter(e => {
                             if (this.sourceFilter === 'outgoing') {
                                 return !e.source || e.source === 'manual'; // 对外人情
+                            } else if (this.sourceFilter.startsWith('accountBook_')) {
+                                // 筛选特定公事名称的自家公事
+                                const targetReason = this.sourceFilter.replace('accountBook_', '');
+                                if (e.source === 'accountBook' || e.source === 'imported') {
+                                    // 检查记录的备注中是否包含目标公事名称
+                                    const recordReason = this.extractReasonFromNotes(e.notes);
+                                    return recordReason === targetReason;
+                                }
+                                return false;
                             } else if (this.sourceFilter === 'accountBook') {
-                                return e.source === 'accountBook' || e.source === 'imported'; // 自家公事
+                                return e.source === 'accountBook' || e.source === 'imported'; // 所有自家公事
                             }
                             return true;
                         });
@@ -4198,14 +4346,22 @@
                     // 数据来源筛选
                     if (this.contactSourceFilter) {
                         filtered = filtered.filter(c => {
-                            // 检查该联系人是否有对应来源的记录
-                            const hasOutgoingRecords = c.events.some(e => !e.source || e.source === 'manual');
-                            const hasAccountBookRecords = c.events.some(e => e.source === 'accountBook' || e.source === 'imported');
-                            
                             if (this.contactSourceFilter === 'outgoing') {
-                                return hasOutgoingRecords; // 只显示有对外人情记录的联系人
+                                // 检查该联系人是否有对外人情记录
+                                return c.events.some(e => !e.source || e.source === 'manual');
+                            } else if (this.contactSourceFilter.startsWith('accountBook_')) {
+                                // 筛选特定公事名称的自家公事
+                                const targetReason = this.contactSourceFilter.replace('accountBook_', '');
+                                return c.events.some(e => {
+                                    if (e.source === 'accountBook' || e.source === 'imported') {
+                                        const recordReason = this.extractReasonFromNotes(e.notes);
+                                        return recordReason === targetReason;
+                                    }
+                                    return false;
+                                });
                             } else if (this.contactSourceFilter === 'accountBook') {
-                                return hasAccountBookRecords; // 只显示有自家公事记录的联系人
+                                // 检查该联系人是否有自家公事记录
+                                return c.events.some(e => e.source === 'accountBook' || e.source === 'imported');
                             }
                             return true;
                         });
@@ -4234,6 +4390,28 @@
                 // 人情往来总页数
                 contactsTotalPages() {
                     return Math.ceil(this.filteredContacts.length / this.contactsPageSize);
+                },
+                
+                // 年度统计分页
+                yearlyStatsTotalPages() {
+                    return Math.ceil(this.filteredYearlyStats.length / this.yearlyStatsPageSize);
+                },
+                
+                paginatedYearlyStats() {
+                    const start = (this.yearlyStatsCurrentPage - 1) * this.yearlyStatsPageSize;
+                    const end = start + this.yearlyStatsPageSize;
+                    return this.filteredYearlyStats.slice(start, end);
+                },
+                
+                // 关系统计分页
+                relationshipStatsTotalPages() {
+                    return Math.ceil(this.filteredRelationshipStats.length / this.relationshipStatsPageSize);
+                },
+                
+                paginatedRelationshipStats() {
+                    const start = (this.relationshipStatsCurrentPage - 1) * this.relationshipStatsPageSize;
+                    const end = start + this.relationshipStatsPageSize;
+                    return this.filteredRelationshipStats.slice(start, end);
                 },
                 
                 // 年度统计
@@ -4443,6 +4621,40 @@
                     
                     return Array.from(years).sort((a, b) => b - a);
                 },
+                
+                // 可用的数据来源选项
+                availableSourceOptions() {
+                    const options = [
+                        { value: '', label: '全部来源' },
+                        { value: 'outgoing', label: '📤 对外人情' }
+                    ];
+                    
+                    // 获取所有自家公事的名称
+                    const accountBookNames = new Set();
+                    
+                    // 从自家公事记录中提取公事名称
+                    this.giftRecords.forEach(record => {
+                        const reason = this.extractReasonFromNotes(record.notes);
+                        if (reason) {
+                            accountBookNames.add(reason);
+                        }
+                    });
+                    
+                    // 如果没有具体的公事名称，添加默认选项
+                    if (accountBookNames.size === 0) {
+                        options.push({ value: 'accountBook', label: '🏠 自家公事' });
+                    } else {
+                        // 添加具体的公事名称选项
+                        Array.from(accountBookNames).sort().forEach(name => {
+                            options.push({ 
+                                value: `accountBook_${name}`, 
+                                label: `🏠 自家公事~${name}` 
+                            });
+                        });
+                    }
+                    
+                    return options;
+                },
                 // 筛选后的年度统计
                 filteredYearlyStats() {
                     // 重新计算基于所有筛选条件的年度统计
@@ -4479,6 +4691,23 @@
                         if (this.statsTypeFilter) {
                             if (this.statsTypeFilter === 'outgoing' && event.direction !== 'out') return;
                             if (this.statsTypeFilter === 'incoming' && event.direction !== 'in') return;
+                        }
+                        
+                        // 数据来源筛选
+                        if (this.statsSourceFilter) {
+                            if (this.statsSourceFilter === 'outgoing') {
+                                if (event.source === 'accountBook' || event.source === 'imported') return;
+                            } else if (this.statsSourceFilter.startsWith('accountBook_')) {
+                                const targetReason = this.statsSourceFilter.replace('accountBook_', '');
+                                if (event.source === 'accountBook' || event.source === 'imported') {
+                                    const recordReason = this.extractReasonFromNotes(event.notes);
+                                    if (recordReason !== targetReason) return;
+                                } else {
+                                    return;
+                                }
+                            } else if (this.statsSourceFilter === 'accountBook') {
+                                if (!(event.source === 'accountBook' || event.source === 'imported')) return;
+                            }
                         }
                         
                         if (!filteredStats[year]) {
@@ -4637,7 +4866,24 @@
                         filteredStats[year].totalAmount += groupTotalAmount;
                     });
                     
-                    return Object.values(filteredStats).sort((a, b) => b.year - a.year);
+                    // 过滤掉没有数据的年份（当有筛选条件时）
+                    const result = Object.values(filteredStats).filter(stat => {
+                        // 如果没有筛选条件，显示所有年份
+                        if (!this.statsYearFilter && !this.statsTypeFilter && !this.statsEventTypeFilter) {
+                            return true;
+                        }
+                        
+                        // 如果有筛选条件，只显示有数据的年份
+                        if (this.statsTypeFilter === 'outgoing') {
+                            return stat.outgoingTotalCount > 0;
+                        } else if (this.statsTypeFilter === 'incoming') {
+                            return stat.incomingTotalCount > 0;
+                        } else {
+                            return stat.totalCount > 0;
+                        }
+                    });
+                    
+                    return result.sort((a, b) => b.year - a.year);
                 },
                 
                 // 筛选后的关系统计
@@ -4676,6 +4922,23 @@
                         if (this.statsTypeFilter) {
                             if (this.statsTypeFilter === 'outgoing' && event.direction !== 'out') return;
                             if (this.statsTypeFilter === 'incoming' && event.direction !== 'in') return;
+                        }
+                        
+                        // 数据来源筛选
+                        if (this.statsSourceFilter) {
+                            if (this.statsSourceFilter === 'outgoing') {
+                                if (event.source === 'accountBook' || event.source === 'imported') return;
+                            } else if (this.statsSourceFilter.startsWith('accountBook_')) {
+                                const targetReason = this.statsSourceFilter.replace('accountBook_', '');
+                                if (event.source === 'accountBook' || event.source === 'imported') {
+                                    const recordReason = this.extractReasonFromNotes(event.notes);
+                                    if (recordReason !== targetReason) return;
+                                } else {
+                                    return;
+                                }
+                            } else if (this.statsSourceFilter === 'accountBook') {
+                                if (!(event.source === 'accountBook' || event.source === 'imported')) return;
+                            }
                         }
                         
                         const rel = event.relationship || '未分类';
@@ -4738,6 +5001,21 @@
                         // 统计类型筛选（自家公事都是别人给我随礼）
                         if (this.statsTypeFilter && this.statsTypeFilter !== 'incoming') return;
                         
+                        // 数据来源筛选
+                        if (this.statsSourceFilter) {
+                            if (this.statsSourceFilter === 'outgoing') {
+                                return; // 自家公事不是对外人情
+                            } else if (this.statsSourceFilter.startsWith('accountBook_')) {
+                                const targetReason = this.statsSourceFilter.replace('accountBook_', '');
+                                const recordReason = this.extractReasonFromNotes(record.notes);
+                                if (recordReason !== targetReason) return;
+                            } else if (this.statsSourceFilter === 'accountBook') {
+                                // 所有自家公事都通过
+                            } else {
+                                return; // 其他筛选条件不匹配
+                            }
+                        }
+                        
                         const rel = record.relationship || '未分类';
                         if (!filteredStats[rel]) {
                             filteredStats[rel] = {
@@ -4760,7 +5038,24 @@
                         filteredStats[rel].totalAmount -= record.amount;
                     });
                     
-                    return Object.values(filteredStats).map(stat => ({
+                    // 过滤掉没有数据的关系（当有筛选条件时）
+                    const result = Object.values(filteredStats).filter(stat => {
+                        // 如果没有筛选条件，显示所有关系
+                        if (!this.statsYearFilter && !this.statsTypeFilter && !this.statsEventTypeFilter) {
+                            return true;
+                        }
+                        
+                        // 如果有筛选条件，只显示有数据的关系
+                        if (this.statsTypeFilter === 'outgoing') {
+                            return stat.outgoingCount > 0;
+                        } else if (this.statsTypeFilter === 'incoming') {
+                            return stat.incomingCount > 0;
+                        } else {
+                            return stat.outgoingCount > 0 || stat.incomingCount > 0;
+                        }
+                    });
+                    
+                    return result.map(stat => ({
                         relationship: stat.relationship,
                         peopleCount: stat.people.size,
                         peopleList: Array.from(stat.people).sort(),
@@ -5264,8 +5559,22 @@
                     this.statsYearFilter = '';
                     this.statsTypeFilter = '';
                     this.statsEventTypeFilter = '';
+                    this.statsSourceFilter = '';
                     this.cardFilterType = '';
                     this.cardFilterValue = '';
+                    // 重置统计分析分页
+                    this.yearlyStatsCurrentPage = 1;
+                    this.relationshipStatsCurrentPage = 1;
+                    // 强制刷新统计数据
+                    this.$nextTick(() => {
+                        this.refreshStatsData();
+                    });
+                },
+                
+                // 强制刷新统计数据
+                refreshStatsData() {
+                    // 强制重新计算计算属性
+                    this.$forceUpdate();
                 },
                 
                 // 设置卡片筛选
@@ -7058,6 +7367,31 @@
                     this.showRecentRecords = !this.showRecentRecords;
                 },
                 
+                // 切换年度统计显示状态
+                toggleYearlyStats() {
+                    this.showYearlyStats = !this.showYearlyStats;
+                },
+                
+                // 切换关系统计显示状态
+                toggleRelationshipStats() {
+                    this.showRelationshipStats = !this.showRelationshipStats;
+                },
+                
+                // 切换公事记录筛选显示状态
+                toggleRecordsFilter() {
+                    this.showRecordsFilter = !this.showRecordsFilter;
+                },
+                
+                // 切换人情往来筛选显示状态
+                toggleContactsFilter() {
+                    this.showContactsFilter = !this.showContactsFilter;
+                },
+                
+                // 切换统计分析筛选显示状态
+                toggleStatsFilter() {
+                    this.showStatsFilter = !this.showStatsFilter;
+                },
+                
                 // 获取可见的页码
                 getVisiblePages(totalPages, currentPage) {
                     const pages = [];
@@ -7769,6 +8103,7 @@
                         this.relationshipFilter = '';
                         this.yearFilter = '';
                         this.sourceFilter = '';
+                        this.statsSourceFilter = '';
                         this.contactSearch = '';
                         this.contactRelationFilter = '';
                         this.contactSourceFilter = '';
@@ -7782,6 +8117,8 @@
                         // 重置分页
                         this.currentPage = 1;
                         this.contactsCurrentPage = 1;
+                        this.yearlyStatsCurrentPage = 1;
+                        this.relationshipStatsCurrentPage = 1;
                         
                         // 重置编辑状态
                         this.showEditModal = false;
@@ -7818,6 +8155,11 @@
                         this.showStatsHelp = false;
                         this.showExportHelp = false;
                         this.showRecentRecords = false;
+                        this.showYearlyStats = true;
+                        this.showRelationshipStats = true;
+                        this.showRecordsFilter = false;
+                        this.showContactsFilter = false;
+                        this.showStatsFilter = false;
                         
                         // 重置帮助显示状态
                         this.showRecordsHelp = false;
@@ -7895,6 +8237,8 @@
                     this.showStatsHelp = false;
                     this.showExportHelp = false;
                     this.showRecentRecords = false;
+                    this.showYearlyStats = true;
+                    this.showRelationshipStats = true;
                     
                     // 重置帮助显示状态
                     this.showRecordsHelp = false;
@@ -7927,16 +8271,19 @@
                     // 重置分页
                     this.currentPage = 1;
                     this.contactsCurrentPage = 1;
+                    this.yearlyStatsCurrentPage = 1;
+                    this.relationshipStatsCurrentPage = 1;
                     
-                    // 重置筛选条件
-                    this.searchKeyword = '';
-                    this.typeFilter = '';
-                    this.relationshipFilter = '';
-                    this.yearFilter = '';
-                    this.sourceFilter = '';
-                    this.contactSearch = '';
-                    this.contactRelationFilter = '';
-                    this.contactSourceFilter = '';
+                                            // 重置筛选条件
+                        this.searchKeyword = '';
+                        this.typeFilter = '';
+                        this.relationshipFilter = '';
+                        this.yearFilter = '';
+                        this.sourceFilter = '';
+                        this.statsSourceFilter = '';
+                        this.contactSearch = '';
+                        this.contactRelationFilter = '';
+                        this.contactSourceFilter = '';
                     this.statsYearFilter = '';
                     this.statsTypeFilter = '';
                     this.statsEventTypeFilter = '';
@@ -8040,11 +8387,42 @@
                 relationshipFilter() { this.currentPage = 1; },
                 yearFilter() { this.currentPage = 1; },
                 sourceFilter() { this.currentPage = 1; },
+                statsSourceFilter() { this.currentPage = 1; },
                 
                 // 监听人情往来筛选条件变化，重置分页
                 contactSearch() { this.contactsCurrentPage = 1; },
                 contactRelationFilter() { this.contactsCurrentPage = 1; },
                 contactSourceFilter() { this.contactsCurrentPage = 1; },
+                
+                // 监听统计分析筛选条件变化，重置分页
+                statsYearFilter() { 
+                    this.yearlyStatsCurrentPage = 1; 
+                    this.relationshipStatsCurrentPage = 1; 
+                    this.$nextTick(() => {
+                        this.refreshStatsData();
+                    });
+                },
+                statsTypeFilter() { 
+                    this.yearlyStatsCurrentPage = 1; 
+                    this.relationshipStatsCurrentPage = 1; 
+                    this.$nextTick(() => {
+                        this.refreshStatsData();
+                    });
+                },
+                statsEventTypeFilter() { 
+                    this.yearlyStatsCurrentPage = 1; 
+                    this.relationshipStatsCurrentPage = 1; 
+                    this.$nextTick(() => {
+                        this.refreshStatsData();
+                    });
+                },
+                statsSourceFilter() { 
+                    this.yearlyStatsCurrentPage = 1; 
+                    this.relationshipStatsCurrentPage = 1; 
+                    this.$nextTick(() => {
+                        this.refreshStatsData();
+                    });
+                },
                 
                 // accountInfo监听已移除，因为基本信息管理功能已被移除
                 
