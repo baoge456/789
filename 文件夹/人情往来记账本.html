@@ -2381,6 +2381,14 @@
                                                 <option value="imported">导入数据</option>
                                             </select>
                                         </div>
+                                        <div class="col-4">
+                                            <select class="form-select" v-model="summarySearch.attended">
+                                                <option value="">所有参与情况</option>
+                                                <option value="yes">参加</option>
+                                                <option value="no">未参加</option>
+                                                <option value="delegate">委托他人</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-12">
@@ -2410,6 +2418,7 @@
                                                     <th>记录日期</th>
                                                     <th>导入日期</th>
                                                     <th>数据来源</th>
+                                                    <th>参与情况</th>
                                                     <th>备注</th>
                                                 </tr>
                                             </thead>
@@ -2423,6 +2432,12 @@
                                                     <td>
                                                         <span v-if="record.source === 'imported'" class="badge bg-info">导入</span>
                                                         <span v-else class="badge bg-secondary">系统</span>
+                                                    </td>
+                                                    <td>
+                                                        <span v-if="record.attended === 'yes'" class="text-success">✅ 参加</span>
+                                                        <span v-else-if="record.attended === 'no'" class="text-danger">❌ 未参加</span>
+                                                        <span v-else-if="record.attended === 'delegate'" class="text-warning">👥 委托他人</span>
+                                                        <span v-else class="text-muted">-</span>
                                                     </td>
                                                     <td>{{ record.notes || '-' }}</td>
                                                 </tr>
@@ -2587,6 +2602,11 @@
                                                                 <span v-if="record.recordDate" class="ms-2">记录日期: {{ record.recordDate }}</span>
                                                                 <span v-if="record.importDate" class="ms-2 text-info">导入日期: {{ record.importDate }}</span>
                                                                 <span v-else-if="record.date" class="ms-2">日期: {{ record.date }}</span>
+                                                                <span v-if="record.attended" class="ms-2">
+                                                                    <span v-if="record.attended === 'yes'" class="text-success">✅ 参加</span>
+                                                                    <span v-else-if="record.attended === 'no'" class="text-danger">❌ 未参加</span>
+                                                                    <span v-else class="text-warning">👥 委托他人</span>
+                                                                </span>
                                                             </div>
                                                         </div>
                                                         <div class="btn-group" role="group">
@@ -3590,12 +3610,10 @@
                             </select>
                         </div>
                         
-
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>备注说明</label>
-                        <textarea v-model="editingEvent.notes"></textarea>
+                        <div class="form-group">
+                            <label>备注说明</label>
+                            <textarea v-model="editingEvent.notes"></textarea>
+                        </div>
                     </div>
                     
                     <div style="text-align: center; margin-top: 20px;">
@@ -3642,7 +3660,20 @@
         createApp({
             data() {
                 return {
-                    activeTab: 'add',
+                    activeTab: (() => {
+                        try {
+                            const savedTab = localStorage.getItem('currentTab');
+                            console.log('初始化时读取的页面状态:', savedTab);
+                            if (savedTab && ['add', 'myEvent', 'records', 'contacts', 'stats', 'export', 'help'].includes(savedTab)) {
+                                console.log('使用保存的页面状态:', savedTab);
+                                return savedTab;
+                            }
+                        } catch (error) {
+                            console.error('读取页面状态失败:', error);
+                        }
+                        console.log('使用默认页面状态: add');
+                        return 'add';
+                    })(),
                     events: [],
                     
                     // 表单数据
@@ -3754,7 +3785,8 @@
                         relationship: '',
                         minAmount: null,
                         maxAmount: null,
-                        source: ''
+                        source: '',
+                        attended: ''
                     },
                     dataSummaryResults: [],
                     
@@ -4981,7 +5013,7 @@
                 // 添加事件
                 addEvent() {
                     if (!this.eventForm.type || !this.eventForm.hostName || !this.eventForm.eventDetail || !this.eventForm.myGift || !this.eventForm.direction) {
-                        alert('请填写必填项目！');
+                        this.showToast('请填写必填项目！', 'warning');
                         return;
                     }
                     
@@ -5001,7 +5033,7 @@
                     this.events.push(event);
                     this.saveData();
                     this.resetForm();
-                    alert('公事记录添加成功！');
+                    this.showToast('公事记录添加成功！', 'success');
                 },
                 
                 // 重置表单
@@ -5102,9 +5134,9 @@
                             
                             this.saveAccountBookData();
                             this.closeEditModal();
-                            alert('自家公事记录修改保存成功！');
+                            this.showToast('自家公事记录修改保存成功！', 'success');
                         } else {
-                            alert('未找到对应的记录！');
+                            this.showToast('未找到对应的记录！', 'error');
                         }
                     } else if (this.editingEvent.source === 'proxy') {
                         // 编辑代记账记录
@@ -5128,9 +5160,9 @@
                                 };
                                 this.saveProxyData();
                                 this.closeEditModal();
-                                alert('导入记录修改保存成功！');
+                                this.showToast('导入记录修改保存成功！', 'success');
                             } else {
-                                alert('未找到对应的导入记录！');
+                                this.showToast('未找到对应的导入记录！', 'error');
                             }
                         } else if (this.editingEvent.type === 'expense') {
                             // 编辑代记账支出记录
@@ -5152,9 +5184,9 @@
                                 };
                                 this.saveProxyData();
                                 this.closeEditModal();
-                                alert('导入支出记录修改保存成功！');
+                                this.showToast('导入支出记录修改保存成功！', 'success');
                             } else {
-                                alert('未找到对应的导入支出记录！');
+                                this.showToast('未找到对应的导入支出记录！', 'error');
                             }
                         }
                     } else {
@@ -5169,9 +5201,9 @@
                             this.events[index] = { ...this.editingEvent };
                             this.saveData();
                             this.closeEditModal();
-                            alert('对外人情记录修改保存成功！');
+                            this.showToast('对外人情记录修改保存成功！', 'success');
                         } else {
-                            alert('未找到对应的记录！');
+                            this.showToast('未找到对应的记录！', 'error');
                         }
                     }
                 },
@@ -5205,7 +5237,7 @@
                         // 删除对外人情记录
                         this.events = this.events.filter(e => e.id !== id);
                         this.saveData();
-                        alert('对外人情记录已删除！');
+                        this.showToast('对外人情记录已删除！', 'success');
                     }
                 },
                 
@@ -5288,12 +5320,17 @@
                 loadData() {
                     const saved = localStorage.getItem('redWhiteEvents');
                     if (saved) {
-                        const events = JSON.parse(saved);
-                        // 修复日期格式
-                        this.events = events.map(event => ({
-                            ...event,
-                            eventDate: this.validateAndFixDate(event.eventDate)
-                        }));
+                        try {
+                            const events = JSON.parse(saved);
+                            // 修复日期格式
+                            this.events = events.map(event => ({
+                                ...event,
+                                eventDate: this.validateAndFixDate(event.eventDate)
+                            }));
+                        } catch (error) {
+                            console.error('加载对外人情数据失败:', error);
+                            this.events = [];
+                        }
                     }
                 },
                 
@@ -5312,13 +5349,18 @@
                 loadAccountBookData() {
                     const data = localStorage.getItem('accountBookData');
                     if (data) {
-                        const parsed = JSON.parse(data);
-                        
-                        this.giftRecords = (parsed.giftRecords || []).map(record => ({
-                            ...record,
-                            date: this.validateAndFixDate(record.date),
-                            eventType: record.eventType || '公事' // 为旧记录添加默认的公事类型
-                        }));
+                        try {
+                            const parsed = JSON.parse(data);
+                            
+                            this.giftRecords = (parsed.giftRecords || []).map(record => ({
+                                ...record,
+                                date: this.validateAndFixDate(record.date),
+                                eventType: record.eventType || '公事' // 为旧记录添加默认的公事类型
+                            }));
+                        } catch (error) {
+                            console.error('加载自家公事数据失败:', error);
+                            this.giftRecords = [];
+                        }
                     }
                 },
                 
@@ -5386,21 +5428,37 @@
                 loadProxyData() {
                     const data = localStorage.getItem('proxyAccountData');
                     if (data) {
-                        const parsed = JSON.parse(data);
-                        this.proxyAccountInfo = {
-                            ...parsed.proxyAccountInfo,
-                            eventDate: this.validateAndFixDate(parsed.proxyAccountInfo?.eventDate)
-                        } || this.proxyAccountInfo;
-                        
-                        this.proxyGiftRecords = (parsed.proxyGiftRecords || []).map(record => ({
-                            ...record,
-                            date: this.validateAndFixDate(record.date)
-                        }));
-                        
-                        this.proxyExpenseRecords = (parsed.proxyExpenseRecords || []).map(record => ({
-                            ...record,
-                            date: this.validateAndFixDate(record.date)
-                        }));
+                        try {
+                            const parsed = JSON.parse(data);
+                            this.proxyAccountInfo = {
+                                ...parsed.proxyAccountInfo,
+                                eventDate: this.validateAndFixDate(parsed.proxyAccountInfo?.eventDate)
+                            } || this.proxyAccountInfo;
+                            
+                            this.proxyGiftRecords = (parsed.proxyGiftRecords || []).map(record => ({
+                                ...record,
+                                date: this.validateAndFixDate(record.date)
+                            }));
+                            
+                            this.proxyExpenseRecords = (parsed.proxyExpenseRecords || []).map(record => ({
+                                ...record,
+                                date: this.validateAndFixDate(record.date)
+                            }));
+                        } catch (error) {
+                            console.error('加载代理数据失败:', error);
+                            // 如果数据损坏，重置为默认值
+                            this.proxyAccountInfo = {
+                                clientName: '',
+                                clientPhone: '',
+                                eventName: '',
+                                eventType: '',
+                                eventDate: '',
+                                recorder: '',
+                                notes: ''
+                            };
+                            this.proxyGiftRecords = [];
+                            this.proxyExpenseRecords = [];
+                        }
                     }
                 },
                 clearProxyData() {
@@ -5419,7 +5477,7 @@
                         this.resetProxyGiftForm();
                         this.resetProxyExpenseForm();
                         localStorage.removeItem('proxyAccountData');
-                        alert('导入数据已清空！');
+                        this.showToast('导入数据已清空！', 'warning');
                     }
                 },
                 
@@ -5685,56 +5743,56 @@
                         try {
                             const data = JSON.parse(e.target.result);
                             
-                            if (confirm('导入数据将覆盖现有数据，确定继续吗？')) {
-                                // 导入对外人情数据并修复日期格式
-                                this.events = (data.events || []).map(event => ({
-                                    ...event,
-                                    eventDate: this.validateAndFixDate(event.eventDate)
+                            // 直接导入数据，无需确认
+                            // 导入对外人情数据并修复日期格式
+                            this.events = (data.events || []).map(event => ({
+                                ...event,
+                                eventDate: this.validateAndFixDate(event.eventDate)
+                            }));
+                            
+                            // 导入自家公事数据（如果存在）并修复日期格式
+                            if (data.accountBookData) {
+                                this.giftRecords = (data.accountBookData.giftRecords || []).map(record => ({
+                                    ...record,
+                                    date: this.validateAndFixDate(record.date)
                                 }));
                                 
-                                // 导入自家公事数据（如果存在）并修复日期格式
-                                if (data.accountBookData) {
-                                    this.giftRecords = (data.accountBookData.giftRecords || []).map(record => ({
-                                        ...record,
-                                        date: this.validateAndFixDate(record.date)
-                                    }));
-                                    
-                                    this.saveAccountBookData();
-                                }
-                                
-                                // 导入数据（如果存在）并修复日期格式
-                                if (data.proxyAccountData) {
-                                    this.proxyAccountInfo = {
-                                        ...data.proxyAccountData.proxyAccountInfo,
-                                        eventDate: this.validateAndFixDate(data.proxyAccountData.proxyAccountInfo?.eventDate)
-                                    } || this.proxyAccountInfo;
-                                    
-                                    this.proxyGiftRecords = (data.proxyAccountData.proxyGiftRecords || []).map(record => ({
-                                        ...record,
-                                        date: this.validateAndFixDate(record.date)
-                                    }));
-                                    
-                                    this.proxyExpenseRecords = (data.proxyAccountData.proxyExpenseRecords || []).map(record => ({
-                                        ...record,
-                                        date: this.validateAndFixDate(record.date)
-                                    }));
-                                    
-                                    this.saveProxyData();
-                                }
-                                
-                                this.saveData();
-                                // 重置筛选条件
-                                this.resetStatsFilters();
-                                // 强制更新计算属性
-                                this.$nextTick(() => {
-                                    // 触发计算属性重新计算
-                                    this.events = [...this.events];
-                                    this.giftRecords = [...this.giftRecords];
-                                });
-                                alert('数据导入成功！统计分析已更新。');
+                                this.saveAccountBookData();
                             }
+                            
+                            // 导入数据（如果存在）并修复日期格式
+                            if (data.proxyAccountData) {
+                                this.proxyAccountInfo = {
+                                    ...data.proxyAccountData.proxyAccountInfo,
+                                    eventDate: this.validateAndFixDate(data.proxyAccountData.proxyAccountInfo?.eventDate)
+                                } || this.proxyAccountInfo;
+                                
+                                this.proxyGiftRecords = (data.proxyAccountData.proxyGiftRecords || []).map(record => ({
+                                    ...record,
+                                    date: this.validateAndFixDate(record.date)
+                                }));
+                                
+                                this.proxyExpenseRecords = (data.proxyAccountData.proxyExpenseRecords || []).map(record => ({
+                                    ...record,
+                                    date: this.validateAndFixDate(record.date)
+                                }));
+                                
+                                this.saveProxyData();
+                            }
+                            
+                            this.saveData();
+                            // 重置筛选条件
+                            this.resetStatsFilters();
+                            // 强制更新计算属性
+                            this.$nextTick(() => {
+                                // 触发计算属性重新计算
+                                this.events = [...this.events];
+                                this.giftRecords = [...this.giftRecords];
+                            });
+                            // 显示成功提示，无需确认按钮
+                            this.showToast('数据导入成功！统计分析已更新。', 'success');
                         } catch (error) {
-                            alert('文件格式错误，导入失败！');
+                            this.showToast('文件格式错误，导入失败！', 'error');
                         }
                     };
                     reader.readAsText(file);
@@ -6289,6 +6347,9 @@
                             this.loadData();
                             this.loadAccountBookData();
                             this.loadProxyData();
+                            
+                            // 恢复页面状态
+                            this.restorePageState();
                             
                             // 在数据加载完成后初始化默认日期
                             this.$nextTick(() => {
@@ -6861,7 +6922,7 @@
                     
                     // 显示提示信息
                     setTimeout(() => {
-                        alert(`已跳转到公事记录页面，正在搜索 "${personName}" 的记录`);
+                        this.showToast(`已跳转到公事记录页面，正在搜索 "${personName}" 的记录`, 'info');
                     }, 100);
                 },
                 // 去重检查
@@ -6917,7 +6978,7 @@
                     });
                     
                     if (duplicates.length === 0) {
-                        alert('✅ 检查完成！未发现重复记录。');
+                        this.showToast('✅ 检查完成！未发现重复记录。', 'success');
                         return;
                     }
                     
@@ -6972,7 +7033,7 @@
                     this.saveData();
                     this.saveAccountBookData();
                     
-                    alert(`✅ 已删除 ${deletedCount} 条重复记录！`);
+                    this.showToast(`✅ 已删除 ${deletedCount} 条重复记录！`, 'success');
                 },
                 
                 // 查看记录详情
@@ -6988,7 +7049,7 @@
                     
                     // 显示提示信息
                     setTimeout(() => {
-                        alert(`已跳转到公事记录页面，正在搜索 "${record.hostName}" 的记录\n\n详细信息：\n姓名：${record.hostName}\n公事名称：${record.eventDetail}\n日期：${this.formatDate(record.eventDate)}\n金额：¥${record.myGift.toFixed(2)}\n类型：${record.type}\n关系：${record.relationship || '未分类'}`);
+                        this.showToast(`已跳转到公事记录页面，正在搜索 "${record.hostName}" 的记录`, 'info');
                     }, 100);
                 },
                 
@@ -7133,7 +7194,7 @@
                     this.dataSummaryResults = [];
                     
                     if (!this.selectedEventId || !this.selectedEventInfo) {
-                        alert('请先选择一个公事');
+                        this.showToast('请先选择一个公事', 'warning');
                         return;
                     }
                     
@@ -7170,6 +7231,11 @@
                             }
                         }
                         
+                        // 参与情况筛选
+                        if (this.summarySearch.attended && record.attended !== this.summarySearch.attended) {
+                            return false;
+                        }
+                        
                         return true;
                     });
                     
@@ -7183,7 +7249,8 @@
                         relationship: '',
                         minAmount: null,
                         maxAmount: null,
-                        source: ''
+                        source: '',
+                        attended: ''
                     };
                     this.dataSummaryResults = [];
                 },
@@ -7217,7 +7284,7 @@
                             
                             // 验证数据格式
                             if (!data.proxyGifts || !Array.isArray(data.proxyGifts)) {
-                                alert('文件格式错误：缺少收礼记录数据');
+                                this.showToast('文件格式错误：缺少收礼记录数据', 'error');
                                 return;
                             }
                             
@@ -7225,18 +7292,35 @@
                             const batchId = ++this.importBatchCounter;
                             
                             // 转换数据格式
-                            const convertedRecords = data.proxyGifts.map(gift => ({
-                                name: gift.giver || '',
-                                relationship: gift.relationship || '', // 没有关系数据时显示空白
-                                amount: gift.amount || 0,
-                                notes: gift.note || '',
-                                eventType: data.proxyBasicInfo?.publicAffairType || data.proxyBasicInfo?.eventType || '公事', // 从proxyBasicInfo获取公事类型（支持新旧字段名）
-                                recordDate: data.proxyBasicInfo?.accountingDate || data.proxyBasicInfo?.eventDate || '', // 保留原始记录日期（支持新旧字段名）
-                                attended: gift.attended || 'yes', // 参与情况：优先使用导入数据，默认参加
-                                importDate: new Date().toISOString().split('T')[0], // 添加导入日期
-                                source: 'imported', // 标记为导入数据
-                                batchId: batchId // 添加批次ID
-                            }));
+                            const convertedRecords = data.proxyGifts.map(gift => {
+                                // 处理参与情况字段的映射
+                                let attendedValue = 'yes'; // 默认参加
+                                if (gift.attended) {
+                                    if (gift.attended === '参加') {
+                                        attendedValue = 'yes';
+                                    } else if (gift.attended === '未参加') {
+                                        attendedValue = 'no';
+                                    } else if (gift.attended === '委托他人') {
+                                        attendedValue = 'delegate';
+                                    } else {
+                                        // 如果已经是英文格式，直接使用
+                                        attendedValue = gift.attended;
+                                    }
+                                }
+                                
+                                return {
+                                    name: gift.giver || '',
+                                    relationship: gift.relationship || '', // 没有关系数据时显示空白
+                                    amount: gift.amount || 0,
+                                    notes: gift.note || '',
+                                    eventType: data.proxyBasicInfo?.publicAffairType || data.proxyBasicInfo?.eventType || '公事', // 从proxyBasicInfo获取公事类型（支持新旧字段名）
+                                    recordDate: data.proxyBasicInfo?.accountingDate || data.proxyBasicInfo?.eventDate || '', // 保留原始记录日期（支持新旧字段名）
+                                    attended: attendedValue, // 使用映射后的参与情况值
+                                    importDate: new Date().toISOString().split('T')[0], // 添加导入日期
+                                    source: 'imported', // 标记为导入数据
+                                    batchId: batchId // 添加批次ID
+                                };
+                            });
                             
                             // 预览数据
                             this.importPreviewData = convertedRecords;
@@ -7267,12 +7351,12 @@
                                     // 清空预览数据
                                     this.importPreviewData = [];
                                     
-                                    alert(`成功导入 ${convertedRecords.length} 条收礼记录！\n批次ID: ${batchId}\n公事名称: ${reason || '未设置'}`);
+                                    this.showToast(`成功导入 ${convertedRecords.length} 条收礼记录！批次ID: ${batchId}`, 'success');
                                 }
                             }
                             
                         } catch (error) {
-                            alert('文件格式错误，请选择正确的公事记账簿JSON文件');
+                            this.showToast('文件格式错误，请选择正确的公事记账簿JSON文件', 'error');
                             console.error('导入错误:', error);
                         }
                     };
@@ -7283,7 +7367,7 @@
                 // 显示导入预览
                 showImportPreview() {
                     if (this.importPreviewData.length === 0) {
-                        alert('没有预览数据');
+                        this.showToast('没有预览数据', 'warning');
                         return;
                     }
                     
@@ -7291,20 +7375,21 @@
                     this.importPreviewData.forEach((record, index) => {
                         previewText += `${index + 1}. ${record.name} (${record.relationship}) - ¥${record.amount}\n`;
                         previewText += `   公事类型: ${record.eventType || '未设置'}\n`;
+                        previewText += `   参与情况: ${record.attended === 'yes' ? '参加' : record.attended === 'no' ? '未参加' : '委托他人'}\n`;
                         if (record.notes) {
                             previewText += `   备注: ${record.notes}\n`;
                         }
                         previewText += `   记录日期: ${record.recordDate || '未设置'}\n\n`;
                     });
                     
-                    alert(previewText);
+                    this.showToast(previewText, 'info');
                 },
                 
                 // 撤回所有导入数据
                 recoverAllImportedData() {
                     const importedCount = this.importedRecordsCount;
                     if (importedCount === 0) {
-                        alert('没有找到导入的数据');
+                        this.showToast('没有找到导入的数据', 'warning');
                         return;
                     }
                     
@@ -7315,14 +7400,14 @@
                         // 保存数据
                         this.saveAccountBookData();
                         
-                        alert(`成功撤回 ${importedCount} 条导入记录！`);
+                        this.showToast(`成功撤回 ${importedCount} 条导入记录！`, 'success');
                     }
                 },
                 
                 // 按时间范围撤回导入数据
                 recoverByDateRange() {
                     if (!this.recoveryDateRange.start && !this.recoveryDateRange.end) {
-                        alert('请选择时间范围');
+                        this.showToast('请选择时间范围', 'warning');
                         return;
                     }
                     
@@ -7343,7 +7428,7 @@
                     });
                     
                     if (recordsToRemove.length === 0) {
-                        alert('指定时间范围内没有找到导入的数据');
+                        this.showToast('指定时间范围内没有找到导入的数据', 'warning');
                         return;
                     }
                     
@@ -7364,7 +7449,7 @@
                         // 保存数据
                         this.saveAccountBookData();
                         
-                        alert(`成功撤回 ${recordsToRemove.length} 条导入记录！`);
+                        this.showToast(`成功撤回 ${recordsToRemove.length} 条导入记录！`, 'success');
                         
                         // 清空时间范围
                         this.recoveryDateRange.start = '';
@@ -7375,7 +7460,7 @@
                 // 按批次撤回导入数据
                 recoverByBatch() {
                     if (!this.selectedBatchId) {
-                        alert('请选择要撤回的批次');
+                        this.showToast('请选择要撤回的批次', 'warning');
                         return;
                     }
                     
@@ -7385,7 +7470,7 @@
                     );
                     
                     if (recordsToRemove.length === 0) {
-                        alert('没有找到指定批次的数据');
+                        this.showToast('没有找到指定批次的数据', 'warning');
                         return;
                     }
                     
@@ -7398,7 +7483,7 @@
                         // 保存数据
                         this.saveAccountBookData();
                         
-                        alert(`成功撤回批次 ${batchId} 的 ${recordsToRemove.length} 条记录！`);
+                        this.showToast(`成功撤回批次 ${batchId} 的 ${recordsToRemove.length} 条记录！`, 'success');
                         
                         // 清空选择
                         this.selectedBatchId = '';
@@ -7519,7 +7604,7 @@
                     const fileName = `代记账数据_${new Date().toISOString().split('T')[0]}.xlsx`;
                     XLSX.writeFile(wb, fileName);
                     
-                    alert('代记账数据已导出到Excel文件！');
+                    this.showToast('代记账数据已导出到Excel文件！', 'success');
                 },
                 
                 // 导出代记账数据到Word
@@ -7605,7 +7690,7 @@
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                     
-                    alert('代记账数据已导出到Word文件！');
+                    this.showToast('代记账数据已导出到Word文件！', 'success');
                 },
                 
                 // 清空所有数据
@@ -7616,21 +7701,339 @@
                         this.giftRecords = [];
                         this.proxyGiftRecords = [];
                         this.proxyExpenseRecords = [];
-                        this.proxyAccountInfo = null;
+                        this.proxyAccountInfo = {
+                            clientName: '',
+                            clientPhone: '',
+                            eventName: '',
+                            eventType: '',
+                            eventDate: '',
+                            recorder: '',
+                            notes: ''
+                        };
                         
-                        // 清空本地存储
+                        // 重置表单数据
+                        this.eventForm = {
+                            type: '',
+                            hostName: '',
+                            hostPhone: '',
+                            relationship: '',
+                            eventDetail: '',
+                            eventDate: '',
+                            location: '',
+                            myGift: '',
+                            direction: 'out',
+                            attendees: '',
+                            attended: 'yes',
+                            notes: ''
+                        };
+                        
+                        // 重置代理数据表单
+                        this.proxyNewGift = {
+                            date: '',
+                            name: '',
+                            relationship: '亲戚',
+                            amount: '',
+                            notes: ''
+                        };
+                        
+                        this.proxyNewExpense = {
+                            date: '',
+                            item: '',
+                            category: '餐饮',
+                            amount: '',
+                            notes: ''
+                        };
+                        
+                        // 重置代理账户信息
+                        this.proxyAccountInfo = {
+                            clientName: '',
+                            clientPhone: '',
+                            eventName: '',
+                            eventType: '',
+                            eventDate: '',
+                            recorder: '',
+                            notes: ''
+                        };
+                        
+                        // 重置代理记录
+                        this.proxyGiftRecords = [];
+                        this.proxyExpenseRecords = [];
+                        
+                        // 重置主数据
+                        this.events = [];
+                        this.giftRecords = [];
+                        
+                        // 重置筛选条件
+                        this.searchKeyword = '';
+                        this.typeFilter = '';
+                        this.relationshipFilter = '';
+                        this.yearFilter = '';
+                        this.sourceFilter = '';
+                        this.contactSearch = '';
+                        this.contactRelationFilter = '';
+                        this.contactSourceFilter = '';
+                        this.statsYearFilter = '';
+                        this.statsTypeFilter = '';
+                        this.statsEventTypeFilter = '';
+                        
+                        // 重置统计分析筛选条件
+                        this.cardFilterValue = '';
+                        
+                        // 重置分页
+                        this.currentPage = 1;
+                        this.contactsCurrentPage = 1;
+                        
+                        // 重置编辑状态
+                        this.showEditModal = false;
+                        this.editingEvent = null;
+                        
+                        // 重置编辑表单数据
+                        this.editingEvent = {
+                            source: '',
+                            type: '',
+                            originalIndex: -1,
+                            hostName: '',
+                            hostPhone: '',
+                            relationship: '',
+                            eventDetail: '',
+                            eventDate: '',
+                            location: '',
+                            myGift: '',
+                            direction: 'out',
+                            attendees: '',
+                            attended: 'yes',
+                            notes: ''
+                        };
+                        
+                        // 重置显示状态
+                        this.showRecords = false;
+                        this.showProxyExpenseForm = false;
+                        this.showProxyRecords = false;
+                        this.showProxyBasicInfo = false;
+                        this.showDataSummary = false;
+                        this.showImportSection = false;
+                        this.showDataRecovery = false;
+                        this.showRecordsHelp = false;
+                        this.showContactsHelp = false;
+                        this.showStatsHelp = false;
+                        this.showExportHelp = false;
+                        this.showRecentRecords = false;
+                        
+                        // 重置帮助显示状态
+                        this.showRecordsHelp = false;
+                        this.showContactsHelp = false;
+                        this.showStatsHelp = false;
+                        this.showExportHelp = false;
+                        
+                        // 清空查询结果
+                        this.dataSummaryResults = [];
+                        this.importPreviewData = [];
+                        this.selectedEventId = null;
+                        this.selectedBatchId = '';
+                        this.recoveryDateRange = {
+                            start: '',
+                            end: ''
+                        };
+                        
+                        // 重置数据汇总查询条件
+                        this.summarySearch = {
+                            name: '',
+                            relationship: '',
+                            minAmount: null,
+                            maxAmount: null,
+                            source: '',
+                            attended: ''
+                        };
+                        
+                        // 重置导入批次计数器
+                        this.importBatchCounter = 0;
+                        
+                        // 清空本地存储（保留页面状态）
                         localStorage.removeItem('redWhiteEvents');
                         localStorage.removeItem('accountBookData');
                         localStorage.removeItem('proxyAccountData');
+                        // 不清除currentTab，保持当前页面状态
                         
-                        alert('所有数据已清空！');
+                        this.showToast('所有数据已清空！', 'warning');
+                        
+                        // 强制更新页面状态
+                        this.$nextTick(() => {
+                            // 确保页面正确刷新
+                            this.resetPageState();
+                        });
                     }
+                },
+                
+                // 恢复页面状态
+                restorePageState() {
+                    // 页面状态已经在data初始化时从localStorage读取
+                    // 这里只需要确保状态被正确保存
+                    try {
+                        const currentTab = localStorage.getItem('currentTab');
+                        console.log('当前保存的页面状态:', currentTab, '当前activeTab:', this.activeTab);
+                        if (!currentTab) {
+                            localStorage.setItem('currentTab', this.activeTab);
+                            console.log('页面状态已初始化:', this.activeTab);
+                        }
+                    } catch (error) {
+                        console.error('保存页面状态失败:', error);
+                    }
+                },
+                
+                // 重置页面状态
+                resetPageState() {
+                    // 重置所有显示状态
+                    this.showRecords = false;
+                    this.showDataSummary = false;
+                    this.showImportSection = false;
+                    this.showDataRecovery = false;
+                    this.showProxyExpenseForm = false;
+                    this.showProxyRecords = false;
+                    this.showProxyBasicInfo = false;
+                    this.showRecordsHelp = false;
+                    this.showContactsHelp = false;
+                    this.showStatsHelp = false;
+                    this.showExportHelp = false;
+                    this.showRecentRecords = false;
+                    
+                    // 重置帮助显示状态
+                    this.showRecordsHelp = false;
+                    this.showContactsHelp = false;
+                    this.showStatsHelp = false;
+                    this.showExportHelp = false;
+                    
+                    // 重置编辑状态
+                    this.showEditModal = false;
+                    this.editingEvent = null;
+                    
+                    // 重置编辑表单数据
+                    this.editingEvent = {
+                        source: '',
+                        type: '',
+                        originalIndex: -1,
+                        hostName: '',
+                        hostPhone: '',
+                        relationship: '',
+                        eventDetail: '',
+                        eventDate: '',
+                        location: '',
+                        myGift: '',
+                        direction: 'out',
+                        attendees: '',
+                        attended: 'yes',
+                        notes: ''
+                    };
+                    
+                    // 重置分页
+                    this.currentPage = 1;
+                    this.contactsCurrentPage = 1;
+                    
+                    // 重置筛选条件
+                    this.searchKeyword = '';
+                    this.typeFilter = '';
+                    this.relationshipFilter = '';
+                    this.yearFilter = '';
+                    this.sourceFilter = '';
+                    this.contactSearch = '';
+                    this.contactRelationFilter = '';
+                    this.contactSourceFilter = '';
+                    this.statsYearFilter = '';
+                    this.statsTypeFilter = '';
+                    this.statsEventTypeFilter = '';
+                    this.cardFilterValue = '';
+                    
+                    // 清空查询结果
+                    this.dataSummaryResults = [];
+                    this.importPreviewData = [];
+                    this.selectedEventId = null;
+                    this.selectedBatchId = '';
+                    this.recoveryDateRange = {
+                        start: '',
+                        end: ''
+                    };
+                    
+                    // 重置数据汇总查询条件
+                    this.summarySearch = {
+                        name: '',
+                        relationship: '',
+                        minAmount: null,
+                        maxAmount: null,
+                        source: '',
+                        attended: ''
+                    };
+                    
+                    // 重置导入批次计数器
+                    this.importBatchCounter = 0;
+                    
+                    // 重置表单数据
+                    this.eventForm = {
+                        type: '',
+                        hostName: '',
+                        hostPhone: '',
+                        relationship: '',
+                        eventDetail: '',
+                        eventDate: '',
+                        location: '',
+                        myGift: '',
+                        direction: 'out',
+                        attendees: '',
+                        attended: 'yes',
+                        notes: ''
+                    };
+                    
+                    // 重置代理数据表单
+                    this.proxyNewGift = {
+                        date: '',
+                        name: '',
+                        relationship: '亲戚',
+                        amount: '',
+                        notes: ''
+                    };
+                    
+                    this.proxyNewExpense = {
+                        date: '',
+                        item: '',
+                        category: '餐饮',
+                        amount: '',
+                        notes: ''
+                    };
+                    
+                    // 重置代理账户信息
+                    this.proxyAccountInfo = {
+                        clientName: '',
+                        clientPhone: '',
+                        eventName: '',
+                        eventType: '',
+                        eventDate: '',
+                        recorder: '',
+                        notes: ''
+                    };
+                    
+                    // 重置代理记录
+                    this.proxyGiftRecords = [];
+                    this.proxyExpenseRecords = [];
+                    
+                    // 重置主数据
+                    this.events = [];
+                    this.giftRecords = [];
                 },
                 
                 // 显示导入记录列表功能已移除
             },
             
             watch: {
+                // 监听当前页面变化，保存到本地存储
+                activeTab: {
+                    handler(newTab) {
+                        try {
+                            localStorage.setItem('currentTab', newTab);
+                            console.log('页面状态已保存:', newTab);
+                        } catch (error) {
+                            console.error('保存页面状态失败:', error);
+                        }
+                    }
+                },
+                
                 // 监听筛选条件变化，重置分页
                 searchKeyword() { this.currentPage = 1; },
                 typeFilter() { this.currentPage = 1; },
@@ -7663,6 +8066,9 @@
                     this.loadData();
                     this.loadAccountBookData();
                     this.loadProxyData();
+                    
+                    // 恢复页面状态
+                    this.restorePageState();
                     
                     // 在数据加载完成后初始化默认日期
                     this.$nextTick(() => {
