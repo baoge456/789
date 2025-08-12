@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>clash聚合~搭建教程</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #444;
+        }
+        p, li {
+            color: #555;
+        }
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .note {
+            background: #fff3cd;
+            padding: 10px;
+            border-left: 4px solid #ffeb3b;
+            margin: 10px 0;
+        }
+        ol {
+            padding-left: 20px;
+        }
+        .comment {
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>全新免费多国节点搭建教程（补充版，包含部署细节）</h1>
+        <p>免费VPN无需VPS无需服务器！晚高峰YouTube视频4秒开，免费解锁奈飞、ChatGPT，全自动获取免费机场节点订阅！永久免费科学上网，用不完的节点！新手小白有手就行，百分百成功！打造免费代理池，爬一切可爬节点，轻松实现代理节点自由！定时更新永不失效！</p>
+
+        <h2>准备工作</h2>
+        <p><strong>GitHub官网注册：</strong> <a href="https://github.com/" target="_blank">https://github.com/</a></p>
+        <p><strong>项目地址：</strong> <a href="https://github.com/wzdnzd/aggregator" target="_blank">https://github.com/wzdnzd/aggregator</a>（打造免费代理池，爬一切可爬节点）</p>
+
+<p><strong>相关教程：</strong> <a href="https://kjgx668.blogspot.com/2024/11/vpnvpsyoutube4chatgpt.html" target="_blank">https://kjgx668.blogspot.com/2024/11/vpnvpsyoutube4chatgpt.html</a>（全新免费多国节点搭建教程！打造免费代理池，爬一切可爬节点,轻松实现代理节点自由！定时更新永不失效）</p>
+     
+        <p><strong>其它节点地址：</strong> <a href="https://github.com/Pawdroid/Free-servers" target="_blank">https://github.com/Pawdroid/Free-servers</a>（提供免费订阅地址，每6小时更新一次，共享节点，高可用。）</p>
+        <p class="note">注意：如果使用v2ray而不是视频中的梯子，请在下载压缩包后（视频5分56秒处），打开压缩包，找到v2ray文件夹，复制所有节点并粘贴到v2ray中。压缩包中的subscribes文件包含订阅地址，操作更方便。iOS用户可参考 <a href="https://xintaikeji.ga?from=55" target="_blank">小火箭及美区ID获取地址</a> 配置Shadowrocket。</p>
+        <p><strong>安装客户端：</strong> 推荐使用v2rayN（Windows）或Clash（Android/Windows）。观看 <a href="https://youtu.be/m6pbQNfBj3s" target="_blank">2022版V2rayN详细使用教程</a> 了解安装和配置。</p>
+
+        <h2>部署与操作步骤</h2>
+        <ol>
+            <li><strong>Fork仓库并开启GitHub Actions Workflow</strong>
+                <ul>
+                    <li>访问 <a href="https://github.com/Pawdroid/Free-servers" target="_blank">项目仓库</a>，点击“Fork”按钮，将仓库复制到你的GitHub账号下。</li>
+                    <li>进入Fork后的仓库，点击“Actions”标签，启用所有Workflow（Collect、Refresh/Process、Checkin）。默认每6小时自动运行更新节点。</li>
+                    <li><strong>注意</strong>：视频中可能提及“Process”，而文字提及“Refresh”，请以仓库实际Workflow名称为准（视频优先）。手动运行一次以确认生效。</li>
+                </ul>
+            </li>
+            <li><strong>创建GitHub Gist</strong>
+                <ul>
+                    <li>访问 <a href="https://gist.github.com" target="_blank">https://gist.github.com</a>，创建一个新的Gist（内容随意，如“test”）。</li>
+                    <li>保存后，获取Gist URL（如 <code>https://gist.github.com/username/xxxxxxxxxxxxxxxx</code>），记录 <code>username/gist_id</code>（如 <code>username/xxxxxxxxxxxxxxxx</code>）。</li>
+                    <li><strong>部署提示</strong>：确保Gist为公共可见，Actions将自动更新其内容为节点列表。</li>
+                </ul>
+            </li>
+            <li><strong>生成Personal Access Token (PAT)</strong>
+                <ul>
+                    <li>访问 <a href="https://github.com/settings/tokens?type=beta" target="_blank">GitHub Tokens设置页面</a>，点击“Generate new token”。</li>
+                    <li>设置名称（如“VPN-Gist”），选择较长有效期（如90天），授予“Gists”和“repo”读写权限。</li>
+                    <li>复制生成的PAT，妥善保存，切勿泄露。</li>
+                </ul>
+            </li>
+            <li><strong>设置环境变量</strong>
+                <ul>
+                    <li>在Fork仓库的“Settings” > “Secrets and variables” > “Actions” > “Secrets”中，添加以下变量：
+                        <ul>
+                            <li><strong>GIST_LINK</strong>：值为第2步的 <code>username/gist_id</code>。</li>
+                            <li><strong>GIST_PAT</strong>：值为第3步的PAT。</li>
+                        </ul>
+                    </li>
+                    <li><strong>部署提示</strong>：检查仓库README，确认是否需要额外变量（如订阅源URL）。</li>
+                </ul>
+            </li>
+            <li><strong>启用并监控GitHub Actions</strong>
+                <ul>
+                    <li>返回“Actions”页面，确认Workflow已启用。默认每6小时（或2小时，视仓库配置）更新一次。</li>
+                    <li>查看运行日志，检查Gist是否更新为最新节点列表（如vless://...或订阅URL）。</li>
+                    <li><strong>重要</strong>：若停止使用，禁用Workflow或Actions，避免资源浪费。</li>
+                </ul>
+            </li>
+            <li><strong>导入节点到客户端</strong>
+                <ul>
+                    <li>打开第2步创建的Gist，复制节点链接或订阅地址（如 <a href="https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub.png" target="_blank">订阅二维码</a>）。</li>
+                    <li>在v2rayN/Clash中导入：
+                        <ul>
+                            <li><strong>手动导入</strong>：粘贴节点链接。</li>
+                            <li><strong>订阅导入</strong>：使用Gist中的订阅URL或二维码，设置自动更新（建议每小时）。</li>
+                        </ul>
+                    </li>
+                    <li>测试连接，确保YouTube、Netflix等可访问。选择高可用节点（如美国、日本）以提升速度。</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h2>常见问题与解决方案</h2>
+        <ul>
+            <li><strong>节点无法连接</strong>：检查节点是否过期，重新运行Workflow，或切换其他节点（高峰期可能不稳定）。</li>
+            <li><strong>Workflow未自动更新</strong>：确认Workflow名称（Process/Refresh），检查GIST_LINK和GIST_PAT，或查看Actions日志。</li>
+            <li><strong>Gist未更新</strong>：确保PAT授予Gists和repo权限，手动运行Workflow验证。</li>
+            <li><strong>链接失效</strong>：在 <a href="https://t.me/aifengxiang" target="_blank">爱分享福利频道</a> 或 <a href="https://qkj668.blogspot.com/" target="_blank">福利资源站点</a> 反馈，获取更新链接。替代仓库：<a href="https://github.com/free18/v2ray" target="_blank">free18/v2ray</a>、<a href="https://github.com/freefq/free" target="_blank">freefq/free</a>。</li>
+        </ul>
+
+                
+    </div>
+</body>
+</html>
