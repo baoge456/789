@@ -1,0 +1,2708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公事记账簿（完全修复版）</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        /* 基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        /* 导航菜单 */
+        .nav-menu {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 3px;
+            margin-bottom: 25px;
+            padding: 0 3px;
+            width: 100%;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            color: white;
+            flex: 1;
+            max-width: 65px;
+        }
+
+        .nav-item:hover {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 6px 20px rgba(255, 65, 108, 0.4);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+            color: white;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            width: 10px;
+            height: 10px;
+            background: #28a745;
+            transform: rotate(45deg);
+        }
+
+        .nav-icon {
+            font-size: 17px;
+            margin-bottom: 3px;
+        }
+
+        .nav-text {
+            font-size: 8.5px;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            letter-spacing: -0.3px;
+        }
+
+        /* 记录区域 */
+        .section {
+            margin-bottom: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .section:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 18px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .section-header:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+
+        .section-header h2 {
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle-icon {
+            font-size: 1.1em;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            padding: 18px;
+            display: none;
+        }
+
+        .section-content.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 表单样式 */
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 11px;
+            border: 2px solid #e1e5e9;
+            border-radius: 7px;
+            font-size: 0.95em;
+            transition: all 0.25s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2.5px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 4px 12px rgba(86, 171, 47, 0.3);
+        }
+
+        /* 记录列表 */
+        .records-list {
+            margin-top: 18px;
+            border-top: 1px dashed #e1e5e9;
+            padding-top: 18px;
+        }
+
+        .record-item {
+            background: white;
+            border-radius: 7px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .record-item:hover {
+            box-shadow: 0 3px 9px rgba(0,0,0,0.09);
+        }
+
+        .record-summary {
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .record-text {
+            flex: 1;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .record-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .btn-edit {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #0056b3;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #bd2130;
+        }
+
+        .expand-icon {
+            color: #666;
+            font-size: 15px;
+            transition: transform 0.25s ease;
+            width: 18px;
+            text-align: center;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .record-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+
+        .record-details.expanded {
+            max-height: 500px;
+            padding: 15px;
+        }
+
+        .record-details p {
+            margin: 7px 0;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .record-details strong {
+            color: #333;
+        }
+
+        .edit-form {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+
+        .edit-form.expanded {
+            max-height: 500px;
+            padding: 15px;
+        }
+
+        .form-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .btn-save {
+            background: #28a745;
+            color: white;
+            padding: 7px 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 0.85em;
+        }
+
+        .btn-save:hover {
+            background: #218838;
+        }
+
+        .btn-cancel {
+            background: #ff6b6b;
+            color: white;
+            padding: 7px 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 0.85em;
+        }
+
+        .btn-cancel:hover {
+            background: #ff5252;
+        }
+
+        /* 展开/折叠按钮 */
+        .toggle-all-btn {
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .toggle-all-btn button {
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .toggle-all-btn button:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        /* 统计汇总 */
+        .statistics-content {
+            padding: 20px 0;
+        }
+
+        .statistics-table {
+            margin-bottom: 25px;
+        }
+
+        .statistics-table table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .statistics-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .statistics-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.9em;
+        }
+
+        .statistics-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .statistics-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .net-income-row {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        /* 检索功能样式 - 整合到统计汇总中 */
+        .search-container {
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .search-tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+
+        .search-tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 2px solid transparent;
+        }
+
+        .search-tab.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .search-tab:hover:not(.active) {
+            color: #333;
+            background-color: #f0f0f0;
+        }
+
+        .search-content {
+            padding: 10px 0;
+        }
+
+        .search-form {
+            margin-bottom: 15px;
+        }
+
+        .search-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .search-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .search-group label {
+            font-size: 0.85em;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .search-select, .search-input {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9em;
+            min-width: 120px;
+        }
+
+        .search-input {
+            min-width: 150px;
+        }
+
+        .btn-search {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-search:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-1px);
+        }
+
+        .btn-clear-search {
+            background: #6c757d;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-clear-search:hover {
+            background: #5a6268;
+        }
+
+        .search-results {
+            margin-top: 15px;
+        }
+
+        .search-results h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .no-search-results {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 金额区间输入样式 */
+        .amount-range-inputs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .range-input {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .range-separator {
+            color: #666;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        /* 检索结果单行样式 */
+        .search-results-list {
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .search-result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .search-result-item:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            background: #f8f9fa;
+        }
+
+        .result-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.9em;
+        }
+
+        .result-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-relationship {
+            color: #666;
+        }
+
+        .result-amount {
+            font-weight: 600;
+            color: #28a745;
+        }
+
+        .result-note {
+            color: #666;
+            font-style: italic;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-edit-small, .btn-delete-small {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .btn-edit-small {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-edit-small:hover {
+            background: #0056b3;
+        }
+
+        .btn-delete-small {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete-small:hover {
+            background: #bd2130;
+        }
+
+        /* 数据管理 */
+        .data-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .data-actions-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .data-actions .btn {
+            padding: 8px 12px;
+            font-size: 0.9em;
+            min-width: auto;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .btn-import {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        /* 数据分析按钮 */
+        .analysis-actions {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-analysis {
+            background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%);
+            color: white;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-analysis:hover {
+            box-shadow: 0 3px 10px rgba(249, 212, 35, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* 无数据状态 */
+        .no-data {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .no-data-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-data-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .no-data-text {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* 授权验证弹窗样式 */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .auth-modal {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .auth-modal h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .auth-input {
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .auth-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .auth-error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        /* 用户信息显示样式 */
+        .user-info {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+            margin-left: 15px;
+            vertical-align: middle;
+        }
+
+        .user-info .username {
+            font-weight: bold;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                margin: 0;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .data-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .data-actions-row {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+
+            .data-actions .btn {
+                padding: 6px 8px;
+                font-size: 0.85em;
+                min-width: 80px;
+                flex: 1;
+            }
+
+            .record-summary {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .record-actions {
+                align-self: center;
+            }
+
+            .nav-menu {
+                gap: 3px;
+                padding: 0 2px;
+            }
+
+            .nav-item {
+                width: 55px;
+                height: 55px;
+                max-width: 60px;
+            }
+
+            .nav-icon {
+                font-size: 16px;
+            }
+
+            .nav-text {
+                font-size: 8px;
+                letter-spacing: -0.5px;
+            }
+
+            .btn {
+                width: 100%;
+                margin-right: 0;
+            }
+
+            .form-actions {
+                flex-direction: row;
+                justify-content: flex-end;
+                gap: 8px;
+            }
+
+            .btn-save, .btn-cancel {
+                width: auto;
+                margin-bottom: 0;
+                padding: 6px 12px;
+                font-size: 0.85em;
+            }
+
+            .search-section {
+                padding: 15px;
+            }
+
+            .search-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .search-group {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .search-group label {
+                min-width: 80px;
+                font-size: 0.85em;
+            }
+
+            .search-select, .search-input {
+                flex: 1;
+                min-width: auto;
+                font-size: 0.85em;
+            }
+
+            .btn-search, .btn-clear-search, .btn-secondary {
+                padding: 6px 12px;
+                font-size: 0.85em;
+            }
+
+            .search-buttons {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 10px;
+            }
+
+            .search-buttons .btn {
+                flex: 1;
+                max-width: 120px;
+            }
+
+            .amount-range-inputs {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .range-separator {
+                text-align: center;
+                margin: 5px 0;
+            }
+
+            .search-result-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .result-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 2px;
+            }
+
+            .result-actions {
+                align-self: flex-end;
+            }
+
+            /* 统计页面移动端适配 */
+            .statistics-details {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .detail-section h3 {
+                font-size: 16px;
+            }
+
+            .detail-item {
+                font-size: 14px;
+                padding: 8px 0;
+            }
+
+            /* 检索标签页移动端适配 */
+            .search-tabs {
+                overflow-x: auto;
+                padding-bottom: 5px;
+            }
+
+            .search-tab {
+                padding: 6px 12px;
+                font-size: 0.85em;
+                white-space: nowrap;
+            }
+
+            .analysis-actions {
+                justify-content: center;
+            }
+
+            .btn-analysis {
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 授权验证弹窗 -->
+        <div v-if="!isAuthorized" class="auth-overlay">
+            <div class="auth-modal">
+                <h2>🔐 授权验证</h2>
+                <div class="auth-form">
+                    <input 
+                        type="password" 
+                        v-model="authForm.authCode" 
+                        placeholder="请输入授权码" 
+                        class="auth-input"
+                        @keyup.enter="validateAuth"
+                    >
+                    <button @click="validateAuth" class="auth-btn">验证授权</button>
+                    <div v-if="authError" class="auth-error">{{ authError }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主要内容区域 - 只有授权后才显示 -->
+        <div v-if="isAuthorized" class="container">
+            <div class="header">
+                <h1>🎉 公事记账簿
+                    <!-- 用户信息显示在标题后面 -->
+                    <div class="user-info">
+                        👤 <span class="username">{{ currentUser }}</span>
+                    </div>
+                </h1>
+                <p>专业的礼金收支记录管理工具</p>
+            </div>
+
+            <div class="content">
+                <!-- 导航菜单 -->
+                <div class="nav-menu">
+                    <div class="nav-item" :class="{ active: activeNav === 'gifts' }" @click="navigateTo('gifts')" data-section="gifts">
+                        <div class="nav-icon"><i class="fa fa-money"></i></div>
+                        <div class="nav-text">收礼记录</div>
+                    </div>
+                    <div class="nav-item" :class="{ active: activeNav === 'expenses' }" @click="navigateTo('expenses')" data-section="expenses">
+                        <div class="nav-icon"><i class="fa fa-credit-card"></i></div>
+                        <div class="nav-text">支出记录</div>
+                    </div>
+                    <div class="nav-item" :class="{ active: activeNav === 'basicInfo' }" @click="navigateTo('basicInfo')" data-section="basicInfo">
+                        <div class="nav-icon"><i class="fa fa-info-circle"></i></div>
+                        <div class="nav-text">基本信息</div>
+                    </div>
+                    <div class="nav-item" :class="{ active: activeNav === 'statistics' }" @click="navigateTo('statistics')" data-section="statistics">
+                        <div class="nav-icon"><i class="fa fa-bar-chart"></i></div>
+                        <div class="nav-text">统计汇总</div>
+                    </div>
+                    <div class="nav-item" :class="{ active: activeNav === 'dataManagement' }" @click="navigateTo('dataManagement')" data-section="dataManagement">
+                        <div class="nav-icon"><i class="fa fa-cogs"></i></div>
+                        <div class="nav-text">数据管理</div>
+                    </div>
+                </div>
+
+                <!-- 收礼记录部分 -->
+                <div class="section" id="gifts-section">
+                    <div class="section-header" @click="showGifts = !showGifts">
+                        <h2><i class="fa fa-money"></i> 收礼记录</h2>
+                        <span class="toggle-icon" :class="{ expanded: showGifts }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showGifts }">
+                        <!-- 添加收礼记录表单 -->
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>随礼人：</label>
+                                <input type="text" v-model="newGift.giver" placeholder="请输入随礼人姓名">
+                            </div>
+                            <div class="form-group">
+                                <label>关系（选填）：</label>
+                                <input type="text" v-model="newGift.relationship" list="relationshipList" placeholder="可选，不填则空白">
+                                <datalist id="relationshipList">
+                                    <option value="亲戚">
+                                    <option value="朋友">
+                                    <option value="同事">
+                                    <option value="同学">
+                                    <option value="邻居">
+                                    <option value="其他">
+                                </datalist>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>金额：</label>
+                                <input type="number" v-model.number="newGift.amount" placeholder="请输入金额">
+                            </div>
+                            <div class="form-group">
+                                <label>备注：</label>
+                                <input type="text" v-model="newGift.note" placeholder="请输入备注（可选）">
+                            </div>
+                        </div>
+                        <button @click="addGift" class="btn btn-success"><i class="fa fa-plus"></i> 添加收礼记录</button>
+
+                        <!-- 收礼记录列表 -->
+                        <div v-if="proxyGifts.length > 0" class="records-list">
+                            <!-- 只显示最近3条 -->
+                            <div v-for="(gift, index) in displayGifts" :key="index" class="record-item">
+                                <div class="record-summary" @click="toggleGiftExpand(index)">
+                                    <span class="record-text">
+                                        {{ gift.giver }} 
+                                        <span v-if="gift.relationship"> - {{ gift.relationship }}</span>
+                                        - ¥{{ gift.amount.toLocaleString() }}
+                                    </span>
+                                    <div class="record-actions">
+                                        <button @click.stop="editGift(index)" class="btn-edit"><i class="fa fa-pencil"></i> 编辑</button>
+                                        <button @click.stop="deleteGift(index)" class="btn-delete"><i class="fa fa-trash"></i> 删除</button>
+                                        <span class="expand-icon" :class="{ expanded: gift.expanded }">▶</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="edit-form" :class="{ expanded: gift.editing }">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>随礼人：</label>
+                                            <input type="text" v-model="gift.giver" placeholder="请输入随礼人姓名">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>关系（选填）：</label>
+                                            <input type="text" v-model="gift.relationship" list="relationshipList">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>金额：</label>
+                                            <input type="number" v-model.number="gift.amount" placeholder="请输入金额">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>备注：</label>
+                                            <input type="text" v-model="gift.note">
+                                        </div>
+                                    </div>
+                                    <div class="form-actions">
+                                        <button @click="saveGiftEdit(index)" class="btn-save">保存</button>
+                                        <button @click="cancelGiftEdit(index)" class="btn-cancel">取消</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="record-details" :class="{ expanded: gift.expanded && !gift.editing }">
+                                    <p><strong>随礼人：</strong>{{ gift.giver }}</p>
+                                    <p v-if="gift.relationship"><strong>关系：</strong>{{ gift.relationship }}</p>
+                                    <p v-if="!gift.relationship"><strong>关系：</strong>（未填写）</p>
+                                    <p><strong>金额：</strong>¥{{ gift.amount.toLocaleString() }}</p>
+                                    <p v-if="gift.note"><strong>备注：</strong>{{ gift.note }}</p>
+                                    <p v-if="!gift.note"><strong>备注：</strong>（无）</p>
+                                </div>
+                            </div>
+
+                            <!-- 超过3条时显示展开按钮 -->
+                            <div v-if="proxyGifts.length > 3" class="toggle-all-btn">
+                                <button @click="toggleShowAllGifts"><i class="fa fa-chevron-down"></i> {{ showAllGifts ? '收起记录' : '展开查看全部' }} (共{{ proxyGifts.length }}条)</button>
+                            </div>
+                        </div>
+
+                        <div v-else class="empty-state">
+                            <div>📝 暂无收礼记录</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 支出记录部分 -->
+                <div class="section" id="expenses-section">
+                    <div class="section-header" @click="showExpenses = !showExpenses">
+                        <h2><i class="fa fa-credit-card"></i> 支出记录</h2>
+                        <span class="toggle-icon" :class="{ expanded: showExpenses }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showExpenses }">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>支出项目：</label>
+                                <input type="text" v-model="newExpense.item" placeholder="请输入支出项目">
+                            </div>
+                            <div class="form-group">
+                                <label>金额：</label>
+                                <input type="number" v-model.number="newExpense.amount" placeholder="请输入金额">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>备注：</label>
+                            <input type="text" v-model="newExpense.note" placeholder="请输入备注（可选）">
+                        </div>
+                        <button @click="addExpense" class="btn btn-success"><i class="fa fa-plus"></i> 添加支出记录</button>
+
+                        <div v-if="proxyExpenses.length > 0" class="records-list">
+                            <!-- 只显示最近3条 -->
+                            <div v-for="(expense, index) in displayExpenses" :key="index" class="record-item">
+                                <div class="record-summary" @click="toggleExpenseExpand(index)">
+                                    <span class="record-text">
+                                        {{ expense.item }} - ¥{{ expense.amount.toLocaleString() }}
+                                    </span>
+                                    <div class="record-actions">
+                                        <button @click.stop="editExpense(index)" class="btn-edit"><i class="fa fa-pencil"></i> 编辑</button>
+                                        <button @click.stop="deleteExpense(index)" class="btn-delete"><i class="fa fa-trash"></i> 删除</button>
+                                        <span class="expand-icon" :class="{ expanded: expense.expanded }">▶</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="edit-form" :class="{ expanded: expense.editing }">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>支出项目：</label>
+                                            <input type="text" v-model="expense.item">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>金额：</label>
+                                            <input type="number" v-model.number="expense.amount">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>备注：</label>
+                                        <input type="text" v-model="expense.note">
+                                    </div>
+                                    <div class="form-actions">
+                                        <button @click="saveExpenseEdit(index)" class="btn-save">保存</button>
+                                        <button @click="cancelExpenseEdit(index)" class="btn-cancel">取消</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="record-details" :class="{ expanded: expense.expanded && !expense.editing }">
+                                    <p><strong>支出项目：</strong>{{ expense.item }}</p>
+                                    <p><strong>金额：</strong>¥{{ expense.amount.toLocaleString() }}</p>
+                                    <p v-if="expense.note"><strong>备注：</strong>{{ expense.note }}</p>
+                                    <p v-if="!expense.note"><strong>备注：</strong>（无）</p>
+                                </div>
+                            </div>
+
+                            <!-- 超过3条时显示展开按钮 -->
+                            <div v-if="proxyExpenses.length > 3" class="toggle-all-btn">
+                                <button @click="toggleShowAllExpenses"><i class="fa fa-chevron-down"></i> {{ showAllExpenses ? '收起记录' : '展开查看全部' }} (共{{ proxyExpenses.length }}条)</button>
+                            </div>
+                        </div>
+
+                        <div v-else class="empty-state">
+                            <div>💰 暂无支出记录</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 基本信息部分 -->
+                <div class="section" id="basic-info-section">
+                    <div class="section-header" @click="showBasicInfo = !showBasicInfo">
+                        <h2><i class="fa fa-info-circle"></i> 基本信息</h2>
+                        <span class="toggle-icon" :class="{ expanded: showBasicInfo }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showBasicInfo }">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>主办方：</label>
+                                <input type="text" v-model="proxyBasicInfo.organizer" placeholder="请输入主办方姓名">
+                            </div>
+                            <div class="form-group">
+                                <label>公事类型：</label>
+                                <input type="text" 
+                                       v-model="proxyBasicInfo.publicAffairType" 
+                                       list="publicAffairTypeList"
+                                       placeholder="请输入或选择公事类型">
+                                <datalist id="publicAffairTypeList">
+                                    <option value="婚礼">
+                                    <option value="生日宴">
+                                    <option value="满月酒">
+                                    <option value="升学宴">
+                                    <option value="乔迁宴">
+                                    <option value="开业庆典">
+                                    <option value="其他">
+                                </datalist>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>记账时间：</label>
+                                <input type="date" v-model="proxyBasicInfo.accountingDate">
+                            </div>
+                            <div class="form-group">
+                                <label>地点：</label>
+                                <input type="text" v-model="proxyBasicInfo.location" placeholder="请输入地点">
+                            </div>
+                        </div>
+                        <button @click="saveBasicInfo" class="btn btn-success"><i class="fa fa-save"></i> 保存基本信息</button>
+                    </div>
+                </div>
+
+                <!-- 统计汇总部分 - 整合了检索功能 -->
+                <div class="section" id="statistics-section">
+                    <div class="section-header" @click="showStatistics = !showStatistics">
+                        <h2><i class="fa fa-bar-chart"></i> 统计汇总</h2>
+                        <span class="toggle-icon" :class="{ expanded: showStatistics }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showStatistics }">
+                        <div v-if="proxyGifts.length > 0 || proxyExpenses.length > 0" class="statistics-content">
+                            <div class="statistics-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>统计项目</th>
+                                            <th>金额</th>
+                                            <th>记录数</th>
+                                            <th>状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>💰 收礼总额</td>
+                                            <td>¥{{ totalGifts.toLocaleString() }}</td>
+                                            <td>{{ proxyGifts.length }} 笔</td>
+                                            <td>收入</td>
+                                        </tr>
+                                        <tr>
+                                            <td>💸 支出总额</td>
+                                            <td>¥{{ totalExpenses.toLocaleString() }}</td>
+                                            <td>{{ proxyExpenses.length }} 笔</td>
+                                            <td>支出</td>
+                                        </tr>
+                                        <tr class="net-income-row">
+                                            <td>📈 净收入</td>
+                                            <td :style="{ color: netIncome >= 0 ? '#28a745' : '#dc3545', fontWeight: 'bold' }">
+                                                ¥{{ netIncome.toLocaleString() }}
+                                            </td>
+                                            <td>-</td>
+                                            <td :style="{ color: netIncome >= 0 ? '#28a745' : '#dc3545', fontWeight: 'bold' }">
+                                                {{ netIncome >= 0 ? '盈利' : '亏损' }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- 整合的检索功能 -->
+                            <div class="search-container">
+                                <h3><i class="fa fa-search"></i> 记录检索与分析</h3>
+                                
+                                <!-- 检索标签页 -->
+                                <div class="search-tabs">
+                                    <div class="search-tab" :class="{ active: searchTab === 'gifts' }" @click="searchTab = 'gifts'">
+                                        <i class="fa fa-money"></i> 收礼记录检索
+                                    </div>
+                                    <div class="search-tab" :class="{ active: searchTab === 'expenses' }" @click="searchTab = 'expenses'">
+                                        <i class="fa fa-credit-card"></i> 支出记录检索
+                                    </div>
+                                </div>
+                                
+                                <!-- 收礼记录检索内容 -->
+                                <div v-if="searchTab === 'gifts'" class="search-content">
+                                    <div class="search-form">
+                                        <div class="search-row">
+                                            <div class="search-group">
+                                                <label>检索方式：</label>
+                                                <select v-model="giftSearchType" class="search-select">
+                                                    <option value="universal">万能检索</option>
+                                                    <option value="name">按姓名</option>
+                                                    <option value="relationship">按关系</option>
+                                                    <option value="amount">按金额</option>
+                                                    <option value="amountRange">按金额区间</option>
+                                                    <option value="note">按备注有无</option>
+                                                </select>
+                                            </div>
+                                            <div class="search-group" v-if="giftSearchType !== 'note' && giftSearchType !== 'amountRange'">
+                                                <label>检索词：</label>
+                                                <input type="text" v-model="giftSearchKeyword" :placeholder="giftSearchPlaceholder" class="search-input">
+                                            </div>
+                                            <div class="search-group" v-if="giftSearchType === 'amountRange'">
+                                                <label>金额区间：</label>
+                                                <div class="amount-range-inputs">
+                                                    <input type="number" v-model.number="giftAmountRange.min" placeholder="最小值" class="search-input range-input">
+                                                    <span class="range-separator">至</span>
+                                                    <input type="number" v-model.number="giftAmountRange.max" placeholder="最大值" class="search-input range-input">
+                                                </div>
+                                            </div>
+                                            <div class="search-group" v-if="giftSearchType === 'note'">
+                                                <label>备注状态：</label>
+                                                <select v-model="giftNoteStatus" class="search-select">
+                                                    <option value="has">有备注</option>
+                                                    <option value="no">无备注</option>
+                                                </select>
+                                            </div>
+                                            <div class="search-group">
+                                                <div class="search-buttons">
+                                                    <button @click="searchGifts" class="btn btn-search"><i class="fa fa-search"></i> 检索</button>
+                                                    <button @click="clearGiftSearch" class="btn btn-clear-search"><i class="fa fa-eraser"></i> 清空</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 数据分析快捷按钮 -->
+                                    <div class="analysis-actions" v-if="proxyGifts.length > 0">
+                                        <button @click="findMaxGift" class="btn btn-analysis"><i class="fa fa-arrow-up"></i> 最高金额记录</button>
+                                        <button @click="findMinGift" class="btn btn-analysis"><i class="fa fa-arrow-down"></i> 最低金额记录</button>
+                                        <button @click="findMostCommonRelationship" class="btn btn-analysis"><i class="fa fa-users"></i> 最常见关系</button>
+                                    </div>
+                                    
+                                    <!-- 检索结果 -->
+                                    <div v-if="giftSearchResults.length > 0" class="search-results">
+                                        <h4><i class="fa fa-list"></i> 检索结果 ({{ giftSearchResults.length }}条)</h4>
+                                        <div class="search-results-list">
+                                            <div v-for="(gift, index) in giftSearchResults" :key="'gift-search-' + index" class="search-result-item">
+                                                <div class="result-info">
+                                                    <span class="result-name">{{ gift.giver }}</span>
+                                                    <span v-if="gift.relationship" class="result-relationship"> - {{ gift.relationship }}</span>
+                                                    <span class="result-amount"> - ¥{{ gift.amount.toLocaleString() }}</span>
+                                                    <span v-if="gift.note" class="result-note"> - {{ gift.note }}</span>
+                                                </div>
+                                                <div class="result-actions">
+                                                    <button @click="editGiftFromSearch(index)" class="btn-edit-small"><i class="fa fa-pencil"></i> 编辑</button>
+                                                    <button @click="deleteGiftFromSearch(index)" class="btn-delete-small"><i class="fa fa-trash"></i> 删除</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div v-else-if="giftHasSearched && giftSearchResults.length === 0" class="no-search-results">
+                                        <p>未找到匹配的收礼记录</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- 支出记录检索内容 -->
+                                <div v-if="searchTab === 'expenses'" class="search-content">
+                                    <div class="search-form">
+                                        <div class="search-row">
+                                            <div class="search-group">
+                                                <label>检索方式：</label>
+                                                <select v-model="expenseSearchType" class="search-select">
+                                                    <option value="universal">万能检索</option>
+                                                    <option value="item">按项目名称</option>
+                                                    <option value="amount">按金额</option>
+                                                    <option value="amountRange">按金额区间</option>
+                                                    <option value="note">按备注有无</option>
+                                                </select>
+                                            </div>
+                                            <div class="search-group" v-if="expenseSearchType !== 'note' && expenseSearchType !== 'amountRange'">
+                                                <label>检索词：</label>
+                                                <input type="text" v-model="expenseSearchKeyword" :placeholder="expenseSearchPlaceholder" class="search-input">
+                                            </div>
+                                            <div class="search-group" v-if="expenseSearchType === 'amountRange'">
+                                                <label>金额区间：</label>
+                                                <div class="amount-range-inputs">
+                                                    <input type="number" v-model.number="expenseAmountRange.min" placeholder="最小值" class="search-input range-input">
+                                                    <span class="range-separator">至</span>
+                                                    <input type="number" v-model.number="expenseAmountRange.max" placeholder="最大值" class="search-input range-input">
+                                                </div>
+                                            </div>
+                                            <div class="search-group" v-if="expenseSearchType === 'note'">
+                                                <label>备注状态：</label>
+                                                <select v-model="expenseNoteStatus" class="search-select">
+                                                    <option value="has">有备注</option>
+                                                    <option value="no">无备注</option>
+                                                </select>
+                                            </div>
+                                            <div class="search-group">
+                                                <div class="search-buttons">
+                                                    <button @click="searchExpenses" class="btn btn-search"><i class="fa fa-search"></i> 检索</button>
+                                                    <button @click="clearExpenseSearch" class="btn btn-clear-search"><i class="fa fa-eraser"></i> 清空</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 数据分析快捷按钮 -->
+                                    <div class="analysis-actions" v-if="proxyExpenses.length > 0">
+                                        <button @click="findMaxExpense" class="btn btn-analysis"><i class="fa fa-arrow-up"></i> 最高金额记录</button>
+                                        <button @click="findMinExpense" class="btn btn-analysis"><i class="fa fa-arrow-down"></i> 最低金额记录</button>
+                                    </div>
+                                    
+                                    <!-- 检索结果 -->
+                                    <div v-if="expenseSearchResults.length > 0" class="search-results">
+                                        <h4><i class="fa fa-list"></i> 检索结果 ({{ expenseSearchResults.length }}条)</h4>
+                                        <div class="search-results-list">
+                                            <div v-for="(expense, index) in expenseSearchResults" :key="'expense-search-' + index" class="search-result-item">
+                                                <div class="result-info">
+                                                    <span class="result-name">{{ expense.item }}</span>
+                                                    <span class="result-amount"> - ¥{{ expense.amount.toLocaleString() }}</span>
+                                                    <span v-if="expense.note" class="result-note"> - {{ expense.note }}</span>
+                                                </div>
+                                                <div class="result-actions">
+                                                    <button @click="editExpenseFromSearch(index)" class="btn-edit-small"><i class="fa fa-pencil"></i> 编辑</button>
+                                                    <button @click="deleteExpenseFromSearch(index)" class="btn-delete-small"><i class="fa fa-trash"></i> 删除</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div v-else-if="expenseHasSearched && expenseSearchResults.length === 0" class="no-search-results">
+                                        <p>未找到匹配的支出记录</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="no-data-message">
+                            <div class="no-data-icon"><i class="fa fa-bar-chart"></i></div>
+                            <div class="no-data-text">暂无数据，请先添加收礼或支出记录</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 数据管理部分 -->
+                <div class="section" id="data-management-section">
+                    <div class="section-header" @click="showDataManagement = !showDataManagement">
+                        <h2><i class="fa fa-cogs"></i> 数据管理</h2>
+                        <span class="toggle-icon" :class="{ expanded: showDataManagement }">▼</span>
+                    </div>
+                    <div class="section-content" :class="{ show: showDataManagement }">
+                        <div class="data-actions">
+                            <div class="data-actions-row">
+                                <button @click="exportToWord" class="btn btn-export"><i class="fa fa-file-word-o"></i> 导出Word</button>
+                                <button @click="exportToExcel" class="btn btn-export"><i class="fa fa-file-excel-o"></i> 导出Excel</button>
+                            </div>
+                            <div class="data-actions-row">
+                                <button @click="exportToJSON" class="btn btn-export"><i class="fa fa-file-code-o"></i> 导出JSON</button>
+                                <input type="file" ref="jsonFileInput" @change="importFromJSON" accept=".json" style="display: none;">
+                                <button @click="$refs.jsonFileInput.click()" class="btn btn-import"><i class="fa fa-upload"></i> 导入JSON</button>
+                            </div>
+                            <div class="data-actions-row">
+                                <button @click="clearAllData" class="btn btn-clear"><i class="fa fa-trash"></i> 清空数据</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    // 授权验证相关
+                    isAuthorized: false,
+                    currentUser: '',
+                    authForm: {
+                        authCode: ''
+                    },
+                    authError: '',
+                    
+                    // 授权码配置区域
+                    authCodes: [
+                        { username: 'baoge', authCode: 'baoge888' }
+                        // 在此处添加新的授权码，格式如下：
+                        // { username: '新用户名', authCode: '新授权码' },
+                    ],
+                    
+                    showGifts: true,
+                    showExpenses: false,
+                    showBasicInfo: false,
+                    showStatistics: false,
+                    showDataManagement: false,
+                    
+                    activeNav: 'gifts',
+                    
+                    proxyBasicInfo: {
+                        organizer: '',
+                        publicAffairType: '',
+                        accountingDate: '',
+                        location: '',
+                        isSet: false
+                    },
+                    
+                    newGift: {
+                        giver: '',
+                        relationship: '',
+                        amount: '',
+                        note: ''
+                    },
+                    
+                    newExpense: {
+                        item: '',
+                        amount: '',
+                        note: ''
+                    },
+                    
+                    proxyGifts: [],
+                    proxyExpenses: [],
+                    
+                    // 控制是否显示全部记录
+                    showAllGifts: false,
+                    showAllExpenses: false,
+                    
+                    // 检索功能相关数据 - 整合到统计汇总中
+                    searchTab: 'gifts', // 'gifts' 或 'expenses'
+                    
+                    // 收礼记录检索
+                    giftSearchType: 'universal',
+                    giftSearchKeyword: '',
+                    giftNoteStatus: 'has',
+                    giftAmountRange: {
+                        min: null,
+                        max: null
+                    },
+                    giftSearchResults: [],
+                    giftHasSearched: false,
+                    
+                    // 支出记录检索
+                    expenseSearchType: 'universal',
+                    expenseSearchKeyword: '',
+                    expenseNoteStatus: 'has',
+                    expenseAmountRange: {
+                        min: null,
+                        max: null
+                    },
+                    expenseSearchResults: [],
+                    expenseHasSearched: false
+                };
+            },
+            
+            computed: {
+                // 计算属性控制显示的收礼记录
+                displayGifts() {
+                    return this.showAllGifts 
+                        ? [...this.proxyGifts] 
+                        : this.proxyGifts.slice(0, 3);
+                },
+                
+                // 计算属性控制显示的支出记录
+                displayExpenses() {
+                    return this.showAllExpenses 
+                        ? [...this.proxyExpenses] 
+                        : this.proxyExpenses.slice(0, 3);
+                },
+                
+                totalGifts() {
+                    return this.proxyGifts.reduce((sum, gift) => sum + (gift.amount || 0), 0);
+                },
+                
+                totalExpenses() {
+                    return this.proxyExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+                },
+                
+                netIncome() {
+                    return this.totalGifts - this.totalExpenses;
+                },
+                
+                // 收礼检索占位符
+                giftSearchPlaceholder() {
+                    switch (this.giftSearchType) {
+                        case 'universal':
+                            return '输入姓名、关系、金额或备注关键词';
+                        case 'name':
+                            return '输入随礼人姓名';
+                        case 'relationship':
+                            return '输入关系类型，如：同事、朋友、亲戚等';
+                        case 'amount':
+                            return '输入金额数字，如：500、1000等';
+                        default:
+                            return '请输入检索词';
+                    }
+                },
+                
+                // 支出检索占位符
+                expenseSearchPlaceholder() {
+                    switch (this.expenseSearchType) {
+                        case 'universal':
+                            return '输入项目名称、金额或备注关键词';
+                        case 'item':
+                            return '输入支出项目名称';
+                        case 'amount':
+                            return '输入金额数字，如：500、1000等';
+                        default:
+                            return '请输入检索词';
+                    }
+                }
+            },
+            
+            methods: {
+                // 授权验证方法
+                validateAuth() {
+                    const { authCode } = this.authForm;
+                    
+                    if (!authCode.trim()) {
+                        this.authError = '请输入授权码';
+                        return;
+                    }
+                    
+                    // 检查授权码
+                    const validAuth = this.authCodes.find(auth => 
+                        auth.authCode === authCode.trim()
+                    );
+                    
+                    if (validAuth) {
+                        this.isAuthorized = true;
+                        this.currentUser = validAuth.username;
+                        this.authError = '';
+                        
+                        // 保存授权状态到本地存储
+                        localStorage.setItem('proxyAccountingAuth', JSON.stringify({
+                            isAuthorized: true,
+                            currentUser: this.currentUser,
+                            authTime: new Date().toISOString()
+                        }));
+                        
+                        // 清空表单
+                        this.authForm.authCode = '';
+                    } else {
+                        this.authError = '授权码错误';
+                    }
+                },
+                
+                // 检查本地存储的授权状态
+                checkAuthStatus() {
+                    const authData = localStorage.getItem('proxyAccountingAuth');
+                    if (authData) {
+                        try {
+                            const parsed = JSON.parse(authData);
+                            if (parsed.isAuthorized && parsed.currentUser) {
+                                this.isAuthorized = true;
+                                this.currentUser = parsed.currentUser;
+                                return true;
+                            }
+                        } catch (error) {
+                            console.error('解析授权数据失败:', error);
+                        }
+                    }
+                    return false;
+                },
+                
+                // 导航到指定区域
+                navigateTo(section) {
+                    // 更新活动导航状态
+                    this.activeNav = section;
+                    
+                    // 隐藏所有内容区域
+                    this.showGifts = false;
+                    this.showExpenses = false;
+                    this.showBasicInfo = false;
+                    this.showStatistics = false;
+                    this.showDataManagement = false;
+                    
+                    // 显示当前内容区域
+                    if (section === 'gifts') this.showGifts = true;
+                    else if (section === 'expenses') this.showExpenses = true;
+                    else if (section === 'basicInfo') this.showBasicInfo = true;
+                    else if (section === 'statistics') this.showStatistics = true;
+                    else if (section === 'dataManagement') this.showDataManagement = true;
+                },
+                
+                // 收礼记录相关方法
+                saveBasicInfo() {
+                    this.proxyBasicInfo.isSet = true;
+                    alert('基本信息保存成功！');
+                },
+                
+                addGift() {
+                    if (!this.newGift.giver || !this.newGift.amount) {
+                        alert('请填写随礼人和金额');
+                        return;
+                    }
+                    
+                    this.proxyGifts.push({
+                        ...this.newGift,
+                        expanded: false,
+                        editing: false
+                    });
+                    
+                    this.newGift = {
+                        giver: '',
+                        relationship: '',
+                        amount: '',
+                        note: ''
+                    };
+                },
+                
+                toggleGiftExpand(index) {
+                    if (!this.displayGifts[index].editing) {
+                        this.displayGifts[index].expanded = !this.displayGifts[index].expanded;
+                    }
+                },
+                
+                editGift(index) {
+                    this.displayGifts[index].originalData = { ...this.displayGifts[index] };
+                    this.displayGifts[index].editing = true;
+                    this.displayGifts[index].expanded = false;
+                },
+                
+                saveGiftEdit(index) {
+                    if (!this.displayGifts[index].giver || !this.displayGifts[index].amount) {
+                        alert('请填写随礼人和金额');
+                        return;
+                    }
+                    delete this.displayGifts[index].originalData;
+                    this.displayGifts[index].editing = false;
+                },
+                
+                cancelGiftEdit(index) {
+                    Object.assign(this.displayGifts[index], this.displayGifts[index].originalData);
+                    delete this.displayGifts[index].originalData;
+                    this.displayGifts[index].editing = false;
+                },
+                
+                deleteGift(index) {
+                    if (confirm('确定要删除这条记录吗？')) {
+                        // 从完整列表中删除，而不是显示列表
+                        const realIndex = this.proxyGifts.findIndex(
+                            item => item.giver === this.displayGifts[index].giver && 
+                                    item.amount === this.displayGifts[index].amount &&
+                                    item.relationship === this.displayGifts[index].relationship
+                        );
+                        
+                        if (realIndex !== -1) {
+                            this.proxyGifts.splice(realIndex, 1);
+                        }
+                    }
+                },
+                
+                toggleShowAllGifts() {
+                    this.showAllGifts = !this.showAllGifts;
+                    
+                    // 展开时默认折叠所有记录
+                    if (this.showAllGifts) {
+                        this.proxyGifts.forEach(gift => {
+                            gift.expanded = false;
+                            gift.editing = false;
+                        });
+                    }
+                },
+                
+                // 支出记录相关方法
+                addExpense() {
+                    if (!this.newExpense.item || !this.newExpense.amount) {
+                        alert('请填写支出项目和金额');
+                        return;
+                    }
+                    
+                    this.proxyExpenses.push({
+                        ...this.newExpense,
+                        expanded: false,
+                        editing: false
+                    });
+                    
+                    this.newExpense = {
+                        item: '',
+                        amount: '',
+                        note: ''
+                    };
+                },
+                
+                toggleExpenseExpand(index) {
+                    if (!this.displayExpenses[index].editing) {
+                        this.displayExpenses[index].expanded = !this.displayExpenses[index].expanded;
+                    }
+                },
+                
+                editExpense(index) {
+                    this.displayExpenses[index].originalData = { ...this.displayExpenses[index] };
+                    this.displayExpenses[index].editing = true;
+                    this.displayExpenses[index].expanded = false;
+                },
+                
+                saveExpenseEdit(index) {
+                    if (!this.displayExpenses[index].item || !this.displayExpenses[index].amount) {
+                        alert('请填写支出项目和金额');
+                        return;
+                    }
+                    delete this.displayExpenses[index].originalData;
+                    this.displayExpenses[index].editing = false;
+                },
+                
+                cancelExpenseEdit(index) {
+                    Object.assign(this.displayExpenses[index], this.displayExpenses[index].originalData);
+                    delete this.displayExpenses[index].originalData;
+                    this.displayExpenses[index].editing = false;
+                },
+                
+                deleteExpense(index) {
+                    if (confirm('确定要删除这条记录吗？')) {
+                        const realIndex = this.proxyExpenses.findIndex(
+                            item => item.item === this.displayExpenses[index].item && 
+                                    item.amount === this.displayExpenses[index].amount
+                        );
+                        
+                        if (realIndex !== -1) {
+                            this.proxyExpenses.splice(realIndex, 1);
+                        }
+                    }
+                },
+                
+                toggleShowAllExpenses() {
+                    this.showAllExpenses = !this.showAllExpenses;
+                    
+                    // 展开时默认折叠所有记录
+                    if (this.showAllExpenses) {
+                        this.proxyExpenses.forEach(expense => {
+                            expense.expanded = false;
+                            expense.editing = false;
+                        });
+                    }
+                },
+                
+                // 收礼记录检索方法（移至统计汇总）
+                searchGifts() {
+                    this.giftHasSearched = true;
+                    this.giftSearchResults = [];
+                    
+                    if (this.giftSearchType === 'universal') {
+                        // 万能检索
+                        if (!this.giftSearchKeyword.trim()) {
+                            alert('请输入检索词');
+                            return;
+                        }
+                        
+                        this.giftSearchResults = this.proxyGifts.filter(gift => {
+                            const keyword = this.giftSearchKeyword.toLowerCase();
+                            return (
+                                (gift.giver && gift.giver.toLowerCase().includes(keyword)) ||
+                                (gift.relationship && gift.relationship.toLowerCase().includes(keyword)) ||
+                                (gift.amount && gift.amount.toString().includes(keyword)) ||
+                                (gift.note && gift.note.toLowerCase().includes(keyword))
+                            );
+                        });
+                    } else if (this.giftSearchType === 'name') {
+                        // 按姓名检索
+                        if (!this.giftSearchKeyword.trim()) {
+                            alert('请输入姓名');
+                            return;
+                        }
+                        
+                        this.giftSearchResults = this.proxyGifts.filter(gift => 
+                            gift.giver && gift.giver.toLowerCase().includes(this.giftSearchKeyword.toLowerCase())
+                        );
+                    } else if (this.giftSearchType === 'relationship') {
+                        // 按关系检索
+                        if (!this.giftSearchKeyword.trim()) {
+                            alert('请输入关系');
+                            return;
+                        }
+                        
+                        this.giftSearchResults = this.proxyGifts.filter(gift => 
+                            gift.relationship && gift.relationship.toLowerCase().includes(this.giftSearchKeyword.toLowerCase())
+                        );
+                    } else if (this.giftSearchType === 'amount') {
+                        // 按金额检索
+                        if (!this.giftSearchKeyword.trim()) {
+                            alert('请输入金额');
+                            return;
+                        }
+                        
+                        this.giftSearchResults = this.proxyGifts.filter(gift => 
+                            gift.amount && gift.amount.toString().includes(this.giftSearchKeyword)
+                        );
+                    } else if (this.giftSearchType === 'amountRange') {
+                        // 按金额区间检索
+                        if (this.giftAmountRange.min === null && this.giftAmountRange.max === null) {
+                            alert('请输入金额区间');
+                            return;
+                        }
+                        
+                        this.giftSearchResults = this.proxyGifts.filter(gift => {
+                            const amount = gift.amount || 0;
+                            const min = this.giftAmountRange.min !== null ? this.giftAmountRange.min : 0;
+                            const max = this.giftAmountRange.max !== null ? this.giftAmountRange.max : Number.MAX_SAFE_INTEGER;
+                            
+                            return amount >= min && amount <= max;
+                        });
+                    } else if (this.giftSearchType === 'note') {
+                        // 按备注有无检索
+                        if (this.giftNoteStatus === 'has') {
+                            this.giftSearchResults = this.proxyGifts.filter(gift => 
+                                gift.note && gift.note.trim()
+                            );
+                        } else {
+                            this.giftSearchResults = this.proxyGifts.filter(gift => 
+                                !gift.note || !gift.note.trim()
+                            );
+                        }
+                    }
+                    
+                    // 为检索结果添加展开状态
+                    this.giftSearchResults.forEach(result => {
+                        result.expanded = false;
+                    });
+                },
+                
+                clearGiftSearch() {
+                    this.giftSearchType = 'universal';
+                    this.giftSearchKeyword = '';
+                    this.giftNoteStatus = 'has';
+                    this.giftAmountRange = {
+                        min: null,
+                        max: null
+                    };
+                    this.giftSearchResults = [];
+                    this.giftHasSearched = false;
+                },
+                
+                editGiftFromSearch(index) {
+                    const searchResult = this.giftSearchResults[index];
+                    // 找到原始记录并编辑
+                    const originalIndex = this.proxyGifts.findIndex(gift => 
+                        gift.giver === searchResult.giver && 
+                        gift.amount === searchResult.amount &&
+                        gift.relationship === searchResult.relationship
+                    );
+                    
+                    if (originalIndex !== -1) {
+                        this.proxyGifts[originalIndex].originalData = { ...this.proxyGifts[originalIndex] };
+                        this.proxyGifts[originalIndex].editing = true;
+                        this.proxyGifts[originalIndex].expanded = false;
+                        
+                        // 自动切换到收礼记录标签页
+                        this.navigateTo('gifts');
+                        
+                        // 如果记录不在当前显示范围内，展开全部
+                        if (originalIndex >= 3 && !this.showAllGifts) {
+                            this.showAllGifts = true;
+                        }
+                    }
+                },
+                
+                deleteGiftFromSearch(index) {
+                    const searchResult = this.giftSearchResults[index];
+                    // 找到原始记录并删除
+                    const originalIndex = this.proxyGifts.findIndex(gift => 
+                        gift.giver === searchResult.giver && 
+                        gift.amount === searchResult.amount &&
+                        gift.relationship === searchResult.relationship
+                    );
+                    
+                    if (originalIndex !== -1) {
+                        if (confirm('确定要删除这条记录吗？')) {
+                            this.proxyGifts.splice(originalIndex, 1);
+                            // 从检索结果中移除
+                            this.giftSearchResults.splice(index, 1);
+                        }
+                    }
+                },
+                
+                // 支出记录检索方法（移至统计汇总）
+                searchExpenses() {
+                    this.expenseHasSearched = true;
+                    this.expenseSearchResults = [];
+                    
+                    if (this.expenseSearchType === 'universal') {
+                        // 万能检索
+                        if (!this.expenseSearchKeyword.trim()) {
+                            alert('请输入检索词');
+                            return;
+                        }
+                        
+                        this.expenseSearchResults = this.proxyExpenses.filter(expense => {
+                            const keyword = this.expenseSearchKeyword.toLowerCase();
+                            return (
+                                (expense.item && expense.item.toLowerCase().includes(keyword)) ||
+                                (expense.amount && expense.amount.toString().includes(keyword)) ||
+                                (expense.note && expense.note.toLowerCase().includes(keyword))
+                            );
+                        });
+                    } else if (this.expenseSearchType === 'item') {
+                        // 按项目名称检索
+                        if (!this.expenseSearchKeyword.trim()) {
+                            alert('请输入项目名称');
+                            return;
+                        }
+                        
+                        this.expenseSearchResults = this.proxyExpenses.filter(expense => 
+                            expense.item && expense.item.toLowerCase().includes(this.expenseSearchKeyword.toLowerCase())
+                        );
+                    } else if (this.expenseSearchType === 'amount') {
+                        // 按金额检索
+                        if (!this.expenseSearchKeyword.trim()) {
+                            alert('请输入金额');
+                            return;
+                        }
+                        
+                        this.expenseSearchResults = this.proxyExpenses.filter(expense => 
+                            expense.amount && expense.amount.toString().includes(this.expenseSearchKeyword)
+                        );
+                    } else if (this.expenseSearchType === 'amountRange') {
+                        // 按金额区间检索
+                        if (this.expenseAmountRange.min === null && this.expenseAmountRange.max === null) {
+                            alert('请输入金额区间');
+                            return;
+                        }
+                        
+                        this.expenseSearchResults = this.proxyExpenses.filter(expense => {
+                            const amount = expense.amount || 0;
+                            const min = this.expenseAmountRange.min !== null ? this.expenseAmountRange.min : 0;
+                            const max = this.expenseAmountRange.max !== null ? this.expenseAmountRange.max : Number.MAX_SAFE_INTEGER;
+                            
+                            return amount >= min && amount <= max;
+                        });
+                    } else if (this.expenseSearchType === 'note') {
+                        // 按备注有无检索
+                        if (this.expenseNoteStatus === 'has') {
+                            this.expenseSearchResults = this.proxyExpenses.filter(expense => 
+                                expense.note && expense.note.trim()
+                            );
+                        } else {
+                            this.expenseSearchResults = this.proxyExpenses.filter(expense => 
+                                !expense.note || !expense.note.trim()
+                            );
+                        }
+                    }
+                },
+                
+                clearExpenseSearch() {
+                    this.expenseSearchType = 'universal';
+                    this.expenseSearchKeyword = '';
+                    this.expenseNoteStatus = 'has';
+                    this.expenseAmountRange = {
+                        min: null,
+                        max: null
+                    };
+                    this.expenseSearchResults = [];
+                    this.expenseHasSearched = false;
+                },
+                
+                editExpenseFromSearch(index) {
+                    const expense = this.expenseSearchResults[index];
+                    const realIndex = this.proxyExpenses.findIndex(
+                        item => item.item === expense.item && 
+                                item.amount === expense.amount &&
+                                item.note === expense.note
+                    );
+                    
+                    if (realIndex !== -1) {
+                        this.proxyExpenses[realIndex].originalData = { ...this.proxyExpenses[realIndex] };
+                        this.proxyExpenses[realIndex].editing = true;
+                        this.proxyExpenses[realIndex].expanded = false;
+                        
+                        // 自动切换到支出记录标签页
+                        this.navigateTo('expenses');
+                        
+                        // 如果记录不在当前显示范围内，展开全部
+                        if (realIndex >= 3 && !this.showAllExpenses) {
+                            this.showAllExpenses = true;
+                        }
+                    }
+                },
+                
+                deleteExpenseFromSearch(index) {
+                    const expense = this.expenseSearchResults[index];
+                    if (confirm('确定要删除这条记录吗？')) {
+                        const realIndex = this.proxyExpenses.findIndex(
+                            item => item.item === expense.item && 
+                                    item.amount === expense.amount &&
+                                    item.note === expense.note
+                        );
+                        
+                        if (realIndex !== -1) {
+                            this.proxyExpenses.splice(realIndex, 1);
+                            // 从搜索结果中也删除
+                            this.expenseSearchResults.splice(index, 1);
+                        }
+                    }
+                },
+                
+                // 数据分析功能（原最高最低记录功能移至此处）
+                findMaxGift() {
+                    if (this.proxyGifts.length === 0) {
+                        alert('暂无收礼记录');
+                        return;
+                    }
+                    
+                    const maxAmount = Math.max(...this.proxyGifts.map(g => g.amount || 0));
+                    const maxGifts = this.proxyGifts.filter(g => g.amount === maxAmount);
+                    
+                    if (maxGifts.length === 1) {
+                        const gift = maxGifts[0];
+                        alert(`最高金额收礼记录：\n\n随礼人：${gift.giver}\n关系：${gift.relationship || '（未填写）'}\n金额：¥${gift.amount.toLocaleString()}\n备注：${gift.note || '（无）'}`);
+                    } else {
+                        let message = `找到 ${maxGifts.length} 条最高金额收礼记录（¥${maxAmount.toLocaleString()}）：\n\n`;
+                        maxGifts.forEach((gift, index) => {
+                            message += `${index + 1}. 随礼人：${gift.giver}，关系：${gift.relationship || '（未填写）'}\n`;
+                        });
+                        alert(message);
+                    }
+                },
+                
+                findMinGift() {
+                    if (this.proxyGifts.length === 0) {
+                        alert('暂无收礼记录');
+                        return;
+                    }
+                    
+                    const minAmount = Math.min(...this.proxyGifts.map(g => g.amount || 0));
+                    const minGifts = this.proxyGifts.filter(g => g.amount === minAmount);
+                    
+                    if (minGifts.length === 1) {
+                        const gift = minGifts[0];
+                        alert(`最低金额收礼记录：\n\n随礼人：${gift.giver}\n关系：${gift.relationship || '（未填写）'}\n金额：¥${gift.amount.toLocaleString()}\n备注：${gift.note || '（无）'}`);
+                    } else {
+                        let message = `找到 ${minGifts.length} 条最低金额收礼记录（¥${minAmount.toLocaleString()}）：\n\n`;
+                        minGifts.forEach((gift, index) => {
+                            message += `${index + 1}. 随礼人：${gift.giver}，关系：${gift.relationship || '（未填写）'}\n`;
+                        });
+                        alert(message);
+                    }
+                },
+                
+                findMostCommonRelationship() {
+                    if (this.proxyGifts.length === 0) {
+                        alert('暂无收礼记录');
+                        return;
+                    }
+                    
+                    // 统计关系出现频率
+                    const relationshipCount = {};
+                    this.proxyGifts.forEach(gift => {
+                        const rel = gift.relationship || '（未填写）';
+                        relationshipCount[rel] = (relationshipCount[rel] || 0) + 1;
+                    });
+                    
+                    // 找到出现次数最多的关系
+                    let maxCount = 0;
+                    let mostCommon = [];
+                    
+                    for (const rel in relationshipCount) {
+                        if (relationshipCount[rel] > maxCount) {
+                            maxCount = relationshipCount[rel];
+                            mostCommon = [rel];
+                        } else if (relationshipCount[rel] === maxCount) {
+                            mostCommon.push(rel);
+                        }
+                    }
+                    
+                    if (mostCommon.length === 1) {
+                        alert(`最常见的随礼人关系是：${mostCommon[0]}\n共出现 ${maxCount} 次`);
+                    } else {
+                        alert(`最常见的随礼人关系有 ${mostCommon.length} 种（各出现 ${maxCount} 次）：\n- ${mostCommon.join('\n- ')}`);
+                    }
+                },
+                
+                findMaxExpense() {
+                    if (this.proxyExpenses.length === 0) {
+                        alert('暂无支出记录');
+                        return;
+                    }
+                    
+                    const maxAmount = Math.max(...this.proxyExpenses.map(e => e.amount || 0));
+                    const maxExpenses = this.proxyExpenses.filter(e => e.amount === maxAmount);
+                    
+                    if (maxExpenses.length === 1) {
+                        const expense = maxExpenses[0];
+                        alert(`最高金额支出记录：\n\n项目：${expense.item}\n金额：¥${expense.amount.toLocaleString()}\n备注：${expense.note || '（无）'}`);
+                    } else {
+                        let message = `找到 ${maxExpenses.length} 条最高金额支出记录（¥${maxAmount.toLocaleString()}）：\n\n`;
+                        maxExpenses.forEach((expense, index) => {
+                            message += `${index + 1}. 项目：${expense.item}\n`;
+                        });
+                        alert(message);
+                    }
+                },
+                
+                findMinExpense() {
+                    if (this.proxyExpenses.length === 0) {
+                        alert('暂无支出记录');
+                        return;
+                    }
+                    
+                    const minAmount = Math.min(...this.proxyExpenses.map(e => e.amount || 0));
+                    const minExpenses = this.proxyExpenses.filter(e => e.amount === minAmount);
+                    
+                    if (minExpenses.length === 1) {
+                        const expense = minExpenses[0];
+                        alert(`最低金额支出记录：\n\n项目：${expense.item}\n金额：¥${expense.amount.toLocaleString()}\n备注：${expense.note || '（无）'}`);
+                    } else {
+                        let message = `找到 ${minExpenses.length} 条最低金额支出记录（¥${minAmount.toLocaleString()}）：\n\n`;
+                        minExpenses.forEach((expense, index) => {
+                            message += `${index + 1}. 项目：${expense.item}\n`;
+                        });
+                        alert(message);
+                    }
+                },
+                
+                // 数据导出导入方法
+                exportToWord() {
+                    const content = this.generateReportContent();
+                    const blob = new Blob([content], { type: 'application/msword' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    // 使用基本信息命名文件：主办方_公事类型_记账时间
+                    const fileName = `${this.proxyBasicInfo.organizer || '未知主办方'}_${this.proxyBasicInfo.publicAffairType || '未知公事'}_${this.proxyBasicInfo.accountingDate || '未知日期'}`;
+                    a.download = `代记账报告_${fileName}.doc`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+                
+                exportToExcel() {
+                    const wb = XLSX.utils.book_new();
+                    const basicInfoData = [
+                        ['项目', '内容'],
+                        ['主办方', this.proxyBasicInfo.organizer],
+                        ['公事类型', this.proxyBasicInfo.publicAffairType],
+                        ['记账时间', this.proxyBasicInfo.accountingDate],
+                        ['地点', this.proxyBasicInfo.location]
+                    ];
+                    const basicInfoWS = XLSX.utils.aoa_to_sheet(basicInfoData);
+                    XLSX.utils.book_append_sheet(wb, basicInfoWS, '基本信息');
+                    
+                    if (this.proxyGifts.length > 0) {
+                        const giftsData = [
+                            ['随礼人', '关系', '金额', '备注'],
+                            ...this.proxyGifts.map(gift => [gift.giver, gift.relationship || '', gift.amount, gift.note || ''])
+                        ];
+                        const giftsWS = XLSX.utils.aoa_to_sheet(giftsData);
+                        XLSX.utils.book_append_sheet(wb, giftsWS, '收礼记录');
+                    }
+                    
+                    if (this.proxyExpenses.length > 0) {
+                        const expensesData = [
+                            ['支出项目', '金额', '备注'],
+                            ...this.proxyExpenses.map(expense => [expense.item, expense.amount, expense.note || ''])
+                        ];
+                        const expensesWS = XLSX.utils.aoa_to_sheet(expensesData);
+                        XLSX.utils.book_append_sheet(wb, expensesWS, '支出记录');
+                    }
+                    
+                    const summaryData = [
+                        ['项目', '金额'],
+                        ['收礼总额', this.totalGifts],
+                        ['支出总额', this.totalExpenses],
+                        ['净收入', this.netIncome]
+                    ];
+                    const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
+                    XLSX.utils.book_append_sheet(wb, summaryWS, '统计汇总');
+                    
+                    // 使用基本信息命名文件：主办方_公事类型_记账时间
+                    const fileName = `${this.proxyBasicInfo.organizer || '未知主办方'}_${this.proxyBasicInfo.publicAffairType || '未知公事'}_${this.proxyBasicInfo.accountingDate || '未知日期'}`;
+                    XLSX.writeFile(wb, `代记账报告_${fileName}.xlsx`);
+                },
+                
+                exportToJSON() {
+                    const data = {
+                        proxyBasicInfo: this.proxyBasicInfo,
+                        proxyGifts: this.proxyGifts.map(gift => ({
+                            giver: gift.giver,
+                            relationship: gift.relationship,
+                            amount: gift.amount,
+                            note: gift.note
+                        })),
+                        proxyExpenses: this.proxyExpenses.map(expense => ({
+                            item: expense.item,
+                            amount: expense.amount,
+                            note: expense.note
+                        })),
+                        exportDate: new Date().toISOString()
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    // 使用基本信息进行命名：主办方_公事类型_记账时间
+                    const fileName = `${this.proxyBasicInfo.organizer || '未知主办方'}_${this.proxyBasicInfo.publicAffairType || '未知公事'}_${this.proxyBasicInfo.accountingDate || '未知日期'}`;
+                    a.download = `${fileName}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+                
+                importFromJSON(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (confirm('导入数据将覆盖当前所有数据，确定要继续吗？')) {
+                                // 处理基本信息字段名称兼容性
+                                const importedBasicInfo = data.proxyBasicInfo || {};
+                                this.proxyBasicInfo = {
+                                    organizer: importedBasicInfo.organizer || importedBasicInfo.client || '',
+                                    publicAffairType: importedBasicInfo.publicAffairType || importedBasicInfo.eventType || '',
+                                    accountingDate: importedBasicInfo.accountingDate || importedBasicInfo.eventDate || '',
+                                    location: importedBasicInfo.location || '',
+                                    isSet: importedBasicInfo.isSet || false
+                                };
+                                
+                                this.proxyGifts = (data.proxyGifts || []).map(gift => ({
+                                    ...gift,
+                                    expanded: false,
+                                    editing: false
+                                }));
+                                this.proxyExpenses = (data.proxyExpenses || []).map(expense => ({
+                                    ...expense,
+                                    expanded: false,
+                                    editing: false
+                                }));
+                                
+                                // 重置展开状态
+                                this.showAllGifts = false;
+                                this.showAllExpenses = false;
+                                
+                                // 如果有基本信息数据，自动展开基本信息面板
+                                if (this.proxyBasicInfo && (this.proxyBasicInfo.organizer || this.proxyBasicInfo.publicAffairType || this.proxyBasicInfo.accountingDate || this.proxyBasicInfo.location)) {
+                                    this.showBasicInfo = true;
+                                }
+                                
+                                alert('数据导入成功！所有记录已默认折叠');
+                            }
+                        } catch (error) {
+                            alert('文件格式错误，请选择正确的JSON文件');
+                        }
+                    };
+                    reader.readAsText(file);
+                    event.target.value = '';
+                },
+                
+                clearAllData() {
+                    if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                        this.proxyBasicInfo = {
+                            organizer: '',
+                            publicAffairType: '',
+                            accountingDate: '',
+                            location: '',
+                            isSet: false
+                        };
+                        this.proxyGifts = [];
+                        this.proxyExpenses = [];
+                        this.newGift = {
+                            giver: '',
+                            relationship: '',
+                            amount: '',
+                            note: ''
+                        };
+                        this.newExpense = {
+                            item: '',
+                            amount: '',
+                            note: ''
+                        };
+                        
+                        // 重置展开状态
+                        this.showAllGifts = false;
+                        this.showAllExpenses = false;
+                        
+                        // 重置检索结果
+                        this.clearGiftSearch();
+                        this.clearExpenseSearch();
+                        
+                        alert('数据已清空！');
+                    }
+                },
+                
+                generateReportContent() {
+                    let content = `
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+                                th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+                                th { background-color: #f2f2f2; }
+                                h1, h2 { color: #333; text-align: center; }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>代记账报告</h1>
+                    `;
+                    
+                    content += `
+                        <h2>基本信息</h2>
+                        <table>
+                            <tr><th>主办方</th><td>${this.proxyBasicInfo.organizer}</td></tr>
+                            <tr><th>公事类型</th><td>${this.proxyBasicInfo.publicAffairType}</td></tr>
+                            <tr><th>记账时间</th><td>${this.proxyBasicInfo.accountingDate}</td></tr>
+                            <tr><th>地点</th><td>${this.proxyBasicInfo.location}</td></tr>
+                        </table>
+                    `;
+                    
+                    if (this.proxyGifts.length > 0) {
+                        content += `
+                            <h2>收礼记录</h2>
+                            <table>
+                                <tr><th>随礼人</th><th>关系</th><th>金额</th><th>备注</th></tr>
+                        `;
+                        this.proxyGifts.forEach(gift => {
+                            content += `<tr><td>${gift.giver}</td><td>${gift.relationship || ''}</td><td>¥${gift.amount}</td><td>${gift.note || ''}</td></tr>`;
+                        });
+                        content += '</table>';
+                    }
+                    
+                    if (this.proxyExpenses.length > 0) {
+                        content += `
+                            <h2>支出记录</h2>
+                            <table>
+                                <tr><th>支出项目</th><th>金额</th><th>备注</th></tr>
+                        `;
+                        this.proxyExpenses.forEach(expense => {
+                            content += `<tr><td>${expense.item}</td><td>¥${expense.amount}</td><td>${expense.note || ''}</td></tr>`;
+                        });
+                        content += '</table>';
+                    }
+                    
+                    content += `
+                        <div style="margin: 20px 0; padding: 15px; background: #f9f9f9;">
+                            <h2>统计汇总</h2>
+                            <table>
+                                <tr><th>收礼总额</th><td>¥${this.totalGifts}</td></tr>
+                                <tr><th>支出总额</th><td>¥${this.totalExpenses}</td></tr>
+                                <tr><th>净收入</th><td>¥${this.netIncome}</td></tr>
+                            </table>
+                        </div>
+                        <p style="text-align: center; margin-top: 30px; color: #666;">
+                            报告生成时间：${new Date().toLocaleString()}
+                        </p>
+                        </body>
+                        </html>
+                    `;
+                    
+                    return content;
+                },
+                
+                // 本地存储相关
+                saveToLocalStorage() {
+                    const data = {
+                        proxyBasicInfo: this.proxyBasicInfo,
+                        proxyGifts: this.proxyGifts,
+                        proxyExpenses: this.proxyExpenses,
+                        showAllGifts: this.showAllGifts,
+                        showAllExpenses: this.showAllExpenses,
+                        showBasicInfo: this.showBasicInfo
+                    };
+                    localStorage.setItem('proxyAccountingData', JSON.stringify(data));
+                },
+                
+                loadFromLocalStorage() {
+                    const data = localStorage.getItem('proxyAccountingData');
+                    if (data) {
+                        try {
+                            const parsedData = JSON.parse(data);
+                            
+                            // 处理基本信息字段名称兼容性
+                            const storedBasicInfo = parsedData.proxyBasicInfo || {};
+                            this.proxyBasicInfo = {
+                                organizer: storedBasicInfo.organizer || storedBasicInfo.client || '',
+                                publicAffairType: storedBasicInfo.publicAffairType || storedBasicInfo.eventType || '',
+                                accountingDate: storedBasicInfo.accountingDate || storedBasicInfo.eventDate || '',
+                                location: storedBasicInfo.location || '',
+                                isSet: storedBasicInfo.isSet || false
+                            };
+                            
+                            this.proxyGifts = parsedData.proxyGifts || [];
+                            this.proxyExpenses = parsedData.proxyExpenses || [];
+                            
+                            // 恢复展开状态
+                            this.showAllGifts = parsedData.showAllGifts || false;
+                            this.showAllExpenses = parsedData.showAllExpenses || false;
+                            this.showBasicInfo = parsedData.showBasicInfo || false;
+                            
+                            // 如果有基本信息数据，自动展开基本信息面板
+                            if (this.proxyBasicInfo && (this.proxyBasicInfo.organizer || this.proxyBasicInfo.publicAffairType || this.proxyBasicInfo.accountingDate || this.proxyBasicInfo.location)) {
+                                this.showBasicInfo = true;
+                            }
+                            
+                            // 确保所有记录默认折叠
+                            this.proxyGifts.forEach(gift => {
+                                gift.expanded = false;
+                                gift.editing = false;
+                            });
+                            
+                            this.proxyExpenses.forEach(expense => {
+                                expense.expanded = false;
+                                expense.editing = false;
+                            });
+                        } catch (error) {
+                            console.error('加载本地数据失败:', error);
+                        }
+                    }
+                }
+            },
+            
+            watch: {
+                proxyBasicInfo: {
+                    handler() {
+                        this.saveToLocalStorage();
+                    },
+                    deep: true
+                },
+                proxyGifts: {
+                    handler() {
+                        this.saveToLocalStorage();
+                    },
+                    deep: true
+                },
+                proxyExpenses: {
+                    handler() {
+                        this.saveToLocalStorage();
+                    },
+                    deep: true
+                },
+                showAllGifts() {
+                    this.saveToLocalStorage();
+                },
+                showAllExpenses() {
+                    this.saveToLocalStorage();
+                },
+                showBasicInfo() {
+                    this.saveToLocalStorage();
+                }
+            },
+            
+            mounted() {
+                // 检查授权状态
+                const isAuth = this.checkAuthStatus();
+                
+                // 如果已授权，加载本地数据
+                if (isAuth) {
+                    this.loadFromLocalStorage();
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
+    
