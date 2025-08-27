@@ -80,6 +80,12 @@
       transition: background 0.2s;
     }
     button:not(.refresh-btn):hover { background: linear-gradient(90deg, #005ecb 0%, #00aaff 100%); }
+    /* 新增：禁用状态按钮样式，提升视觉反馈 */
+    button:not(.refresh-btn):disabled {
+      background: linear-gradient(90deg, #8cc5ff 0%, #80d8ff 100%);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
     .result {
       margin-top: 18px;
       display: flex;
@@ -161,7 +167,8 @@
     <h2>网站缩略图</h2>
     <input type="text" id="urlInput" placeholder="输入网址，如 https://www.baidu.com" />
     <br>
-    <button onclick="fetch缩略图()">抓取</button>
+    <!-- 关键：给抓取按钮添加ID，用于JS控制状态 -->
+    <button id="fetchBtn" onclick="fetch缩略图()">抓取</button>
     <div class="result" id="result"></div>
   </div>
   <script>
@@ -173,20 +180,33 @@
     function resetPanel() {
       document.getElementById('urlInput').value = '';
       document.getElementById('result').innerHTML = '';
+      // 重置抓取按钮状态（刷新时恢复初始状态）
+      const fetchBtn = document.getElementById('fetchBtn');
+      fetchBtn.textContent = '抓取';
+      fetchBtn.disabled = false;
+      
       document.getElementById('urlInput').focus();
       document.getElementById('mainPanel').classList.add('centered');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // 核心修改：添加按钮加载状态控制
     async function fetch缩略图() {
       const url = document.getElementById('urlInput').value.trim();
       const resultDiv = document.getElementById('result');
+      const fetchBtn = document.getElementById('fetchBtn'); // 获取抓取按钮元素
+      
       resultDiv.innerHTML = '';
       if (!url) {
         alert('请输入网址');
         return;
       }
-      // 域名提取
+
+      // 1. 点击后立即修改按钮状态：显示加载文本 + 禁用按钮（防止重复点击）
+      fetchBtn.textContent = '正在抓取中，请稍后....';
+      fetchBtn.disabled = true;
+
+      // 域名提取（原逻辑不变）
       let domain = '';
       try {
         domain = new URL(url).hostname;
@@ -195,44 +215,64 @@
           domain = new URL('https://' + url).hostname;
         } catch {
           resultDiv.innerHTML = '<span style="color:#e74c3c;">无法识别网址，请输入正确的网址！</span>';
+          // 2. 网址错误时恢复按钮状态
+          fetchBtn.textContent = '抓取';
+          fetchBtn.disabled = false;
           return;
         }
       }
-      // 并发抓取
+
+      // 并发抓取（原逻辑不变）
       const apis = [
         { name: 'Unavatar', url: `https://unavatar.io/${domain}` },
         { name: 'DuckDuckGo Favicon', url: `https://icons.duckduckgo.com/ip3/${domain}.ico` },
         { name: '网站自身', url: `https://${domain}/favicon.ico` }
       ];
-      // 并发检测图片可用性
+
+      // 并发检测图片可用性（原逻辑不变）
       const checkImage = (api) => new Promise((resolve) => {
         const img = new window.Image();
         img.onload = () => resolve({ ...api, valid: img.width > 8 });
         img.onerror = () => resolve({ ...api, valid: false });
         img.src = api.url + (api.url.includes('?') ? '&' : '?') + 't=' + Date.now();
       });
-      const results = await Promise.all(apis.map(checkImage));
-      let html = '';
-      for (const api of results) {
-        html += `<div class="icon-block">
-          <h4>${api.name}</h4>
-          ${api.valid ? `<img src="${api.url}" alt="${api.name} 图标">` : `<span style='color:#e74c3c;'>获取失败</span>`}
-          <div class="icon-link-row">
-            <a href="${api.url}" target="_blank">${api.url}</a>
-            <button class="copy-btn" onclick="copyToClipboard('${api.url}', this)">复制</button>
-          </div>
-        </div>`;
+
+      try {
+        // 执行抓取逻辑
+        const results = await Promise.all(apis.map(checkImage));
+        let html = '';
+        for (const api of results) {
+          html += `<div class="icon-block">
+            <h4>${api.name}</h4>
+            ${api.valid ? `<img src="${api.url}" alt="${api.name} 图标">` : `<span style='color:#e74c3c;'>获取失败</span>`}
+            <div class="icon-link-row">
+              <a href="${api.url}" target="_blank">${api.url}</a>
+              <button class="copy-btn" onclick="copyToClipboard('${api.url}', this)">复制</button>
+            </div>
+          </div>`;
+        }
+        resultDiv.innerHTML = html;
+
+        // 面板上移（原逻辑不变）
+        const panel = document.getElementById('mainPanel');
+        panel.classList.remove('centered');
+        setTimeout(() => {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+
+      } catch (error) {
+        // 3. 网络错误时显示提示并恢复按钮
+        resultDiv.innerHTML = '<span style="color:#e74c3c;">抓取失败，请稍后重试！</span>';
+        console.error('抓取错误：', error);
+
+      } finally {
+        // 4. 无论成功/失败，最终都恢复按钮原状态
+        fetchBtn.textContent = '抓取';
+        fetchBtn.disabled = false;
       }
-      resultDiv.innerHTML = html;
-      // 面板上移，内容多时自动滚动到面板顶部
-      const panel = document.getElementById('mainPanel');
-      panel.classList.remove('centered');
-      setTimeout(() => {
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
     }
 
-    // 复制功能
+    // 复制功能（原逻辑不变）
     function copyToClipboard(text, btn) {
       if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(() => {
