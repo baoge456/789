@@ -245,21 +245,84 @@
         }
 
         .test-result {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            border: 1px solid #c3e6cb;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
             border-radius: 10px;
             padding: 20px;
             margin-top: 15px;
             display: none;
         }
 
-        .test-result.error {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            border-color: #f5c6cb;
-        }
-
         .test-result.show {
             display: block;
+        }
+
+        .test-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .test-summary {
+            font-weight: 600;
+        }
+
+        .batch-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .batch-result-item {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            background: white;
+        }
+
+        .batch-result-item.valid {
+            border-color: #c3e6cb;
+            background: rgba(222, 235, 247, 0.5);
+        }
+
+        .batch-result-item.expired {
+            border-color: #f5c6cb;
+            background: rgba(248, 215, 218, 0.3);
+        }
+
+        .result-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .result-password {
+            font-weight: 600;
+        }
+
+        .result-status {
+            font-size: 0.85em;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .status-valid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .result-details {
+            font-size: 0.85em;
+            color: #6c757d;
         }
 
         .file-upload-area {
@@ -315,6 +378,14 @@
             opacity: 0.9;
         }
 
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
         @media (max-width: 768px) {
             .grid-2, .grid-3 {
                 grid-template-columns: 1fr;
@@ -326,6 +397,10 @@
             
             .header h1 {
                 font-size: 2em;
+            }
+
+            .action-buttons {
+                justify-content: flex-start;
             }
         }
     </style>
@@ -354,6 +429,7 @@
             <!-- 密码管理区域 -->
             <div class="section">
                 <h2>🔑 密码管理</h2>
+                <!-- 密码输入区域 -->
                 <div class="grid-3">
                     <div class="form-group">
                         <label for="authInput">密码</label>
@@ -367,12 +443,18 @@
                             <option value="temporary">临时密码（7天有效期）</option>
                         </select>
                     </div>
-                    <div class="form-group" style="display: flex; align-items: end; gap: 10px;">
+                    <div class="form-group" style="display: flex; align-items: end;">
                         <button class="btn" onclick="addAuthCode()">➕ 添加密码</button>
-                        <button class="btn btn-danger" onclick="testPassword()">🧪 批量测试</button>
                     </div>
                 </div>
                 
+                <!-- 操作按钮组 -->
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="simulateUserVerification()">👤 模拟用户验证</button>
+                    <button class="btn btn-danger" onclick="batchTestAllPasswords()">📋 批量测试所有密码</button>
+                </div>
+                
+                <!-- 统计数据区域 -->
                 <div id="passwordStats" class="stats" style="display: none;">
                     <div class="stat-card">
                         <div class="stat-number" id="totalPasswords">0</div>
@@ -388,10 +470,18 @@
                     </div>
                 </div>
 
+                <!-- 密码列表 -->
                 <ul id="authList" class="password-list"></ul>
                 
                 <!-- 测试结果显示容器 -->
-                <div id="testResult" class="test-result"></div>
+                <div id="testResult" class="test-result">
+                    <div class="test-result-header">
+                        <h3>测试结果</h3>
+                        <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                    </div>
+                    <div class="test-summary" id="testSummary"></div>
+                    <div class="batch-results" id="batchResults"></div>
+                </div>
             </div>
 
             <!-- 导出区域 -->
@@ -409,7 +499,6 @@
                 </div>
             </div>
 
-            
         </div>
     </div>
 
@@ -565,7 +654,7 @@
         }
 
         function updatePreview() {
-            // 可以在这里添加预览功能
+            // 预览功能
         }
         
         function generateAuthScript() {
@@ -676,35 +765,57 @@
             }
         }
 
-        function testPassword() {
+        // 模拟用户验证（原批量测试功能）
+        function simulateUserVerification() {
             if (authCodes.length === 0) {
                 showNotification('请先添加至少一个密码', 'error');
                 return;
             }
             
             const testResult = document.getElementById('testResult');
+            const batchResults = document.getElementById('batchResults');
             testResult.className = 'test-result show';
+            batchResults.innerHTML = ''; // 清空批量结果区域
+            
+            document.getElementById('testSummary').textContent = '用户输入验证测试';
             
             function promptPassword() {
-                const code = prompt('请输入密码进行测试验证');
+                const code = prompt('请输入密码进行验证');
                 if (code === null) {
-                    testResult.innerHTML = '<strong>测试已取消</strong>';
-                    testResult.classList.add('error');
+                    testResult.innerHTML = `
+                        <div class="test-result-header">
+                            <h3>测试结果</h3>
+                            <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                        </div>
+                        <div class="test-summary">测试已取消</div>
+                    `;
                     return;
                 }
                 
                 const password = passwords.find(p => p.code === code);
                 if (!password) {
-                    testResult.innerHTML = '<strong>❌ 密码错误</strong><br>请重新输入正确的密码';
-                    testResult.classList.add('error');
+                    testResult.innerHTML = `
+                        <div class="test-result-header">
+                            <h3>测试结果</h3>
+                            <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                        </div>
+                        <div class="test-summary">❌ 密码错误</div>
+                        <div class="result-details">请重新输入正确的密码</div>
+                    `;
                     setTimeout(() => promptPassword(), 1000);
                     return;
                 }
                 
                 // 检查临时密码是否过期
                 if (password.type === 'temporary' && isPasswordExpired(password)) {
-                    testResult.innerHTML = '<strong>❌ 临时密码已过期</strong><br>该密码已超过7天有效期';
-                    testResult.classList.add('error');
+                    testResult.innerHTML = `
+                        <div class="test-result-header">
+                            <h3>测试结果</h3>
+                            <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                        </div>
+                        <div class="test-summary">❌ 临时密码已过期</div>
+                        <div class="result-details">该密码已超过7天有效期</div>
+                    `;
                     setTimeout(() => promptPassword(), 1000);
                     return;
                 }
@@ -723,38 +834,125 @@
                     message += '• 过期后需要重新设置密码';
                 }
                 
-                testResult.innerHTML = message;
-                testResult.classList.remove('error');
+                testResult.innerHTML = `
+                    <div class="test-result-header">
+                        <h3>测试结果</h3>
+                        <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                    </div>
+                    <div class="test-summary">${message}</div>
+                `;
             }
             
             promptPassword();
         }
 
+        // 单个密码测试
         function testSinglePassword(code) {
             const password = passwords.find(p => p.code === code);
             if (!password) return;
             
             const testResult = document.getElementById('testResult');
+            const batchResults = document.getElementById('batchResults');
             testResult.className = 'test-result show';
+            batchResults.innerHTML = ''; // 清空批量结果区域
             
+            let message, summary;
             if (password.type === 'temporary' && isPasswordExpired(password)) {
-                testResult.innerHTML = `<strong>❌ 密码 "${code}" 已过期</strong><br>该临时密码已超过7天有效期`;
-                testResult.classList.add('error');
+                summary = `❌ 密码 "${code}" 已过期`;
+                message = '该临时密码已超过7天有效期';
             } else {
-                let message = `<strong>✅ 密码 "${code}" 验证成功！</strong><br>`;
+                summary = `✅ 密码 "${code}" 验证成功！`;
                 if (password.type === 'remember') {
-                    message += '• 记住密码类型：输入一次长期有效';
+                    message = '• 记住密码类型：输入一次长期有效';
                 } else if (password.type === 'normal') {
-                    message += '• 普通密码类型：每次访问都需要输入密码';
+                    message = '• 普通密码类型：每次访问都需要输入密码';
                 } else if (password.type === 'temporary') {
                     const now = new Date().getTime();
                     const daysLeft = 7 - Math.floor((now - password.createdAt) / (1000 * 60 * 60 * 24));
-                    message += `• 临时密码类型：剩余${daysLeft}天有效期`;
+                    message = `• 临时密码类型：剩余${daysLeft}天有效期`;
+                }
+            }
+            
+            testResult.innerHTML = `
+                <div class="test-result-header">
+                    <h3>测试结果</h3>
+                    <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                </div>
+                <div class="test-summary">${summary}</div>
+                <div class="result-details">${message}</div>
+            `;
+        }
+
+        // 批量测试所有密码
+        function batchTestAllPasswords() {
+            if (authCodes.length === 0) {
+                showNotification('请先添加至少一个密码', 'error');
+                return;
+            }
+            
+            const testResult = document.getElementById('testResult');
+            const batchResults = document.getElementById('batchResults');
+            testResult.className = 'test-result show';
+            batchResults.innerHTML = '';
+            
+            let validCount = 0;
+            let expiredCount = 0;
+            
+            // 遍历所有密码进行测试
+            passwords.forEach(password => {
+                const isExpired = password.type === 'temporary' && isPasswordExpired(password);
+                const typeText = {
+                    'normal': '普通密码',
+                    'remember': '记住密码',
+                    'temporary': '临时密码'
+                }[password.type];
+                
+                // 创建结果项
+                const resultItem = document.createElement('div');
+                resultItem.className = `batch-result-item ${isExpired ? 'expired' : 'valid'}`;
+                
+                let details = `类型: ${typeText}`;
+                if (password.type === 'temporary') {
+                    const now = new Date().getTime();
+                    const daysDiff = (now - password.createdAt) / (1000 * 60 * 60 * 24);
+                    if (isExpired) {
+                        details += `, 已过期 ${Math.floor(daysDiff - 7)} 天`;
+                    } else {
+                        const daysLeft = 7 - Math.floor(daysDiff);
+                        details += `, 剩余 ${daysLeft} 天有效期`;
+                    }
                 }
                 
-                testResult.innerHTML = message;
-                testResult.classList.remove('error');
-            }
+                resultItem.innerHTML = `
+                    <div class="result-item-header">
+                        <span class="result-password">${password.code}</span>
+                        <span class="result-status ${isExpired ? 'status-expired' : 'status-valid'}">
+                            ${isExpired ? '已过期' : '有效'}
+                        </span>
+                    </div>
+                    <div class="result-details">${details}</div>
+                `;
+                
+                batchResults.appendChild(resultItem);
+                
+                // 更新统计
+                if (isExpired) {
+                    expiredCount++;
+                } else {
+                    validCount++;
+                }
+            });
+            
+            // 更新摘要信息
+            document.getElementById('testSummary').textContent = 
+                `批量测试完成 - 共 ${passwords.length} 个密码 (有效: ${validCount}, 已过期: ${expiredCount})`;
+                
+            showNotification(`批量测试完成，共测试 ${passwords.length} 个密码`, 'success');
+        }
+
+        // 隐藏测试结果
+        function hideTestResults() {
+            document.getElementById('testResult').classList.remove('show');
         }
 
         function copyCode() {
@@ -809,7 +1007,6 @@
         }
 
         function showNotification(message, type = 'info') {
-            // 创建通知元素
             const notification = document.createElement('div');
             notification.style.cssText = `
                 position: fixed;
@@ -836,12 +1033,10 @@
             notification.textContent = message;
             document.body.appendChild(notification);
             
-            // 显示动画
             setTimeout(() => {
                 notification.style.transform = 'translateX(0)';
             }, 100);
             
-            // 自动隐藏
             setTimeout(() => {
                 notification.style.transform = 'translateX(100%)';
                 setTimeout(() => {
