@@ -367,8 +367,9 @@
                             <option value="temporary">临时密码（7天有效期）</option>
                         </select>
                     </div>
-                    <div class="form-group" style="display: flex; align-items: end;">
+                    <div class="form-group" style="display: flex; align-items: end; gap: 10px;">
                         <button class="btn" onclick="addAuthCode()">➕ 添加密码</button>
+                        <button class="btn btn-danger" onclick="testPassword()">🧪 批量测试</button>
                     </div>
                 </div>
                 
@@ -388,9 +389,10 @@
                 </div>
 
                 <ul id="authList" class="password-list"></ul>
+                
+                <!-- 测试结果显示容器 -->
+                <div id="testResult" class="test-result"></div>
             </div>
-
-            
 
             <!-- 导出区域 -->
             <div class="section">
@@ -562,7 +564,9 @@
             }
         }
 
-
+        function updatePreview() {
+            // 可以在这里添加预览功能
+        }
         
         function generateAuthScript() {
             const passwordsData = passwords.map(p => ({
@@ -679,8 +683,7 @@
             }
             
             const testResult = document.getElementById('testResult');
-            testResult.className = 'test-result';
-            testResult.style.display = 'block';
+            testResult.className = 'test-result show';
             
             function promptPassword() {
                 const code = prompt('请输入密码进行测试验证');
@@ -732,10 +735,10 @@
             if (!password) return;
             
             const testResult = document.getElementById('testResult');
-            testResult.style.display = 'block';
+            testResult.className = 'test-result show';
             
             if (password.type === 'temporary' && isPasswordExpired(password)) {
-                testResult.innerHTML = '<strong>❌ 密码已过期</strong><br>该临时密码已超过7天有效期';
+                testResult.innerHTML = `<strong>❌ 密码 "${code}" 已过期</strong><br>该临时密码已超过7天有效期`;
                 testResult.classList.add('error');
             } else {
                 let message = `<strong>✅ 密码 "${code}" 验证成功！</strong><br>`;
