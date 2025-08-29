@@ -47,7 +47,7 @@
 </head>
 <body class="font-inter bg-slate-50 min-h-screen text-slate-800">
     <!-- 顶部导航 -->
-    <header class="gradient-bg text-white shadow-md">
+    <header id="mainHeader" class="gradient-bg text-white shadow-md">
         <div class="container mx-auto px-4 py-6">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center gap-2 mb-4 md:mb-0">
@@ -62,7 +62,7 @@
     </header>
 
     <!-- 主要内容 -->
-    <main class="container mx-auto px-4 py-8 md:py-12">
+    <main id="mainContent" class="container mx-auto px-4 py-8 md:py-12">
         <div class="max-w-5xl mx-auto">
             <!-- 生成表单区域 -->
             <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow mb-8">
@@ -246,7 +246,7 @@
         </div>
     </main>
 
-    <!-- 密码验证模态框（默认隐藏） -->
+    <!-- 密码验证模态框 -->
     <div id="passwordModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-md card-shadow transform transition-all">
             <div class="flex justify-center mb-6">
@@ -291,8 +291,8 @@
         // 全局变量
         let linksData = [];
         const LINK_STORAGE_KEY = 'protected_links';
-        // 设置你的公网基础地址，部署时替换为实际地址
         const PUBLIC_BASE_URL = window.location.href.split('?')[0];
+        let isProtectedLink = false; // 标记是否通过受保护链接访问
         
         // DOM元素
         const linkForm = document.getElementById('linkForm');
@@ -314,6 +314,8 @@
         const modalDescription = document.getElementById('modalDescription');
         const passwordError = document.getElementById('passwordError');
         const linkItemTemplate = document.getElementById('linkItemTemplate');
+        const mainHeader = document.getElementById('mainHeader');
+        const mainContent = document.getElementById('mainContent');
         
         // 当前验证的链接ID和目标URL
         let currentVerifyLinkId = null;
@@ -379,7 +381,7 @@
                 id: generateUniqueId(),
                 name: pageName,
                 targetUrl: targetUrl,
-                password: password, // 实际应用中应该加密存储密码
+                password: password,
                 createdAt: new Date().toISOString()
             };
             
@@ -441,6 +443,9 @@
         
         // 渲染链接列表
         function renderLinksList(filterText = '') {
+            // 如果是通过受保护链接访问，不渲染列表
+            if (isProtectedLink) return;
+            
             // 清空列表
             linksList.innerHTML = '';
             
@@ -551,6 +556,13 @@
             const linkId = params.get('linkId');
             
             if (linkId) {
+                // 标记为通过受保护链接访问
+                isProtectedLink = true;
+                
+                // 隐藏主界面内容
+                mainHeader.style.display = 'none';
+                mainContent.style.display = 'none';
+                
                 // 查找对应的链接
                 const link = linksData.find(l => l.id === linkId);
                 
@@ -566,16 +578,23 @@
                     // 聚焦密码输入框
                     modalPasswordInput.focus();
                 } else {
-                    alert('未找到对应的受保护链接');
+                    // 如果未找到链接，显示错误信息
+                    modalTitle.textContent = '链接不存在';
+                    modalDescription.textContent = '未找到对应的受保护链接或链接已被删除';
+                    document.getElementById('passwordForm').querySelector('button').textContent = '关闭';
+                    document.getElementById('modalPassword').style.display = 'none';
+                    passwordModal.classList.remove('hidden');
                 }
             }
         }
         
-        // 处理密码验证 - 核心验证逻辑
+        // 处理密码验证
         passwordForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // 如果是不存在的链接，点击按钮关闭模态框
             if (!currentVerifyLinkId || !currentTargetUrl) {
+                passwordModal.classList.add('hidden');
                 return;
             }
             
@@ -588,7 +607,7 @@
                 return;
             }
             
-            // 验证密码（核心逻辑）
+            // 验证密码
             const inputPassword = modalPasswordInput.value.trim();
             if (inputPassword === link.password) {
                 // 密码正确，跳转到目标链接
