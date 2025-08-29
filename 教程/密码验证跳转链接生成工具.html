@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密码保护链接生成工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#10B981',
+                        neutral: '#64748B'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.1);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #4F46E5 0%, #8B5CF6 100%);
+            }
+            .btn-hover {
+                @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0;
+            }
+            .input-focus {
+                @apply focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-slate-50 min-h-screen text-slate-800">
+    <!-- 顶部导航 -->
+    <header class="gradient-bg text-white shadow-md">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center gap-2 mb-4 md:mb-0">
+                    <i class="fa fa-link text-2xl"></i>
+                    <h1 class="text-xl md:text-2xl font-bold">密码保护链接生成工具</h1>
+                </div>
+                <p class="text-sm opacity-90 max-w-md text-center md:text-right">
+                    生成带密码的跳转链接，只有输入正确密码才能访问目标页面
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        <div class="max-w-5xl mx-auto">
+            <!-- 生成表单区域 -->
+            <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow mb-8">
+                <h2 class="text-xl md:text-2xl font-bold mb-6 flex items-center gap-2">
+                    <i class="fa fa-plus-circle text-primary"></i>创建受保护链接
+                </h2>
+                
+                <form id="linkForm" class="space-y-5">
+                    <!-- 页面名称输入 -->
+                    <div>
+                        <label for="pageName" class="block text-sm font-medium text-slate-700 mb-1">
+                            页面名称 <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="pageName" 
+                                class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10"
+                                placeholder="输入显示给用户的页面名称（如：公司内部文档）"
+                                required
+                            >
+                            <i class="fa fa-tag absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- 目标链接输入 -->
+                    <div>
+                        <label for="targetUrl" class="block text-sm font-medium text-slate-700 mb-1">
+                            目标链接 <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="url" 
+                                id="targetUrl" 
+                                class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10"
+                                placeholder="输入需要保护的网址（如：https://example.com/secret）"
+                                required
+                            >
+                            <i class="fa fa-globe absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- 密码设置 -->
+                    <div>
+                        <label for="protectPassword" class="block text-sm font-medium text-slate-700 mb-1">
+                            保护密码 <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="password" 
+                                id="protectPassword" 
+                                class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10"
+                                placeholder="设置访问密码"
+                                required
+                            >
+                            <i class="fa fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <button 
+                                type="button" 
+                                id="togglePwd" 
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                                aria-label="显示/隐藏密码"
+                            >
+                                <i class="fa fa-eye-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 生成按钮 -->
+                    <div class="pt-2">
+                        <button 
+                            type="submit" 
+                            class="w-full bg-primary text-white font-medium py-3 px-4 rounded-xl btn-hover flex items-center justify-center gap-2"
+                        >
+                            <span>生成受保护链接</span>
+                            <i class="fa fa-magic"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 生成结果区域 -->
+            <div id="resultArea" class="bg-white rounded-2xl p-6 md:p-8 card-shadow mb-8 hidden">
+                <h2 class="text-xl md:text-2xl font-bold mb-6 flex items-center gap-2">
+                    <i class="fa fa-check-circle text-secondary"></i>生成成功
+                </h2>
+                
+                <div class="p-4 bg-green-50 border border-green-200 rounded-xl mb-4">
+                    <p class="text-green-800 mb-2">已成功创建受保护链接，您可以复制下面的链接分享给他人</p>
+                    <p class="text-sm text-green-700"><i class="fa fa-info-circle mr-1"></i> 访问者需要输入正确密码才能查看内容</p>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                    <input 
+                        type="text" 
+                        id="protectedLink" 
+                        class="flex-1 px-4 py-3 rounded-xl border border-slate-300 bg-slate-50"
+                        readonly
+                    >
+                    <button 
+                        id="copyLinkBtn" 
+                        class="bg-secondary text-white font-medium py-3 px-6 rounded-xl btn-hover whitespace-nowrap"
+                    >
+                        <i class="fa fa-copy mr-1"></i> 复制链接
+                    </button>
+                </div>
+                
+                <div class="text-center">
+                    <a 
+                        id="testLinkBtn" 
+                        href="#" 
+                        target="_blank" 
+                        class="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                    >
+                        <span>测试这个链接</span>
+                        <i class="fa fa-external-link"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 链接管理区域 -->
+            <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <h2 class="text-xl md:text-2xl font-bold flex items-center gap-2">
+                        <i class="fa fa-list-alt text-primary"></i>已存储的链接
+                    </h2>
+                    
+                    <!-- 搜索框 -->
+                    <div class="relative w-full md:w-64">
+                        <input 
+                            type="text" 
+                            id="searchLinks" 
+                            class="w-full px-4 py-2 pl-10 rounded-xl border border-slate-300 input-focus transition-all text-sm"
+                            placeholder="搜索链接名称..."
+                        >
+                        <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    </div>
+                </div>
+                
+                <!-- 空状态 -->
+                <div id="emptyState" class="py-16 text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-400 mb-4">
+                        <i class="fa fa-folder-open text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-slate-700 mb-2">暂无存储的链接</h3>
+                    <p class="text-slate-500 max-w-md mx-auto">
+                        您还没有创建任何受保护的链接，使用上方表单创建您的第一个受保护链接吧
+                    </p>
+                </div>
+                
+                <!-- 链接列表 -->
+                <div id="linksList" class="space-y-4 hidden">
+                    <!-- 链接项将通过JavaScript动态生成 -->
+                </div>
+                
+                <!-- 列表模板（不会显示，用于JavaScript克隆） -->
+                <div id="linkItemTemplate" class="hidden">
+                    <div class="link-item p-4 border border-slate-200 rounded-xl hover:border-primary/50 transition-colors">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div>
+                                <h3 class="font-medium text-slate-800 link-name"></h3>
+                                <div class="flex flex-wrap gap-2 mt-1">
+                                    <span class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full link-date"></span>
+                                    <span class="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full link-domain"></span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="view-link-btn p-2 text-slate-600 hover:text-primary transition-colors" title="查看链接">
+                                    <i class="fa fa-link"></i>
+                                </button>
+                                <button class="copy-link-btn p-2 text-slate-600 hover:text-secondary transition-colors" title="复制链接">
+                                    <i class="fa fa-copy"></i>
+                                </button>
+                                <button class="delete-link-btn p-2 text-slate-600 hover:text-red-500 transition-colors" title="删除链接">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 密码验证模态框（默认隐藏） -->
+    <div id="passwordModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-md card-shadow transform transition-all">
+            <div class="flex justify-center mb-6">
+                <div class="w-16 h-16 rounded-full gradient-bg flex items-center justify-center text-white shadow-lg">
+                    <i class="fa fa-lock text-2xl"></i>
+                </div>
+            </div>
+            
+            <div class="text-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-2" id="modalTitle">访问验证</h3>
+                <p class="text-slate-500" id="modalDescription">该内容受密码保护，请输入密码访问</p>
+            </div>
+            
+            <form id="passwordForm" class="space-y-4">
+                <div class="relative">
+                    <input 
+                        type="password" 
+                        id="modalPassword" 
+                        class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10"
+                        placeholder="输入访问密码"
+                        required
+                    >
+                    <i class="fa fa-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                </div>
+                
+                <div id="passwordError" class="hidden text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                    <i class="fa fa-exclamation-circle mr-1"></i>
+                    <span>密码错误，请重新输入</span>
+                </div>
+                
+                <button 
+                    type="submit" 
+                    class="w-full bg-primary text-white font-medium py-3 px-4 rounded-xl btn-hover"
+                >
+                    验证并访问
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let linksData = [];
+        const LINK_STORAGE_KEY = 'protected_links';
+        // 设置你的公网基础地址，部署时替换为实际地址
+        const PUBLIC_BASE_URL = window.location.href.split('?')[0];
+        
+        // DOM元素
+        const linkForm = document.getElementById('linkForm');
+        const pageNameInput = document.getElementById('pageName');
+        const targetUrlInput = document.getElementById('targetUrl');
+        const protectPasswordInput = document.getElementById('protectPassword');
+        const togglePwdBtn = document.getElementById('togglePwd');
+        const resultArea = document.getElementById('resultArea');
+        const protectedLinkInput = document.getElementById('protectedLink');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const testLinkBtn = document.getElementById('testLinkBtn');
+        const emptyState = document.getElementById('emptyState');
+        const linksList = document.getElementById('linksList');
+        const searchLinksInput = document.getElementById('searchLinks');
+        const passwordModal = document.getElementById('passwordModal');
+        const passwordForm = document.getElementById('passwordForm');
+        const modalPasswordInput = document.getElementById('modalPassword');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDescription = document.getElementById('modalDescription');
+        const passwordError = document.getElementById('passwordError');
+        const linkItemTemplate = document.getElementById('linkItemTemplate');
+        
+        // 当前验证的链接ID和目标URL
+        let currentVerifyLinkId = null;
+        let currentTargetUrl = null;
+        
+        // 初始化
+        function init() {
+            // 从本地存储加载数据
+            loadLinksFromStorage();
+            // 渲染链接列表
+            renderLinksList();
+            // 检查URL参数，看是否需要显示验证模态框
+            checkUrlParameters();
+        }
+        
+        // 从本地存储加载链接数据
+        function loadLinksFromStorage() {
+            const storedData = localStorage.getItem(LINK_STORAGE_KEY);
+            if (storedData) {
+                try {
+                    linksData = JSON.parse(storedData);
+                } catch (e) {
+                    console.error('解析存储的链接失败:', e);
+                    linksData = [];
+                }
+            }
+        }
+        
+        // 保存链接数据到本地存储
+        function saveLinksToStorage() {
+            localStorage.setItem(LINK_STORAGE_KEY, JSON.stringify(linksData));
+        }
+        
+        // 生成唯一ID
+        function generateUniqueId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+        
+        // 生成受保护的链接
+        function generateProtectedLink(linkId) {
+            // 确保基础URL末尾没有多余的斜杠
+            const cleanBaseUrl = PUBLIC_BASE_URL.replace(/\/$/, '');
+            return `${cleanBaseUrl}?linkId=${linkId}`;
+        }
+        
+        // 处理表单提交
+        linkForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 获取表单值
+            const pageName = pageNameInput.value.trim();
+            const targetUrl = targetUrlInput.value.trim();
+            const password = protectPasswordInput.value.trim();
+            
+            // 验证表单
+            if (!pageName || !targetUrl || !password) {
+                alert('请填写所有必填字段');
+                return;
+            }
+            
+            // 创建新链接对象
+            const newLink = {
+                id: generateUniqueId(),
+                name: pageName,
+                targetUrl: targetUrl,
+                password: password, // 实际应用中应该加密存储密码
+                createdAt: new Date().toISOString()
+            };
+            
+            // 添加到数据数组并保存
+            linksData.push(newLink);
+            saveLinksToStorage();
+            
+            // 生成保护链接
+            const protectedLink = generateProtectedLink(newLink.id);
+            
+            // 显示结果区域
+            protectedLinkInput.value = protectedLink;
+            testLinkBtn.href = protectedLink;
+            resultArea.classList.remove('hidden');
+            
+            // 重新渲染列表
+            renderLinksList();
+            
+            // 重置表单
+            linkForm.reset();
+            
+            // 滚动到结果区域
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        
+        // 切换密码可见性
+        togglePwdBtn.addEventListener('click', function() {
+            const type = protectPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            protectPasswordInput.setAttribute('type', type);
+            
+            // 切换图标
+            const icon = togglePwdBtn.querySelector('i');
+            if (type === 'password') {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+        
+        // 复制链接
+        copyLinkBtn.addEventListener('click', function() {
+            protectedLinkInput.select();
+            document.execCommand('copy');
+            
+            // 显示复制成功反馈
+            const originalText = copyLinkBtn.innerHTML;
+            copyLinkBtn.innerHTML = '<i class="fa fa-check mr-1"></i> 已复制';
+            copyLinkBtn.classList.remove('bg-secondary');
+            copyLinkBtn.classList.add('bg-green-600');
+            
+            setTimeout(() => {
+                copyLinkBtn.innerHTML = originalText;
+                copyLinkBtn.classList.remove('bg-green-600');
+                copyLinkBtn.classList.add('bg-secondary');
+            }, 2000);
+        });
+        
+        // 渲染链接列表
+        function renderLinksList(filterText = '') {
+            // 清空列表
+            linksList.innerHTML = '';
+            
+            // 检查是否有数据
+            if (linksData.length === 0) {
+                emptyState.classList.remove('hidden');
+                linksList.classList.add('hidden');
+                return;
+            }
+            
+            // 显示列表，隐藏空状态
+            emptyState.classList.add('hidden');
+            linksList.classList.remove('hidden');
+            
+            // 过滤链接
+            let filteredLinks = linksData;
+            if (filterText) {
+                const lowerFilter = filterText.toLowerCase();
+                filteredLinks = linksData.filter(link => 
+                    link.name.toLowerCase().includes(lowerFilter)
+                );
+            }
+            
+            // 按创建时间排序（最新的在前）
+            filteredLinks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            // 渲染每个链接项
+            filteredLinks.forEach(link => {
+                const linkItem = linkItemTemplate.querySelector('.link-item').cloneNode(true);
+                
+                // 设置链接信息
+                linkItem.querySelector('.link-name').textContent = link.name;
+                
+                // 格式化日期
+                const date = new Date(link.createdAt);
+                const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+                linkItem.querySelector('.link-date').textContent = formattedDate;
+                
+                // 提取域名
+                try {
+                    const url = new URL(link.targetUrl);
+                    linkItem.querySelector('.link-domain').textContent = url.hostname;
+                } catch (e) {
+                    linkItem.querySelector('.link-domain').textContent = '未知链接';
+                }
+                
+                // 设置数据ID
+                linkItem.dataset.id = link.id;
+                
+                // 查看链接按钮
+                linkItem.querySelector('.view-link-btn').addEventListener('click', function() {
+                    const linkId = this.closest('.link-item').dataset.id;
+                    const protectedLink = generateProtectedLink(linkId);
+                    window.open(protectedLink, '_blank');
+                });
+                
+                // 复制链接按钮
+                linkItem.querySelector('.copy-link-btn').addEventListener('click', function() {
+                    const linkId = this.closest('.link-item').dataset.id;
+                    const protectedLink = generateProtectedLink(linkId);
+                    
+                    // 创建临时输入框用于复制
+                    const tempInput = document.createElement('input');
+                    document.body.appendChild(tempInput);
+                    tempInput.value = protectedLink;
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                    
+                    // 显示反馈
+                    const originalIcon = this.innerHTML;
+                    this.innerHTML = '<i class="fa fa-check"></i>';
+                    this.classList.add('text-green-500');
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalIcon;
+                        this.classList.remove('text-green-500');
+                    }, 2000);
+                });
+                
+                // 删除链接按钮
+                linkItem.querySelector('.delete-link-btn').addEventListener('click', function() {
+                    const linkId = this.closest('.link-item').dataset.id;
+                    const link = linksData.find(l => l.id === linkId);
+                    
+                    if (confirm(`确定要删除链接"${link.name}"吗？`)) {
+                        // 从数据中删除
+                        linksData = linksData.filter(l => l.id !== linkId);
+                        saveLinksToStorage();
+                        // 重新渲染列表
+                        renderLinksList(searchLinksInput.value.trim());
+                    }
+                });
+                
+                // 添加到列表
+                linksList.appendChild(linkItem);
+            });
+        }
+        
+        // 搜索链接
+        searchLinksInput.addEventListener('input', function() {
+            renderLinksList(this.value.trim());
+        });
+        
+        // 检查URL参数，显示验证模态框
+        function checkUrlParameters() {
+            const params = new URLSearchParams(window.location.search);
+            const linkId = params.get('linkId');
+            
+            if (linkId) {
+                // 查找对应的链接
+                const link = linksData.find(l => l.id === linkId);
+                
+                if (link) {
+                    // 设置当前验证的链接ID和目标URL
+                    currentVerifyLinkId = linkId;
+                    currentTargetUrl = link.targetUrl;
+                    // 设置模态框标题
+                    modalTitle.textContent = `访问 "${link.name}"`;
+                    modalDescription.textContent = '该内容受密码保护，请输入正确密码访问';
+                    // 显示模态框
+                    passwordModal.classList.remove('hidden');
+                    // 聚焦密码输入框
+                    modalPasswordInput.focus();
+                } else {
+                    alert('未找到对应的受保护链接');
+                }
+            }
+        }
+        
+        // 处理密码验证 - 核心验证逻辑
+        passwordForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentVerifyLinkId || !currentTargetUrl) {
+                return;
+            }
+            
+            // 查找对应的链接
+            const link = linksData.find(l => l.id === currentVerifyLinkId);
+            
+            if (!link) {
+                passwordError.textContent = '未找到对应的链接';
+                passwordError.classList.remove('hidden');
+                return;
+            }
+            
+            // 验证密码（核心逻辑）
+            const inputPassword = modalPasswordInput.value.trim();
+            if (inputPassword === link.password) {
+                // 密码正确，跳转到目标链接
+                passwordError.classList.add('hidden');
+                // 显示加载状态
+                document.querySelector('#passwordForm button').innerHTML = 
+                    '<i class="fa fa-spinner fa-spin mr-2"></i> 验证通过，正在跳转...';
+                document.querySelector('#passwordForm button').disabled = true;
+                
+                // 延迟跳转，让用户看到反馈
+                setTimeout(() => {
+                    window.location.href = currentTargetUrl;
+                }, 800);
+            } else {
+                // 密码错误
+                passwordError.classList.remove('hidden');
+                modalPasswordInput.value = '';
+                modalPasswordInput.focus();
+                
+                // 添加抖动动画
+                modalPasswordInput.classList.add('animate-shake');
+                setTimeout(() => {
+                    modalPasswordInput.classList.remove('animate-shake');
+                }, 500);
+            }
+        });
+        
+        // 添加抖动动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                20%, 40%, 60%, 80% { transform: translateX(5px); }
+            }
+            .animate-shake {
+                animation: shake 0.5s ease-in-out;
+                border-color: #ef4444 !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
