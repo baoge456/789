@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare 请求计划查询</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 16px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        header {
+            background: linear-gradient(to right, #f27022, #f38020);
+            color: white;
+            padding: 28px 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, rgba(255,255,255,0.5), rgba(255,255,255,0.2));
+        }
+        
+        header h1 {
+            font-size: 2.3rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            font-weight: 700;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        header p {
+            font-size: 1.15rem;
+            opacity: 0.95;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        
+        .cloudflare-icon {
+            font-size: 2.6rem;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+        }
+        
+        .main-content {
+            padding: 35px;
+        }
+        
+        .input-section {
+            background: #f8f9fa;
+            padding: 28px;
+            border-radius: 12px;
+            margin-bottom: 35px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
+            border: 1px solid #eee;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .input-group h2 {
+            color: #f27022;
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .input-group h2 i {
+            font-size: 1.4rem;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        label i {
+            font-size: 0.9rem;
+            color: #f27022;
+        }
+        
+        input[type="email"], input[type="text"] {
+            padding: 16px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        input[type="email"]:focus, input[type="text"]:focus {
+            border-color: #f27022;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(242, 112, 34, 0.2);
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+        }
+        
+        .form-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        button {
+            background: #f27022;
+            color: white;
+            border: none;
+            padding: 16px 28px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 4px 8px rgba(242, 112, 34, 0.3);
+            height: fit-content;
+        }
+        
+        button:hover {
+            background: #e36618;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(242, 112, 34, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 6px rgba(242, 112, 34, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #2b70d6;
+            box-shadow: 0 4px 8px rgba(43, 112, 214, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            background: #2361be;
+            box-shadow: 0 6px 12px rgba(43, 112, 214, 0.4);
+        }
+        
+        .btn-tertiary {
+            background: #5a67d8;
+            box-shadow: 0 4px 8px rgba(90, 103, 216, 0.3);
+        }
+        
+        .btn-tertiary:hover {
+            background: #4c59c4;
+            box-shadow: 0 6px 12px rgba(90, 103, 216, 0.4);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 18px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .account-id-info {
+            background: linear-gradient(to right, #e6f4ff, #f0f8ff);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 5px solid #1890ff;
+        }
+        
+        .account-id-info h3 {
+            color: #1890ff;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.2rem;
+        }
+        
+        .account-id-info p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .account-id-info code {
+            background: #d0e7ff;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-family: 'Fira Code', monospace;
+            display: block;
+            margin: 12px 0;
+            word-break: break-all;
+            font-size: 0.95rem;
+            border: 1px solid #b8d9f7;
+        }
+        
+        .saved-accounts {
+            margin-top: 40px;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.08);
+            border: 1px solid #eee;
+        }
+        
+        .saved-accounts h2 {
+            color: #f27022;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.7rem;
+        }
+        
+        .account-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .account-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 10px;
+            border-left: 5px solid #5a67d8;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .account-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .account-details {
+            flex: 1;
+        }
+        
+        .account-email {
+            font-weight: 700;
+            color: #1a2980;
+            font-size: 1.15rem;
+            margin-bottom: 6px;
+        }
+        
+        .account-id {
+            font-family: 'Fira Code', monospace;
+            color: #666;
+            font-size: 0.95rem;
+            background: #f0f0f0;
+            padding: 6px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .account-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .account-btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .import-export {
+            display: flex;
+            gap: 18px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .import-export button {
+            min-width: 200px;
+            flex: 1;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .toast.error {
+            background: #f44336;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.95rem;
+            margin-top: auto;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 900px) {
+            .form-row {
+                flex-direction: column;
+                gap: 18px;
+                align-items: stretch;
+            }
+            
+            .button-group, .import-export {
+                flex-direction: column;
+            }
+            
+            .button-group button, .import-export button {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            header {
+                padding: 22px 20px;
+            }
+            
+            header h1 {
+                font-size: 1.9rem;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .main-content {
+                padding: 25px 20px;
+            }
+            
+            .input-section {
+                padding: 22px;
+            }
+            
+            .saved-accounts {
+                padding: 25px 20px;
+            }
+            
+            .account-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 18px;
+            }
+            
+            .account-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            button {
+                padding: 14px 22px;
+                font-size: 1.05rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.7rem;
+            }
+            
+            header p {
+                font-size: 1rem;
+            }
+            
+            .input-group h2 {
+                font-size: 1.4rem;
+            }
+            
+            .saved-accounts h2 {
+                font-size: 1.5rem;
+            }
+            
+            .account-actions {
+                flex-direction: column;
+            }
+            
+            .account-btn {
+                width: 100%;
+            }
+        }
+        
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .container {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .account-item {
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        .save-btn-container {
+            display: flex;
+            align-items: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-cloud cloudflare-icon"></i> Cloudflare 请求计划查询</h1>
+            <p>查询您的Cloudflare账户请求计划和使用情况</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="input-group">
+                    <h2><i class="fas fa-plus-circle"></i> 添加Cloudflare账户</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="email"><i class="fas fa-envelope"></i> 账户电子邮件</label>
+                            <input type="email" id="email" placeholder="your.email@example.com">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="account-id"><i class="fas fa-id-card"></i> 账户ID</label>
+                            <input type="text" id="account-id" placeholder="请输入对应的账户ID">
+                        </div>
+                        
+                        <div class="save-btn-container">
+                            <button id="save-account" class="btn-secondary">
+                                <i class="fas fa-save"></i> 保存账户
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                                
+                <div class="import-export">
+                    <button id="export-btn" class="btn-tertiary">
+                        <i class="fas fa-download"></i> 导出账户数据
+                    </button>
+                    
+                    <button id="import-btn" class="btn-tertiary">
+                        <i class="fas fa-upload"></i> 导入账户数据
+                    </button>
+                    
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
+                </div>
+            </div>
+            
+            <div class="saved-accounts">
+                <h2><i class="fas fa-bookmark"></i> 已保存的账户</h2>
+                <div class="account-list" id="account-list">
+                    <!-- 账户列表将通过JavaScript动态生成 -->
+                    <div class="no-accounts" style="text-align: center; padding: 30px; color: #777;">
+                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>暂无保存的账户，请添加您的Cloudflare账户</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toast-message"></span>
+    </div>
+    
+    <footer>
+        <p>© 2023 Cloudflare 查询工具 | 本工具仅提供便捷访问功能，实际数据请以Cloudflare控制台为准</p>
+    </footer>
+
+    <script>
+        // 初始化账户列表
+        let accounts = [];
+        
+        // 从本地存储加载账户数据
+        function loadAccounts() {
+            const savedAccounts = localStorage.getItem('cloudflareAccounts');
+            if (savedAccounts) {
+                accounts = JSON.parse(savedAccounts);
+                renderAccounts();
+            }
+        }
+        
+        // 保存账户数据到本地存储
+        function saveAccounts() {
+            localStorage.setItem('cloudflareAccounts', JSON.stringify(accounts));
+        }
+        
+        // 渲染账户列表
+        function renderAccounts() {
+            const accountList = document.getElementById('account-list');
+            
+            if (accounts.length === 0) {
+                accountList.innerHTML = `
+                    <div class="no-accounts" style="text-align: center; padding: 30px; color: #777;">
+                        <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>暂无保存的账户，请添加您的Cloudflare账户</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            accountList.innerHTML = '';
+            
+            accounts.forEach(account => {
+                const accountItem = document.createElement('div');
+                accountItem.className = 'account-item';
+                accountItem.innerHTML = `
+                    <div class="account-details">
+                        <div class="account-email">${account.email}</div>
+                        <div class="account-id">${account.accountId}</div>
+                    </div>
+                    <div class="account-actions">
+                        <button class="account-btn btn-secondary" onclick="openAccount('${account.accountId}')">
+                            <i class="fas fa-external-link-alt"></i> 打开控制台
+                        </button>
+                        <button class="account-btn btn-tertiary" onclick="removeAccount('${account.accountId}')">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </div>
+                `;
+                accountList.appendChild(accountItem);
+            });
+        }
+        
+        // 打开Cloudflare控制台
+        function openAccount(accountId) {
+            // 直接打开控制台URL
+            const dashboardUrl = `https://dash.cloudflare.com/${accountId}/workers-and-pages`;
+            window.open(dashboardUrl, '_blank');
+            
+            // 显示提示信息（非阻塞式）
+            showToast(`正在打开账户控制台...`);
+        }
+        
+        // 移除账户
+        function removeAccount(accountId) {
+            accounts = accounts.filter(account => account.accountId !== accountId);
+            saveAccounts();
+            renderAccounts();
+            showToast('账户已删除');
+        }
+        
+        // 显示提示信息
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toastMessage.textContent = message;
+            
+            if (isError) {
+                toast.classList.add('error');
+            } else {
+                toast.classList.remove('error');
+            }
+            
+            toast.classList.add('show');
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 保存当前输入的账户
+        document.getElementById('save-account').addEventListener('click', function() {
+            const email = document.getElementById('email').value.trim();
+            const accountId = document.getElementById('account-id').value.trim();
+            
+            if (!email || !accountId) {
+                showToast('请输入有效的电子邮件和账户ID', true);
+                return;
+            }
+            
+            // 检查是否已存在相同账户ID
+            if (accounts.some(account => account.accountId === accountId)) {
+                showToast('该账户ID已存在', true);
+                return;
+            }
+            
+            // 添加新账户
+            accounts.push({ email, accountId });
+            saveAccounts();
+            renderAccounts();
+            
+            // 清空输入框
+            document.getElementById('email').value = '';
+            document.getElementById('account-id').value = '';
+            
+            showToast('账户已保存！');
+        });
+        
+        // 导出账户数据
+        document.getElementById('export-btn').addEventListener('click', function() {
+            if (accounts.length === 0) {
+                showToast('没有账户数据可导出', true);
+                return;
+            }
+            
+            const dataStr = JSON.stringify(accounts, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = 'cloudflare-accounts.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showToast('账户数据已导出');
+        });
+        
+        // 导入账户数据
+        document.getElementById('import-btn').addEventListener('click', function() {
+            document.getElementById('import-file').click();
+        });
+        
+        document.getElementById('import-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedAccounts = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(importedAccounts)) {
+                        throw new Error('无效的数据格式');
+                    }
+                    
+                    // 合并账户，避免重复
+                    let addedCount = 0;
+                    importedAccounts.forEach(newAccount => {
+                        if (!accounts.some(account => account.accountId === newAccount.accountId)) {
+                            accounts.push(newAccount);
+                            addedCount++;
+                        }
+                    });
+                    
+                    saveAccounts();
+                    renderAccounts();
+                    
+                    showToast(`成功导入 ${addedCount} 个账户，跳过了 ${importedAccounts.length - addedCount} 个重复账户`);
+                    
+                    // 清空文件输入
+                    document.getElementById('import-file').value = '';
+                } catch (error) {
+                    showToast('导入失败：无效的JSON文件格式', true);
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        });
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAccounts();
+        });
+    </script>
+</body>
+</html>
