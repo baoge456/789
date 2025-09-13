@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>悦听音乐播放器</title>
   <!-- 外部资源引入 -->
-  <!-- 注意：在生产环境中，建议按照Tailwind官方文档安装PostCSS插件或使用Tailwind CLI -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
   
@@ -70,7 +69,7 @@
         @apply appearance-none w-4 h-4 rounded-full bg-accent transition-all duration-200 hover:scale-150 shadow-md;
       }
       /* 自定义滚动条 */
-      .custom-scrollbar::-webkit-scrollbar {
+      .custom-scrollbar::-webkit-slider-thumb {
         @apply w-1.5;
       }
       .custom-scrollbar::-webkit-scrollbar-track {
@@ -91,13 +90,16 @@
       .menu-open {
         transform: translateX(0);
       }
-      .menu-overlay {
-        @apply fixed inset-0 bg-black/30 backdrop-blur-sm z-20;
+      /* 功能菜单样式 */
+      .features-menu {
+        @apply absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden transform opacity-0 scale-95 pointer-events-none transition-all duration-200 origin-top-right;
+      }
+      .features-menu.open {
+        @apply opacity-100 scale-100 pointer-events-auto;
       }
     }
   </style>
 </head>
-<!-- 增加美观鲜艳的背景图，添加半透明遮罩确保文字可读性 -->
 <body class="font-inter min-h-screen text-gray-800 dark:text-gray-200 transition-colors duration-300 bg-cover bg-center bg-fixed" 
       style="background-image: url('https://picsum.photos/id/1059/1920/1080'); background-color: rgba(255,255,255,0.98);"
       onvisibilitychange="handleVisibilityChange()"
@@ -137,17 +139,10 @@
 
   <!-- 主内容区 -->
   <main class="container mx-auto px-4 py-8 relative z-10 transition-all duration-300">
-    <!-- 菜单按钮 -->
-    <div class="absolute top-4 left-4 z-30 lg:hidden">
-      <button id="menu-toggle" class="p-2 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-md btn-hover">
-        <i class="fa fa-bars text-xl text-primary dark:text-gray-200"></i>
-      </button>
-    </div>
-
     <!-- 播放列表区域 - 侧边栏形式 -->
     <section 
       id="playlist-section" 
-      class="fixed top-0 left-0 h-full w-4/5 max-w-sm bg-white dark:bg-gray-800 shadow-xl z-40 transform -translate-x-full transition-transform duration-300 overflow-hidden flex flex-col border-r border-gray-200 dark:border-gray-700"
+      class="fixed top-0 left-0 h-full w-4/5 max-w-sm bg-white dark:bg-gray-800 shadow-xl z-30 transform -translate-x-full transition-transform duration-300 overflow-hidden flex flex-col border-r border-gray-200 dark:border-gray-700"
     >
       <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
         <h2 class="text-lg font-semibold flex items-center gap-2">
@@ -157,7 +152,7 @@
             <span id="track-count">0</span> 首
           </span>
         </h2>
-        <button id="close-menu-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors lg:hidden">
+        <button id="close-menu-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
           <i class="fa fa-times"></i>
         </button>
         <button id="clear-playlist" class="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1">
@@ -180,12 +175,10 @@
 
     <!-- 播放器主体区域 -->
     <section class="max-w-md mx-auto relative">
-      <!-- 桌面端显示的播放列表按钮 -->
-      <div class="absolute -left-12 top-1/2 transform -translate-y-1/2 hidden lg:block">
-        <button id="desktop-menu-toggle" class="p-2 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-md btn-hover">
-          <i class="fa fa-bars text-xl text-primary dark:text-gray-200"></i>
-        </button>
-      </div>
+      <!-- 列表按钮 - 放在播放器左上角 -->
+      <button id="playlist-toggle" class="absolute -top-2 left-0 z-20 p-2 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-md btn-hover">
+        <i class="fa fa-list text-xl text-primary dark:text-gray-200"></i>
+      </button>
 
       <div class="w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 lg:p-8 border border-gray-100 dark:border-gray-700">
         <!-- 音乐封面 -->
@@ -213,10 +206,33 @@
         </div>
         
         <!-- 播放控制 -->
-        <div class="flex justify-between items-center mb-2">
-          <button id="shuffle-btn" class="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary btn-hover p-1.5">
-            <i class="fa fa-random text-xl"></i>
-          </button>
+        <div class="flex justify-between items-center mb-2 relative">
+          <!-- 三道杠菜单按钮 -->
+          <div class="relative">
+            <button id="features-menu-btn" class="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary btn-hover p-1.5">
+              <i class="fa fa-bars text-xl"></i>
+            </button>
+            <!-- 功能菜单 -->
+            <div id="features-menu" class="features-menu">
+              <button id="shuffle-btn" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+                <i class="fa fa-random w-5 text-center"></i>
+                <span>随机播放</span>
+              </button>
+              <div class="border-t border-gray-200 dark:border-gray-700"></div>
+              <button id="repeat-none-btn" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+                <i class="fa fa-repeat w-5 text-center"></i>
+                <span>不重复</span>
+              </button>
+              <button id="repeat-all-btn" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+                <i class="fa fa-repeat w-5 text-center"></i>
+                <span>列表循环</span>
+              </button>
+              <button id="repeat-one-btn" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+                <i class="fa fa-repeat w-5 text-center"></i>
+                <span>单曲循环</span>
+              </button>
+            </div>
+          </div>
           
           <div class="flex items-center gap-4">
             <button id="prev-btn" class="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary btn-hover p-1.5">
@@ -234,9 +250,6 @@
           </div>
           
           <div class="flex items-center gap-2">
-            <button id="repeat-btn" class="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary btn-hover relative p-1.5">
-              <i class="fa fa-repeat text-lg"></i>
-            </button>
             <i class="fa fa-volume-up text-gray-500 dark:text-gray-400"></i>
             <!-- 音量条 -->
             <input type="range" id="volume-slider" class="volume-bar w-20" min="0" max="100" value="80">
@@ -395,7 +408,7 @@
     let currentTrackIndex = 0;
     let isPlaying = false;
     let isShuffling = false;
-    let repeatMode = 'none';
+    let repeatMode = 'none'; // 'none', 'all', 'one'
     let progressInterval = null;
     let isDraggingProgress = false;
     let currentEditingTrackId = null;
@@ -403,15 +416,17 @@
     let userInteracted = false;
 
     // DOM元素引用
-    let playPauseBtn, playIcon, pauseIcon, prevBtn, nextBtn, repeatBtn, shuffleBtn;
+    let playPauseBtn, playIcon, pauseIcon, prevBtn, nextBtn;
     let progressSlider, currentTimeDisplay, totalTimeDisplay, volumeSlider;
     let trackTitle, trackArtist, albumArt, spinAnimation, coverInfo, trackCount;
     let playlist, emptyPlaylist, clearPlaylist, playlistContainer, playlistSection;
     let linkModal, modalContent, closeModal, cancelLink, linkForm, musicLink, trackName, artistName;
     let importExportBtn, importExportModal, importExportModalContent, closeImportExportModalBtn, cancelImportExportBtn, exportBtn, importBtn, importFile;
-    let themeToggle, notification, addLinkBtn, menuToggle, closeMenuBtn, desktopMenuToggle;
+    let themeToggle, notification, addLinkBtn, playlistToggle, closeMenuBtn;
     // 编辑模态框元素
     let editModal, editModalContent, closeEditModal, cancelEdit, editForm, editTrackId, editTrackName, editArtistName, editTrackUrl;
+    // 新功能菜单元素
+    let featuresMenuBtn, featuresMenu, shuffleBtn, repeatNoneBtn, repeatAllBtn, repeatOneBtn;
 
     // 页面初始化
     function init() {
@@ -425,8 +440,14 @@
       pauseIcon = document.getElementById('pause-icon');
       prevBtn = document.getElementById('prev-btn');
       nextBtn = document.getElementById('next-btn');
-      repeatBtn = document.getElementById('repeat-btn');
+      
+      // 功能菜单相关元素
+      featuresMenuBtn = document.getElementById('features-menu-btn');
+      featuresMenu = document.getElementById('features-menu');
       shuffleBtn = document.getElementById('shuffle-btn');
+      repeatNoneBtn = document.getElementById('repeat-none-btn');
+      repeatAllBtn = document.getElementById('repeat-all-btn');
+      repeatOneBtn = document.getElementById('repeat-one-btn');
       
       progressSlider = document.getElementById('progress-slider');
       currentTimeDisplay = document.getElementById('current-time');
@@ -467,9 +488,8 @@
       themeToggle = document.getElementById('theme-toggle');
       notification = document.getElementById('notification');
       addLinkBtn = document.getElementById('add-link-btn');
-      menuToggle = document.getElementById('menu-toggle');
+      playlistToggle = document.getElementById('playlist-toggle');
       closeMenuBtn = document.getElementById('close-menu-btn');
-      desktopMenuToggle = document.getElementById('desktop-menu-toggle');
       
       // 编辑模态框元素
       editModal = document.getElementById('edit-modal');
@@ -498,9 +518,11 @@
       // 绑定所有交互事件
       bindModalEvents();
       bindOtherEvents();
+      bindFeaturesMenuEvents();
 
       // 初始化播放列表UI显示
       updatePlaylistDisplay();
+      updateRepeatButtonsUI();
 
       // 若有历史播放列表，自动加载第一个曲目
       if (playlistItems.length > 0) {
@@ -514,6 +536,13 @@
       document.addEventListener('click', () => {
         userInteracted = true;
       });
+      
+      // 点击页面其他地方关闭功能菜单
+      document.addEventListener('click', (e) => {
+        if (!featuresMenuBtn.contains(e.target) && !featuresMenu.contains(e.target)) {
+          closeFeaturesMenu();
+        }
+      });
     }
 
     // 验证关键DOM元素是否存在
@@ -523,7 +552,10 @@
         { id: 'import-export-btn', element: importExportBtn },
         { id: 'link-modal', element: linkModal },
         { id: 'import-export-modal', element: importExportModal },
-        { id: 'edit-modal', element: editModal }
+        { id: 'edit-modal', element: editModal },
+        { id: 'features-menu-btn', element: featuresMenuBtn },
+        { id: 'features-menu', element: featuresMenu },
+        { id: 'playlist-toggle', element: playlistToggle }
       ];
       
       criticalElements.forEach(item => {
@@ -534,6 +566,71 @@
           console.log(`元素已找到: #${item.id}`);
         }
       });
+    }
+
+    // 绑定功能菜单事件
+    function bindFeaturesMenuEvents() {
+      if (featuresMenuBtn) {
+        featuresMenuBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleFeaturesMenu();
+        });
+      }
+      
+      if (shuffleBtn) {
+        shuffleBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleShuffle();
+          closeFeaturesMenu();
+        });
+      }
+      
+      if (repeatNoneBtn) {
+        repeatNoneBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setRepeatMode('none');
+          closeFeaturesMenu();
+        });
+      }
+      
+      if (repeatAllBtn) {
+        repeatAllBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setRepeatMode('all');
+          closeFeaturesMenu();
+        });
+      }
+      
+      if (repeatOneBtn) {
+        repeatOneBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setRepeatMode('one');
+          closeFeaturesMenu();
+        });
+      }
+    }
+
+    // 功能菜单控制
+    function toggleFeaturesMenu() {
+      if (!featuresMenu) return;
+      
+      if (featuresMenu.classList.contains('open')) {
+        closeFeaturesMenu();
+      } else {
+        openFeaturesMenu();
+      }
+    }
+
+    function openFeaturesMenu() {
+      if (!featuresMenu) return;
+      
+      featuresMenu.classList.add('open');
+    }
+
+    function closeFeaturesMenu() {
+      if (!featuresMenu) return;
+      
+      featuresMenu.classList.remove('open');
     }
 
     // 绑定模态框相关事件
@@ -690,8 +787,6 @@
       if (playPauseBtn) playPauseBtn.addEventListener('click', togglePlayPause);
       if (prevBtn) prevBtn.addEventListener('click', playPreviousTrack);
       if (nextBtn) nextBtn.addEventListener('click', playNextTrack);
-      if (repeatBtn) repeatBtn.addEventListener('click', toggleRepeatMode);
-      if (shuffleBtn) shuffleBtn.addEventListener('click', toggleShuffle);
 
       // 进度条与音量控制事件
       if (progressSlider) {
@@ -720,10 +815,9 @@
         });
       }
 
-      // 菜单控制事件
-      if (menuToggle) menuToggle.addEventListener('click', toggleMenu);
+      // 菜单控制事件 - 修改为新的列表按钮
+      if (playlistToggle) playlistToggle.addEventListener('click', toggleMenu);
       if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeMenu);
-      if (desktopMenuToggle) desktopMenuToggle.addEventListener('click', toggleMenu);
     }
 
     // 后台播放相关函数
@@ -747,7 +841,7 @@
       }
     }
 
-    // 菜单控制函数
+    // 菜单控制函数 - 移除了遮罩层，解决遮挡问题
     function toggleMenu() {
       if (isMenuOpen) {
         closeMenu();
@@ -762,14 +856,8 @@
       isMenuOpen = true;
       playlistSection.classList.add('menu-open');
       
-      // 添加背景遮罩
-      const overlay = document.createElement('div');
-      overlay.className = 'menu-overlay';
-      overlay.addEventListener('click', closeMenu);
-      document.body.appendChild(overlay);
-      
-      // 调整主内容区域布局
-      document.querySelector('main').style.marginLeft = '25%';
+      // 调整主内容区域布局，避免被侧边栏遮挡
+      document.querySelector('main').style.marginLeft = playlistItems.length > 0 ? '25%' : '0';
     }
 
     function closeMenu() {
@@ -777,9 +865,6 @@
       
       isMenuOpen = false;
       playlistSection.classList.remove('menu-open');
-      
-      // 移除背景遮罩
-      document.querySelector('.menu-overlay')?.remove();
       
       // 恢复主内容区域布局
       document.querySelector('main').style.marginLeft = '0';
@@ -1188,38 +1273,12 @@
     }
 
     // 特殊播放模式
-    function toggleRepeatMode() {
-      const modes = ['none', 'all', 'one'];
-      const currentModeIndex = modes.indexOf(repeatMode);
-      repeatMode = modes[(currentModeIndex + 1) % modes.length];
-
-      if (repeatBtn) {
-        switch (repeatMode) {
-          case 'none':
-            repeatBtn.classList.remove('text-primary', 'text-red-500');
-            repeatBtn.classList.add('text-gray-500', 'dark:text-gray-400');
-            const oneMarker = repeatBtn.querySelector('.repeat-marker');
-            if (oneMarker) oneMarker.remove();
-            break;
-          case 'all':
-            repeatBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'text-red-500');
-            repeatBtn.classList.add('text-primary');
-            const oneMarker2 = repeatBtn.querySelector('.repeat-marker');
-            if (oneMarker2) oneMarker2.remove();
-            break;
-          case 'one':
-            repeatBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'text-primary');
-            repeatBtn.classList.add('text-red-500');
-            if (!repeatBtn.querySelector('.repeat-marker')) {
-              const oneSpan = document.createElement('span');
-              oneSpan.className = 'repeat-marker absolute -top-1 -right-1 text-xs bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center';
-              oneSpan.textContent = '1';
-              repeatBtn.appendChild(oneSpan);
-            }
-            break;
-        }
-      }
-
+    function setRepeatMode(mode) {
+      if (!['none', 'all', 'one'].includes(mode)) return;
+      
+      repeatMode = mode;
+      updateRepeatButtonsUI();
+      
       const modeTextMap = {
         'none': '已关闭重复播放',
         'all': '已开启列表循环',
@@ -1228,17 +1287,57 @@
       showNotification(modeTextMap[repeatMode], 'info');
     }
 
+    function updateRepeatButtonsUI() {
+      // 重置所有按钮样式
+      if (repeatNoneBtn) {
+        repeatNoneBtn.classList.remove('bg-primary/10', 'text-primary');
+        repeatNoneBtn.classList.add('text-gray-700', 'dark:text-gray-300');
+      }
+      
+      if (repeatAllBtn) {
+        repeatAllBtn.classList.remove('bg-primary/10', 'text-primary');
+        repeatAllBtn.classList.add('text-gray-700', 'dark:text-gray-300');
+      }
+      
+      if (repeatOneBtn) {
+        repeatOneBtn.classList.remove('bg-primary/10', 'text-primary');
+        repeatOneBtn.classList.add('text-gray-700', 'dark:text-gray-300');
+      }
+      
+      // 高亮当前模式按钮
+      switch (repeatMode) {
+        case 'none':
+          if (repeatNoneBtn) {
+            repeatNoneBtn.classList.remove('text-gray-700', 'dark:text-gray-300');
+            repeatNoneBtn.classList.add('bg-primary/10', 'text-primary');
+          }
+          break;
+        case 'all':
+          if (repeatAllBtn) {
+            repeatAllBtn.classList.remove('text-gray-700', 'dark:text-gray-300');
+            repeatAllBtn.classList.add('bg-primary/10', 'text-primary');
+          }
+          break;
+        case 'one':
+          if (repeatOneBtn) {
+            repeatOneBtn.classList.remove('text-gray-700', 'dark:text-gray-300');
+            repeatOneBtn.classList.add('bg-primary/10', 'text-primary');
+          }
+          break;
+      }
+    }
+
     function toggleShuffle() {
       isShuffling = !isShuffling;
 
       if (shuffleBtn) {
         if (isShuffling) {
-          shuffleBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
-          shuffleBtn.classList.add('text-primary');
+          shuffleBtn.classList.remove('text-gray-700', 'dark:text-gray-300');
+          shuffleBtn.classList.add('bg-primary/10', 'text-primary');
           showNotification('已开启随机播放', 'info');
         } else {
-          shuffleBtn.classList.remove('text-primary');
-          shuffleBtn.classList.add('text-gray-500', 'dark:text-gray-400');
+          shuffleBtn.classList.remove('bg-primary/10', 'text-primary');
+          shuffleBtn.classList.add('text-gray-700', 'dark:text-gray-300');
           showNotification('已关闭随机播放', 'info');
         }
       }
