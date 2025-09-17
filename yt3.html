@@ -66,6 +66,7 @@
     .notification.success{background:#10b981}
     .notification.error{background:#ef4444}
     .notification.warning{background:#f59e0b;color:#000}
+    .notification.info{background:#3b82f6} /* 新增信息类提示样式，区分播放模式提示 */
     .mode-badge{display:inline-block;background:#4f46e5;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;text-align:center;line-height:16px;position:relative;top:-8px;left:-5px}
     @media(max-width:768px){.main-content{flex-direction:column;gap:0;margin-top:0}.playlist-section{width:100%;height:100vh;position:absolute;top:0;left:0;border-radius:0;max-width:100%}.playlist-section:not(.collapsed){z-index:20}.player-section{width:100%;height:100vh;border-radius:0}.header-actions{gap:5px}.btn span{display:none}.btn{padding:8px}.album-art{max-width:80%}.controls{gap:10px}.control-btn{width:45px;height:45px;font-size:1.3rem}.play-btn{width:60px;height:60px}.track-name{font-size:1.2rem}.track-actions button,.toggle-playlist,.form-control,.btn{min-height:44px}}
   </style>
@@ -117,7 +118,7 @@
           <div class="time-display"><span id="current-time">00:00</span><span id="total-time">00:00</span></div>
         </div>
         <div class="controls">
-          <button class="control-btn" id="play-mode-btn" title="切换播放模式"><i class="fa fa-repeat" id="mode-icon"></i><span class="mode-badge" id="mode-badge" style="display:none;">1</span></button>
+          <button class="control-btn" id="play-mode-btn" title="切换播放模式"><i class="fa fa-list" id="mode-icon"></i><span class="mode-badge" id="mode-badge" style="display:none;">1</span></button>
           <button class="control-btn" id="prev-btn" title="上一首"><i class="fa fa-step-backward"></i></button>
           <button class="control-btn play-btn" id="play-pause-btn" title="播放/暂停"><i class="fa fa-play" id="play-icon"></i><i class="fa fa-pause" id="pause-icon" style="display:none;"></i></button>
           <button class="control-btn" id="next-btn" title="下一首"><i class="fa fa-step-forward"></i></button>
@@ -245,9 +246,65 @@ audio.play().then(() => {
       savePlaylistsToLocalStorage(); updatePlaylistDisplay();
     }
 
-    /* ================= 播放模式 ================= */
-    function cyclePlayMode() { if (repeatMode === 'none' && !isShuffling) repeatMode = 'one'; else if (repeatMode === 'one' && !isShuffling) isShuffling = true; else if (isShuffling) (isShuffling = false, repeatMode = 'all'); else if (repeatMode === 'all' && !isShuffling) repeatMode = 'none'; updatePlayModeUI(); }
-    function updatePlayModeUI() { els.modeIcon.className = 'fa'; els.modeBadge.style.display = 'none'; if (isShuffling) els.modeIcon.classList.add('fa-random'); else { els.modeIcon.classList.add('fa-repeat'); if (repeatMode === 'one') els.modeBadge.style.display = 'inline-block'; } }
+    /* ================= 播放模式 - 核心修改部分 ================= */
+    // 获取当前播放模式名称（用于提示）
+    function getPlayModeName() {
+      if (isShuffling) return '随机播放';
+      switch (repeatMode) {
+        case 'one': return '单曲循环';
+        case 'all': return '列表循环';
+        case 'none': return '顺序播放';
+        default: return '顺序播放';
+      }
+    }
+
+    // 切换播放模式（循环顺序：顺序→单曲→随机→列表→顺序）
+    function cyclePlayMode() {
+      if (repeatMode === 'none' && !isShuffling) {
+        // 顺序 → 单曲循环
+        repeatMode = 'one';
+      } else if (repeatMode === 'one' && !isShuffling) {
+        // 单曲 → 随机播放
+        isShuffling = true;
+      } else if (isShuffling) {
+        // 随机 → 列表循环
+        isShuffling = false;
+        repeatMode = 'all';
+      } else if (repeatMode === 'all' && !isShuffling) {
+        // 列表 → 顺序播放
+        repeatMode = 'none';
+      }
+      // 更新图标和提示
+      updatePlayModeUI();
+      showNotification(`当前播放模式：${getPlayModeName()}`, 'info');
+    }
+
+    // 更新播放模式图标（每种模式专属图标）
+    function updatePlayModeUI() {
+      els.modeIcon.className = 'fa'; // 重置图标
+      els.modeBadge.style.display = 'none'; // 默认隐藏徽章
+
+      if (isShuffling) {
+        // 随机播放：随机图标
+        els.modeIcon.classList.add('fa-random');
+      } else {
+        switch (repeatMode) {
+          case 'none':
+            // 顺序播放：列表图标
+            els.modeIcon.classList.add('fa-list');
+            break;
+          case 'one':
+            // 单曲循环：重复图标 + 数字1徽章
+            els.modeIcon.classList.add('fa-repeat');
+            els.modeBadge.style.display = 'inline-block';
+            break;
+          case 'all':
+            // 列表循环：重复图标（无徽章）
+            els.modeIcon.classList.add('fa-repeat');
+            break;
+        }
+      }
+    }
 
     /* ================= 折叠面板 ================= */
     function togglePlaylist() { isPlaylistCollapsed = !isPlaylistCollapsed; updatePlaylistCollapseState(); }
@@ -279,7 +336,16 @@ audio.play().then(() => {
 
     /* ================= 通知 ================= */
     function showNotification(msg, type = 'info') {
-      const n = els.notification; n.textContent = msg; n.className = 'notification'; type === 'success' ? n.classList.add('success') : type === 'error' ? n.classList.add('error') : type === 'warning' ? n.classList.add('warning') : n.classList.add('info'); n.classList.add('show'); setTimeout(() => n.classList.remove('show'), 3000);
+      const n = els.notification; n.textContent = msg; n.className = 'notification'; 
+      // 根据类型添加样式（新增info类型样式，用于播放模式提示）
+      switch(type) {
+        case 'success': n.classList.add('success'); break;
+        case 'error': n.classList.add('error'); break;
+        case 'warning': n.classList.add('warning'); break;
+        case 'info': n.classList.add('info'); break;
+        default: n.classList.add('info');
+      }
+      n.classList.add('show'); setTimeout(() => n.classList.remove('show'), 3000);
     }
 
     /* ================= 事件绑定 ================= */
