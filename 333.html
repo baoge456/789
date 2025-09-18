@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <title>悦听音乐播放器</title>
+  <link href="https://cdn.bootcdn.net/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;background:#f5f5f5;color:#333}
+    .container{max-width:1200px;margin:0 auto;padding:15px;box-sizing:border-box}
+    .app-header{background:#4f46e5;color:#fff;padding:12px 0;box-shadow:0 2px 5px rgba(0,0,0,.1);position:relative;z-index:15}
+    .header-content{display:flex;justify-content:space-between;align-items:center}
+    .logo{display:flex;align-items:center;gap:10px;font-size:1.3rem;font-weight:bold}
+    .header-actions{display:flex;gap:8px}
+    .main-content{display:flex;gap:15px;margin-top:15px;min-height:calc(100vh - 100px);position:relative}
+    .playlist-section{width:320px;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1);padding:15px;height:calc(100vh - 100px);overflow-y:auto;box-sizing:border-box;transition:transform .3s,opacity .3s,visibility .3s;z-index:10}
+    .playlist-section.collapsed{transform:translateX(-100%);position:absolute;width:320px;max-width:90%;visibility:hidden;opacity:0;pointer-events:none}
+    .player-section{flex:1;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1);padding:20px;text-align:center;position:relative;height:calc(100vh - 100px);display:flex;flex-direction:column;box-sizing:border-box;z-index:5}
+    .toggle-playlist{position:absolute;top:15px;left:15px;background:rgba(255,255,255,.9);border:none;cursor:pointer;color:#4f46e5;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 2px 5px rgba(0,0,0,.1);z-index:6}
+    .album-art-container{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+    .album-art{width:100%;max-width:300px;aspect-ratio:1/1;border-radius:50%;object-fit:cover;box-shadow:0 5px 15px rgba(0,0,0,.2); animation:spin 10s linear infinite; animation-play-state: paused;}
+    .album-art.playing{animation-play-state: running;}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    .track-details{margin-bottom:15px;padding:0 10px}
+    .track-name{font-size:1.3rem;margin:0 0 5px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .artist-name{color:#666;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .progress-container{margin:15px 0}
+    .progress-bar{width:100%;height:6px;background:#eee;border-radius:5px;cursor:pointer}
+    .progress{height:100%;background:#4f46e5;border-radius:5px}
+    .time-display{display:flex;justify-content:space-between;font-size:.85rem;color:#666;margin-top:5px}
+    .controls{display:flex;justify-content:center;align-items:center;gap:15px;margin:15px 0;padding:10px 0}
+    .control-btn{background:none;border:none;font-size:1.5rem;color:#333;cursor:pointer;transition:transform .2s;width:50px;height:50px;display:flex;align-items:center;justify-content:center}
+    .control-btn:hover{transform:scale(1.1)}
+    .play-btn{width:60px;height:60px;border-radius:50%;background:#4f46e5;color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.5rem}
+    .empty-state{text-align:center;padding:40px 20px;color:#999}
+    .empty-state i{font-size:3rem;margin-bottom:15px;color:#ddd}
+    .btn{padding:8px 12px;border:none;border-radius:4px;cursor:pointer;transition:background .2s;display:inline-flex;align-items:center;gap:5px;font-size:.9rem}
+    .btn-icon{padding:8px}
+    .btn-primary{background:#4f46e5;color:#fff}
+    .btn-primary:hover{background:#4338ca}
+    .btn-secondary{background:#f3f4f6;color:#333}
+    .btn-secondary:hover{background:#e5e7eb}
+    .btn-danger{background:#ef4444;color:#fff}
+    .btn-danger:hover{background:#dc2626}
+    .track-list{list-style:none;padding:0;margin:0}
+    .track-item{padding:10px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+    .track-item:hover{background:#f9fafb}
+    .track-info{flex:1;padding-right:10px;overflow:hidden}
+    .track-title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .track-artist{font-size:.85rem;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .track-actions{display:flex;gap:8px}
+    .track-actions button{background:none;border:none;cursor:pointer;color:#666;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .track-actions button:hover{background:#f0f0f0;color:#4f46e5}
+    .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;visibility:hidden;opacity:0;transition:visibility 0s,opacity .3s}
+    .modal-overlay.active{visibility:visible;opacity:1}
+    .modal{background:#fff;padding:20px;border-radius:8px;width:90%;max-width:500px;box-shadow:0 5px 15px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #eee}
+    .modal-title{margin:0;font-size:1.2rem}
+    .close-modal{background:none;border:none;font-size:1.5rem;cursor:pointer;color:#666;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+    .close-modal:hover{background:#f0f0f0}
+    .form-group{margin-bottom:15px}
+    .form-group label{display:block;margin-bottom:5px;font-weight:500}
+    .form-control{width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;font-size:1rem}
+    .modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:10px;border-top:1px solid #eee}
+    .notification{position:fixed;bottom:20px;right:20px;padding:12px 20px;background:#4f46e5;color:#fff;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.2);transform:translateY(100px);opacity:0;transition:transform .3s,opacity .3s;z-index:1001;max-width:80%}
+    .notification.show{transform:translateY(0);opacity:1}
+    .notification.success{background:#10b981}
+    .notification.error{background:#ef4444}
+    .notification.warning{background:#f59e0b;color:#000}
+    .notification.info{background:#3b82f6}
+    .mode-badge{display:inline-block;background:#4f46e5;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;text-align:center;line-height:16px;position:relative;top:-8px;left:-5px}
+    @media(max-width:768px){.main-content{flex-direction:column;gap:0;margin-top:0}.playlist-section{width:100%;height:100vh;position:absolute;top:0;left:0;border-radius:0;max-width:100%}.playlist-section:not(.collapsed){z-index:20}.player-section{width:100%;height:100vh;border-radius:0}.header-actions{gap:5px}.btn span{display:none}.btn{padding:8px}.album-art{max-width:80%}.controls{gap:10px}.control-btn{width:45px;height:45px;font-size:1.3rem}.play-btn{width:60px;height:60px}.track-name{font-size:1.2rem}.track-actions button,.toggle-playlist,.form-control,.btn{min-height:44px}}
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="container header-content">
+      <div class="logo"><i class="fa fa-music"></i><span>悦听音乐</span></div>
+      <div class="header-actions">
+        <button id="import-export-btn" class="btn btn-secondary"><i class="fa fa-upload"></i><span>导入/导出</span></button>
+        <button id="add-link-btn" class="btn btn-primary"><i class="fa fa-plus"></i><span>添加音乐</span></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="main-content">
+      <section class="playlist-section collapsed" id="playlist-section">
+        <div class="playlist-header"><h2 class="playlist-title" id="playlist-title-text">播放列表</h2></div>
+        <div class="playlist-controls">
+          <select id="playlist-select" class="playlist-select"></select>
+          <button id="create-playlist-btn" class="btn btn-primary btn-icon" title="添加新列表"><i class="fa fa-plus"></i></button>
+          <button id="delete-playlist-btn" class="btn btn-danger btn-icon" title="删除当前列表"><i class="fa fa-trash"></i></button>
+        </div>
+        <div class="sort-controls"><span>排序方式:</span>
+          <select id="sort-playlist" class="sort-select">
+            <option value="">默认</option>
+            <option value="title-asc">标题 ↑</option>
+            <option value="title-desc">标题 ↓</option>
+            <option value="artist-asc">艺术家 ↑</option>
+            <option value="artist-desc">艺术家 ↓</option>
+          </select>
+        </div>
+        <div id="playlist-container">
+          <div id="empty-playlist" class="empty-state"><i class="fa fa-music"></i><p>当前列表为空</p><p>点击"添加音乐"按钮添加歌曲</p></div>
+          <ul id="playlist" class="track-list" style="display:none;"></ul>
+        </div>
+      </section>
+
+      <section class="player-section">
+        <button class="toggle-playlist" id="toggle-playlist-btn"><i class="fa fa-bars"></i></button>
+        <div class="album-art-container">
+          <img id="album-art" src="https://picsum.photos/id/1074/400/400?music" alt="音乐封面" class="album-art" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23ccc\'%3E%3Cpath d=\'M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z\'/%3E%3C/svg%3E';">
+        </div>
+        <div class="track-details">
+          <h2 id="track-title" class="track-name">未选择音乐</h2>
+          <p id="track-artist" class="artist-name">未知艺术家</p>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" id="progress-bar"><div class="progress" id="progress" style="width:0%"></div></div>
+          <div class="time-display"><span id="current-time">00:00</span><span id="total-time">00:00</span></div>
+        </div>
+        <div class="controls">
+          <button class="control-btn" id="play-mode-btn" title="切换播放模式"><i class="fa fa-list" id="mode-icon"></i><span class="mode-badge" id="mode-badge" style="display:none;">1</span></button>
+          <button class="control-btn" id="prev-btn" title="上一首"><i class="fa fa-step-backward"></i></button>
+          <button class="control-btn play-btn" id="play-pause-btn" title="播放/暂停"><i class="fa fa-play" id="play-icon"></i><i class="fa fa-pause" id="pause-icon" style="display:none;"></i></button>
+          <button class="control-btn" id="next-btn" title="下一首"><i class="fa fa-step-forward"></i></button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Modals... -->
+  <div id="link-modal" class="modal-overlay"><div class="modal">
+    <div class="modal-header"><h3 class="modal-title">添加音乐链接</h3><button id="close-modal" class="close-modal">&times;</button></div>
+    <form id="link-form">
+      <div class="form-group"><label for="target-playlist">添加到列表</label><select id="target-playlist" class="form-control"></select></div>
+      <div class="form-group"><label for="music-link">音乐链接</label><input type="url" id="music-link" class="form-control" placeholder="https://example.com/music.mp3" required><small>支持直接音频链接和网易云音乐链接</small></div>
+      <div class="form-group"><label for="track-name">歌曲名称</label><input type="text" id="track-name" class="form-control" placeholder="输入歌曲名称"></div>
+      <div class="form-group"><label for="artist-name">艺术家</label><input type="text" id="artist-name" class="form-control" placeholder="输入艺术家名称"></div>
+      <div class="modal-footer"><button type="button" id="cancel-link" class="btn btn-secondary">取消</button><button type="submit" class="btn btn-primary">添加</button></div>
+    </form>
+  </div></div>
+  <div id="edit-modal" class="modal-overlay"><div class="modal">
+    <div class="modal-header"><h3 class="modal-title">编辑歌曲信息</h3><button id="close-edit-modal" class="close-modal">&times;</button></div>
+    <form id="edit-form">
+      <input type="hidden" id="edit-track-id">
+      <div class="form-group"><label for="edit-target-playlist">移动到列表</label><select id="edit-target-playlist" class="form-control"></select></div>
+      <div class="form-group"><label for="edit-track-name">歌曲名称</label><input type="text" id="edit-track-name" class="form-control" placeholder="输入歌曲名称" required></div>
+      <div class="form-group"><label for="edit-artist-name">艺术家</label><input type="text" id="edit-artist-name" class="form-control" placeholder="输入艺术家名称"></div>
+      <div class="form-group"><label for="edit-music-link">音乐链接</label><input type="url" id="edit-music-link" class="form-control" placeholder="https://example.com/music.mp3" required></div>
+      <div class="modal-footer"><button type="button" id="cancel-edit" class="btn btn-secondary">取消</button><button type="submit" class="btn btn-primary">保存</button></div>
+    </form>
+  </div></div>
+  <div id="import-export-modal" class="modal-overlay"><div class="modal">
+    <div class="modal-header"><h3 class="modal-title">导入/导出播放列表</h3><button id="close-import-export-modal" class="close-modal">&times;</button></div>
+    <div>
+      <div class="form-group"><label>导出播放列表</label><select id="export-playlist-select" class="form-control"><option value="all">全部列表</option></select></div>
+      <button id="export-btn" class="btn btn-primary" style="width:100%;margin-bottom:15px;"><i class="fa fa-download"></i> 导出为JSON</button>
+      <hr style="margin:20px 0;">
+      <div class="form-group"><label for="import-target-playlist">导入到列表</label><select id="import-target-playlist" class="form-control"></select></div>
+      <div class="form-group"><label>导入播放列表</label><input type="file" id="import-file" accept=".json" class="form-control"><small>支持标准格式和纯歌曲数组格式的JSON文件</small></div>
+      <div class="modal-footer"><button type="button" id="cancel-import-export" class="btn btn-secondary">关闭</button></div>
+    </div>
+  </div></div>
+
+  <div id="notification" class="notification"></div>
+
+  <script>
+    /* ================= 基础变量 ================= */
+    const audio = new Audio(); audio.preload = 'auto';
+    let playlists = { "默认列表": [] }, currentPlaylist = "默认列表", currentTrackIndex = 0, isPlaying = false, isShuffling = false, repeatMode = 'none', isPlaylistCollapsed = true;
+
+    /* ================= DOM 统一获取 ================= */
+    function $$(sel) { return document.querySelector(sel); }
+    const els = {
+      playlistSection: $$('#playlist-section'), togglePlaylistBtn: $$('#toggle-playlist-btn'), playlistSelect: $$('#playlist-select'), createPlaylistBtn: $$('#create-playlist-btn'), deletePlaylistBtn: $$('#delete-playlist-btn'), sortPlaylist: $$('#sort-playlist'), playlist: $$('#playlist'), emptyPlaylist: $$('#empty-playlist'), trackTitle: $$('#track-title'), trackArtist: $$('#track-artist'), albumArt: $$('#album-art'), playPauseBtn: $$('#play-pause-btn'), playIcon: $$('#play-icon'), pauseIcon: $$('#pause-icon'), prevBtn: $$('#prev-btn'), nextBtn: $$('#next-btn'), progressBar: $$('#progress-bar'), progress: $$('#progress'), currentTime: $$('#current-time'), totalTime: $$('#total-time'), playModeBtn: $$('#play-mode-btn'), modeIcon: $$('#mode-icon'), modeBadge: $$('#mode-badge'), linkModal: $$('#link-modal'), linkForm: $$('#link-form'), musicLink: $$('#music-link'), trackName: $$('#track-name'), artistName: $$('#artist-name'), targetPlaylistSelect: $$('#target-playlist'), editModal: $$('#edit-modal'), editForm: $$('#edit-form'), editTrackId: $$('#edit-track-id'), editTrackName: $$('#edit-track-name'), editArtistName: $$('#edit-artist-name'), editMusicLink: $$('#edit-music-link'), editTargetPlaylist: $$('#edit-target-playlist'), importExportModal: $$('#import-export-modal'), exportBtn: $$('#export-btn'), importFile: $$('#import-file'), exportPlaylistSelect: $$('#export-playlist-select'), importTargetPlaylist: $$('#import-target-playlist'), notification: $$('#notification'),
+      addLinkBtn: $$('#add-link-btn'), importExportBtn: $$('#import-export-btn'), closeModal: $$('#close-modal'), cancelLink: $$('#cancel-link'), closeEditModal: $$('#close-edit-modal'), cancelEdit: $$('#cancel-edit'), closeImportExportModal: $$('#close-import-export-modal'), cancelImportExport: $$('#cancel-import-export')
+    };
+
+    /* ================= 工具函数 ================= */
+    function getCurrentTracks() { return playlists[currentPlaylist] || []; }
+    function savePlaylistsToLocalStorage() { try { localStorage.setItem('yueTingPlaylists', JSON.stringify(playlists)); localStorage.setItem('yueTingCurrentPlaylist', currentPlaylist); } catch {} }
+    function loadPlaylistsFromLocalStorage() { try { const s = localStorage.getItem('yueTingPlaylists'), c = localStorage.getItem('yueTingCurrentPlaylist'); if (s) playlists = JSON.parse(s); if (c && playlists[c]) currentPlaylist = c; } catch {} }
+    function updatePlaylistSelect() { els.playlistSelect.innerHTML = ''; Object.keys(playlists).forEach(n => { const opt = new Option(n, n); opt.selected = n === currentPlaylist; els.playlistSelect.appendChild(opt); }); }
+    function updateTargetPlaylistSelect() { els.targetPlaylistSelect.innerHTML = ''; Object.keys(playlists).forEach(n => { const opt = new Option(n, n); opt.selected = n === currentPlaylist; els.targetPlaylistSelect.appendChild(opt); }); }
+    function updateEditTargetPlaylistSelect() { els.editTargetPlaylist.innerHTML = ''; Object.keys(playlists).forEach(n => { const opt = new Option(n, n); opt.selected = n === currentPlaylist; els.editTargetPlaylist.appendChild(opt); }); }
+    function updateExportPlaylistSelect() { els.exportPlaylistSelect.innerHTML = '<option value="all">全部列表</option>'; Object.keys(playlists).forEach(n => els.exportPlaylistSelect.appendChild(new Option(n, n))); }
+    function updateImportTargetPlaylistSelect() { els.importTargetPlaylist.innerHTML = ''; Object.keys(playlists).forEach(n => { const opt = new Option(n, n); opt.selected = n === currentPlaylist; els.importTargetPlaylist.appendChild(opt); }); }
+    function updateAllPlaylistSelects() { updatePlaylistSelect(); updateTargetPlaylistSelect(); updateEditTargetPlaylistSelect(); updateExportPlaylistSelect(); updateImportTargetPlaylistSelect(); }
+    function updateDeletePlaylistBtnState() { els.deletePlaylistBtn.disabled = currentPlaylist === '默认列表'; els.deletePlaylistBtn.style.opacity = currentPlaylist === '默认列表' ? '0.5' : '1'; }
+
+    /* ================= 播放控制 ================= */
+    function loadTrack(index) {
+      const tracks = getCurrentTracks(); if (!tracks.length) return;
+      if (index < 0) index = tracks.length - 1; if (index >= tracks.length) index = 0;
+      currentTrackIndex = index; const track = tracks[currentTrackIndex];
+      
+      audio.src = track.url;
+      audio.load();
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.log("Autoplay was prevented. The UI will be updated by the 'pause' event listener.");
+        });
+      }
+      
+      updateTrackInfo(track);
+      updatePlaylistDisplay();
+    }
+    function updateTrackInfo(track) {
+      els.trackTitle.textContent = track.title; els.trackArtist.textContent = track.artist || '未知艺术家';
+      els.albumArt.src = `https://picsum.photos/seed/${track.id}/400/400?music`;
+      audio.addEventListener('loadedmetadata', () => { els.totalTime.textContent = formatTime(audio.duration); }, { once: true });
+    }
+    function togglePlayPause() {
+      if (!audio.src) {
+        const tracks = getCurrentTracks();
+        if (tracks.length) {
+          loadTrack(0);
+        } else {
+          showNotification('播放列表为空', 'warning');
+        }
+        return;
+      }
+      audio.paused ? audio.play() : audio.pause();
+    }
+    function updatePlayPauseUI() {
+        const isNowPlaying = !audio.paused && !audio.ended;
+        isPlaying = isNowPlaying;
+        els.playIcon.style.display = isNowPlaying ? 'none' : 'inline';
+        els.pauseIcon.style.display = isNowPlaying ? 'inline' : 'none';
+        els.albumArt.classList.toggle('playing', isNowPlaying);
+        els.playPauseBtn.title = isNowPlaying ? '暂停' : '播放';
+    }
+
+    /* ================= 播放列表渲染 ================= */
+    function updatePlaylistDisplay() {
+        const tracks = getCurrentTracks();
+        if (tracks.length === 0) {
+            els.playlist.style.display = 'none';
+            els.emptyPlaylist.style.display = 'block';
+        } else {
+            els.playlist.style.display = 'block';
+            els.emptyPlaylist.style.display = 'none';
+            els.playlist.innerHTML = '';
+            tracks.forEach((track, index) => {
+                const li = document.createElement('li');
+                li.className = 'track-item';
+                if (index === currentTrackIndex && isPlaying) li.classList.add('active');
+                li.dataset.index = index;
+                li.innerHTML = `
+                    <div class="track-info">
+                        <div class="track-title">${track.title}</div>
+                        <div class="track-artist">${track.artist || '未知艺术家'}</div>
+                    </div>
+                    <div class="track-actions">
+                        <button class="edit-track-btn" title="编辑"><i class="fa fa-pencil"></i></button>
+                        <button class="delete-track-btn" title="删除"><i class="fa fa-trash"></i></button>
+                    </div>
+                `;
+                li.addEventListener('click', (e) => {
+                    if (e.target.closest('.track-actions')) return;
+                    if (index !== currentTrackIndex) {
+                        loadTrack(index);
+                    } else {
+                        togglePlayPause();
+                    }
+                    if (window.innerWidth <= 768 && !isPlaylistCollapsed) {
+                        togglePlaylist();
+                    }
+                });
+
+                const editBtn = li.querySelector('.edit-track-btn');
+                editBtn.addEventListener('click', () => openEditModal(track.id));
+
+                const deleteBtn = li.querySelector('.delete-track-btn');
+                deleteBtn.addEventListener('click', () => deleteTrack(track.id));
+
+                els.playlist.appendChild(li);
+            });
+        }
+        updateActiveTrackInPlaylist();
+    }
+
+    function togglePlaylist() {
+        isPlaylistCollapsed = !isPlaylistCollapsed;
+        els.playlistSection.classList.toggle('collapsed', isPlaylistCollapsed);
+    }
+
+    function updateActiveTrackInPlaylist() {
+        document.querySelectorAll('.track-item.active').forEach(el => el.classList.remove('active'));
+        if (isPlaying) {
+            const activeTrackEl = document.querySelector(`.track-item[data-index="${currentTrackIndex}"]`);
+            if (activeTrackEl) activeTrackEl.classList.add('active');
+        }
+    }
+
+    /* ================= 事件处理 ================= */
+    function handleTrackEnd() {
+        if (repeatMode === 'one') {
+            loadTrack(currentTrackIndex);
+        } else if (isShuffling) {
+            playNext(true);
+        } else if (repeatMode === 'all') {
+            playNext();
+        } else {
+            // If it's the last song and no repeat, just stop
+            if (currentTrackIndex === getCurrentTracks().length - 1) {
+                resetPlayerUI();
+            } else {
+                playNext();
+            }
+        }
+    }
+    function playNext(forceShuffle = false) {
+        const tracks = getCurrentTracks();
+        if (!tracks.length) return;
+        if (isShuffling || forceShuffle) {
+            currentTrackIndex = Math.floor(Math.random() * tracks.length);
+        } else {
+            currentTrackIndex++;
+        }
+        loadTrack(currentTrackIndex);
+    }
+    function playPrev() {
+        const tracks = getCurrentTracks();
+        if (!tracks.length) return;
+        currentTrackIndex--;
+        loadTrack(currentTrackIndex);
+    }
+    function seek(e) {
+        if (!audio.duration) return;
+        const rect = els.progressBar.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        audio.currentTime = percent * audio.duration;
+    }
+    function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    function togglePlayMode() {
+        const modes = ['none', 'all', 'one'];
+        const currentModeIndex = modes.indexOf(repeatMode);
+        let nextModeIndex = (currentModeIndex + 1) % modes.length;
+        
+        if (nextModeIndex === 0 && isShuffling) {
+            isShuffling = false;
+            repeatMode = 'none';
+        } else if (nextModeIndex === 0 && !isShuffling) {
+            isShuffling = true;
+            repeatMode = 'none';
+        } else {
+            isShuffling = false;
+            repeatMode = modes[nextModeIndex];
+        }
+        updatePlayModeUI();
+    }
+    function updatePlayModeUI() {
+        if (isShuffling) {
+            els.modeIcon.className = 'fa fa-random';
+            els.modeBadge.style.display = 'none';
+            showNotification('随机播放', 'info');
+        } else if (repeatMode === 'one') {
+            els.modeIcon.className = 'fa fa-list';
+            els.modeBadge.style.display = 'inline';
+            showNotification('单曲循环', 'info');
+        } else if (repeatMode === 'all') {
+            els.modeIcon.className = 'fa fa-repeat';
+            els.modeBadge.style.display = 'none';
+            showNotification('列表循环', 'info');
+        } else {
+            els.modeIcon.className = 'fa fa-list';
+            els.modeBadge.style.display = 'none';
+            showNotification('顺序播放', 'info');
+        }
+    }
+
+    /* ================= 歌曲管理 ================= */
+    async function addTrackFromLink(e) {
+        e.preventDefault();
+        const url = els.musicLink.value.trim();
+        let title = els.trackName.value.trim();
+        let artist = els.artistName.value.trim();
+        const targetPlaylist = els.targetPlaylistSelect.value;
+
+        if (!url) return;
+
+        let trackUrl = url;
+        if (url.includes('music.163.com')) {
+            try {
+                const songId = url.match(/id=(\d+)/)[1];
+                const response = await fetch(`https://api.imjad.cn/cloudmusic/?type=song&id=${songId}`);
+                const data = await response.json();
+                if (data.data && data.data[0].url) {
+                    trackUrl = data.data[0].url.replace('http://', 'https://');
+                    if (!title) title = data.data[0].name;
+                    if (!artist) artist = data.data[0].ar.map(a => a.name).join(', ');
+                } else {
+                    throw new Error('无法解析网易云音乐链接');
+                }
+            } catch (error) {
+                showNotification('解析网易云音乐链接失败', 'error');
+                return;
+            }
+        }
+
+        const newTrack = {
+            id: Date.now().toString(),
+            title: title || '未知歌曲',
+            artist: artist || '未知艺术家',
+            url: trackUrl
+        };
+
+        if (!playlists[targetPlaylist]) playlists[targetPlaylist] = [];
+        playlists[targetPlaylist].push(newTrack);
+        saveAndRefresh();
+        closeModal(els.linkModal);
+        els.linkForm.reset();
+        showNotification('歌曲添加成功', 'success');
+    }
+    function deleteTrack(trackId) {
+        if (!confirm('确定要删除这首歌曲吗？')) return;
+        const tracks = getCurrentTracks();
+        const trackIndex = tracks.findIndex(t => t.id === trackId);
+        if (trackIndex > -1) {
+            tracks.splice(trackIndex, 1);
+            if (isPlaying && currentTrackIndex === trackIndex) {
+                audio.pause();
+                if (tracks.length > 0) {
+                    loadTrack(currentTrackIndex);
+                } else {
+                    resetPlayerUI();
+                }
+            } else if (currentTrackIndex > trackIndex) {
+                currentTrackIndex--;
+            }
+            saveAndRefresh();
+            showNotification('歌曲已删除', 'success');
+        }
+    }
+    function editTrack(e) {
+        e.preventDefault();
+        const trackId = els.editTrackId.value;
+        const newTitle = els.editTrackName.value.trim();
+        const newArtist = els.editArtistName.value.trim();
+        const newUrl = els.editMusicLink.value.trim();
+        const newPlaylist = els.editTargetPlaylist.value;
+
+        let originalPlaylistName = null;
+        let trackToMove = null;
+        let originalIndex = -1;
+
+        for (const playlistName in playlists) {
+            const trackIndex = playlists[playlistName].findIndex(t => t.id === trackId);
+            if (trackIndex > -1) {
+                originalPlaylistName = playlistName;
+                trackToMove = playlists[playlistName][trackIndex];
+                originalIndex = trackIndex;
+                break;
+            }
+        }
+
+        if (!trackToMove) return;
+
+        trackToMove.title = newTitle;
+        trackToMove.artist = newArtist;
+        trackToMove.url = newUrl;
+
+        if (originalPlaylistName !== newPlaylist) {
+            playlists[originalPlaylistName].splice(originalIndex, 1);
+            if (!playlists[newPlaylist]) playlists[newPlaylist] = [];
+            playlists[newPlaylist].push(trackToMove);
+            if (currentPlaylist === originalPlaylistName) {
+                if (isPlaying && currentTrackIndex === originalIndex) {
+                    audio.pause();
+                    resetPlayerUI();
+                } else if (currentTrackIndex > originalIndex) {
+                    currentTrackIndex--;
+                }
+            }
+        }
+        
+        saveAndRefresh();
+        closeModal(els.editModal);
+        showNotification('歌曲信息已更新', 'success');
+    }
+    function sortPlaylist() {
+        const sortBy = els.sortPlaylist.value;
+        if (!sortBy) return;
+        const [key, order] = sortBy.split('-');
+        const tracks = getCurrentTracks();
+        tracks.sort((a, b) => {
+            if (a[key] < b[key]) return order === 'asc' ? -1 : 1;
+            if (a[key] > b[key]) return order === 'asc' ? 1 : -1;
+            return 0;
+        });
+        saveAndRefresh();
+    }
+
+    /* ================= 播放列表管理 ================= */
+    function createPlaylist() {
+        const name = prompt('请输入新播放列表的名称:', '我的收藏');
+        if (name && !playlists[name]) {
+            playlists[name] = [];
+            currentPlaylist = name;
+            saveAndRefresh();
+            updateDeletePlaylistBtnState();
+        } else if (name) {
+            alert('该播放列表已存在！');
+        }
+    }
+    function deletePlaylist() {
+        if (currentPlaylist === '默认列表') return;
+        if (confirm(`确定要删除播放列表 "${currentPlaylist}" 吗？`)) {
+            delete playlists[currentPlaylist];
+            currentPlaylist = '默认列表';
+            saveAndRefresh();
+            updateDeletePlaylistBtnState();
+        }
+    }
+    function switchPlaylist() {
+        currentPlaylist = els.playlistSelect.value;
+        localStorage.setItem('yueTingCurrentPlaylist', currentPlaylist);
+        updatePlaylistDisplay();
+        updateDeletePlaylistBtnState();
+        if (isPlaying) {
+            audio.pause();
+            resetPlayerUI();
+        }
+    }
+
+    /* ================= UI & Modal ================= */
+    function openModal(modal) { modal.classList.add('active'); }
+    function closeModal(modal) { modal.classList.remove('active'); }
+    function openEditModal(trackId) {
+        let track, playlistName;
+        for (const pName in playlists) {
+            const found = playlists[pName].find(t => t.id === trackId);
+            if (found) {
+                track = found;
+                playlistName = pName;
+                break;
+            }
+        }
+        if (track) {
+            updateEditTargetPlaylistSelect();
+            els.editTrackId.value = track.id;
+            els.editTrackName.value = track.title;
+            els.editArtistName.value = track.artist;
+            els.editMusicLink.value = track.url;
+            els.editTargetPlaylist.value = playlistName;
+            openModal(els.editModal);
+        }
+    }
+    function resetPlayerUI() {
+        audio.src = '';
+        els.trackTitle.textContent = '未选择音乐';
+        els.trackArtist.textContent = '未知艺术家';
+        els.albumArt.src = 'https://picsum.photos/id/1074/400/400?music';
+        els.progress.style.width = '0%';
+        els.currentTime.textContent = '00:00';
+        els.totalTime.textContent = '00:00';
+        currentTrackIndex = 0;
+        updatePlayPauseUI();
+        updatePlaylistDisplay();
+    }
+    let notificationTimeout;
+    function showNotification(message, type = 'info') {
+        els.notification.textContent = message;
+        els.notification.className = `notification show ${type}`;
+        clearTimeout(notificationTimeout);
+        notificationTimeout = setTimeout(() => {
+            els.notification.classList.remove('show');
+        }, 3000);
+    }
+
+    /* ================= 导入/导出 ================= */
+    function exportPlaylists() {
+        const selectedPlaylist = els.exportPlaylistSelect.value;
+        const dataToExport = selectedPlaylist === 'all' ? playlists : { [selectedPlaylist]: playlists[selectedPlaylist] };
+        const dataStr = JSON.stringify(dataToExport, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'yue-ting-playlists.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    function importPlaylists(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                const targetPlaylist = els.importTargetPlaylist.value;
+                if (Array.isArray(importedData)) {
+                    playlists[targetPlaylist] = [...playlists[targetPlaylist], ...importedData];
+                } else {
+                    for (const name in importedData) {
+                        if (playlists[name]) {
+                            playlists[name] = [...playlists[name], ...importedData[name]];
+                        } else {
+                            playlists[name] = importedData[name];
+                        }
+                    }
+                }
+                saveAndRefresh();
+                showNotification('导入成功', 'success');
+                closeModal(els.importExportModal);
+            } catch (error) {
+                showNotification('导入失败，文件格式错误', 'error');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    /* ================= 初始化 ================= */
+    function saveAndRefresh() {
+        savePlaylistsToLocalStorage();
+        updateAllPlaylistSelects();
+        updatePlaylistDisplay();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadPlaylistsFromLocalStorage();
+        updateAllPlaylistSelects();
+        updatePlaylistDisplay();
+        updateDeletePlaylistBtnState();
+
+        els.togglePlaylistBtn.addEventListener('click', togglePlaylist);
+
+        // Audio event listeners
+        audio.addEventListener('play', updatePlayPauseUI);
+        audio.addEventListener('pause', updatePlayPauseUI);
+        audio.addEventListener('ended', handleTrackEnd);
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration) {
+                const percent = (audio.currentTime / audio.duration) * 100;
+                els.progress.style.width = `${percent}%`;
+                els.currentTime.textContent = formatTime(audio.currentTime);
+            }
+        });
+
+        // Player controls
+        els.playPauseBtn.addEventListener('click', togglePlayPause);
+        els.nextBtn.addEventListener('click', () => playNext());
+        els.prevBtn.addEventListener('click', playPrev);
+        els.progressBar.addEventListener('click', seek);
+        els.playModeBtn.addEventListener('click', togglePlayMode);
+
+        // Playlist management
+        els.createPlaylistBtn.addEventListener('click', createPlaylist);
+        els.deletePlaylistBtn.addEventListener('click', deletePlaylist);
+        els.playlistSelect.addEventListener('change', switchPlaylist);
+        els.sortPlaylist.addEventListener('change', sortPlaylist);
+
+        // Modal triggers
+        els.addLinkBtn.addEventListener('click', () => { updateTargetPlaylistSelect(); openModal(els.linkModal); });
+        els.importExportBtn.addEventListener('click', () => { updateExportPlaylistSelect(); updateImportTargetPlaylistSelect(); openModal(els.importExportModal); });
+
+        // Modal forms and close buttons
+        els.linkForm.addEventListener('submit', addTrackFromLink);
+        els.editForm.addEventListener('submit', editTrack);
+        els.exportBtn.addEventListener('click', exportPlaylists);
+        els.importFile.addEventListener('change', importPlaylists);
+        
+        els.closeModal.addEventListener('click', () => closeModal(els.linkModal));
+        els.cancelLink.addEventListener('click', () => closeModal(els.linkModal));
+        els.closeEditModal.addEventListener('click', () => closeModal(els.editModal));
+        els.cancelEdit.addEventListener('click', () => closeModal(els.editModal));
+        els.closeImportExportModal.addEventListener('click', () => closeModal(els.importExportModal));
+        els.cancelImportExport.addEventListener('click', () => closeModal(els.importExportModal));
+
+        // Initial UI state for mobile
+        if (window.innerWidth <= 768) {
+            isPlaylistCollapsed = true;
+            els.playlistSection.classList.add('collapsed');
+        } else {
+            isPlaylistCollapsed = false;
+            els.playlistSection.classList.remove('collapsed');
+        }
+    });
+  </script>
+</body>
+</html>
