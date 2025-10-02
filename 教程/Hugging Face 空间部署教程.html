@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hugging Face 空间部署教程 - 0817</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f1f1f1;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card h2 i {
+            margin-right: 10px;
+            color: #3498db;
+        }
+        
+        .steps {
+            counter-reset: step-counter;
+        }
+        
+        .step {
+            margin-bottom: 20px;
+            padding-left: 50px;
+            position: relative;
+        }
+        
+        .step:before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 36px;
+            height: 36px;
+            background: #3498db;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .note {
+            background-color: #e8f4fc;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .command-container {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 25px 0;
+            position: relative;
+        }
+        
+        .command {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            word-break: break-all;
+            padding-right: 50px;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background: #2980b9;
+        }
+        
+        .copy-btn i {
+            margin-right: 5px;
+        }
+        
+        .resources {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .resource-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        
+        .resource-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .resource-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .resource-card h3 i {
+            margin-right: 10px;
+            color: #e74c3c;
+        }
+        
+        .resource-card a {
+            color: #3498db;
+            text-decoration: none;
+            word-break: break-all;
+            display: block;
+            margin-top: 10px;
+        }
+        
+        .resource-card a:hover {
+            text-decoration: underline;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .content, .resources {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Hugging Face 空间部署教程</h1>
+            <p class="subtitle">在Hugging Face平台上创建和部署您的AI应用空间</p>
+        </header>
+        
+        <div class="content">
+            <div class="card">
+                <h2><i class="fas fa-list-ol"></i> 部署步骤</h2>
+                <div class="steps">
+                    <div class="step">
+                        <p>打开官方网站：<a href="https://huggingface.co" target="_blank">https://huggingface.co</a></p>
+                        <p><a href="#">详细注册和完整版部署教程【点击查看】</a></p>
+                        <p>（比本期部署方法更加稳定耐用）</p>
+                    </div>
+                    
+                    <div class="step">
+                        <p>登录后创建空间</p>
+                    </div>
+                    
+                    <div class="step">
+                        <p>创建空间时 Space SDK 选择 > Docker > JupyterLab</p>
+                        <div class="note">
+                            <p><strong>注意：</strong> JupyterLab 是 Jupyter 项目推出的下一代基于 Web 的交互式开发环境，旨在替代传统的 Jupyter Notebook，提供更强大的功能和更灵活的用户体验。它支持多种编程语言和文件类型，广泛应用于数据科学、机器学习、科学计算和教育等领域。</p>
+                        </div>
+                        <p>然后你就可以在这个空间运行各种代码了。</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2><i class="fas fa-terminal"></i> 部署命令</h2>
+                <p>复制并执行以下命令来部署您的应用：</p>
+                
+                <div class="command-container">
+                    <div class="command" id="command-text">
+                        bash <(curl -l -s https://raw.githubusercontent.com/zzzhhh1/free-vps-py/refs/heads/main/test.sh)
+                    </div>
+                    <button class="copy-btn" id="copy-btn">
+                        <i class="fas fa-copy"></i> 复制命令
+                    </button>
+                </div>
+                
+                <div class="note">
+                    <p><strong>提示：</strong> 点击上方的"复制命令"按钮，然后将命令粘贴到您的终端中执行。</p>
+                </div>
+                
+                <h3 style="margin-top: 25px;"><i class="fas fa-lightbulb"></i> 使用提示</h3>
+                <ul style="padding-left: 20px; margin-top: 10px;">
+                    <li>确保您已登录 Hugging Face 账户</li>
+                    <li>创建空间时选择正确的硬件配置</li>
+                    <li>部署过程可能需要几分钟时间</li>
+                    <li>部署完成后，您的应用将有一个公开的URL</li>
+                </ul>
+            </div>
+        </div>
+        
+        <h2 style="color: white; margin: 30px 0 20px; text-align: center;">参考资源</h2>
+        
+        <div class="resources">
+            <div class="resource-card">
+                <h3><i class="fab fa-youtube"></i> YouTube 教程</h3>
+                <p>观看详细的视频教程，了解如何在 Hugging Face 上部署您的AI应用。</p>
+                <a href="https://www.youtube.com/watch?v=VXF4byCpMQk" target="_blank">https://www.youtube.com/watch?v=VXF4byCpMQk</a>
+            </div>
+            
+            <div class="resource-card">
+                <h3><i class="fas fa-blog"></i> 技术博客</h3>
+                <p>阅读这篇博客文章，了解更多关于VPN、Cloudflare VPN和ChatGPT集成的内容。</p>
+                <a href="https://kjgx668.blogspot.com/2025/08/vpncloudflare-vpn-vpnyoutube4k-chatgpt.html" target="_blank">https://kjgx668.blogspot.com/2025/08/vpncloudflare-vpn-vpnyoutube4k-chatgpt.html</a>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Hugging Face 空间部署教程 &copy; 2023 - 本教程仅供参考</p>
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById('copy-btn').addEventListener('click', function() {
+            const commandText = document.getElementById('command-text').textContent;
+            
+            // 使用现代剪贴板API
+            navigator.clipboard.writeText(commandText).then(() => {
+                // 复制成功，更改按钮文本
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> 已复制!';
+                this.style.background = '#27ae60';
+                
+                // 2秒后恢复原状
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.style.background = '#3498db';
+                }, 2000);
+            }).catch(err => {
+                // 如果现代API不可用，使用备用方法
+                const textArea = document.createElement('textarea');
+                textArea.value = commandText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // 复制成功，更改按钮文本
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> 已复制!';
+                this.style.background = '#27ae60';
+                
+                // 2秒后恢复原状
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.style.background = '#3498db';
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>
