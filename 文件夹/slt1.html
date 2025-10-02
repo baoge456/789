@@ -4,33 +4,37 @@
   <meta charset="UTF-8">
   <title>网站缩略图</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="dns-prefetch" href="//favicon.cccyun.cc">
+  <link rel="dns-prefetch" href="//www.google.com">
+  <link rel="dns-prefetch" href="//favicon.im">
+  <link rel="dns-prefetch" href="//favicon.yandex.net">
+  <link rel="dns-prefetch" href="//icon.horse">
+  <link rel="dns-prefetch" href="//unavatar.io">
+  <link rel="dns-prefetch" href="//icons.duckduckgo.com">
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
     body {
       min-height: 100vh;
       background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
       overflow-x: hidden;
+      padding: 20px 0;
     }
     .panel {
-      position: relative;
+      position: relative; /* 关键：面板设为相对定位，作为提示框的父容器 */
       width: 100vw;
-      max-width: 480px;
+      max-width: 600px;
       min-width: 0;
       margin: 0 auto;
       background: linear-gradient(120deg, #f8ffae 0%, #43cea2 100%);
-      padding: 32px 4vw 24px 4vw;
+      padding: 60px 4vw 32px 4vw; /* 顶部增加60px padding，给提示框预留空间 */
       border-radius: 18px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.12);
       text-align: center;
-      transition: box-shadow 0.2s, top 0.4s, transform 0.4s, margin-top 0.4s;
+      transition: box-shadow 0.2s, margin-top 0.4s;
       z-index: 10;
-      margin-top: 0;
     }
     .panel.centered {
-      position: relative;
-      top: 50vh;
-      transform: translateY(-50%);
-      margin-top: 0;
+      margin-top: calc(50vh - 180px); /* 微调居中位置，适应顶部新增空间 */
     }
     .refresh-btn {
       position: absolute;
@@ -42,7 +46,7 @@
       border: none;
       cursor: pointer;
       padding: 0;
-      z-index: 20;
+      z-index: 20; /* 高于提示框，确保可点击 */
       transition: transform 0.2s;
     }
     .refresh-btn svg {
@@ -55,110 +59,252 @@
       transform: rotate(180deg) scale(1.15);
       fill: #005ecb;
     }
-    input[type="text"] {
-      width: 90%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 18px;
-      font-size: 17px;
+    #urlInput {
+      width: 85%;
+      padding: 14px 16px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      margin: 12px 0;
+      font-size: 18px;
       outline: none;
-      transition: border 0.2s;
+      transition: all 0.2s;
       box-sizing: border-box;
+      font-family: "Microsoft YaHei", sans-serif;
+      position: relative;
+      z-index: 15; /* 确保输入框在提示框之上 */
     }
-    input[type="text"]:focus { border: 1.5px solid #0078ff; }
+    #urlInput:focus {
+      border-color: #0078ff;
+      box-shadow: 0 0 0 4px rgba(0,120,255,0.1);
+    }
     button:not(.refresh-btn) {
-      padding: 10px 28px;
+      padding: 14px 36px;
       background: linear-gradient(90deg, #0078ff 0%, #00c6ff 100%);
       color: #fff;
       border: none;
-      border-radius: 8px;
-      font-size: 17px;
+      border-radius: 10px;
+      font-size: 18px;
       cursor: pointer;
-      margin-bottom: 18px;
-      box-shadow: 0 2px 8px rgba(0,120,255,0.08);
-      transition: background 0.2s;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,120,255,0.15);
+      transition: all 0.2s;
+      font-weight: 600;
+      position: relative;
+      z-index: 15; /* 确保按钮在提示框之上 */
     }
-    button:not(.refresh-btn):hover { background: linear-gradient(90deg, #005ecb 0%, #00aaff 100%); }
+    button:not(.refresh-btn):hover {
+      background: linear-gradient(90deg, #005ecb 0%, #00aaff 100%);
+      box-shadow: 0 6px 16px rgba(0,120,255,0.2);
+    }
     button:not(.refresh-btn):disabled {
       background: linear-gradient(90deg, #8cc5ff 0%, #80d8ff 100%);
       cursor: not-allowed;
       box-shadow: none;
+      transform: none;
     }
-    .result {
-      margin-top: 18px;
+
+    .progress-wrapper {
+      width: 100%;
+      margin: 0 0 20px 0;
+      display: none;
+      position: relative;
+      z-index: 15; /* 进度条在提示框之上 */
+    }
+    .progress-container {
+      width: 100%;
+      height: 10px;
+      background: #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #43cea2 0%, #0078ff 100%);
+      border-radius: 5px;
+      transition: width 0.3s ease;
+    }
+    .progress-bar.complete {
+      background: linear-gradient(90deg, #00B42A 0%, #00FF38 100%);
+    }
+    .progress-info {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
+      justify-content: space-between;
+      font-size: 15px;
+      color: #555;
+      font-weight: 500;
     }
-    .icon-block {
-      background: linear-gradient(90deg, #fbc2eb 0%, #a6c1ee 100%);
-      border-radius: 12px;
-      padding: 14px 10px 10px 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      width: 190px;
+
+    .result {
+      margin-top: 12px;
+      width: 100%;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      box-sizing: border-box;
+      gap: 12px;
+      position: relative;
+      z-index: 15; /* 结果列表在提示框之上 */
     }
-    .icon-block h4 {
-      margin: 0 0 6px 0;
-      font-size: 15px;
-      color: #0078ff;
-      font-weight: 600;
-    }
-    .icon-block img {
-      width: 56px;
-      height: 56px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-      background: #f5f6fa;
-      object-fit: contain;
-      margin-bottom: 6px;
-    }
-    .icon-link-row {
+    .result-item {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-top: 2px;
+      justify-content: space-between;
+      text-align: left;
+      animation: fadeIn 0.3s ease;
+      border: 2px solid #0078ff;
     }
-    .icon-block a {
+    .result-item:hover {
+      box-shadow: 0 4px 12px rgba(0,120,255,0.2);
+      border-color: #00c6ff;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .item-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .item-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,120,255,0.15);
+      background: #f5f6fa;
+      object-fit: contain;
+    }
+    .item-info h4 {
+      margin: 0 0 6px 0;
+      font-size: 16px;
       color: #0078ff;
-      word-break: break-all;
-      font-size: 14px;
-      text-decoration: underline;
-      margin-right: 0;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0,120,255,0.1);
     }
-    .copy-btn {
-      padding: 2px 10px;
+    .item-link {
+      color: #666;
+      word-break: break-all;
       font-size: 13px;
+      text-decoration: underline;
+      max-width: 300px;
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .item-right .copy-btn {
+      padding: 6px 16px;
+      font-size: 14px;
       border: none;
       border-radius: 6px;
-      background: #43cea2;
+      background: #0078ff;
       color: #fff;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,120,255,0.2);
     }
-    .copy-btn.copied {
-      background: #0078ff;
+    .item-right .copy-btn:hover {
+      background: #005ecb;
+      box-shadow: 0 3px 6px rgba(0,120,255,0.3);
     }
+    .item-right .copy-btn.copied {
+      background: #6e3ce7;
+      box-shadow: 0 3px 6px rgba(255,125,0,0.3);
+    }
+    .empty-state {
+      color: #6e3ce7;
+      font-size: 17px;
+      padding: 24px 0;
+      font-weight: 600;
+    }
+
+    /* 核心优化：提示框放在面板内部，不超出范围 */
+    .complete-toast {
+      position: absolute; /* 相对于面板定位 */
+      top: 30px; /* 面板顶部下方15px，避开刷新按钮 */
+      left: 50%;
+      transform: translateX(-50%) scale(0.8);
+      z-index: 12; /* 低于按钮/输入框，不影响操作 */
+      background: linear-gradient(90deg, #00B42A 0%, #00FF38 100%);
+      color: ＃8A2BE2;
+      padding: 10px 24px; /* 缩小内边距，适应面板内部空间 */
+      border-radius: 8px;
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 4px 12px rgba(0,180,42,0.4);
+      font-size: 16px; /* 字体稍小，避免占用过多空间 */
+      font-weight: 700;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      text-align: center;
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 12px center;
+      padding-left: 44px;
+      width: calc(100% - 40px); /* 限制宽度，不超出面板左右边界 */
+      max-width: 200px;
+    }
+    .complete-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+      animation: pulse 1.5s infinite alternate;
+    }
+    @keyframes pulse {
+      from { transform: translateX(-50%) scale(1); box-shadow: 0 4px 12px rgba(0,180,42,0.4); }
+      to { transform: translateX(-50%) scale(1.03); box-shadow: 0 6px 16px rgba(0,180,42,0.5); }
+    }
+
     @media (max-width: 600px) {
-      .panel, .panel.centered {
-        max-width: 100vw;
-        padding: 18px 2vw 12px 2vw;
-        border-radius: 0;
+      .panel {
+        padding: 50px 3vw 24px 3vw; /* 移动端顶部padding稍减 */
+        margin-top: 0;
       }
-      .icon-block { max-width: calc(50% - 10px); width: auto; }
-      .icon-block img { width: 40px; height: 40px; }
-      .refresh-btn { top: 8px; right: 8px; width: 22px; height: 22px; }
+      .panel.centered {
+        margin-top: 20px;
+      }
+      #urlInput {
+        width: 90%;
+        font-size: 17px;
+        padding: 12px 14px;
+      }
+      button:not(.refresh-btn) {
+        padding: 12px 32px;
+        font-size: 17px;
+      }
+      .item-info h4 {
+        font-size: 15px;
+      }
+      .item-link {
+        max-width: 180px;
+      }
+      .complete-toast {
+        padding: 8px 20px;
+        font-size: 14px;
+        background-size: 20px;
+        background-position: 10px center;
+        padding-left: 38px;
+        top: 12px;
+      }
+      .complete-toast.show {
+        animation: pulseMobile 1.5s infinite alternate;
+      }
+      @keyframes pulseMobile {
+        from { transform: translateX(-50%) scale(1); }
+        to { transform: translateX(-50%) scale(1.02); }
+      }
     }
   </style>
 </head>
 <body>
   <div class="panel centered" id="mainPanel">
-    <button class="refresh-btn" title="刷新" onclick="resetPanel()" aria-label="刷新">
+    <button class="refresh-btn" title="刷新（清空缓存）" onclick="resetPanel()" aria-label="刷新">
       <svg viewBox="0 0 24 24">
         <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1l-4 4 4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.932 7.932 0 0 0 20 12c0-2.21-.9-4.21-2.35-5.65zM6.35 17.65A7.95 7.95 0 0 0 12 20v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8l-1.46-1.46A7.932 7.932 0 0 0 4 12c0 2.21.9 4.21 2.35 5.65z"/>
       </svg>
@@ -166,115 +312,338 @@
     <h2>网站缩略图</h2>
     <input type="text" id="urlInput" placeholder="输入网址，如 https://www.baidu.com" />
     <br>
-    <!-- 给抓取按钮添加ID，方便后续操作 -->
     <button id="fetchBtn" onclick="fetch缩略图()">抓取</button>
+
+    <div class="progress-wrapper" id="progressWrapper">
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-info">
+        <span id="elapsedTime">耗时：0s</span>
+        <span id="progressPercent">进度：0%</span>
+      </div>
+    </div>
+
     <div class="result" id="result"></div>
+
+    <!-- 提示框放在面板内部，作为面板的子元素 -->
+    <div class="complete-toast" id="completeToast">抓取完成！已展示成功结果</div>
   </div>
+
   <script>
-    // 页面加载时自动聚焦输入框
-    window.onload = function() {
-      document.getElementById('urlInput').focus();
+    let isFetching = false;
+    const faviconCache = {
+      get(domain, forceRefresh = false) {
+        if (forceRefresh) return null;
+        const memoryCache = window._faviconMemoryCache?.[domain];
+        if (memoryCache) return memoryCache;
+        try {
+          const localCache = localStorage.getItem(`favicon_${domain}`);
+          if (!localCache) return null;
+          const cacheData = JSON.parse(localCache);
+          if (cacheData.expire < Date.now()) {
+            this.remove(domain);
+            return null;
+          }
+          return cacheData;
+        } catch (e) {
+          console.error('读取缓存失败：', e);
+          this.remove(domain);
+          return null;
+        }
+      },
+      set(domain, data) {
+        const cacheData = { ...data, expire: Date.now() + 86400000 };
+        if (!window._faviconMemoryCache) window._faviconMemoryCache = {};
+        window._faviconMemoryCache[domain] = cacheData;
+        try {
+          localStorage.setItem(`favicon_${domain}`, JSON.stringify(cacheData));
+        } catch (e) {
+          console.error('写入缓存失败：', e);
+        }
+      },
+      remove(domain) {
+        if (window._faviconMemoryCache) delete window._faviconMemoryCache[domain];
+        localStorage.removeItem(`favicon_${domain}`);
+      },
+      isEffective(cache) {
+        return cache && cache.data?.length > 0 && cache.data.some(item => item.valid);
+      }
     };
 
+    let totalTasks = 8;
+    let completedTasks = 0;
+    let startTime = 0;
+    let timeTimer = null;
+
+    window.onload = function() {
+      const urlInput = document.getElementById('urlInput');
+      urlInput.focus();
+
+      // 左键/右键点击输入框自动清空
+      bindClearOnClick(urlInput);
+
+      // 粘贴覆盖功能
+      bindPasteOverride(urlInput);
+
+      // 回车触发抓取
+      urlInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !isFetching) document.getElementById('fetchBtn').click();
+      });
+    };
+
+    function bindClearOnClick(input) {
+      input.addEventListener('click', () => { input.value = ''; });
+      input.addEventListener('contextmenu', () => { input.value = ''; });
+    }
+
+    function bindPasteOverride(input) {
+      input.addEventListener('paste', async (e) => {
+        e.preventDefault();
+        let pasteText = '';
+        if (e.clipboardData && e.clipboardData.getData) {
+          pasteText = e.clipboardData.getData('text');
+        } else if (window.clipboardData && window.clipboardData.getData) {
+          pasteText = window.clipboardData.getData('Text');
+        } else if (navigator.clipboard) {
+          pasteText = await navigator.clipboard.readText().catch(() => '');
+        }
+        input.value = pasteText.trim();
+        input.focus();
+        input.setSelectionRange(pasteText.length, pasteText.length);
+      });
+    }
+
     function resetPanel() {
-      document.getElementById('urlInput').value = '';
+      const urlInput = document.getElementById('urlInput');
+      const currentUrl = urlInput.value.trim();
+      if (currentUrl) {
+        try {
+          const domain = new URL(currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`)
+            .hostname.replace(/^www\./, '');
+          faviconCache.remove(domain);
+        } catch (e) {}
+      }
+
+      urlInput.value = '';
       document.getElementById('result').innerHTML = '';
-      // 重置抓取按钮状态
       const fetchBtn = document.getElementById('fetchBtn');
       fetchBtn.textContent = '抓取';
       fetchBtn.disabled = false;
-      
-      document.getElementById('urlInput').focus();
+
+      const progressWrapper = document.getElementById('progressWrapper');
+      const progressBar = document.getElementById('progressBar');
+      const elapsedTime = document.getElementById('elapsedTime');
+      const progressPercent = document.getElementById('progressPercent');
+      progressWrapper.style.display = 'none';
+      progressBar.style.width = '0%';
+      progressBar.classList.remove('complete');
+      elapsedTime.textContent = '耗时：0s';
+      progressPercent.textContent = '进度：0%';
+      completedTasks = 0;
+      isFetching = false;
+      if (timeTimer) clearInterval(timeTimer);
+
       document.getElementById('mainPanel').classList.add('centered');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.getElementById('completeToast').classList.remove('show');
     }
 
-    // 核心修改：添加按钮状态控制
+    function showCompleteToast() {
+      const toast = document.getElementById('completeToast');
+      toast.classList.add('show');
+      document.getElementById('progressBar').classList.add('complete');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    function updateProgress() {
+      const progressBar = document.getElementById('progressBar');
+      const elapsedTime = document.getElementById('elapsedTime');
+      const progressPercent = document.getElementById('progressPercent');
+
+      const percent = Math.round((completedTasks / totalTasks) * 100);
+      progressBar.style.width = `${percent}%`;
+      progressPercent.textContent = `进度：${percent}%`;
+
+      if (startTime) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        elapsedTime.textContent = `耗时：${elapsed}s`;
+      }
+
+      if (completedTasks === totalTasks) {
+        if (timeTimer) clearInterval(timeTimer);
+      }
+    }
+
+    function taskComplete() {
+      completedTasks = Math.min(completedTasks + 1, totalTasks);
+      updateProgress();
+    }
+
+    const checkImage = (api) => new Promise((resolve) => {
+      const img = new window.Image();
+      const timeout = api.priority === 'fast' ? 4000 : 6000;
+      const maxRetry = 1;
+      let retryCount = 0;
+
+      const tryLoad = () => {
+        img.src = '';
+        const timeoutTimer = setTimeout(() => {
+          if (retryCount < maxRetry) {
+            retryCount++;
+            tryLoad();
+          } else {
+            taskComplete();
+            resolve({ ...api, valid: false });
+          }
+        }, timeout);
+
+        img.onload = () => {
+          clearTimeout(timeoutTimer);
+          taskComplete();
+          const valid = img.width > 4 && img.height > 4;
+          resolve({ ...api, valid, url: api.url });
+        };
+
+        img.onerror = img.onabort = () => {
+          clearTimeout(timeoutTimer);
+          if (retryCount < maxRetry) {
+            retryCount++;
+            tryLoad();
+          } else {
+            taskComplete();
+            resolve({ ...api, valid: false });
+          }
+        };
+
+        const cacheBuster = api.url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+        const finalUrl = api.url.startsWith('https') 
+          ? api.url + cacheBuster 
+          : `https://${api.url.slice(api.url.indexOf('//') + 2)}` + cacheBuster;
+        img.src = finalUrl;
+      };
+
+      tryLoad();
+    });
+
+    function renderSuccessItem(api) {
+      const resultDiv = document.getElementById('result');
+      const item = document.createElement('div');
+      item.className = 'result-item';
+      item.innerHTML = `
+        <div class="item-left">
+          <img src="${api.url}" alt="${api.name} 图标" class="item-icon">
+          <div class="item-info">
+            <h4>${api.name}</h4>
+            <a href="${api.url}" target="_blank" rel="noopener noreferrer" class="item-link">${api.url}</a>
+          </div>
+        </div>
+        <div class="item-right">
+          <button class="copy-btn" onclick="copyToClipboard('${api.url}', this)">复制</button>
+        </div>
+      `;
+      resultDiv.appendChild(item);
+    }
+
     async function fetch缩略图() {
       const url = document.getElementById('urlInput').value.trim();
       const resultDiv = document.getElementById('result');
-      const fetchBtn = document.getElementById('fetchBtn'); // 获取抓取按钮元素
+      const fetchBtn = document.getElementById('fetchBtn');
+      const progressWrapper = document.getElementById('progressWrapper');
       
+      if (isFetching) return;
+      isFetching = true;
+
       resultDiv.innerHTML = '';
       if (!url) {
         alert('请输入网址');
+        isFetching = false;
         return;
       }
 
-      // 1. 点击后立即修改按钮状态：显示加载文本 + 禁用按钮（防止重复点击）
-      fetchBtn.textContent = '正在抓取中，请稍后....';
-      fetchBtn.disabled = true;
-
-      // 域名提取（原逻辑不变）
       let domain = '';
+      let parsedUrl = null;
       try {
-        domain = new URL(url).hostname;
-      } catch {
-        try {
-          domain = new URL('https://' + url).hostname;
-        } catch {
-          resultDiv.innerHTML = '<span style="color:#e74c3c;">无法识别网址，请输入正确的网址！</span>';
-          // 2. 错误时恢复按钮状态
-          fetchBtn.textContent = '抓取';
-          fetchBtn.disabled = false;
-          return;
-        }
+        parsedUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
+        domain = parsedUrl.hostname.replace(/^www\./, '');
+      } catch (e) {
+        resultDiv.innerHTML = '<div class="empty-state">无法识别网址，请输入正确格式（如 https://www.baidu.com）！</div>';
+        isFetching = false;
+        fetchBtn.textContent = '抓取';
+        fetchBtn.disabled = false;
+        return;
       }
 
-      // 并发抓取（原逻辑不变）
-      const apis = [
-        { name: 'Favicon.cccyun (无代理)', url: `https://favicon.cccyun.cc/${domain}` },
-        { name: '网站自身 (无代理)', url: `https://${domain}/favicon.ico` },
-        { name: 'Google Favicon', url: `https://www.google.com/s2/favicons?domain=${domain}` },
-        { name: 'Favicon.im', url: `https://favicon.im/${domain}` },
-        { name: 'Yandex Favicon', url: `https://favicon.yandex.net/favicon/${domain}` },
-        { name: 'Icon Horse', url: `https://icon.horse/icon/${domain}` },
-        { name: 'Unavatar', url: `https://unavatar.io/${domain}` },
-        { name: 'DuckDuckGo Favicon', url: `https://icons.duckduckgo.com/ip3/${domain}.ico` }
+      const forceRefresh = false;
+      const cache = faviconCache.get(domain, forceRefresh);
+      if (faviconCache.isEffective(cache)) {
+        cache.data.forEach(api => api.valid && renderSuccessItem(api));
+        showCompleteToast();
+        isFetching = false;
+        document.getElementById('mainPanel').classList.remove('centered');
+        return;
+      }
+
+      completedTasks = 0;
+      startTime = Date.now();
+      progressWrapper.style.display = 'block';
+      updateProgress();
+      timeTimer = setInterval(updateProgress, 1000);
+
+      fetchBtn.textContent = '正在抓取中....';
+      fetchBtn.disabled = true;
+      document.getElementById('mainPanel').classList.remove('centered');
+
+      const fastApis = [
+        { name: '网站自身 (无代理)', url: `https://${parsedUrl.hostname}/favicon.ico`, priority: 'fast' },
+        { name: 'DuckDuckGo Favicon', url: `https://icons.duckduckgo.com/ip3/${domain}.ico`, priority: 'fast' },
+        { name: 'Google Favicon', url: `https://www.google.com/s2/favicons?domain=${domain}&sz=64`, priority: 'fast' },
+        { name: 'Favicon.cccyun (无代理)', url: `https://favicon.cccyun.cc/${domain}`, priority: 'fast' }
+      ];
+      const slowApis = [
+        { name: 'Favicon.im', url: `https://favicon.im/${domain}`, priority: 'slow' },
+        { name: 'Yandex Favicon', url: `https://favicon.yandex.net/favicon/${domain}`, priority: 'slow' },
+        { name: 'Icon Horse', url: `https://icon.horse/icon/${domain}`, priority: 'slow' },
+        { name: 'Unavatar', url: `https://unavatar.io/${domain}`, priority: 'slow' }
       ];
 
-      const checkImage = (api) => new Promise((resolve) => {
-        const img = new window.Image();
-        img.onload = () => resolve({ ...api, valid: img.width > 8 });
-        img.onerror = () => resolve({ ...api, valid: false });
-        img.src = api.url + (api.url.includes('?') ? '&' : '?') + 't=' + Date.now();
-      });
-
+      const allResults = [];
       try {
-        const results = await Promise.all(apis.map(checkImage));
-        let html = '';
-        for (const api of results) {
-          html += `<div class="icon-block">
-            <h4>${api.name}</h4>
-            ${api.valid ? `<img src="${api.url}" alt="${api.name} 图标">` : `<span style='color:#e74c3c;'>获取失败</span>`}
-            <div class="icon-link-row">
-              <a href="${api.url}" target="_blank">${api.url}</a>
-              <button class="copy-btn" onclick="copyToClipboard('${api.url}', this)">复制</button>
-            </div>
-          </div>`;
-        }
-        resultDiv.innerHTML = html;
+        const fastResults = await Promise.all(fastApis.map(api => checkImage(api)));
+        fastResults.forEach(api => {
+          allResults.push(api);
+          if (api.valid) renderSuccessItem(api);
+        });
 
-        // 面板上移（原逻辑不变）
-        const panel = document.getElementById('mainPanel');
-        panel.classList.remove('centered');
-        setTimeout(() => {
-          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
+        const slowResults = await Promise.all(slowApis.map(api => checkImage(api)));
+        slowResults.forEach(api => {
+          allResults.push(api);
+          if (api.valid) renderSuccessItem(api);
+        });
+
+        faviconCache.set(domain, { data: allResults });
+
+        const hasSuccess = allResults.some(api => api.valid);
+        if (!hasSuccess) {
+          resultDiv.innerHTML = '<div class="empty-state">所有获取方式均失败，请尝试其他网址！</div>';
+        } else {
+          showCompleteToast();
+        }
 
       } catch (error) {
-        // 3. 网络错误时显示提示并恢复按钮
-        resultDiv.innerHTML = '<span style="color:#e74c3c;">抓取失败，请稍后重试！</span>';
+        resultDiv.innerHTML = '<div class="empty-state">抓取失败，请稍后重试！</div>';
         console.error('抓取错误：', error);
 
       } finally {
-        // 4. 无论成功/失败，最终都恢复按钮状态
+        if (timeTimer) clearInterval(timeTimer);
         fetchBtn.textContent = '抓取';
         fetchBtn.disabled = false;
+        isFetching = false;
       }
     }
 
-    // 复制功能（原逻辑不变）
     function copyToClipboard(text, btn) {
       if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(() => {
