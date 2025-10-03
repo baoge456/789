@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     
-    <!-- Tailwind Configuration -->
+    <!-- Tailwind 配置 -->
     <script>
         tailwind.config = {
             theme: {
@@ -15,7 +15,6 @@
                     colors: {
                         primary: '#4F46E5',
                         secondary: '#10B981',
-                        neutral: '#64748B'
                     },
                     fontFamily: {
                         inter: ['Inter', 'system-ui', 'sans-serif'],
@@ -46,8 +45,8 @@
     </style>
 </head>
 <body class="font-inter bg-slate-50 min-h-screen text-slate-800">
-    <!-- Header Navigation -->
-    <header id="mainHeader" class="gradient-bg text-white shadow-md">
+    <!-- 顶部导航（仅工具管理界面显示） -->
+    <header id="mainHeader" class="gradient-bg text-white shadow-md hidden">
         <div class="container mx-auto px-4 py-6">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="flex items-center gap-2 mb-4 md:mb-0">
@@ -55,88 +54,61 @@
                     <h1 class="text-xl md:text-2xl font-bold">密码保护链接生成工具</h1>
                 </div>
                 <p class="text-sm opacity-90 max-w-md text-center md:text-right">
-                    生成带密码的跳转链接，可跨设备使用，输入正确密码即可访问
+                    生成带密码的跳转链接，可跨设备使用
                 </p>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main id="mainContent" class="container mx-auto px-4 py-8 md:py-12">
+    <!-- 主要内容（工具管理界面，默认隐藏，验证通过后显示） -->
+    <main id="mainContent" class="container mx-auto px-4 py-8 md:py-12 hidden">
         <div class="max-w-5xl mx-auto">
-            <!-- Link Generation Form -->
+            <!-- 生成表单区域 -->
             <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow mb-8">
                 <h2 class="text-xl md:text-2xl font-bold mb-6 flex items-center gap-2">
                     <i class="fa fa-plus-circle text-primary"></i>创建受保护链接
                 </h2>
                 
                 <form id="linkForm" class="space-y-5">
-                    <!-- Page Name Input -->
+                    <!-- 页面名称输入 -->
                     <div>
                         <label for="pageName" class="block text-sm font-medium text-slate-700 mb-1">
                             页面名称 <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <input 
-                                type="text" 
-                                id="pageName" 
-                                class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10"
-                                placeholder="输入显示给用户的页面名称（如：hexo blog）"
-                                required
-                            >
+                            <input type="text" id="pageName" class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10" placeholder="输入显示给用户的页面名称（如：hexo blog）" required>
                             <i class="fa fa-tag absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                         </div>
                     </div>
                     
-                    <!-- Target URL Input -->
+                    <!-- 目标链接输入 -->
                     <div>
                         <label for="targetUrl" class="block text-sm font-medium text-slate-700 mb-1">
                             目标链接 <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <input 
-                                type="url" 
-                                id="targetUrl" 
-                                class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10"
-                                placeholder="输入需要保护的网址（如：https://example.com/blog）"
-                                required
-                            >
+                            <input type="url" id="targetUrl" class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10" placeholder="输入需要保护的网址（如：https://example.com/blog）" required>
                             <i class="fa fa-globe absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                         </div>
                     </div>
                     
-                    <!-- Protection Password Input -->
+                    <!-- 保护密码输入 -->
                     <div>
                         <label for="protectPassword" class="block text-sm font-medium text-slate-700 mb-1">
                             保护密码 <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <input 
-                                type="password" 
-                                id="protectPassword" 
-                                autocomplete="off"
-                                class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10"
-                                placeholder="设置访问此链接的密码"
-                                required
-                            >
+                            <input type="password" id="protectPassword" autocomplete="off" class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10" placeholder="设置访问密码" required>
                             <i class="fa fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <button 
-                                type="button" 
-                                id="togglePwd" 
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
-                                aria-label="显示/隐藏密码"
-                            >
+                            <button type="button" id="togglePwd" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" aria-label="显示/隐藏密码">
                                 <i class="fa fa-eye-slash"></i>
                             </button>
                         </div>
                     </div>
                     
-                    <!-- Generate Button -->
+                    <!-- 生成按钮 -->
                     <div class="pt-2">
-                        <button 
-                            type="submit" 
-                            class="w-full bg-primary text-white font-medium py-3 px-4 rounded-xl btn-hover flex items-center justify-center gap-2"
-                        >
+                        <button type="submit" class="w-full bg-primary text-white font-medium py-3 px-4 rounded-xl btn-hover flex items-center justify-center gap-2">
                             <span>生成受保护链接</span>
                             <i class="fa fa-magic"></i>
                         </button>
@@ -144,7 +116,7 @@
                 </form>
             </div>
             
-            <!-- Generation Result Area -->
+            <!-- 生成结果区域 -->
             <div id="resultArea" class="bg-white rounded-2xl p-6 md:p-8 card-shadow mb-8 hidden">
                 <h2 class="text-xl md:text-2xl font-bold mb-6 flex items-center gap-2">
                     <i class="fa fa-check-circle text-secondary"></i>生成成功
@@ -152,57 +124,39 @@
                 
                 <div class="p-4 bg-green-50 border border-green-200 rounded-xl mb-4">
                     <p class="text-green-800 mb-2">已成功创建受保护链接，您可以复制下面的链接分享给他人</p>
-                    <p class="text-sm text-green-700"><i class="fa fa-info-circle mr-1"></i> 访问者需要输入您设置的保护密码才能查看内容</p>
+                    <p class="text-sm text-green-700"><i class="fa fa-info-circle mr-1"></i> 访问者需要输入保护密码才能查看内容（每次访问都需输入）</p>
                 </div>
                 
                 <div class="flex flex-col sm:flex-row gap-3 mb-4">
-                    <input 
-                        type="text" 
-                        id="protectedLink" 
-                        class="flex-1 px-4 py-3 rounded-xl border border-slate-300 bg-slate-50"
-                        readonly
-                    >
-                    <button 
-                        id="copyLinkBtn" 
-                        class="bg-secondary text-white font-medium py-3 px-6 rounded-xl btn-hover whitespace-nowrap"
-                    >
+                    <input type="text" id="protectedLink" class="flex-1 px-4 py-3 rounded-xl border border-slate-300 bg-slate-50" readonly>
+                    <button id="copyLinkBtn" class="bg-secondary text-white font-medium py-3 px-6 rounded-xl btn-hover whitespace-nowrap">
                         <i class="fa fa-copy mr-1"></i> 复制链接
                     </button>
                 </div>
                 
                 <div class="text-center">
-                    <a 
-                        id="testLinkBtn" 
-                        href="#" 
-                        target="_blank" 
-                        class="inline-flex items-center gap-1 text-primary hover:underline font-medium"
-                    >
+                    <a id="testLinkBtn" href="#" target="_blank" class="inline-flex items-center gap-1 text-primary hover:underline font-medium">
                         <span>测试这个链接</span>
                         <i class="fa fa-external-link"></i>
                     </a>
                 </div>
             </div>
             
-            <!-- Link Management Area -->
+            <!-- 链接管理区域 -->
             <div class="bg-white rounded-2xl p-6 md:p-8 card-shadow">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <h2 class="text-xl md:text-2xl font-bold flex items-center gap-2">
                         <i class="fa fa-list-alt text-primary"></i>已创建的链接
                     </h2>
                     
-                    <!-- Search Box -->
+                    <!-- 搜索框 -->
                     <div class="relative w-full md:w-64">
-                        <input 
-                            type="text" 
-                            id="searchLinks" 
-                            class="w-full px-4 py-2 pl-10 rounded-xl border border-slate-300 input-focus transition-all text-sm"
-                            placeholder="搜索链接名称..."
-                        >
+                        <input type="text" id="searchLinks" class="w-full px-4 py-2 pl-10 rounded-xl border border-slate-300 input-focus transition-all text-sm" placeholder="搜索链接名称...">
                         <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     </div>
                 </div>
                 
-                <!-- Empty State -->
+                <!-- 空状态 -->
                 <div id="emptyState" class="py-16 text-center">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-400 mb-4">
                         <i class="fa fa-folder-open text-2xl"></i>
@@ -213,12 +167,12 @@
                     </p>
                 </div>
                 
-                <!-- Links List -->
+                <!-- 链接列表 -->
                 <div id="linksList" class="space-y-4 hidden">
-                    <!-- Links will be generated dynamically -->
+                    <!-- 链接项将动态生成 -->
                 </div>
                 
-                <!-- Link Item Template -->
+                <!-- 链接项模板 -->
                 <div id="linkItemTemplate" class="hidden">
                     <div class="link-item p-4 border border-slate-200 rounded-xl hover:border-primary/50 transition-colors">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -228,7 +182,6 @@
                                     <span class="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-full link-date"></span>
                                     <span class="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-full link-domain"></span>
                                 </div>
-                                <!-- Added: Display protection password -->
                                 <div class="mt-2 p-2 bg-slate-50 rounded-lg text-sm">
                                     <div class="flex items-center gap-2 text-slate-600">
                                         <i class="fa fa-key text-primary"></i>
@@ -255,7 +208,7 @@
         </div>
     </main>
 
-    <!-- Password Verification Modal -->
+    <!-- 密码验证模态框（用户访问受保护链接时显示） -->
     <div id="passwordModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-md card-shadow transform transition-all">
             <div class="flex justify-center mb-6">
@@ -271,14 +224,7 @@
             
             <form id="passwordForm" class="space-y-4">
                 <div class="relative" id="passwordInputContainer">
-                    <input 
-                        type="password" 
-                        id="modalPassword" 
-                        autocomplete="off"
-                        class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10"
-                        placeholder="输入访问密码"
-                        required
-                    >
+                    <input type="password" id="modalPassword" autocomplete="off" class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10" placeholder="输入访问密码" required>
                     <i class="fa fa-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                 </div>
                 
@@ -287,27 +233,52 @@
                     <span>密码错误，请重新输入</span>
                 </div>
                 
-                <div id="linkErrorDetails" class="hidden text-slate-500 text-sm bg-slate-50 p-3 rounded-lg">
-                    <p class="mb-2"><i class="fa fa-info-circle mr-1"></i> 可能的原因：</p>
-                    <ul class="list-disc list-inside space-y-1">
-                        <li>链接参数被修改或损坏</li>
-                        <li>链接格式不正确</li>
-                    </ul>
-                </div>
-                
-                <button 
-                    type="submit" 
-                    class="w-full bg-primary text-white font-medium py-3 px-4 rounded-xl btn-hover"
-                    id="modalActionButton"
-                >
+                <button type="submit" class="w-full bg-primary text-white font-medium py-3 px-4 rounded-xl btn-hover" id="modalActionButton">
                     验证并访问
                 </button>
             </form>
         </div>
     </div>
 
+    <!-- 工具管理界面验证模态框（部署者专用，每次访问都需验证） -->
+    <div id="toolAuthModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 md:p-8 w-full max-w-md card-shadow transform transition-all">
+            <div class="flex justify-center mb-6">
+                <div class="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
+                    <i class="fa fa-shield text-2xl"></i>
+                </div>
+            </div>
+            
+            <div class="text-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-2">工具管理验证</h3>
+                <p class="text-slate-500" id="toolAuthDesc">请输入部署者密码以访问工具管理界面</p>
+            </div>
+            
+            <form id="toolAuthForm" class="space-y-4">
+                <div class="relative">
+                    <input type="password" id="toolPassword" autocomplete="off" class="w-full px-4 py-3 rounded-xl border border-slate-300 input-focus transition-all pl-10" placeholder="输入部署者密码" required>
+                    <i class="fa fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                </div>
+                
+                <div id="toolAuthError" class="hidden text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+                    <i class="fa fa-exclamation-circle mr-1"></i>
+                    <span>密码错误，还可尝试 <span id="remainingAttempts">2</span> 次</span>
+                </div>
+                
+                <div id="toolAuthLocked" class="hidden text-amber-500 text-sm bg-amber-50 p-3 rounded-lg">
+                    <i class="fa fa-clock-o mr-1"></i>
+                    <span>错误次数过多，已临时锁定 <span id="lockTime">5</span> 分钟</span>
+                </div>
+                
+                <button type="submit" class="w-full bg-primary text-white font-medium py-3 px-4 rounded-xl btn-hover" id="toolAuthButton">
+                    验证并进入
+                </button>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // Encryption/Decryption Utilities
+        // 加密解密工具
         const CryptoUtils = {
             encrypt: function(str, key = 5) {
                 return str.split('').map(char => {
@@ -340,14 +311,17 @@
             }
         };
         
-        // Global Variables
+        // 全局变量
         let linksData = [];
         const LINK_STORAGE_KEY = 'protected_links_v2';
         const PUBLIC_BASE_URL = window.location.href.split('?')[0].replace(/\/$/, '');
-        let isProtectedLink = false;
+        let isProtectedLink = false; // 是否是用户访问受保护链接
         let currentLinkInfo = null;
+        // 工具管理界面安全控制变量
+        const MAX_ATTEMPTS = 3; // 最大错误尝试次数
+        const LOCK_DURATION = 5 * 60 * 1000; // 锁定时长（5分钟，毫秒）
         
-        // DOM Elements
+        // DOM元素
         const linkForm = document.getElementById('linkForm');
         const pageNameInput = document.getElementById('pageName');
         const targetUrlInput = document.getElementById('targetUrl');
@@ -366,45 +340,160 @@
         const modalTitle = document.getElementById('modalTitle');
         const modalDescription = document.getElementById('modalDescription');
         const passwordError = document.getElementById('passwordError');
-        const linkErrorDetails = document.getElementById('linkErrorDetails');
-        const modalIconContainer = document.getElementById('modalIconContainer');
-        const passwordInputContainer = document.getElementById('passwordInputContainer');
         const modalActionButton = document.getElementById('modalActionButton');
         const linkItemTemplate = document.getElementById('linkItemTemplate');
         const mainHeader = document.getElementById('mainHeader');
         const mainContent = document.getElementById('mainContent');
+        // 工具验证相关元素
+        const toolAuthModal = document.getElementById('toolAuthModal');
+        const toolAuthForm = document.getElementById('toolAuthForm');
+        const toolPasswordInput = document.getElementById('toolPassword');
+        const toolAuthError = document.getElementById('toolAuthError');
+        const toolAuthLocked = document.getElementById('toolAuthLocked');
+        const remainingAttemptsEl = document.getElementById('remainingAttempts');
+        const lockTimeEl = document.getElementById('lockTime');
+        const toolAuthButton = document.getElementById('toolAuthButton');
+        const toolAuthDesc = document.getElementById('toolAuthDesc');
         
-        // Initialization
+        // 初始化
         function init() {
-            loadLinksFromStorage();
-            renderLinksList();
             checkUrlParameters();
         }
         
-        // Load links from local storage
+        // 检查URL参数，区分场景
+        function checkUrlParameters() {
+            const params = new URLSearchParams(window.location.search);
+            const linkDataStr = params.get('linkData');
+            
+            if (linkDataStr) {
+                // 场景1：用户访问受保护链接 → 显示用户密码验证框
+                isProtectedLink = true;
+                toolAuthModal.classList.add('hidden'); // 隐藏工具验证框
+                handleProtectedLink(linkDataStr);
+            } else {
+                // 场景2：访问工具管理界面 → 强制验证部署密码
+                isProtectedLink = false;
+                checkToolLockStatus(); // 先检查是否被锁定
+            }
+        }
+        
+        // 处理用户访问受保护链接
+        function handleProtectedLink(linkDataStr) {
+            const linkInfo = parseProtectedLink(linkDataStr);
+            if (linkInfo) {
+                currentLinkInfo = linkInfo;
+                modalTitle.textContent = `访问 "${linkInfo.name || '受保护内容'}"`;
+                passwordModal.classList.remove('hidden');
+                modalPasswordInput.focus();
+            } else {
+                modalTitle.textContent = '链接无效或已损坏';
+                modalDescription.textContent = '无法解析链接信息，请检查链接是否正确';
+                passwordModal.classList.remove('hidden');
+            }
+        }
+        
+        // 检查工具管理界面是否被锁定
+        function checkToolLockStatus() {
+            const lockEndTime = localStorage.getItem('tool_lock_end_time');
+            const now = new Date().getTime();
+            
+            if (lockEndTime && now < lockEndTime) {
+                // 处于锁定状态
+                const remainingLockTime = Math.ceil((lockEndTime - now) / (60 * 1000));
+                lockTimeEl.textContent = remainingLockTime;
+                toolAuthLocked.classList.remove('hidden');
+                toolAuthForm.classList.add('hidden');
+                toolAuthButton.disabled = true;
+                
+                // 定时更新剩余锁定时间
+                const lockTimer = setInterval(() => {
+                    const newNow = new Date().getTime();
+                    if (newNow >= lockEndTime) {
+                        clearInterval(lockTimer);
+                        resetToolAuthState(); // 锁定时间到，重置状态
+                    } else {
+                        const newRemaining = Math.ceil((lockEndTime - newNow) / (60 * 1000));
+                        lockTimeEl.textContent = newRemaining;
+                    }
+                }, 60000);
+            } else {
+                // 未锁定，正常显示验证框
+                resetToolAuthState();
+            }
+        }
+        
+        // 重置工具验证状态
+        function resetToolAuthState() {
+            localStorage.removeItem('tool_lock_end_time');
+            localStorage.setItem('tool_attempts', '0');
+            toolAuthLocked.classList.add('hidden');
+            toolAuthForm.classList.remove('hidden');
+            toolAuthError.classList.add('hidden');
+            toolPasswordInput.value = '';
+            toolPasswordInput.focus();
+            toolAuthButton.disabled = false;
+        }
+        
+        // 验证部署者密码（工具管理界面）
+        toolAuthForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const toolPassword = "baoge888"; // 部署者密码
+            const input = toolPasswordInput.value.trim();
+            let attempts = parseInt(localStorage.getItem('tool_attempts') || '0');
+            
+            if (input === toolPassword) {
+                // 验证成功 → 显示工具管理界面
+                toolAuthModal.classList.add('hidden');
+                mainHeader.classList.remove('hidden');
+                mainContent.classList.remove('hidden');
+                // 加载链接数据
+                loadLinksFromStorage();
+                renderLinksList();
+                return;
+            }
+            
+            // 验证失败 → 累计错误次数
+            attempts++;
+            localStorage.setItem('tool_attempts', attempts.toString());
+            
+            if (attempts >= MAX_ATTEMPTS) {
+                // 达到最大错误次数 → 锁定
+                const lockEndTime = new Date().getTime() + LOCK_DURATION;
+                localStorage.setItem('tool_lock_end_time', lockEndTime.toString());
+                checkToolLockStatus(); // 刷新锁定状态
+            } else {
+                // 未达最大次数 → 提示剩余次数
+                remainingAttemptsEl.textContent = MAX_ATTEMPTS - attempts;
+                toolAuthError.classList.remove('hidden');
+                toolPasswordInput.value = '';
+                toolPasswordInput.focus();
+            }
+        });
+        
+        // 从本地存储加载链接数据
         function loadLinksFromStorage() {
             const storedData = localStorage.getItem(LINK_STORAGE_KEY);
             if (storedData) {
                 try {
                     linksData = JSON.parse(storedData);
                 } catch (e) {
-                    console.error('Failed to parse stored links:', e);
+                    console.error('解析存储的链接失败:', e);
                     linksData = [];
                 }
             }
         }
         
-        // Save links to local storage
+        // 保存链接数据到本地存储
         function saveLinksToStorage() {
             localStorage.setItem(LINK_STORAGE_KEY, JSON.stringify(linksData));
         }
         
-        // Generate unique ID
+        // 生成唯一ID
         function generateUniqueId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2, 8);
         }
         
-        // Generate protected link
+        // 生成受保护的链接
         function generateProtectedLink(linkData) {
             const linkInfo = {
                 id: linkData.id,
@@ -419,7 +508,7 @@
             return `${PUBLIC_BASE_URL}?linkData=${encodeURIComponent(urlSafeData)}`;
         }
         
-        // Parse protected link information
+        // 解析受保护链接中的信息
         function parseProtectedLink(linkDataStr) {
             try {
                 const decodedData = CryptoUtils.decodeUrl(linkDataStr);
@@ -431,12 +520,12 @@
                 }
                 return null;
             } catch (e) {
-                console.error('Failed to parse link:', e);
+                console.error('解析链接失败:', e);
                 return null;
             }
         }
         
-        // Handle form submission
+        // 处理表单提交（生成受保护链接）
         linkForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -453,7 +542,7 @@
                 id: generateUniqueId(),
                 name: pageName,
                 targetUrl: targetUrl,
-                password: password, // Save the set password for display in list
+                password: password,
                 createdAt: new Date().toISOString()
             };
             
@@ -471,7 +560,7 @@
             resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         
-        // Toggle password visibility
+        // 切换密码可见性
         togglePwdBtn.addEventListener('click', function() {
             const type = protectPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             protectPasswordInput.setAttribute('type', type);
@@ -486,7 +575,7 @@
             }
         });
         
-        // Copy link functionality
+        // 复制链接
         copyLinkBtn.addEventListener('click', function() {
             protectedLinkInput.select();
             document.execCommand('copy');
@@ -503,7 +592,7 @@
             }, 2000);
         });
         
-        // Render links list with password display
+        // 渲染链接列表
         function renderLinksList(filterText = '') {
             if (isProtectedLink) return;
             
@@ -544,12 +633,10 @@
                     linkItem.querySelector('.link-domain').textContent = '未知链接';
                 }
                 
-                // Display the set password
                 linkItem.querySelector('.link-password').textContent = link.password;
-                
                 linkItem.dataset.id = link.id;
                 
-                // View link button
+                // 查看链接按钮
                 linkItem.querySelector('.view-link-btn').addEventListener('click', function() {
                     const linkId = this.closest('.link-item').dataset.id;
                     const link = linksData.find(l => l.id === linkId);
@@ -559,7 +646,7 @@
                     }
                 });
                 
-                // Copy link button
+                // 复制链接按钮
                 linkItem.querySelector('.copy-link-btn').addEventListener('click', function() {
                     const linkId = this.closest('.link-item').dataset.id;
                     const link = linksData.find(l => l.id === linkId);
@@ -584,7 +671,7 @@
                     }
                 });
                 
-                // Delete link button
+                // 删除链接按钮
                 linkItem.querySelector('.delete-link-btn').addEventListener('click', function() {
                     const linkId = this.closest('.link-item').dataset.id;
                     const linkIndex = linksData.findIndex(l => l.id === linkId);
@@ -602,49 +689,12 @@
             });
         }
         
-        // Search links functionality
+        // 搜索链接
         searchLinksInput.addEventListener('input', function() {
             renderLinksList(this.value.trim());
         });
         
-        // Check URL parameters for protected links
-        function checkUrlParameters() {
-            const params = new URLSearchParams(window.location.search);
-            const linkDataStr = params.get('linkData');
-            
-            if (linkDataStr) {
-                isProtectedLink = true;
-                mainHeader.style.display = 'none';
-                mainContent.style.display = 'none';
-                
-                const linkInfo = parseProtectedLink(linkDataStr);
-                
-                if (linkInfo) {
-                    currentLinkInfo = linkInfo;
-                    modalTitle.textContent = `访问 "${linkInfo.name || '受保护内容'}"`;
-                    modalDescription.textContent = '该内容受密码保护，请输入正确密码访问';
-                    passwordModal.classList.remove('hidden');
-                    modalPasswordInput.focus();
-                } else {
-                    showLinkError();
-                }
-            }
-        }
-        
-        // Show link error message
-        function showLinkError() {
-            modalTitle.textContent = '链接无效或已损坏';
-            modalDescription.textContent = '无法解析链接信息，请检查链接是否正确';
-            modalIconContainer.classList.remove('gradient-bg');
-            modalIconContainer.classList.add('bg-red-500');
-            modalIconContainer.innerHTML = '<i class="fa fa-exclamation-triangle text-2xl"></i>';
-            passwordInputContainer.style.display = 'none';
-            linkErrorDetails.classList.remove('hidden');
-            modalActionButton.textContent = '关闭';
-            passwordModal.classList.remove('hidden');
-        }
-        
-        // Handle password verification
+        // 处理用户访问时的密码验证
         passwordForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -676,7 +726,7 @@
             }
         });
         
-        // Add shake animation
+        // 抖动动画样式
         const style = document.createElement('style');
         style.textContent = `
             @keyframes shake {
@@ -691,39 +741,8 @@
         `;
         document.head.appendChild(style);
         
-        // Tool access password verification (only required first time)
-        const toolPassword = "baoge888"; // Built-in initial password
-        
-        function checkToolAccess() {
-            // Check if user has already verified the tool password
-            if (localStorage.getItem('tool_access_verified') === 'true') {
-                return; // No need to verify again
-            }
-            
-            const input = prompt("请输入工具访问密码（首次使用需要验证）");
-            
-            if (!input) {
-                alert("必须输入密码才能使用工具！");
-                checkToolAccess();
-                return;
-            }
-            
-            if (input !== toolPassword) {
-                alert("工具访问密码错误，请重新输入！");
-                checkToolAccess();
-                return;
-            }
-            
-            // Save verification status
-            localStorage.setItem('tool_access_verified', 'true');
-            alert("工具访问验证成功！");
-        }
-        
-        // Initialize application
-        document.addEventListener('DOMContentLoaded', function() {
-            checkToolAccess(); // Verify tool access first (only once)
-            init();
-        });
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
