@@ -1,184 +1,1519 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>书签管理</title>
-    <link rel="icon" href="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png" type="image/png" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>书签管理</title>
+<link rel="icon" href="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png" type="image/png" />
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 0; min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+    background-attachment: fixed; transition: background 0.6s;
+    height: 100vh; display: flex; flex-direction: column;
+}
+.container {
+    max-width: 900px; width: 100%; background: #f8faff;
+    border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    margin: 0 auto; display: flex; flex-direction: column;
+    height: 100vh; min-height: 100vh; padding: 0;
+}
+.top-info-bar {
+    display: flex; align-items: center; margin-bottom: 0; gap: 12px;
+    padding: 18px 18px 0 18px; background: transparent; z-index: 2;
+}
+.top-info-logo {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 48px; min-width: 48px; position: relative; user-select: none;
+}
+.top-info-logo img {
+    width: 44px !important;
+    height: 44px !important;
+    object-fit: contain;
+    display: block;
+    border-radius: 8px;
+    transition: box-shadow 0.6s, filter 0.6s;
+}
+.top-info-logo span {
+    font-size: 1em; color: #6a4cff; font-weight: 700; margin-top: 2px;
+    letter-spacing: 2px; white-space: nowrap; line-height: 1;
+}
+.last-click-info {
+    background: #eaf3ff; padding: 10px 12px; border-radius: 10px;
+    font-size: 1em; color: #333; min-height: 44px; display: flex;
+    flex-direction: column; justify-content: center; flex: 1;
+}
+.last-click-info .row { margin: 2px 0; width: 100%; text-align: center; }
+.main-area { flex: 1 1 auto; display: flex; min-height: 0; }
+.sidebar {
+    width: 180px; background: #f0f4ff; border-right: 1px solid #e0e0ff;
+    padding: 18px 0 0 0; display: none; flex-direction: column; min-width: 120px;
+    transition: width 0.3s;
+}
+body.admin-mode .sidebar { display: flex; }
+.sidebar .group-list { flex: 1 1 auto; overflow-y: auto; }
+.sidebar .group-item {
+    padding: 10px 18px; cursor: pointer; border: none; background: none;
+    text-align: left; font-size: 1.05em; color: #6a4cff; border-radius: 0 20px 20px 0;
+    margin-bottom: 2px; transition: background 0.2s, color 0.2s;
+}
+.sidebar .group-item.selected, .sidebar .group-item:hover {
+    background: #eaf3ff; color: #333; font-weight: bold;
+}
+.sidebar .sidebar-actions {
+    padding: 10px 18px 10px 18px; border-top: 1px solid #e0e0ff;
+    display: flex; flex-direction: column; gap: 8px;
+}
+.bookmark-area { flex: 1 1 auto; overflow-y: auto; padding: 0 18px 0 18px; min-height: 0; }
+.bookmark-actions {
+    padding: 18px; display: none; flex-wrap: wrap; gap: 10px 18px;
+    align-items: center; justify-content: flex-start; background: #f8faff;
+    border-bottom: 1px solid #eee;
+}
+body.admin-mode .bookmark-actions { display: flex; }
+.group-title {
+    width: 100%; font-size: 1.2em; font-weight: 700; margin: 30px 0 15px 0;
+    color: #6a4cff; letter-spacing: 0.5px; padding-bottom: 8px;
+    border-bottom: 2px solid #f0f0ff; position: relative;
+}
+.group-title::after {
+    content: ''; position: absolute; bottom: -2px; left: 0;
+    width: 100px; height: 2px; background: #6a4cff;
+}
+section {
+    width: 100%; display: flex; flex-wrap: wrap; justify-content: flex-start;
+    gap: 12px 0; padding: 0; margin: 0 0 10px 0;
+}
+.bookmark {
+    display: flex; align-items: center; padding: 8px 6px 8px 6px;
+    background: white; border: 1px solid #e6e6ff; border-radius: 12px;
+    box-shadow: 0 3px 8px rgba(106, 76, 255, 0.08); cursor: pointer;
+    transition: all 0.3s ease; margin: 0 1.5%; position: relative;
+    overflow: hidden; min-width: 0;
+}
+.bookmark:hover {
+    transform: translateY(-3px); box-shadow: 0 5px 15px rgba(106, 76, 255, 0.15);
+    border-color: #d0d0ff; background: #f9f9ff;
+}
+.bookmark:active {
+    transform: translateY(1px); background: #6a4cff; color: white;
+}
+.bookmark:active img { filter: brightness(0) invert(1); }
+.bookmark img {
+    width: 26px; height: 26px; margin-right: 6px; margin-left: 0; flex-shrink: 0;
+    border-radius: 4px; background: white; padding: 1px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: all 0.3s ease;
+}
+.bookmark a {
+    text-decoration: none; color: #333; font-weight: 500; flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.2s; font-size: 0.98em; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; min-width: 0; padding: 0 2px;
+}
+.bookmark:hover a { color: #6a4cff; }
+.checked {
+    background: #f0f5ff !important; border-color: #b8c6ff !important;
+}
+.checked::after {
+    content: '✓'; position: absolute; right: 10px; color: #4CAF50;
+    font-size: 1.2em; font-weight: bold; background: white; width: 22px;
+    height: 22px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.footer {
+    text-align: center; color: #888; font-size: 0.85em; padding: 20px 0 10px 0;
+    border-top: 1px solid #eee; background: #f8faff; position: sticky; bottom: 0; z-index: 2;
+}
 
-    <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            min-height: 100vh;
-            background-color: #f9f9f9;
-        }
-        h1 {
-            font-size: 1.5em;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        img.logo {
-            width: auto;
-            height: 100px;
-            margin-bottom: 20px;
-            object-fit: contain;
-        }
-        section {
-            max-width: 600px;
-            width: 100%;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            padding: 0;
-            margin: 0;
-        }
-        .bookmark {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
-            width: calc(50% - 10px);
-            max-width: none;
-            margin: 0;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        .bookmark:hover {
-            background: #e0e0e0;
-        }
-        .bookmark:active {
-            background: purple;
-            color: white;
-        }
-        .bookmark img {
-            width: 40px;
-            height: 40px;
-            margin-right: 10px;
-            flex-shrink: 0;
-        }
-        .bookmark a {
-            text-decoration: none;
-            color: inherit;
-            flex: 1;
-        }
-        .checked {
-            position: relative;
-        }
-        .checked::after {
-            content: '✔';
-            position: absolute;
-            right: 10px;
-            color: green;
-        }
-        @media (min-width: 768px) {
-            .bookmark {
-                width: calc(33.33% - 10px);
-            }
-        }
-        .bookmark:last-child {
-            border-bottom: none;
-        }
-    </style>
+/* 用户信息装饰样式 */
+.user-info-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #eaf3ff 0%, #f0f4ff 100%);
+    border: 1px solid #b8c6ff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(106, 76, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    width: fit-content;
+    min-width: 140px;
+    height: 32px;
+}
 
-    <script>
-        function markAsChecked(element, url) {
-            // 移除所有 checked
-            document.querySelectorAll('.bookmark').forEach(el => el.classList.remove('checked'));
-            // 当前加 checked
-            element.classList.add('checked');
-            // 存储 data-index
-            localStorage.setItem('lastCheckedBookmark', element.getAttribute('data-index'));
-            // 打开新页面
-            window.open(url, '_blank');
-        }
+.user-info-display::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(106, 76, 255, 0.1), transparent);
+    animation: shimmer 3s infinite;
+}
 
-        // 页面加载时恢复
-        window.onload = function() {
-            const last = localStorage.getItem('lastCheckedBookmark');
-            if (last !== null) {
-                const el = document.querySelector('.bookmark[data-index="' + last + '"]');
-                if (el) el.classList.add('checked');
-            }
-        }
-    </script>
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.user-info-display .user-icon {
+    font-size: 1.2em;
+    margin-right: 8px;
+    color: #6a4cff;
+}
+
+.user-info-display .user-text {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #6a4cff;
+    text-shadow: 0 1px 2px rgba(106, 76, 255, 0.1);
+}
+
+.user-info-display .user-badge {
+    background: #6a4cff;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 500;
+    margin-left: 8px;
+    box-shadow: 0 2px 4px rgba(106, 76, 255, 0.3);
+}
+.mode-row {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    margin-bottom: 4px; font-size: 1em; color: #6a4cff; font-weight: 500;
+    flex-wrap: wrap;
+    padding: 0 18px;
+}
+.mode-switch-btn {
+    background: #fff; border: 1px solid #e6e6ff; border-radius: 50%;
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(106, 76, 255, 0.08);
+    transition: background 0.2s, border 0.2s; position: relative;
+}
+.mode-switch-btn:hover { background: #f0f0ff; border-color: #b8c6ff; }
+.mode-switch-btn svg { width: 15px; height: 15px; display: block; }
+.mode-menu {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    background: #fff; border: 1px solid #e6e6ff; border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(106, 76, 255, 0.13); padding: 8px 0;
+    z-index: 9999; min-width: 120px; display: none;
+}
+
+/* 后台模式下的光线模式菜单位置调整 */
+body.admin-mode .mode-menu {
+    bottom: auto; top: 100%; left: 0; transform: none;
+    margin-top: 4px;
+}
+.mode-menu.active { display: block; }
+.mode-menu-item {
+    padding: 8px 24px 8px 18px; font-size: 1em; color: #333; cursor: pointer;
+    background: none; border: none; width: 100%; text-align: left;
+    transition: background 0.2s, color 0.2s; outline: none; display: flex;
+    align-items: center; gap: 8px;
+}
+.mode-menu-item:hover, .mode-menu-item.active { background: #f0f5ff; color: #6a4cff; }
+.mode-menu-item .dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 2px;
+}
+.dot.light-mode { background: #b3aaff; }
+.dot.focus-mode { background: #ffe082; }
+.dot.giant-mode { background: #b388ff; }
+.dot.dawn-mode { background: #ffb74d; }
+.dot.night-mode { background: #90caf9; }
+.dot.green-mode { background: #a8e063; }
+.dot.ocean-mode { background: #4fc3f7; }
+.dot.rose-mode { background: #f06292; }
+body.light-mode { background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%); }
+.container.light-mode { background: #f8faff; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); }
+body.focus-mode { background: radial-gradient(circle at 50% 80px, #fffbe6 0%, #ffe082 60%, #f5f7fa 100%); }
+.container.focus-mode { background: #fffde7; box-shadow: 0 10px 40px rgba(255, 193, 7, 0.12); }
+body.giant-mode { background: linear-gradient(120deg, #e0e7ff 0%, #b388ff 100%); }
+.container.giant-mode { background: #ede7f6; box-shadow: 0 10px 40px rgba(103, 58, 183, 0.13); }
+.top-info-logo.giant-mode img { box-shadow: 0 0 32px 8px #b388ff, 0 0 0 0 #fff; filter: brightness(1.15) drop-shadow(0 0 8px #b388ff);}
+.top-info-logo.focus-mode img { box-shadow: 0 0 24px 4px #ffe082, 0 0 0 0 #fff; filter: brightness(1.1) drop-shadow(0 0 6px #ffe082);}
+.top-info-logo.light-mode img { box-shadow: none; filter: none;}
+body.dawn-mode { background: linear-gradient(120deg, #fff1eb 0%, #ace0f9 100%);}
+.container.dawn-mode { background: #f9fbe7; box-shadow: 0 10px 40px rgba(255, 183, 77, 0.10);}
+.top-info-logo.dawn-mode img { box-shadow: 0 0 24px 4px #ffb74d, 0 0 0 0 #fff; filter: brightness(1.1) drop-shadow(0 0 6px #ffb74d);}
+body.night-mode { background: linear-gradient(135deg, #232526 0%, #414345 100%);}
+.container.night-mode { background: #2c2c38; box-shadow: 0 10px 40px rgba(33, 33, 33, 0.18);}
+.top-info-logo.night-mode img { box-shadow: 0 0 24px 4px #90caf9, 0 0 0 0 #fff; filter: brightness(1.1) drop-shadow(0 0 6px #90caf9);}
+body.green-mode { background: linear-gradient(135deg, #e0ffe0 0%, #a8e063 100%);}
+.container.green-mode { background: #f1ffe7; box-shadow: 0 10px 40px rgba(76, 175, 80, 0.10);}
+.top-info-logo.green-mode img { box-shadow: 0 0 24px 4px #a8e063, 0 0 0 0 #fff; filter: brightness(1.1) drop-shadow(0 0 6px #a8e063);}
+body.ocean-mode { background: linear-gradient(135deg, #e0f7fa 0%, #4fc3f7 100%);}
+.container.ocean-mode { background: #e3f2fd; box-shadow: 0 10px 40px rgba(33, 150, 243, 0.10);}
+.top-info-logo.ocean-mode img { box-shadow: 0 0 24px 4px #4fc3f7, 0 0 0 0 #fff; filter: brightness(1.1) drop-shadow(0 0 6px #4fc3f7);}
+body.rose-mode { background: linear-gradient(135deg, #fce4ec 0%, #f06292 100%);}
+.container.rose-mode { background: #f8bbd0; box-shadow: 0 10px 40px rgba(240, 98, 146, 0.10);}
+.top-info-logo.rose-mode img { box-shadow: 0 0 24px 4px #f06292, 0 0 0 0 #fff; filter: brightness(1.1) drop-shadow(0 0 6px #f06292);}
+/* 后台每行最多2个书签 */
+body.admin-mode .bookmark-area section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 0;
+}
+body.admin-mode .bookmark-area .bookmark {
+    width: 48%;
+    margin: 0 1% 10px 1%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+/* 手机端后台每行1个书签，左侧栏缩小 */
+@media (max-width: 600px) {
+    .sidebar {
+        width: 60px !important;
+        min-width: 40px !important;
+        padding: 8px 0 0 0;
+    }
+    body.admin-mode .bookmark-area .bookmark {
+        width: 98% !important;
+        margin: 0 1% 10px 1% !important;
+    }
+    .bookmark-area {
+        padding: 0 4px 0 4px;
+    }
+}
+.admin-only { display: none !important; }
+body.admin-mode .admin-only { display: inline-block !important; }
+.icon-btn {
+    background: none; border: none; cursor: pointer; padding: 2px 6px; margin-left: 4px;
+    border-radius: 6px; vertical-align: middle; font-size: 1.1em;
+}
+.icon-btn.edit { color: #2196f3; }
+.icon-btn.delete { color: #f06292; }
+.icon-btn.clear { color: #ff9800; }
+.icon-btn:active { background: #f0f0ff; }
+.admin-main-btn {
+    background: #6a4cff; color: #fff; border: none; border-radius: 8px;
+    padding: 7px 18px; font-weight: 600; cursor: pointer; margin-right: 8px;
+    transition: background 0.2s;
+}
+.admin-main-btn:hover { background: #4b2fff; }
+.admin-danger-btn {
+    background: #f06292; color: #fff; border: none; border-radius: 8px;
+    padding: 7px 18px; font-weight: 600; cursor: pointer; margin-right: 8px;
+    transition: background 0.2s;
+}
+.admin-danger-btn:hover { background: #d32f2f; }
+.admin-secondary-btn {
+    background: #eaf3ff; color: #6a4cff; border: 1px solid #b8c6ff; border-radius: 8px;
+    padding: 7px 18px; font-weight: 600; cursor: pointer; margin-right: 8px;
+    transition: background 0.2s;
+}
+.admin-secondary-btn:hover { background: #d0e0ff; }
+/* 图标显示/隐藏切换按钮样式 */
+.icon-toggle-btn {
+    background: #fff; border: 1px solid #e6e6ff; border-radius: 50%;
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(106, 76, 255, 0.08);
+    transition: background 0.2s, border 0.2s; margin-left: 8px;
+    font-size: 14px; font-weight: bold; color: #6a4cff;
+}
+.icon-toggle-btn:hover { background: #f0f0ff; border-color: #b8c6ff; }
+/* 隐藏图标时的样式 */
+body.hide-icons .bookmark img { display: none; }
+body.hide-icons .bookmark a { margin-left: 0; }
+
+/* 授权验证页面样式 */
+.auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.auth-modal {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    animation: authModalFadeIn 0.5s ease;
+}
+
+@keyframes authModalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.auth-header {
+    margin-bottom: 30px;
+}
+
+.auth-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.auth-logo img {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 8px 20px rgba(106, 76, 255, 0.2);
+}
+
+.auth-logo span {
+    font-size: 1.2em;
+    color: #6a4cff;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.auth-header h2 {
+    color: #333;
+    font-size: 1.8em;
+    margin: 0 0 10px 0;
+    font-weight: 600;
+}
+
+.auth-subtitle {
+    color: #666;
+    font-size: 1em;
+    margin: 0;
+}
+
+.auth-content {
+    text-align: left;
+}
+
+.auth-input-group {
+    margin-bottom: 20px;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 15px 20px;
+    border: 2px solid #e0e0ff;
+    border-radius: 12px;
+    font-size: 1em;
+    outline: none;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    margin-bottom: 15px;
+    background: white;
+    color: #333;
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.auth-input:focus {
+    border-color: #6a4cff;
+    box-shadow: 0 0 0 3px rgba(106, 76, 255, 0.1);
+}
+
+.auth-submit-btn {
+    width: 100%;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #6a4cff 0%, #5a3ce8 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(106, 76, 255, 0.3);
+}
+
+.auth-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(106, 76, 255, 0.4);
+}
+
+.auth-submit-btn:active {
+    transform: translateY(0);
+}
+
+.auth-message {
+    margin: 15px 0;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    min-height: 20px;
+}
+
+.auth-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.auth-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.auth-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.warning-icon {
+    font-size: 1.5em;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.warning-text {
+    color: #856404;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+/* 手机端适配 */
+@media (max-width: 480px) {
+    .auth-modal {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .auth-logo img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .auth-header h2 {
+        font-size: 1.5em;
+    }
+    
+    .auth-input,
+    .auth-submit-btn {
+        padding: 12px 16px;
+        font-size: 0.95em;
+    }
+}
+</style>
 </head>
 <body>
-    <img class="logo" src="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png" alt="Pi Network Logo" />
-    <h1>pi网络生态签到</h1>
-    <section>
-        <div class="bookmark" data-index="0" onclick="markAsChecked(this, 'https://lgkm.net');">
-            <img src="https://s3.bmp.ovh/imgs/2025/03/19/0375ca215e66107a.png" alt="图标" />
-            <a href="#">来购酷买</a>
+<!-- 授权验证遮罩层 -->
+<div id="authOverlay" class="auth-overlay" style="display: none;">
+    <div class="auth-modal">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <img src="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png" alt="Pi Network Logo" />
+                <span>生态导航</span>
+            </div>
+            <h2>授权验证</h2>
+            <p class="auth-subtitle">请输入授权码以访问页面</p>
         </div>
-        <div class="bookmark" data-index="1" onclick="markAsChecked(this, 'https://314159u.com');">
-            <img src="https://wp-cdn.4ce.cn/v2/GKNDv0r.png" alt="图标" />
-            <a href="#">314159 商城</a>
+        <div class="auth-content">
+            <div class="auth-input-group">
+                <input type="password" id="authCodeInput" class="auth-input" placeholder="请输入授权码" />
+                <button id="authSubmitBtn" class="auth-submit-btn">验证授权</button>
+            </div>
+            <div id="authMessage" class="auth-message"></div>
+            <div class="auth-warning">
+                <div class="warning-icon">⚠️</div>
+                <div class="warning-text">
+                    <strong>重要提醒：</strong><br>
+                    请务必保管好您的授权码，忘记后将无法进入页面！
+                </div>
+            </div>
         </div>
-        <div class="bookmark" data-index="2" onclick="markAsChecked(this, 'https://pipet.me');">
-            <img src="https://s3.bmp.ovh/imgs/2025/03/19/eb967282a84415d6.png" alt="图标" />
-            <a href="#">元气山谷</a>
-        </div>
-        <div class="bookmark" data-index="3" onclick="markAsChecked(this, 'https://pivoice.app');">
-            <img src="https://s3.bmp.ovh/imgs/2025/03/19/86fcd74b33194269.png" alt="图标" />
-            <a href="#">派之声</a>
-        </div>
-        <div class="bookmark" data-index="4" onclick="markAsChecked(this, 'https://paixingsc.com');">
-            <img src="https://favicon.im/https://paixingsc.com" alt="图标" />
-            <a href="#">派星商城</a>
-        </div>
-        <div class="bookmark" data-index="5" onclick="markAsChecked(this, 'https://www.teltlk.com');">
-            <img src="https://s3.bmp.ovh/imgs/2025/03/19/e298cad1b5703e31.png" alt="图标" />
-            <a href="#">teltlk</a>
-        </div>
-        <div class="bookmark" data-index="6" onclick="markAsChecked(this, 'https://app-cdn.minepi.com/mobile-app-ui/app/piapp-link');">
-            <img src="https://s3.bmp.ovh/imgs/2025/03/19/c82e097acaf23f55.png" alt="图标" />
-            <a href="#">piapp-link</a>
-        </div>
-        <div class="bookmark" data-index="7" onclick="markAsChecked(this, 'https://aigpt.im');">
-            <img src="https://wp-cdn.4ce.cn/v2/Lia2ah1.png" alt="图标" />
-            <a href="#">Aigpt</a>
-        </div>
-        <div class="bookmark" data-index="8" onclick="markAsChecked(this, 'https://tantanpi.com');">
-            <img src="https://favicon.im/https://tantanpi.com" alt="图标" />
-            <a href="#">tantanpi.com</a>
-        </div>
-        <div class="bookmark" data-index="9" onclick="markAsChecked(this, 'https://youpi.im');">
-            <img src="https://s3.bmp.ovh/imgs/2025/03/19/c48571bb3b37500a.png" alt="图标" />
-            <a href="#">youpi.im</a>
-        </div>
-        <div class="bookmark" data-index="10" onclick="markAsChecked(this, 'https://niwopi.com');">
-            <img src="https://favicon.im/https://niwopi.com" alt="图标" />
-            <a href="#">niwopi.com</a>
-        </div>
-        <div class="bookmark" data-index="11" onclick="markAsChecked(this, 'https://1pi.app');">
-            <img src="https://favicon.im/https://1pi.app" alt="图标" />
-            <a href="#">1pi.app</a>
-        </div>
-<div class="bookmark" data-index="12" onclick="markAsChecked(this, 'https://www.bbspi.chat');">
-            <img src="https://s3.bmp.ovh/imgs/2025/05/05/d102f3e9d008ffa7.png" alt="图标" />
-            <a href="#">bbspi.chat</a>
-        </div>
-<div class="bookmark" data-index="13" onclick="markAsChecked(this, 'https://mapofpi7689.pinet.com');">
-            <img src="https://unavatar.io/mapofpi7689.pinet.com" alt="图标" />
-            <a href="#">mapofpi</a>
-        </div>
+    </div>
+</div>
 
+<div class="container" id="mainContainer" style="display: none;">
+<div class="top-info-bar" style="position: sticky; top: 0; background: #f8faff;">
+    <div class="top-info-logo">
+        <img src="https://s3.bmp.ovh/imgs/2025/03/18/cea95229cf2490fe.png" alt="Pi Network Logo" />
+        <span>生态导航</span>
+    </div>
+    <div class="last-click-info" id="lastClickInfo">
+        <div class="row">尚未点击任何书签</div>
+    </div>
+    <div class="icon-toggle-btn" id="iconToggleBtn" title="切换图标显示">
+        图
+    </div>
+</div>
+<div class="main-area">
+  <div class="sidebar">
+    <div class="group-list" id="groupList"></div>
+    <div class="sidebar-actions">
+      <button id="addGroupBtn" class="admin-main-btn admin-only">添加分组</button>
+      
+    </div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+    <div class="bookmark-actions">
+      <button id="importBtn" class="admin-secondary-btn admin-only">导入</button>
+      <button id="exportBtn" class="admin-secondary-btn admin-only">导出</button>
+      <select id="exportSelect" class="admin-secondary-btn admin-only" style="margin-right:0;">
+        <option value="all">全部</option>
+      </select>
+      <button id="clearBtn" class="admin-danger-btn admin-only">清空</button>
+      
+      <!-- 光线模式设置 -->
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+        <span style="color: #6a4cff; font-weight: 500;">光线模式：</span>
+        <div class="mode-switch-btn" id="modeSwitchBtn" title="切换光线模式">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="5" fill="#FFD600"/>
+            <g stroke="#FFD600" stroke-width="2">
+              <line x1="12" y1="2" x2="12" y2="4"/>
+              <line x1="12" y1="20" x2="12" y2="22"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="2" y1="12" x2="4" y2="12"/>
+              <line x1="20" y1="12" x2="22" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </g>
+          </svg>
+          <div class="mode-menu" id="modeMenu">
+            <button class="mode-menu-item"><span class="dot light-mode"></span>集中光线</button>
+            <button class="mode-menu-item"><span class="dot focus-mode"></span>专注光线</button>
+            <button class="mode-menu-item"><span class="dot giant-mode"></span>巨人队</button>
+            <button class="mode-menu-item"><span class="dot dawn-mode"></span>晨曦光线</button>
+            <button class="mode-menu-item"><span class="dot night-mode"></span>极夜光线</button>
+            <button class="mode-menu-item"><span class="dot green-mode"></span>绿野光线</button>
+            <button class="mode-menu-item"><span class="dot ocean-mode"></span>海洋光线</button>
+            <button class="mode-menu-item"><span class="dot rose-mode"></span>玫瑰光线</button>
+          </div>
+        </div>
+      </div>
+      
+      <input type="file" id="importFileInput" accept="application/json" style="display:none;" />
+    </div>
+    <div class="bookmark-area" id="bookmarkContainer"></div>
+  </div>
+</div>
+<div class="footer">
+  <div class="mode-row">
+    <div id="currentUserInfo" class="user-info-display" style="display: none;">
+      <div class="user-icon">👤</div>
+      
+      <div class="user-badge">未登录</div>
+    </div>
+    <button id="adminEnterBtn" style="margin-left:16px;padding:6px 16px;border-radius:8px;border:1px solid #b8c6ff;background:#fff;color:#6a4cff;font-weight:600;cursor:pointer;display:inline-block;" onclick="enterAdmin()" title="进入后台">后台管理</button>
+    <button id="adminLoginBtn" style="margin-left:8px;padding:6px 16px;border-radius:8px;border:1px solid #b8c6ff;background:#fff;color:#6a4cff;font-weight:600;cursor:pointer;display:none;" class="admin-only" onclick="logoutAdmin()" title="退出后台">退出后台</button>
+    <!-- 手机端重置按钮 - 长按3秒显示 -->
+    <button id="resetAuthBtn" style="margin-left:8px;padding:6px 12px;border-radius:8px;border:1px solid #ff6b6b;background:#fff;color:#ff6b6b;font-weight:600;cursor:pointer;display:none;font-size:0.8em;" onclick="resetAuth()" title="重置授权">重置</button>
+  </div>
+  
+  Pi  生态导航       &copy;  2023 非官方出品      宝哥制作
+</div>
+</div>
+<script type="application/json" id="nav-json">
+{
+"groupOrder": ["pinet生态签到", "pinet生态浏览"],
+"bookmarkGroups": {
+  "pinet生态签到": [
+    {
+      "name": "来购酷买",
+      "url": "https://lgkm.net",
+      "favicon": "https://s3.bmp.ovh/imgs/2025/03/19/0375ca215e66107a.png"
+    },
+    {
+      "name": "314159 商城",
+      "url": "https://314159u.com",
+      "favicon": "https://wp-cdn.4ce.cn/v2/GKNDv0r.png"
+    }
+  ],
+  "pinet生态浏览": [
+    {
+      "name": "fruitypi",
+      "url": "https://fruitypi.pinet.com",
+      "favicon": "https://s3.bmp.ovh/imgs/2025/06/29/43d788eb33d4176c.png"
+    }
+  ]
+}
+}
+</script>
+<script>
+// 图标显示/隐藏功能
+const ICON_TOGGLE_KEY = 'bookmark_icon_toggle';
+function toggleIcons() {
+    const isHidden = document.body.classList.toggle('hide-icons');
+    localStorage.setItem(ICON_TOGGLE_KEY, isHidden ? 'hidden' : 'visible');
+    
+    // 更新按钮文字
+    const btn = document.getElementById('iconToggleBtn');
+    if (isHidden) {
+        btn.textContent = '无';
+        btn.title = '显示图标';
+    } else {
+        btn.textContent = '图';
+        btn.title = '隐藏图标';
+    }
+}
 
-    </section>
+// 主题切换
+const LIGHT_MODES = [
+'light-mode',   // 集中光线
+'focus-mode',   // 专注光线
+'giant-mode',   // 巨人队
+'dawn-mode',    // 晨曦光线
+'night-mode',   // 极夜光线
+'green-mode',   // 绿野光线
+'ocean-mode',   // 海洋光线
+'rose-mode'     // 玫瑰光线
+];
+const LIGHT_MODE_KEY = 'bookmark_light_mode';
+function setLightMode(modeIndex) {
+const mode = LIGHT_MODES[modeIndex];
+document.body.classList.remove(...LIGHT_MODES);
+document.body.classList.add(mode);
+const container = document.querySelector('.container');
+container.classList.remove(...LIGHT_MODES);
+container.classList.add(mode);
+const logo = document.querySelector('.top-info-logo');
+logo.classList.remove(...LIGHT_MODES);
+logo.classList.add(mode);
+localStorage.setItem(LIGHT_MODE_KEY, modeIndex);
+}
+function getLightModeIndex() {
+const idx = parseInt(localStorage.getItem(LIGHT_MODE_KEY), 10);
+return isNaN(idx) ? 0 : idx;
+}
+window.addEventListener('DOMContentLoaded', function() {
+setLightMode(getLightModeIndex());
+const modeBtn = document.getElementById('modeSwitchBtn');
+const modeMenu = document.getElementById('modeMenu');
+function updateMenuActive() {
+    const idx = getLightModeIndex();
+    Array.from(modeMenu.children).forEach((item, i) => {
+        if (i === idx) item.classList.add('active');
+        else item.classList.remove('active');
+    });
+}
+modeBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    modeMenu.classList.toggle('active');
+    updateMenuActive();
+});
+Array.from(modeMenu.children).forEach((item, i) => {
+    item.addEventListener('click', function(e) {
+        setLightMode(i);
+        updateMenuActive();
+        modeMenu.classList.remove('active');
+    });
+});
+document.addEventListener('click', function() {
+    modeMenu.classList.remove('active');
+});
+modeMenu.addEventListener('click', function(e) {
+    e.stopPropagation();
+});
+
+// 初始化图标显示状态
+const iconState = localStorage.getItem(ICON_TOGGLE_KEY);
+if (iconState === 'hidden') {
+    document.body.classList.add('hide-icons');
+    const btn = document.getElementById('iconToggleBtn');
+    btn.textContent = '无';
+    btn.title = '显示图标';
+}
+
+// 绑定图标切换按钮事件
+document.getElementById('iconToggleBtn').addEventListener('click', toggleIcons);
+});
+
+// 授权码验证系统
+const AUTH_KEY = 'bookmark_auth_status';
+const AUTH_USER_KEY = 'bookmark_auth_user';
+
+  // 授权码组配置 - 格式：授权码: 用户名
+  const AUTH_CODES = {
+    'baoge888': '宝哥',  // 默认授权码，用户：宝哥
+    'baoge777': '宝哥1',
+    'baoge666': '宝哥2'
+    // 可以在这里添加更多授权码和用户
+    // 示例格式：
+    // 'admin123': '管理员',
+    // 'user001': '用户001',
+    // 'test2024': '测试用户'
+};
+
+let defaultData = null;
+let currentGroup = null;
+
+// 检查授权状态
+function isAuthorized() {
+    const authStatus = localStorage.getItem(AUTH_KEY);
+    return authStatus === '1';
+}
+
+// 获取当前授权用户
+function getCurrentUser() {
+    return localStorage.getItem(AUTH_USER_KEY) || '';
+}
+
+// 清除授权数据
+function clearAuthData() {
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+}
+
+// 添加清除授权数据的函数（用于调试）
+function resetAuth() {
+    clearAuthData();
+    alert('授权数据已清除，请刷新页面重新授权');
+    location.reload();
+}
+
+// 验证授权码
+function verifyAuthCode(authCode) {
+    const trimmedCode = authCode.trim();
+    if (AUTH_CODES[trimmedCode]) {
+        // 设置授权状态（永久有效）
+        localStorage.setItem(AUTH_KEY, '1');
+        localStorage.setItem(AUTH_USER_KEY, AUTH_CODES[trimmedCode]);
+        
+        return {
+            success: true,
+            user: AUTH_CODES[trimmedCode]
+        };
+    }
+    return {
+        success: false,
+        message: '授权码无效'
+    };
+}
+
+function isAdmin() {
+    return isAuthorized();
+}
+
+function setAdminMode(on) {
+    if (on) {
+        document.body.classList.add('admin-mode');
+        document.getElementById('adminEnterBtn').style.display = 'none';
+        document.getElementById('adminLoginBtn').style.display = '';
+        
+        renderGroupList();
+        if (!currentGroup) {
+            const keys = window.groupOrder;
+            if (keys.length) currentGroup = keys[0];
+        }
+    } else {
+        document.body.classList.remove('admin-mode');
+        document.getElementById('adminEnterBtn').style.display = '';
+        document.getElementById('adminLoginBtn').style.display = 'none';
+        
+        currentGroup = null;
+    }
+    renderBookmarksGroup(window.bookmarkGroups);
+}
+
+function enterAdmin() {
+    // 直接进入后台（因为已经通过页面授权验证）
+    setAdminMode(true);
+}
+
+function logoutAdmin() {
+    // 自动保存当前修改
+    saveAndRender();
+    
+    // 退出后台模式（不清除授权信息）
+    setAdminMode(false);
+    
+    alert('已退出后台管理，修改已自动保存');
+}
+
+// 渲染分组列表
+function renderGroupList() {
+const groupList = document.getElementById('groupList');
+groupList.innerHTML = '';
+const keys = window.groupOrder;
+keys.forEach(group => {
+  const btn = document.createElement('button');
+  btn.className = 'group-item' + (group === currentGroup ? ' selected' : '');
+  btn.textContent = group;
+  btn.onclick = function() {
+    currentGroup = group;
+    renderGroupList();
+    renderBookmarksGroup(window.bookmarkGroups);
+  };
+  groupList.appendChild(btn);
+});
+// 更新导出下拉
+const exportSelect = document.getElementById('exportSelect');
+exportSelect.innerHTML = '<option value="all">全部</option>';
+keys.forEach(group => {
+  const opt = document.createElement('option');
+  opt.value = group;
+  opt.textContent = group;
+  exportSelect.appendChild(opt);
+});
+}
+
+// 书签渲染
+function renderBookmarksGroup(bookmarkGroups) {
+const container = document.getElementById('bookmarkContainer');
+container.innerHTML = '';
+let idx = 0;
+let showGroups = window.groupOrder;
+if (isAdmin() && currentGroup) showGroups = [currentGroup];
+showGroups.forEach(group => {
+    // 分组标题及操作
+    const groupTitleWrap = document.createElement('div');
+    groupTitleWrap.style.display = 'flex';
+    groupTitleWrap.style.alignItems = 'center';
+    groupTitleWrap.style.gap = '8px';
+    groupTitleWrap.style.marginTop = '30px';
+    groupTitleWrap.style.marginBottom = '15px';
+    const groupTitle = document.createElement('div');
+    groupTitle.className = 'group-title';
+    groupTitle.textContent = group;
+    groupTitleWrap.appendChild(groupTitle);
+
+    if (isAdmin()) {
+      // 编辑分组名
+      const editGroupBtn = document.createElement('button');
+      editGroupBtn.className = 'icon-btn edit admin-only';
+      editGroupBtn.title = '编辑分组名';
+      editGroupBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 20 20"><path d="M14.85 3.15a1.5 1.5 0 0 1 2.12 2.12l-9.19 9.19-2.12.71.71-2.12 9.19-9.19z" fill="currentColor"/></svg>';
+      editGroupBtn.onclick = function() {
+          const newName = prompt('修改分组名：', group);
+          if (newName && newName !== group) {
+              if (bookmarkGroups[newName]) {
+                  alert('分组名已存在');
+                  return;
+              }
+              bookmarkGroups[newName] = bookmarkGroups[group];
+              delete bookmarkGroups[group];
+              const idx = window.groupOrder.indexOf(group);
+              window.groupOrder[idx] = newName;
+              if (currentGroup === group) currentGroup = newName;
+              saveAndRender();
+          }
+      };
+      groupTitleWrap.appendChild(editGroupBtn);
+
+      // 删除分组
+      const delGroupBtn = document.createElement('button');
+      delGroupBtn.className = 'icon-btn delete admin-only';
+      delGroupBtn.title = '删除分组';
+      delGroupBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 20 20"><path d="M6 7v7a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7m-9 0h10m-7-2h4a1 1 0 0 1 1 1v1H6V6a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>';
+      delGroupBtn.onclick = function() {
+          if (confirm('确定要删除分组及其所有书签吗？')) {
+              delete bookmarkGroups[group];
+              const idx = window.groupOrder.indexOf(group);
+              window.groupOrder.splice(idx, 1);
+              if (currentGroup === group) {
+                const keys = window.groupOrder;
+                currentGroup = keys.length ? keys[0] : null;
+              }
+              saveAndRender();
+          }
+      };
+      groupTitleWrap.appendChild(delGroupBtn);
+
+      // 分组排序
+      const upGroupBtn = document.createElement('button');
+      upGroupBtn.className = 'icon-btn admin-only';
+      upGroupBtn.title = '上移分组';
+      upGroupBtn.innerHTML = '↑';
+      upGroupBtn.onclick = function() {
+          moveGroup(group, -1);
+      };
+      groupTitleWrap.appendChild(upGroupBtn);
+
+      const downGroupBtn = document.createElement('button');
+      downGroupBtn.className = 'icon-btn admin-only';
+      downGroupBtn.title = '下移分组';
+      downGroupBtn.innerHTML = '↓';
+      downGroupBtn.onclick = function() {
+          moveGroup(group, 1);
+      };
+      groupTitleWrap.appendChild(downGroupBtn);
+    }
+    container.appendChild(groupTitleWrap);
+
+    // 书签区
+    const section = document.createElement('section');
+    section.style.marginBottom = '10px';
+    (bookmarkGroups[group]||[]).forEach((bm, i) => {
+        const div = document.createElement('div');
+        div.className = 'bookmark';
+        div.setAttribute('data-index', idx);
+        if (isAdmin()) {
+          div.setAttribute('draggable', 'true');
+          div.ondragstart = function(e) {
+              e.dataTransfer.setData('text/plain', JSON.stringify({group, i}));
+          };
+          div.ondragover = function(e) { e.preventDefault(); };
+          div.ondrop = function(e) {
+              e.preventDefault();
+              const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+              if (data.group === group && data.i !== i) {
+                  const arr = bookmarkGroups[group];
+                  const [moved] = arr.splice(data.i, 1);
+                  arr.splice(i, 0, moved);
+                  saveAndRender();
+              }
+          };
+        }
+        div.onclick = () => markAsChecked(div, bm.url, bm.name);
+        div.innerHTML = `
+            <img src="${bm.favicon || bm.icon || ''}" alt="图标" onerror="this.src='https://via.placeholder.com/40?text=?'" />
+            <a href="#">${bm.name || bm.title}</a>
+        `;
+        if (isAdmin()) {
+          // 编辑按钮
+          const editBtn = document.createElement('button');
+          editBtn.className = 'icon-btn edit admin-only';
+          editBtn.title = '编辑书签';
+          editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 20 20"><path d="M14.85 3.15a1.5 1.5 0 0 1 2.12 2.12l-9.19 9.19-2.12.71.71-2.12 9.19-9.19z" fill="currentColor"/></svg>';
+          editBtn.onclick = function(e) {
+              e.stopPropagation();
+              editBookmark(group, i);
+          };
+          div.appendChild(editBtn);
+          // 删除按钮
+          const delBtn = document.createElement('button');
+          delBtn.className = 'icon-btn delete admin-only';
+          delBtn.title = '删除书签';
+          delBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 20 20"><path d="M6 7v7a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7m-9 0h10m-7-2h4a1 1 0 0 1 1 1v1H6V6a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>';
+          delBtn.onclick = function(e) {
+              e.stopPropagation();
+              if (confirm('确定要删除该书签吗？')) {
+                  bookmarkGroups[group].splice(i, 1);
+                  saveAndRender();
+              }
+          };
+          div.appendChild(delBtn);
+          // 上移下移按钮
+          const upBtn = document.createElement('button');
+          upBtn.className = 'icon-btn admin-only';
+          upBtn.title = '上移书签';
+          upBtn.innerHTML = '↑';
+          upBtn.onclick = function(e) {
+              e.stopPropagation();
+              moveBookmark(group, i, -1);
+          };
+          div.appendChild(upBtn);
+          const downBtn = document.createElement('button');
+          downBtn.className = 'icon-btn admin-only';
+          downBtn.title = '下移书签';
+          downBtn.innerHTML = '↓';
+          downBtn.onclick = function(e) {
+              e.stopPropagation();
+              moveBookmark(group, i, 1);
+          };
+          div.appendChild(downBtn);
+        }
+        section.appendChild(div);
+        idx++;
+    });
+    // 添加书签按钮
+    if (isAdmin()) {
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '添加书签';
+      addBtn.className = 'admin-main-btn admin-only';
+      addBtn.style.margin = '10px 0 10px 0';
+      addBtn.onclick = function() {
+          addBookmark(group);
+      };
+      section.appendChild(addBtn);
+    }
+    container.appendChild(section);
+});
+// 选中高亮
+const lastIndex = localStorage.getItem('lastCheckedBookmark');
+if (lastIndex !== null) {
+    const el = document.querySelector('.bookmark[data-index="' + lastIndex + '"]');
+    if (el) el.classList.add('checked');
+}
+// 上次点击信息
+const lastClickData = localStorage.getItem('lastBookmarkClick');
+const lastClickElement = document.getElementById('lastClickInfo');
+if (lastClickElement) {
+    if (lastClickData) {
+        try {
+            const { name, time } = JSON.parse(lastClickData);
+            lastClickElement.innerHTML = `<div class="row">上次点击：<strong>${name}</strong></div>
+                <div class="row">时间：<strong>${formatDateTime(new Date(time))}</strong></div>`;
+        } catch (e) {
+            lastClickElement.innerHTML = `<div class="row">尚未点击任何书签</div>`;
+        }
+    } else {
+        lastClickElement.innerHTML = `<div class="row">尚未点击任何书签</div>`;
+    }
+}
+}
+
+function saveAndRender() {
+localStorage.setItem('importedBookmarks', JSON.stringify({
+  groupOrder: window.groupOrder,
+  bookmarkGroups: window.bookmarkGroups
+}));
+renderGroupList();
+renderBookmarksGroup(window.bookmarkGroups);
+}
+function addBookmark(group) {
+const name = prompt('书签名称：');
+if (!name) return;
+const url = prompt('书签URL：');
+if (!url) return;
+const favicon = prompt('图标URL（可选）：');
+window.bookmarkGroups[group].push({ name, url, favicon });
+saveAndRender();
+}
+function editBookmark(group, i) {
+const bm = window.bookmarkGroups[group][i];
+const name = prompt('书签名称：', bm.name);
+if (!name) return;
+const url = prompt('书签URL：', bm.url);
+if (!url) return;
+const favicon = prompt('图标URL（可选）：', bm.favicon || '');
+window.bookmarkGroups[group][i] = { name, url, favicon };
+saveAndRender();
+}
+function moveBookmark(group, i, dir) {
+const arr = window.bookmarkGroups[group];
+if ((dir === -1 && i === 0) || (dir === 1 && i === arr.length - 1)) return;
+const [item] = arr.splice(i, 1);
+arr.splice(i + dir, 0, item);
+saveAndRender();
+}
+function moveGroup(group, dir) {
+const idx = window.groupOrder.indexOf(group);
+if ((dir === -1 && idx === 0) || (dir === 1 && idx === window.groupOrder.length - 1)) return;
+const newOrder = window.groupOrder.slice();
+newOrder.splice(idx, 1);
+newOrder.splice(idx + dir, 0, group);
+window.groupOrder = newOrder;
+saveAndRender();
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+document.getElementById('addGroupBtn').onclick = function() {
+    const name = prompt('新分组名称：');
+    if (!name) return;
+    if (window.bookmarkGroups[name]) {
+        alert('分组已存在');
+        return;
+    }
+    window.bookmarkGroups[name] = [];
+    window.groupOrder.push(name);
+    currentGroup = name;
+    saveAndRender();
+};
+document.getElementById('importBtn').onclick = function() {
+    document.getElementById('importFileInput').click();
+};
+document.getElementById('importFileInput').onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        try {
+            const data = JSON.parse(evt.target.result);
+            const sel = document.getElementById('exportSelect');
+            if (sel.value === 'all') {
+              // 兼容新老格式
+              let groupOrder, bookmarkGroups;
+              if (typeof data === 'object' && data.groupOrder && data.bookmarkGroups) {
+                groupOrder = data.groupOrder;
+                bookmarkGroups = data.bookmarkGroups;
+              } else if (typeof data === 'object' && !Array.isArray(data)) {
+                bookmarkGroups = data;
+                groupOrder = Object.keys(data);
+              } else {
+                alert('格式错误');
+                return;
+              }
+              window.groupOrder = groupOrder;
+              window.bookmarkGroups = bookmarkGroups;
+              currentGroup = window.groupOrder[0] || null;
+              saveAndRender();
+              alert('导入成功');
+            } else {
+              if (Array.isArray(data)) {
+                window.bookmarkGroups[sel.value] = data;
+                if (!window.groupOrder.includes(sel.value)) window.groupOrder.push(sel.value);
+                currentGroup = sel.value;
+                saveAndRender();
+                alert('分组导入成功');
+              } else {
+                alert('分组导入需为数组格式');
+              }
+            }
+        } catch {
+            alert('解析失败');
+        }
+    };
+    reader.readAsText(file);
+};
+document.getElementById('exportBtn').onclick = function() {
+    const sel = document.getElementById('exportSelect');
+    let data, filename;
+    if (sel.value === 'all') {
+      // 导出全部时使用旧格式，不包含groupOrder
+      data = JSON.stringify(window.bookmarkGroups, null, 2);
+      filename = '生态导航().json';
+    } else {
+      // 导出单个分组时使用数组格式
+      data = JSON.stringify(window.bookmarkGroups[sel.value] || [], null, 2);
+      filename = '生态导航(' + sel.value + ').json';
+    }
+    const blob = new Blob([data], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+};
+
+// 修复清空按钮功能 - 确保数据正确重置
+document.getElementById('clearBtn').onclick = function() {
+  if (confirm('确定要清空所有书签并恢复为默认数据吗？')) {
+    try {
+      // 清空所有本地存储的书签数据
+      localStorage.removeItem('importedBookmarks');
+      localStorage.removeItem('lastCheckedBookmark');
+      localStorage.removeItem('lastBookmarkClick');
+      
+      // 重新从nav-json读取默认数据
+      const jsonScript = document.getElementById('nav-json');
+      if (jsonScript) {
+        try {
+          const data = JSON.parse(jsonScript.textContent);
+          // 确保defaultData正确初始化
+          defaultData = {
+            groupOrder: data.groupOrder || [],
+            bookmarkGroups: data.bookmarkGroups || {}
+          };
+          
+          // 重置全局变量
+          window.groupOrder = defaultData.groupOrder.slice();
+          window.bookmarkGroups = JSON.parse(JSON.stringify(defaultData.bookmarkGroups));
+          currentGroup = window.groupOrder[0] || null;
+          
+          // 重新渲染
+          if (isAdmin()) {
+            renderGroupList();
+          }
+          renderBookmarksGroup(window.bookmarkGroups);
+          
+          // 重置最后点击信息
+          const lastClickElement = document.getElementById('lastClickInfo');
+          if (lastClickElement) {
+            lastClickElement.innerHTML = `<div class="row">尚未点击任何书签</div>`;
+          }
+          
+          alert('书签已重置为默认数据！');
+        } catch (e) {
+          console.error('重置默认数据失败:', e);
+          alert('重置失败，请刷新页面重试');
+        }
+      } else {
+        alert('找不到默认数据，请刷新页面重试');
+      }
+    } catch (e) {
+      console.error('清空操作失败:', e);
+      alert('清空失败，请刷新页面重试');
+    }
+  }
+};
+
+if (isAdmin()) setAdminMode(true);
+else setAdminMode(false);
+});
+
+function markAsChecked(element, url, name) {
+document.querySelectorAll('.bookmark').forEach(el => el.classList.remove('checked'));
+element.classList.add('checked');
+const now = new Date();
+const index = element.getAttribute('data-index');
+localStorage.setItem('lastCheckedBookmark', index);
+const clickData = {
+    name: name,
+    time: now.getTime()
+};
+localStorage.setItem('lastBookmarkClick', JSON.stringify(clickData));
+const lastClickElement = document.getElementById('lastClickInfo');
+if (lastClickElement) {
+    lastClickElement.innerHTML = `<div class="row">上次点击：<strong>${name}</strong></div>
+        <div class="row">时间：<strong>${formatDateTime(now)}</strong></div>`;
+}
+window.open(url, '_blank');
+}
+
+function formatDateTime(date) {
+const year = date.getFullYear();
+const month = String(date.getMonth() + 1).padStart(2, '0');
+const day = String(date.getDate()).padStart(2, '0');
+const hours = String(date.getHours()).padStart(2, '0');
+const minutes = String(date.getMinutes()).padStart(2, '0');
+const seconds = String(date.getSeconds()).padStart(2, '0');
+return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// 页面授权验证初始化
+function initAuthCheck() {
+    // 检查URL参数是否需要重置授权
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('reset') === '1') {
+        clearAuthData();
+        // 移除URL参数
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    const authOverlay = document.getElementById('authOverlay');
+    const mainContainer = document.getElementById('mainContainer');
+    const authInput = document.getElementById('authCodeInput');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authMessage = document.getElementById('authMessage');
+    
+    // 检查是否已授权
+    if (isAuthorized()) {
+        // 已授权，显示主页面
+        authOverlay.style.display = 'none';
+        mainContainer.style.display = 'flex';
+        initMainPage();
+    } else {
+        // 未授权，显示授权页面
+        authOverlay.style.display = 'flex';
+        mainContainer.style.display = 'none';
+        
+        // 确保元素存在后再绑定事件
+        if (authSubmitBtn && authInput) {
+            // 绑定授权验证事件
+            authSubmitBtn.addEventListener('click', handleAuthSubmit);
+            authInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleAuthSubmit();
+                }
+            });
+            
+            // 自动聚焦到输入框
+            setTimeout(() => {
+                authInput.focus();
+            }, 100);
+        }
+    }
+}
+
+// 处理授权验证提交
+function handleAuthSubmit() {
+    console.log('授权验证提交被调用');
+    const authInput = document.getElementById('authCodeInput');
+    const authMessage = document.getElementById('authMessage');
+    
+    if (!authInput) {
+        console.error('找不到授权码输入框');
+        return;
+    }
+    
+    const authCode = authInput.value.trim();
+    console.log('输入的授权码:', authCode);
+    
+    if (!authCode) {
+        showAuthMessage('请输入授权码', 'error');
+        return;
+    }
+    
+    const result = verifyAuthCode(authCode);
+    console.log('验证结果:', result);
+    
+    if (result.success) {
+        showAuthMessage(`授权成功！欢迎 ${result.user} 使用生态导航。`, 'success');
+        
+        // 延迟显示主页面
+        setTimeout(() => {
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'flex';
+            initMainPage();
+        }, 1500);
+    } else {
+        showAuthMessage(result.message || '授权码无效，请重新输入', 'error');
+        authInput.value = '';
+        authInput.focus();
+    }
+}
+
+// 显示授权消息
+function showAuthMessage(message, type) {
+    const authMessage = document.getElementById('authMessage');
+    authMessage.textContent = message;
+    authMessage.className = `auth-message ${type}`;
+}
+
+// 显示当前用户信息
+function showCurrentUserInfo() {
+    const currentUser = getCurrentUser();
+    const userInfoElement = document.getElementById('currentUserInfo');
+    if (userInfoElement) {
+        if (currentUser) {
+            // 显示用户信息
+            userInfoElement.style.display = 'flex';
+            const userBadge = userInfoElement.querySelector('.user-badge');
+            if (userBadge) {
+                userBadge.textContent = currentUser;
+            }
+        } else {
+            // 隐藏用户信息
+            userInfoElement.style.display = 'none';
+        }
+    }
+}
+
+// 长按显示重置按钮（支持手机和电脑）
+function initLongPressResetButton() {
+    const userInfoElement = document.getElementById('currentUserInfo');
+    const resetBtn = document.getElementById('resetAuthBtn');
+    let pressTimer = null;
+    
+    if (userInfoElement && resetBtn) {
+        // 触摸事件（手机端）
+        userInfoElement.addEventListener('touchstart', function(e) {
+            pressTimer = setTimeout(() => {
+                resetBtn.style.display = 'inline-block';
+                setTimeout(() => {
+                    resetBtn.style.display = 'none';
+                }, 5000); // 5秒后自动隐藏
+            }, 3000); // 长按3秒
+        });
+        
+        userInfoElement.addEventListener('touchend', function(e) {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+        
+        userInfoElement.addEventListener('touchmove', function(e) {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+        
+        // 鼠标事件（电脑端）
+        userInfoElement.addEventListener('mousedown', function(e) {
+            pressTimer = setTimeout(() => {
+                resetBtn.style.display = 'inline-block';
+                setTimeout(() => {
+                    resetBtn.style.display = 'none';
+                }, 5000); // 5秒后自动隐藏
+            }, 3000); // 长按3秒
+        });
+        
+        userInfoElement.addEventListener('mouseup', function(e) {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+        
+        userInfoElement.addEventListener('mouseleave', function(e) {
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        });
+    }
+}
+
+// 初始化主页面
+function initMainPage() {
+    let groupOrder = null, bookmarkGroups = null;
+    const saved = localStorage.getItem('importedBookmarks');
+    if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.groupOrder && data.bookmarkGroups) {
+            groupOrder = data.groupOrder;
+            bookmarkGroups = data.bookmarkGroups;
+          } else if (typeof data === 'object' && !Array.isArray(data)) {
+            bookmarkGroups = data;
+            groupOrder = Object.keys(data);
+          }
+        } catch {}
+    }
+    if (!groupOrder || !bookmarkGroups) {
+        const jsonScript = document.getElementById('nav-json');
+        if (jsonScript) {
+            try {
+              const data = JSON.parse(jsonScript.textContent);
+              if (data.groupOrder && data.bookmarkGroups) {
+                groupOrder = data.groupOrder;
+                bookmarkGroups = data.bookmarkGroups;
+              } else if (typeof data === 'object' && !Array.isArray(data)) {
+                bookmarkGroups = data;
+                groupOrder = Object.keys(data);
+              }
+            } catch {}
+        }
+    }
+    if (!groupOrder) groupOrder = [];
+    if (!bookmarkGroups) bookmarkGroups = {};
+    window.groupOrder = groupOrder;
+    window.bookmarkGroups = bookmarkGroups;
+    defaultData = {
+      groupOrder: groupOrder.slice(),
+      bookmarkGroups: JSON.parse(JSON.stringify(bookmarkGroups))
+    };
+    
+    // 默认进入前端模式（不进入后台）
+    setAdminMode(false);
+    
+    // 显示当前用户信息
+    showCurrentUserInfo();
+    
+    // 初始化长按重置按钮（支持手机和电脑）
+    initLongPressResetButton();
+}
+
+// 确保DOM完全加载后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 延迟一点执行，确保所有元素都已渲染
+    setTimeout(() => {
+        initAuthCheck();
+    }, 50);
+});
+
+// 备用初始化方式
+window.onload = function() {
+    if (!document.body.classList.contains('initialized')) {
+        document.body.classList.add('initialized');
+        initAuthCheck();
+    }
+}
+</script>
 </body>
 </html>
