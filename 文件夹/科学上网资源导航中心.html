@@ -437,10 +437,26 @@
     </div>
 
     <script>
+        // 页面加载时检查是否已登录
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (isLoggedIn === 'true') {
+                // 如果已登录，直接显示主内容
+                document.getElementById('password-overlay').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            } else {
+                // 否则显示密码输入界面
+                document.getElementById('password-overlay').style.display = 'flex';
+                document.getElementById('main-content').style.display = 'none';
+            }
+        });
+
         function login(event) {
             event.preventDefault();
             const password = document.getElementById('password-input').value;
             if (password === 'baoge') {
+                // 登录成功，保存登录状态到localStorage
+                localStorage.setItem('isLoggedIn', 'true');
                 document.getElementById('password-overlay').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
             } else {
