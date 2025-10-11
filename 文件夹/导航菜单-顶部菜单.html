@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>导航菜单</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background: #f5f6fa;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .main-panel {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 6px 32px rgba(75,0,130,0.10);
+      max-width: 1200px;
+      width: 96vw;
+      min-height: 70vh;
+      margin: 32px auto;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 0 0 24px 0;
+    }
+ .top-group-bar {
+  display: flex;
+  overflow-x: auto;
+  gap: 8px;
+  padding: 18px 18px 18px 18px; /* 顶部18px，底部18px */
+  background: #22223b;
+  border-radius: 18px 18px 0 0;
+  scrollbar-width: thick;
+  scrollbar-color: #7c3aed #b39ddb;
+}
+.top-group-bar::-webkit-scrollbar {
+  height: 22px;
+  background: #b39ddb;
+  border-radius: 8px;
+}
+.top-group-bar::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #7c3aed 60%, #4B0082 100%);
+  border-radius: 8px;
+  border: 6px solid #b39ddb;
+}
+    .group-btn {
+      background: #ede6ff;
+      color: #7c3aed;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 18px;
+      font-size: 1em;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s, color 0.2s;
+      white-space: nowrap;
+      margin-bottom: 0;
+      outline: none;
+    }
+    .group-btn.active, .group-btn:hover {
+      background: #7c3aed;
+      color: #fff;
+    }
+    .main-content {
+      flex: 1;
+      padding: 32px 32px 0 32px;
+      min-width: 0;
+      overflow-y: auto;
+      max-height: 80vh;
+      scroll-behavior: smooth;
+      display: flex;
+      flex-direction: column;
+    }
+    .search-bar-zone {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .search-bar-zone input[type="text"] {
+      flex: 1 1 200px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 8px 14px;
+      font-size: 1em;
+      outline: none;
+      transition: border 0.2s;
+      min-width: 0;
+    }
+    .search-bar-zone input[type="text"]:focus {
+      border-color: #7c3aed;
+    }
+    .search-bar-zone button {
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 8px 18px;
+      font-size: 1em;
+      background: #4B0082;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 70px;
+    }
+    .search-bar-zone button:hover {
+      background: #6A0DAD;
+      box-shadow: 0 2px 8px rgba(75, 0, 130, 0.15);
+    }
+    .group-title {
+      font-size: 1.2em;
+      color: #4B0082;
+      margin-bottom: 18px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .card-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+    .site-card {
+      background: var(--group-bg-color, #ede7f6);
+      border-radius: 18px;
+      height: 44px;
+      padding: 6px 12px;
+      box-shadow: 0 2px 8px rgba(75, 0, 130, 0.08);
+      display: flex;
+      align-items: center;
+      transition: all 0.18s;
+      text-decoration: none;
+      color: #333;
+      font-size: 0.98em;
+      border: 1.5px solid #e0e0ef;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .site-card:hover, .site-card:active {
+      background: #4B0082 !important;
+      color: #fff !important;
+      border-color: #4B0082;
+      box-shadow: 0 4px 16px rgba(75, 0, 130, 0.18);
+      transform: translateY(-2px) scale(1.03);
+    }
+    .site-card .site-card-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      margin-right: 8px;
+      object-fit: contain;
+      background: #fff;
+      transition: opacity 0.2s;
+    }
+    .site-card.no-thumb {
+      justify-content: center;
+      align-items: center;
+    }
+    .site-card.no-thumb .site-card-icon {
+      display: none;
+    }
+    .site-card.no-thumb .title {
+      margin-left: 0 !important;
+      text-align: center;
+      width: 100%;
+      display: block;
+    }
+    .site-card .title {
+      font-weight: 600;
+      font-size: 0.97em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: inherit;
+      line-height: 1.2;
+      margin-left: 8px;
+      text-align: left;
+      display: block;
+    }
+    @media (max-width: 900px) {
+      .main-panel { min-width: 0; }
+      .main-content { padding: 20px 5vw 0 5vw; max-height: none; }
+    }
+    @media (max-width: 600px) {
+      .main-panel { border-radius: 0; margin: 0; width: 100vw; }
+      .main-content { padding: 12px 2vw 0 2vw; }
+      .card-list { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+      .site-card { height: 38px; border-radius: 12px; padding: 4px 6px; font-size: 0.92em; }
+      .site-card .site-card-icon { width: 15px; height: 15px; }
+      .top-group-bar { padding: 10px 4px 0 4px; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-panel">
+    <div class="top-group-bar" id="groupBar"></div>
+    <main class="main-content" id="mainContent">
+      <div class="search-bar-zone">
+        <input type="text" id="searchInput" placeholder="检索全部书签...">
+        <button id="toggleThumbBtn" type="button">无图</button>
+      </div>
+      <div id="groupTitle" class="group-title"></div>
+      <div id="cardList" class="card-list"></div>
+    </main>
+  </div>
+
+<!-- ===================== 书签数据区 ===================== -->
+<script type="application/json" id="nav-json">
+{
+  "书签导航": [
+    {
+      "name": "书签导航",
+      "url": "https://sqdh.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=sqdh.653827.xyz"
+    },
+    {
+      "name": "jsqdh",
+      "url": "https://jsqdh.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=jsqdh.653827.xyz"
+    },
+    {
+      "name": "导航 1",
+      "url": "https://nav.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=nav.baoge.wang"
+    },
+    {
+      "name": "导航 2",
+      "url": "https://dh.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=dh.baoge.wang"
+    },
+    {
+      "name": "导航菜单",
+      "url": "https://file.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/%E5%AF%BC%E8%88%AA%E8%8F%9C%E5%8D%951",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "导航站",
+      "url": "https://dhz.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=dhz.baoge.wang"
+    },
+    {
+      "name": "书签管理",
+      "url": "https://file.baoge.wang/bkmk2",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "书签卡片",
+      "url": "https://file.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/sqkp",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "发现导航",
+      "url": "https://nav.653827.xyz/side",
+      "favicon": "https://www.google.com/s2/favicons?domain=nav.653827.xyz"
+    },
+    {
+      "name": "我的书签",
+      "url": "https://dfile.baoge.wang/sunpanel.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    },
+    {
+      "name": "简约 1",
+      "url": "https://dfile.baoge.wang/%E7%AE%80%E7%BA%A6%E5%AF%BC%E8%88%AA1.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    },
+    {
+      "name": "简约 2",
+      "url": "https://dfile.baoge.wang/%E7%AE%80%E7%BA%A62.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    },
+    {
+      "name": "jianyue2",
+      "url": "https://dfile.baoge.wang/jianyue2.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    }
+  ],
+  "自用博客": [
+    {
+      "name": "Gridea 博客",
+      "url": "https://bk.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=bk.baoge.wang"
+    },
+    {
+      "name": "XAMPP 博客",
+      "url": "https://xampp.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=xampp.baoge.wang"
+    },
+    {
+      "name": "RIN 博客",
+      "url": "https://blog.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=blog.baoge.wang"
+    },
+    {
+      "name": "Notion 博客",
+      "url": "https://www.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=653827.xyz"
+    },
+    {
+      "name": "Astro 博客",
+      "url": "https://astro.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=astro.baoge.wang"
+    },
+    {
+      "name": "1pages 博客",
+      "url": "https://ipages.baoge.x10.mx/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ipages.baoge.x10.mx"
+    },
+    {
+      "name": "本地博客",
+      "url": "https://dfile.baoge.wang/blog.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    },
+    {
+      "name": "weblog",
+      "url": "https://file.baoge.wang/%E6%95%99%E7%A8%8B/%E5%AF%86%E7%A0%81%E9%AA%8C%E8%AF%81%E8%B7%B3%E8%BD%AC%E9%93%BE%E6%8E%A5%E7%94%9F%E6%88%90%E5%B7%A5%E5%85%B7?linkData=ISduaSc%2FJ3JqfD14OzU3fThocnJvfiAnMSdzZnJqJz8nfGpncXRsJzEneWZ3bGp5WndxJz8nbXl5dXg%2FNDR8amdxdGwzZ2Z0bGozfGZzbDQnMSdqc2h3fnV5amlVZnh4fHR3aSc%2FJ2xreXFvQkJCJyM%3D",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "黑猫博客",
+      "url": "https://hm.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=hm.baoge.wang"
+    },
+    {
+      "name": "CF-BLOG 博客",
+      "url": "https://cfblog.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cfblog.653827.xyz"
+    },
+    {
+      "name": "Blogger",
+      "url": "https://baoge666.blogspot.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=baoge666.blogspot.com"
+    }
+  ],
+  "工具页一": [
+    {
+      "name": "黑猫文件管理",
+      "url": "https://file.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "IP 检测",
+      "url": "https://file.baoge.wang/ipjc",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "网址加速器",
+      "url": "https://js.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=js.653827.xyz"
+    },
+    {
+      "name": "在线粘贴板",
+      "url": "https://cp.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cp.653827.xyz"
+    },
+    {
+      "name": "跳转浏览器",
+      "url": "https://tz.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tz.baoge.wang"
+    },
+    {
+      "name": "购销存",
+      "url": "https://gxc.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=gxc.baoge.wang"
+    },
+    {
+      "name": "产存供销",
+      "url": "https://ccgx.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ccgx.baoge.wang"
+    },
+    {
+      "name": "电报文件管理",
+      "url": "https://cftg.653827.xyz/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cftg.653827.xyz"
+    },
+    {
+      "name": "webp 图床",
+      "url": "https://b2.notpeppa.ggff.net/notpeppa",
+      "favicon": "https://www.google.com/s2/favicons?domain=b2.notpeppa.ggff.net"
+    },
+    {
+      "name": "缩略图",
+      "url": "https://file.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/slt1",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "链接检测面板",
+      "url": "https://file.baoge.wang/lianjiejiance8",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "挪车码生成器一",
+      "url": "https://ncewm.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ncewm.baoge.wang"
+    },
+    {
+      "name": "挪车码生成器二",
+      "url": "https://dfile.baoge.wang/%E6%8C%AA%E8%BD%A6%E4%BA%8C%E7%BB%B4%E7%A0%81/%E6%8C%AA%E8%BD%A6%E4%BA%8C%E7%BB%B4%E7%A0%81%E7%94%9F%E6%88%90%E5%99%A8.html",
+      "favicon": "https://www.google.com/s2/favicons?domain=dfile.baoge.wang"
+    }
+  ],
+  "工具页二": [
+    {
+      "name": "xugou 监控",
+      "url": "https://xugou.653827.xyz/monitors",
+      "favicon": "https://www.google.com/s2/favicons?domain=xugou.653827.xyz"
+    },
+    {
+      "name": "域名监控",
+      "url": "https://ym.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=ym.baoge.wang"
+    },
+    {
+      "name": "VPS 到期监控",
+      "url": "https://vps.shorten.dpdns.org/",
+      "favicon": "https://www.google.com/s2/favicons?domain=vps.shorten.dpdns.org"
+    },
+    {
+      "name": "续订通知",
+      "url": "https://tz.653827.xyz/admin",
+      "favicon": "https://www.google.com/s2/favicons?domain=tz.653827.xyz"
+    },
+    {
+      "name": "网页分析",
+      "url": "https://fx.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=fx.baoge.wang"
+    },
+    {
+      "name": "书签页生成",
+      "url": "https://file.baoge.wang/j2-h2",
+      "favicon": "https://www.google.com/s2/favicons?domain=file.baoge.wang"
+    },
+    {
+      "name": "裁判文书网",
+      "url": "https://wenshu.court.gov.cn/website/wenshu/181029CR4M5A62CH/index.html?",
+      "favicon": "https://www.google.com/s2/favicons?domain=wenshu.court.gov.cn"
+    },
+    {
+      "name": "文本到图像",
+      "url": "https://text.imageonline.co/cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=text.imageonline.co"
+    },
+    {
+      "name": "在线抠图",
+      "url": "https://www.remove.bg/zh",
+      "favicon": "https://www.google.com/s2/favicons?domain=remove.bg"
+    },
+    {
+      "name": "HTML-W",
+      "url": "https://h-w.baoge.wang/",
+      "favicon": "https://www.google.com/s2/favicons?domain=h-w.baoge.wang"
+    },
+    {
+      "name": "Cron 表达式",
+      "url": "https://cron.qqe2.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=cron.qqe2.com"
+    },
+    {
+      "name": "Temp 临时邮件",
+      "url": "https://mail.tm/zh/",
+      "favicon": "https://www.google.com/s2/favicons?domain=mail.tm"
+    }
+  ],
+  "工具箱": [
+    {
+      "name": "彩虹工具箱",
+      "url": "https://tool.cccyun.cc/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.cccyun.cc"
+    },
+    {
+      "name": "在线工具箱",
+      "url": "https://tool.lu/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.lu"
+    },
+    {
+      "name": "在线工具",
+      "url": "https://toolonline.net/",
+      "favicon": "https://www.google.com/s2/favicons?domain=toolonline.net"
+    },
+    {
+      "name": "即时工具",
+      "url": "https://www.67tool.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=67tool.com"
+    },
+    {
+      "name": "仓鼠工具箱",
+      "url": "https://www.hamstertools.org/zh",
+      "favicon": "https://www.google.com/s2/favicons?domain=hamstertools.org"
+    },
+    {
+      "name": "锦时。工具箱",
+      "url": "https://www.y3pm.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=y3pm.com"
+    },
+    {
+      "name": "老朱工具箱",
+      "url": "https://nav.ilaozhu.com/",
+      "favicon": "https://www.google.com/s2/favicons?domain=nav.ilaozhu.com"
+    },
+    {
+      "name": "帮小忙",
+      "url": "https://tool.browser.qq.com/?ref=kui.li",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.browser.qq.com"
+    },
+    {
+      "name": "ImgURL",
+      "url": "https://www.imgurl.org/vip/manage/upload",
+      "favicon": "https://www.google.com/s2/favicons?domain=imgurl.org"
+    },
+    {
+      "name": "骤雨重山",
+      "url": "https://wp-cdn.4ce.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=wp-cdn.4ce.cn"
+    },
+    {
+      "name": "Bilibili 音乐",
+      "url": "https://www.bilibili.com/video/BV1564y1m7Mu?spm_id_from=333.788.videopod.sections&vd_source=954e725e91c1c3621a8a51c91cb1da04",
+      "favicon": "https://www.google.com/s2/favicons?domain=bilibili.com"
+    },
+    {
+      "name": "微信读书",
+      "url": "https://weread.qq.com/web/category/100000",
+      "favicon": "https://www.google.com/s2/favicons?domain=weread.qq.com"
+    }
+  ],
+  "Markdown": [
+    {
+      "name": "Tool On lion",
+      "url": "https://toolonline.net/markdown",
+      "favicon": "https://www.google.com/s2/favicons?domain=toolonline.net"
+    },
+    {
+      "name": "Arya",
+      "url": "https://markdown.lovejade.cn/",
+      "favicon": "https://www.google.com/s2/favicons?domain=markdown.lovejade.cn"
+    },
+    {
+      "name": "锤子在线",
+      "url": "https://www.toolhelper.cn/Code/Markdown",
+      "favicon": "https://www.google.com/s2/favicons?domain=toolhelper.cn"
+    },
+    {
+      "name": "在线工具",
+      "url": "https://tool.lu/markdown/",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.lu"
+    },
+    {
+      "name": "HTML~MD",
+      "url": "https://devtool.tech/html-md",
+      "favicon": "https://www.google.com/s2/favicons?domain=devtool.tech"
+    },
+    {
+      "name": "Markdown 语法",
+      "url": "https://markdown.com.cn/hacks.html#%E6%A6%82%E8%BF%B0",
+      "favicon": "https://www.google.com/s2/favicons?domain=markdown.com.cn"
+    }
+  ],
+  "代码混淆": [
+    {
+      "name": "toolonline",
+      "url": "https://toolonline.net/js-obfuscator",
+      "favicon": "https://www.google.com/s2/favicons?domain=toolonline.net"
+    },
+    {
+      "name": "傲星工具箱",
+      "url": "https://tool.aoaostar.com/code_js",
+      "favicon": "https://www.google.com/s2/favicons?domain=tool.aoaostar.com"
+    },
+    {
+      "name": "Html 加密",
+      "url": "https://www.jb51.net/tools/html_jiami.htm",
+      "favicon": "https://www.google.com/s2/favicons?domain=jb51.net"
+    },
+    {
+      "name": "在线文本加密",
+      "url": "https://tophix.com/zh-cn/development-tools/encrypt-text",
+      "favicon": "https://www.google.com/s2/favicons?domain=tophix.com"
+    },
+    {
+      "name": "Obfuscator1",
+      "url": "https://javascriptobfuscator.com/Javascript-Obfuscator.aspx",
+      "favicon": "https://www.google.com/s2/favicons?domain=javascriptobfuscator.com"
+    },
+    {
+      "name": "Obfuscator2",
+      "url": "https://obfuscator.io/",
+      "favicon": "https://www.google.com/s2/favicons?domain=obfuscator.io"
+    }
+  ]
+}
+</script>
+<!-- ===================== 书签数据区结束 ===================== -->
+
+<script>
+const groupColors = [
+  "#ede7f6", "#ffe0b2", "#b2dfdb", "#f8bbd0", "#d1c4e9", "#fff9c4", "#b3e5fc", "#ffccbc", "#c5e1a5", "#f0f4c3"
+];
+const DEFAULT_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2FhYSI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bS0xIDE3LjkzYy0zLjk1LS40OS03LTMuODUtNy03LjkzUzMuMDUgNy40NCA3IDcuOTN2MTUuODZ6bTItMTUuODZjMS4wMy4xMyAyIC40NSAyLjg3LjkzTDE1IDhoLTNWNC4wN3ptMCA1LjkzSDEydi0yaDNjLTEuNDIgMC0yLjUgMS0zIDJ6bTAgNGgzaC0uNS0xLTEuNTgtMi0zLTJ2MnptMSA0LjkzYy44Ny0uNDggMS43LTEuMTIiIGZpbGw9IiM0MDNmM2YiLz48L3N2Zz4=';
+
+let navData = {};
+let groupNames = [];
+let currentGroupIdx = 0;
+let showThumb = true;
+let searchValue = "";
+
+function getNavData() {
+  const json = document.getElementById('nav-json').textContent.trim();
+  try {
+    return JSON.parse(json);
+  } catch (e) {
+    alert('书签数据格式有误，请检查JSON！');
+    return {};
+  }
+}
+
+function renderGroupBar() {
+  const groupBar = document.getElementById('groupBar');
+  groupBar.innerHTML = '';
+  groupNames.forEach((group, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'group-btn' + (idx === currentGroupIdx ? ' active' : '');
+    btn.textContent = group;
+    btn.onclick = () => {
+      currentGroupIdx = idx;
+      searchValue = "";
+      document.getElementById('searchInput').value = "";
+      renderGroupBar();
+      renderGroupContent();
+      document.getElementById('mainContent').scrollTo({ top: 0, behavior: 'auto' });
+
+      // ======= 下面这段自动滚动的代码请删除或注释掉 =======
+      // setTimeout(() => {
+      //   const bar = groupBar;
+      //   const btnRect = btn.getBoundingClientRect();
+      //   const barRect = bar.getBoundingClientRect();
+      //   const btnCenter = btn.offsetLeft + btn.offsetWidth / 2;
+      //   let targetScroll = btnCenter - bar.clientWidth / 2;
+      //   targetScroll = Math.max(0, Math.min(targetScroll, bar.scrollWidth - bar.clientWidth));
+      //   bar.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      // }, 0);
+      // ============================================
+    };
+    groupBar.appendChild(btn);
+  });
+}function renderGroupContent() {
+  const groupName = groupNames[currentGroupIdx];
+  const groupColor = groupColors[currentGroupIdx % groupColors.length];
+  const cardList = document.getElementById('cardList');
+  cardList.innerHTML = '';
+  let hasResult = false;
+
+  if (searchValue) {
+    // 全局分组分块展示
+    const q = searchValue.toLowerCase();
+    groupNames.forEach((g, idx) => {
+      const matches = (navData[g] || []).filter(b =>
+        (b.name && b.name.toLowerCase().includes(q)) ||
+        (b.url && b.url.toLowerCase().includes(q))
+      );
+      if (matches.length > 0) {
+        hasResult = true;
+        // 分组标题
+        const groupTitle = document.createElement('div');
+        groupTitle.textContent = g;
+        groupTitle.style = `font-weight:bold;font-size:1.1em;color:#4B0082;margin:18px 0 8px 0;grid-column:1/-1;`;
+        cardList.appendChild(groupTitle);
+        // 该分组下所有匹配书签
+        matches.forEach(bookmark => {
+          const card = document.createElement('a');
+          card.className = 'site-card' + (showThumb ? '' : ' no-thumb');
+          card.style.setProperty('--group-bg-color', groupColors[idx % groupColors.length]);
+          card.href = bookmark.url;
+          card.target = '_blank';
+          card.rel = 'noopener noreferrer';
+          card.innerHTML = `
+            <img src="${bookmark.favicon || DEFAULT_ICON}" alt="icon" class="site-card-icon" onerror="this.src='${DEFAULT_ICON}'">
+            <span class="title" style="margin-left:0;">${bookmark.name}</span>
+          `;
+          cardList.appendChild(card);
+        });
+      }
+    });
+    document.getElementById('groupTitle').textContent = '检索结果';
+    if (!hasResult) {
+      cardList.innerHTML = `<div class="text-muted" style="grid-column:1/-1;">无匹配书签</div>`;
+    }
+  } else {
+    // 默认分组展示
+    document.getElementById('groupTitle').textContent = groupName;
+    const bookmarks = navData[groupName] || [];
+    if (bookmarks.length === 0) {
+      cardList.innerHTML = `<div class="text-muted" style="grid-column:1/-1;">无书签</div>`;
+      return;
+    }
+    bookmarks.forEach(bookmark => {
+      const card = document.createElement('a');
+      card.className = 'site-card' + (showThumb ? '' : ' no-thumb');
+      card.style.setProperty('--group-bg-color', groupColor);
+      card.href = bookmark.url;
+      card.target = '_blank';
+      card.rel = 'noopener noreferrer';
+      card.innerHTML = `
+        <img src="${bookmark.favicon || DEFAULT_ICON}" alt="icon" class="site-card-icon" onerror="this.src='${DEFAULT_ICON}'">
+        <span class="title" style="margin-left:0;">${bookmark.name}</span>
+      `;
+      cardList.appendChild(card);
+    });
+  }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  navData = getNavData();
+  groupNames = Object.keys(navData);
+  currentGroupIdx = 0;
+  renderGroupBar();
+  renderGroupContent();
+
+  document.getElementById('searchInput').addEventListener('input', function(e) {
+    searchValue = e.target.value.trim();
+    renderGroupContent();
+  });
+
+  document.getElementById('toggleThumbBtn').addEventListener('click', function() {
+    showThumb = !showThumb;
+    this.textContent = showThumb ? "无图" : "有图";
+    renderGroupContent();
+  });
+});
+</script>
+
+            <script>
+                const passwordsData = [{"code":"baoge888","type":"remember","createdAt":1759309238720}];
+                
+                // 检查临时密码是否过期
+                function checkTemporaryPasswords() {
+                    const now = new Date().getTime();
+                    const validPasswords = passwordsData.filter(p => {
+                        if (p.type === 'temporary') {
+                            const daysDiff = (now - p.createdAt) / (1000 * 60 * 60 * 24);
+                            return daysDiff <= 7;
+                        }
+                        return true;
+                    });
+                    return validPasswords.map(p => p.code);
+                }
+                
+                // 检查是否已记住密码
+                function isRemembered() {
+                    return localStorage.getItem('auth_remembered') === 'true';
+                }
+                
+                // 设置记住密码
+                function setRemembered() {
+                    localStorage.setItem('auth_remembered', 'true');
+                }
+                
+                function checkAuth() {
+                    // 检查是否有记住的密码
+                    if (isRemembered()) {
+                        console.log('已记住密码，无需验证');
+                        return; // 已记住，无需验证
+                    }
+                    
+                    const validCodes = checkTemporaryPasswords();
+                    const code = prompt('请输入密码访问此页面');
+                    
+                    if (!code) {
+                        alert('必须输入密码才能访问！');
+                        checkAuth(); // 用户取消，重新提示
+                        return;
+                    }
+                    
+                    const password = passwordsData.find(p => p.code === code);
+                    if (!password) {
+                        alert('密码错误，请重新输入！');
+                        checkAuth();
+                        return;
+                    }
+                    
+                    // 检查临时密码是否过期
+                    if (password.type === 'temporary') {
+                        const now = new Date().getTime();
+                        const daysDiff = (now - password.createdAt) / (1000 * 60 * 60 * 24);
+                        if (daysDiff > 7) {
+                            alert('临时密码已过期，请使用其他密码！');
+                            checkAuth();
+                            return;
+                        }
+                    }
+                    
+                    // 如果是记住密码类型，设置记住状态
+                    if (password.type === 'remember') {
+                        setRemembered();
+                        alert('密码验证成功！已记住密码，下次访问无需重新输入。');
+                    } else if (password.type === 'normal') {
+                        alert('密码验证成功！每次访问都需要输入密码。');
+                    } else if (password.type === 'temporary') {
+                        const now = new Date().getTime();
+                        const daysLeft = 7 - Math.floor((now - password.createdAt) / (1000 * 60 * 60 * 24));
+                        alert('临时密码验证成功！剩余有效期：' + daysLeft + '天');
+                    }
+                }
+                
+                // 页面加载时执行验证
+                checkAuth();
+            </script>
+            </body>
+</html>
