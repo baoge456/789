@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub 代码推送完整教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f8fa;
+            color: #24292e;
+            line-height: 1.5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #24292e 0%, #3a3f44 100%);
+            color: white;
+            padding: 20px;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 25px;
+        }
+        
+        h2 {
+            color: #0366d6;
+            margin: 25px 0 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eaecef;
+            font-size: 1.4rem;
+        }
+        
+        h3 {
+            color: #24292e;
+            margin: 20px 0 10px;
+            font-size: 1.1rem;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .step {
+            background: #f6f8fa;
+            border-left: 3px solid #0366d6;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .code-container {
+            position: relative;
+            margin: 12px 0;
+        }
+        
+        .code-block {
+            background: #24292e;
+            color: #f6f8fa;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            padding-right: 70px;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #0366d6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background: #0256b9;
+        }
+        
+        .copy-btn.copied {
+            background: #28a745;
+        }
+        
+        .note {
+            background: #f1f8ff;
+            border-left: 3px solid #0366d6;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
+        }
+        
+        .warning {
+            background: #fff5f5;
+            border-left: 3px solid #d73a49;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
+        }
+        
+        .command {
+            color: #79b8ff;
+        }
+        
+        .comment {
+            color: #6a737d;
+            font-style: italic;
+        }
+        
+        .highlight {
+            background-color: #fffbdd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        
+        .workflow {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .workflow-step {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px;
+            border-left: 3px solid #28a745;
+            background: #f0fff4;
+        }
+        
+        .step-number {
+            background: #28a745;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            flex-shrink: 0;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        footer {
+            background: #24292e;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 0.85rem;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+            
+            header {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GitHub 代码推送完整教程</h1>
+            <p class="subtitle">使用个人访问令牌(Personal Access Token)进行身份验证</p>
+        </header>
+        
+        <div class="content">
+            <div class="section">
+                <h2>创建个人访问令牌</h2>
+                
+                <div class="workflow">
+                    <div class="workflow-step">
+                        <div class="step-number">1</div>
+                        <div>
+                            <strong>登录GitHub</strong> → 点击右上角头像 → <strong>Settings</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-step">
+                        <div class="step-number">2</div>
+                        <div>
+                            左侧菜单选择 <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Tokens (classic)</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-step">
+                        <div class="step-number">3</div>
+                        <div>
+                            点击 <strong>"Generate new token"</strong>，选择 <strong>"Classic"</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-step">
+                        <div class="step-number">4</div>
+                        <div>
+                            给token起个名字，设置过期时间(推荐选择 长期 )，并勾选以下权限：
+                            <ul style="margin-left: 20px; margin-top: 5px;">
+                                <li><strong>repo</strong> - 完全控制仓库</li>
+                                <li><strong>workflow</strong> - 更新工作流文件</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-step">
+                        <div class="step-number">5</div>
+                        <div>
+                            点击 <strong>"Generate token"</strong> 并<strong>立即复制token</strong>（只会显示一次）
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="warning">
+                    <p><strong>重要提示：</strong>Token只会显示一次，请务必立即保存。如果丢失，需要重新生成。</p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>推送代码完整流程</h2>
+                
+                <div class="step">
+                    <h3>1. 初始化Git仓库</h3>
+                    <p>打开命令行，进入项目目录：</p>
+                    <div class="code-container">
+                        <div class="code-block">
+                            <span class="command">git init</span>
+                        </div>
+                        <button class="copy-btn" data-code="git init">复制</button>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <h3>2. 添加远程仓库地址</h3>
+                    <p>将GitHub仓库添加为远程仓库：</p>
+                    <div class="code-container">
+                        <div class="code-block">
+                            <span class="command">git remote add origin https://github.com/用户名/仓库名.git</span>
+                        </div>
+                        <button class="copy-btn" data-code="git remote add origin https://github.com/用户名/仓库名.git">复制</button>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <h3>3. 添加文件到暂存区</h3>
+                    <div class="code-container">
+                        <div class="code-block">
+                            <span class="command">git add .</span>
+                        </div>
+                        <button class="copy-btn" data-code="git add .">复制</button>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <h3>4. 提交更改</h3>
+                    <div class="code-container">
+                        <div class="code-block">
+                            <span class="command">git commit -m "提交描述"</span>
+                        </div>
+                        <button class="copy-btn" data-code='git commit -m "提交描述"'>复制</button>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <h3>5. 重命名分支（可选）</h3>
+                    <div class="code-container">
+                        <div class="code-block">
+                            <span class="command">git branch -M main</span>
+                        </div>
+                        <button class="copy-btn" data-code="git branch -M main">复制</button>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <h3>6. 使用Token推送代码</h3>
+                    <p>运行推送命令：</p>
+                    <div class="code-container">
+                        <div class="code-block">
+                            <span class="command">git push -u origin main</span>
+                        </div>
+                        <button class="copy-btn" data-code="git push -u origin main">复制</button>
+                    </div>
+                    <p>当系统提示输入密码时，<strong>粘贴您的Token</strong>（而不是GitHub密码）</p>
+                </div>
+                
+                <div class="note">
+                    <p><strong>替代方法：</strong>您也可以将Token直接嵌入远程URL中：</p>
+                    <div class="code-container">
+                        <div class="code-block">
+                            <span class="command">git remote set-url origin https://您的TOKEN@github.com/用户名/仓库名.git</span>
+                        </div>
+                        <button class="copy-btn" data-code="git remote set-url origin https://您的TOKEN@github.com/用户名/仓库名.git">复制</button>
+                    </div>
+                    <p>设置后，后续推送不再需要输入凭据。</p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>常见问题与解决方案</h2>
+                
+                <div class="step">
+                    <h3>权限被拒绝 (403错误)</h3>
+                    <p><strong>解决方案：</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>检查Windows凭据管理器，删除旧的GitHub凭据</li>
+                        <li>确保Token具有<strong>repo</strong>和<strong>workflow</strong>权限</li>
+                    </ul>
+                </div>
+                
+                <div class="step">
+                    <h3>缺少workflow权限</h3>
+                    <p><strong>解决方案：</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>重新生成Token并确保勾选<strong>workflow</strong>权限</li>
+                    </ul>
+                </div>
+                
+                <div class="step">
+                    <h3>不是Git仓库</h3>
+                    <p><strong>解决方案：</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>运行<code>git init</code>初始化仓库</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>日常开发流程</h2>
+                <p>完成初始设置后，日常开发流程简化为：</p>
+                <div class="code-container">
+                    <div class="code-block">
+                        <span class="command">git add .</span><br>
+                        <span class="command">git commit -m "描述更改"</span><br>
+                        <span class="command">git push</span>
+                    </div>
+                    <button class="copy-btn" data-code='git add .&#10;git commit -m "描述更改"&#10;git push'>复制</button>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>GitHub代码推送简明教程 &copy; 2023 | 使用个人访问令牌进行身份验证</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取所有复制按钮
+            const copyButtons = document.querySelectorAll('.copy-btn');
+            
+            // 为每个按钮添加点击事件
+            copyButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // 获取要复制的代码
+                    const code = this.getAttribute('data-code');
+                    
+                    // 使用Clipboard API复制文本
+                    navigator.clipboard.writeText(code).then(() => {
+                        // 复制成功，更新按钮文本
+                        const originalText = this.textContent;
+                        this.textContent = '已复制!';
+                        this.classList.add('copied');
+                        
+                        // 2秒后恢复原始文本
+                        setTimeout(() => {
+                            this.textContent = originalText;
+                            this.classList.remove('copied');
+                        }, 2000);
+                    }).catch(err => {
+                        // 复制失败，使用备用方法
+                        console.error('复制失败: ', err);
+                        alert('复制失败，请手动选择并复制代码');
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
