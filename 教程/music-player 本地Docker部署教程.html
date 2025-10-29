@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>music-player 本地Docker部署教程（D:\music-player目录）</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.8;
+        }
+        h1, h2, h3 {
+            color: #2d3748;
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 12px;
+            margin-top: 30px;
+        }
+        .step {
+            margin: 25px 0;
+            padding: 15px;
+            background-color: #f7fafc;
+            border-radius: 8px;
+        }
+        .code-container {
+            position: relative;
+            margin: 10px 0;
+        }
+        .code-block {
+            background-color: #2d3748;
+            color: #f7fafc;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: "Consolas", "Monaco", monospace;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #4a5568;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .copy-btn:hover {
+            background-color: #718096;
+        }
+        .copy-btn.copied {
+            background-color: #38a169;
+        }
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #856404;
+        }
+        .warning {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #721c24;
+        }
+        .editor-note {
+            background-color: #e6fffa;
+            border-left: 4px solid #38b2ac;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #234e52;
+        }
+        ul, ol {
+            padding-left: 25px;
+            margin: 10px 0;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .file-path {
+            color: #2b6cb0;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <h1>music-player 本地Docker部署完整教程</h1>
+    <p>本教程基于指定目录部署：<br>
+    - 项目部署根目录：<span class="file-path">D:\music-player</span><br>
+    - 歌曲存储目录：<span class="file-path">D:\music-player\music</span><br>
+    重点说明：<strong>播放器界面添加的歌曲可通过admin密码删除，本地目录直接添加的歌曲需在目录中手动删除（播放器内无法删除）</strong>。</p>
+
+
+    <h2>一、前提条件</h2>
+    <ul>
+        <li>安装 <a href="https://www.docker.com/get-started" target="_blank">Docker Desktop</a>（Windows需开启WSL2或Hyper-V，启动后右下角图标为绿色）。</li>
+        <li>安装 <a href="https://git-scm.com/downloads" target="_blank">Git</a>（用于克隆项目代码）。</li>
+        <li>安装 <a href="https://code.visualstudio.com/" target="_blank">VS Code</a>（推荐用于编辑代码文件，避免格式错误）。</li>
+        <li>准备1-2首 <strong>MP3格式</strong> 音乐文件（文件名避免中文/空格/特殊字符，如 <code>song1.mp3</code>、<code>light.mp3</code>）。</li>
+    </ul>
+
+
+    <h2>二、步骤1：克隆项目到指定根目录（D:\music-player）</h2>
+    <div class="step">
+        <ol>
+            <li>打开 <strong>Windows命令提示符（CMD）</strong> 或 <strong>PowerShell</strong>，输入以下命令切换到D盘根目录：
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">d:</div>
+                </div>
+            </li>
+            <li>克隆GitHub项目到 <span class="file-path">D:\music-player</span> 目录（克隆后自动生成 <code>music-player</code> 文件夹）：
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">git clone https://github.com/eooce/music-player.git</div>
+                </div>
+            </li>
+            <li>进入项目根目录（后续所有命令均在此目录执行）：
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">cd music-player</div>
+                </div>
+                <p>此时当前路径应为：<span class="file-path">D:\music-player</span></p>
+            </li>
+        </ol>
+    </div>
+
+
+    <h2>三、步骤2：创建Docker核心配置文件</h2>
+    <p>需在 <span class="file-path">D:\music-player</span> 根目录下创建2个文件：<code>Dockerfile</code>（构建镜像）和 <code>docker-compose.yaml</code>（管理容器，使用指定歌曲目录挂载）。</p>
+    <div class="editor-note">
+        <strong>编辑建议</strong>：推荐用VS Code打开 <span class="file-path">D:\music-player</span> 目录，右键新建文件并粘贴内容，VS Code会自动识别文件类型并提供语法高亮，避免格式错误（如缩进、换行符问题）。
+    </div>
+
+    <div class="step">
+        <h3>3.1 创建 Dockerfile（无后缀）</h3>
+        <ol>
+            <li>在VS Code中打开 <span class="file-path">D:\music-player</span> 目录，右键 → 「新建文件」，命名为 <code>Dockerfile</code>（无后缀）。</li>
+            <li>复制以下内容到 <code>Dockerfile</code> 中（保持原有缩进和换行）：
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">
+# 基础镜像：Node.js 16轻量版（alpine系统，体积小，适合容器）
+FROM node:16-alpine
+
+# 设置容器内的工作目录（与项目代码路径对应）
+WORKDIR /app
+
+# 先复制依赖配置文件（利用Docker缓存，后续修改代码无需重新安装依赖）
+COPY package*.json ./
+
+# 安装项目生产环境依赖（避免开发依赖占用空间）
+RUN npm install --production
+
+# 复制项目所有代码到容器内工作目录
+COPY . .
+
+# 暴露容器端口（与项目监听端口一致，默认3000）
+EXPOSE 3000
+
+# 容器启动命令（启动Express后端服务）
+CMD ["node", "app.js"]
+                    </div>
+                </div>
+            </li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h3>3.2 创建 docker-compose.yaml（指定歌曲目录挂载）</h3>
+        <ol>
+            <li>在VS Code中，右键 → 「新建文件」，命名为 <code>docker-compose.yaml</code>（注意后缀为 <code>.yaml</code>）。</li>
+            <li>复制以下内容到文件中（保持缩进为2空格，与源文件结构一致）：
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">
+services:
+  music-player:
+    build: .  # 基于当前目录的Dockerfile构建镜像
+    ports:
+      - "3001:3000"  # 本地3001端口映射到容器3000端口（避免3000端口被占用）
+    volumes:
+      # 关键配置：本地歌曲目录挂载到容器（确保容器能读取本地歌曲）
+      - "D:\\music-player\\music:/app/music"  # Windows绝对路径，双反斜杠转义
+    environment:
+      - NODE_ENV=production  # 生产环境模式，优化运行效率
+      - PORT=3000  # 项目监听端口（与容器暴露端口一致）
+                    </div>
+                </div>
+            </li>
+            <li class="note">说明：<code>volumes</code> 配置实现“本地歌曲目录与容器目录同步”——本地新增歌曲，容器内可实时读取；但本地直接添加的歌曲，播放器内无法删除（需手动在目录中删）。</li>
+        </ol>
+    </div>
+
+
+    <h2>四、步骤3：修复代码（解决音乐URL错误，确保列表显示）</h2>
+    <div class="step">
+        <p>项目默认代码会生成重复URL（如 <code>http://localhost:3001//music/song1.mp3</code>），导致歌曲无法加载，需修改 <code>app.js</code> 中的音乐列表API逻辑。</p>
+        <div class="editor-note">
+            <strong>编辑建议</strong>：用VS Code打开 <span class="file-path">D:\music-player\app.js</span>，搜索关键词快速定位代码块，粘贴时注意保留原有代码结构（可先备份原文件）。
+        </div>
+        <ol>
+            <li>在VS Code中打开 <span class="file-path">D:\music-player\app.js</span> 文件。</li>
+            <li>搜索并找到 <strong>“获取音乐列表 API”</strong> 代码块（搜索关键词：<code>app.get('/api/music/list'</code>），替换为以下修复后的代码（保持函数结构和缩进）：
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">
+// 音乐文件大小格式化函数（若已存在无需重复添加）
+function formatFileSize(bytes) {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+  
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  
+  return `${size.toFixed(2)}${units[unitIndex]}`;
+}
+
+// 获取音乐列表 API（修复URL重复问题）
+app.get('/api/music/list', async (req, res) => {
+  try {
+    // 读取容器内歌曲目录（/app/music，对应本地D:\music-player\music）
+    const files = await fs.promises.readdir(musicDir);
+    // 筛选支持的音频格式（MP3/WAV/FLAC/M4A）
+    const musicFiles = files.filter(file => 
+      ['.mp3', '.wav', '.flac', '.m4a'].includes(path.extname(file).toLowerCase())
+    );
+
+    // 正确生成音乐URL（避免重复，格式：http://localhost:3001/music/song1.mp3）
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const musicList = await Promise.all(musicFiles.map(async file => {
+      const filePath = path.join(musicDir, file);
+      const stat = await fs.promises.stat(filePath);
+      return {
+        filename: file,
+        url: `${protocol}://${host}/music/${encodeURIComponent(file)}`, // 修复后URL
+        size: formatFileSize(stat.size),
+        extension: path.extname(file).slice(1).toUpperCase(),
+        lastModified: stat.mtime.toLocaleString()
+      };
+    }));
+
+    // 返回音乐列表给前端
+    res.json({
+      total: musicList.length,
+      data: musicList
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Get music list failed',
+      details: error.message
+    });
+  }
+});
+                    </div>
+                </div>
+            </li>
+            <li>按 <code>Ctrl+S</code> 保存 <code>app.js</code> 文件，确保修改生效。</li>
+        </ol>
+    </div>
+
+
+    <h2>五、步骤4：准备歌曲文件（放入指定目录）</h2>
+    <div class="step">
+        <ol>
+            <li>在 <span class="file-path">D:\music-player</span> 目录下，右键新建「文件夹」，命名为 <code>music</code>（与 <code>docker-compose.yaml</code> 中挂载的本地目录一致）。</li>
+            <li>将准备好的MP3音乐文件（如 <code>song1.mp3</code>）复制到 <span class="file-path">D:\music-player\music</span> 目录中。</li>
+            <li class="warning">重要：此方式添加的歌曲（本地目录直接放），后续<strong>只能在 <span class="file-path">D:\music-player\music</span> 目录中手动删除</strong>，播放器内无法通过admin密码删除。</li>
+        </ol>
+    </div>
+
+
+    <h2>六、步骤5：构建Docker镜像并启动容器</h2>
+    <div class="step">
+        <ol>
+            <li>确保 <strong>Docker Desktop已启动</strong>（右下角图标为绿色，未启动则双击桌面Docker图标）。</li>
+            <li>回到命令提示符（CMD/PowerShell），确保当前路径是 <span class="file-path">D:\music-player</span>，执行以下命令：
+
+                <h3>6.1 构建Docker镜像（首次执行或代码修改后需执行）</h3>
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">docker-compose build</div>
+                </div>
+                <p>执行过程：下载Node.js基础镜像、安装项目依赖，成功后显示 <code>Successfully built</code> 或 <code>Built</code>（约1-3分钟，取决于网络）。
+
+                <h3>6.2 启动Docker容器（后台运行）</h3>
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">docker-compose up -d</div>
+                </div>
+                <p>成功提示：<code>[+] Running 2/2</code> 且 <code>Container music-player-music-player-1  Started</code>。
+
+                <h3>6.3 验证容器是否正常运行</h3>
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">docker ps</div>
+                </div>
+                <p>若列表中存在 <code>music-player-music-player-1</code>，且 <code>STATUS</code> 为 <code>Up</code>（如 <code>Up 10 seconds</code>），说明容器启动成功。
+            </li>
+        </ol>
+    </div>
+
+
+    <h2>七、步骤6：验证音乐播放与删除规则</h2>
+    <div class="step">
+        <h3>6.1 访问播放器并播放音乐</h3>
+        <ol>
+            <li>打开任意浏览器，地址栏输入：
+                <div class="code-container">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                    <div class="code-block">http://localhost:3001</div>
+                </div>
+            </li>
+            <li>查看“音乐列表”：应显示 <span class="file-path">D:\music-player\music</span> 目录中的歌曲（如 <code>song1.mp3</code>）。</li>
+            <li>点击歌曲右侧「播放」按钮，若进度条滚动、有声音输出，即为播放成功。</li>
+        </ol>
+
+        <h3>6.2 两种添加方式的删除规则（重点说明）</h3>
+        <div class="note">核心区别：删除权限取决于歌曲的“添加来源”，无需修改任何权限配置，按以下规则操作即可。</div>
+        
+        <h4>情况1：播放器界面添加的歌曲（可通过admin密码删除）</h4>
+        <ul>
+            <li>操作：在播放器页面找到「添加音乐」功能（通常是“+”按钮或“管理”模块），输入音乐URL和名称，添加成功后显示在列表中。</li>
+            <li>删除方式：进入「删除音乐」功能，输入默认管理员密码 <code>admin</code>，选择要删除的歌曲，点击「确认删除」即可（容器内和本地目录会同步删除）。</li>
+        </ul>
+
+        <h4>情况2：本地目录直接添加的歌曲（需手动在目录中删除）</h4>
+        <ul>
+            <li>操作：直接将MP3文件放入 <span class="file-path">D:\music-player\music</span> 目录，刷新播放器页面即可显示。</li>
+            <li>删除方式：<strong>无法在播放器内删除</strong>，需手动打开 <span class="file-path">D:\music-player\music</span> 目录，找到对应歌曲文件（如 <code>song1.mp3</code>），右键删除即可。</li>
+        </ul>
+    </div>
+
+
+    <h2>八、后续常用操作</h2>
+    <div class="step">
+        <h3>8.1 停止Docker容器（无需使用时）</h3>
+        <p>在 <span class="file-path">D:\music-player</span> 目录下执行：
+            <div class="code-container">
+                <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                <div class="code-block">docker-compose down</div>
+            </div>
+        </p>
+        <p>说明：容器停止后，歌曲文件仍保存在 <span class="file-path">D:\music-player\music</span> 中，下次启动容器会自动加载。</p>
+
+        <h3>8.2 新增歌曲（两种方式）</h3>
+        <ul>
+            <li>方式1：本地目录添加（快速）：直接复制MP3到 <span class="file-path">D:\music-player\music</span>，刷新浏览器即可显示。</li>
+            <li>方式2：播放器界面添加（需URL）：在播放器「添加音乐」模块输入音乐在线URL，添加后可通过admin密码删除。</li>
+        </ul>
+
+        <h3>8.3 查看容器运行日志（排查问题）</h3>
+        <p>若播放器无法加载歌曲或报错，执行以下命令查看容器日志：
+            <div class="code-container">
+                <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                <div class="code-block">docker logs music-player-music-player-1</div>
+            </div>
+        </p>
+        <p>日志中会显示错误原因（如文件路径错误、权限提示等），可根据提示调整。</p>
+    </div>
+
+
+    <h2>九、常见问题排查</h2>
+    <div class="step">
+        <ul>
+            <li><strong>Q1：音乐列表不显示本地添加的歌曲？</strong><br>
+                A1：检查歌曲是否放在 <span class="file-path">D:\music-player\music</span> 目录（而非其他路径）；刷新浏览器页面；确认歌曲是MP3格式且文件名无特殊字符。
+            </li>
+            <li><strong>Q2：播放器界面添加歌曲后，无法通过admin密码删除？</strong><br>
+                A2：确认密码输入正确（默认是 <code>admin</code>，区分大小写）；检查容器是否正常运行（执行 <code>docker ps</code> 确认状态为 <code>Up</code>）。
+            </li>
+            <li><strong>Q3：启动容器时提示“port is already allocated”？</strong><br>
+                A3：3001端口被其他程序占用，修改 <code>docker-compose.yaml</code> 中的 <code>ports</code> 为其他端口（如 <code>"3002:3000"</code>），重新执行 <code>docker-compose down && docker-compose up -d</code>。
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        // 复制代码功能
+        function copyCode(btn) {
+            const codeBlock = btn.nextElementSibling;
+            const code = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                // 复制成功提示
+                btn.textContent = '已复制';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '复制';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                btn.textContent = '复制失败';
+                setTimeout(() => {
+                    btn.textContent = '复制';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
