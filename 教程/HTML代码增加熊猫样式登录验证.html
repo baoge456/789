@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级HTML密码验证工具</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        /* Content Area */
+        .content {
+            padding: 40px;
+        }
+
+        /* Section Styling */
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 1.4em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="file"], input[type="text"], select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input[type="file"]:focus, input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        /* Password List */
+        .password-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .password-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .password-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .password-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .password-code {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+            word-break: break-all; /* Ensure long passwords break correctly */
+        }
+
+        .password-type {
+            font-size: 0.9em;
+            color: #6c757d;
+            padding: 2px 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 15px;
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .password-actions {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0; /* Prevent buttons from shrinking */
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 12px;
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active {
+            background: #28a745;
+        }
+
+        .status-expired {
+            background: #dc3545;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* File Upload Area */
+        .file-upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: rgba(102, 126, 234, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #764ba2;
+        }
+
+        .file-upload-area.dragover {
+            background: rgba(102, 126, 234, 0.15);
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        /* Stats Cards */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        /* Action Buttons Group */
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        /* Test Results */
+        .test-result {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .test-result.show {
+            display: block;
+        }
+
+        .test-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .test-summary {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .batch-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .batch-result-item {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            background: white;
+        }
+
+        .batch-result-item.valid {
+            border-color: #c3e6cb;
+            background: rgba(222, 235, 247, 0.5); /* Light blue for valid */
+        }
+
+        .batch-result-item.expired {
+            border-color: #f5c6cb;
+            background: rgba(248, 215, 218, 0.3); /* Light red for expired */
+        }
+
+        .result-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .result-password {
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .result-status {
+            font-size: 0.85em;
+            padding: 2px 8px;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+
+        .status-valid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .result-details {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+
+        /* Security Warning Specific Style */
+        .security-warning {
+            background: #fff3cd; /* Light yellow background */
+            border-color: #ffeeba; /* Yellow border */
+            color: #856404; /* Dark yellow text */
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid;
+        }
+        .security-warning h2 {
+            color: #856404; /* Match text color */
+            margin-bottom: 15px;
+        }
+        .security-warning h2::before {
+            background: #856404; /* Match text color */
+        }
+        .security-warning p {
+            margin-bottom: 10px;
+        }
+        .security-warning p:last-child {
+            margin-bottom: 0;
+            font-weight: bold;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .action-buttons {
+                justify-content: flex-start;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .action-buttons .btn {
+                width: 100%;
+            }
+            .password-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .password-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 高级HTML密码验证工具</h1>
+            <p>专业的HTML文件密码保护解决方案</p>
+        </div>
+
+        <div class="content">
+            <!-- Security Warning -->
+            <div class="section security-warning">
+                <h2>⚠️ 安全警告</h2>
+                <p><strong>请注意：</strong>这是一个客户端HTML密码保护工具。这意味着密码和受保护内容都嵌入在同一个HTML文件中。</p>
+                <p>任何有能力查看文件源代码的用户都可以轻松地发现密码和绕过验证。本工具旨在提供一个简单的访问门槛，而非强大的安全保障。</p>
+                <p><strong>请勿用于保护敏感或机密信息。</strong></p>
+            </div>
+
+            <!-- 文件上传区域 -->
+            <div class="section">
+                <h2>📁 上传HTML文件</h2>
+                <div class="file-upload-area" id="fileUploadArea">
+                    <div class="upload-icon">📄</div>
+                    <p>点击选择文件或拖拽HTML文件到此处</p>
+                    <input type="file" id="fileInput" accept=".html,.htm" style="display: none;">
+                </div>
+                <div id="fileInfo" style="display: none; margin-top: 15px; padding: 15px; background: #e9ecef; border-radius: 10px;">
+                    <strong>已选择文件：</strong><span id="fileName"></span>
+                </div>
+            </div>
+
+            <!-- 密码管理区域 -->
+            <div class="section">
+                <h2>🔑 密码管理</h2>
+                <!-- 密码输入区域 -->
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label for="authInput">密码</label>
+                        <input type="text" id="authInput" placeholder="输入密码">
+                    </div>
+                    <div class="form-group">
+                        <label for="passwordType">密码类型</label>
+                        <select id="passwordType">
+                            <option value="normal">普通密码（每次验证）</option>
+                            <option value="remember">记住密码（输入一次长期有效）</option>
+                            <option value="temporary">临时密码（7天有效期）</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: end;">
+                        <button class="btn" onclick="addAuthCode()">➕ 添加密码</button>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮组 -->
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="simulateUserVerification()">👤 模拟用户验证</button>
+                    <button class="btn btn-danger" onclick="batchTestAllPasswords()">📋 批量测试所有密码</button>
+                </div>
+                
+                <!-- 统计数据区域 -->
+                <div id="passwordStats" class="stats" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalPasswords">0</div>
+                        <div class="stat-label">总密码数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activePasswords">0</div>
+                        <div class="stat-label">有效密码</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="expiredPasswords">0</div>
+                        <div class="stat-label">过期密码</div>
+                    </div>
+                </div>
+
+                <!-- 密码列表 -->
+                <ul id="authList" class="password-list"></ul>
+                
+                <!-- 测试结果显示容器 -->
+                <div id="testResult" class="test-result">
+                    <div class="test-result-header">
+                        <h3>测试结果</h3>
+                        <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                    </div>
+                    <div class="test-summary" id="testSummary"></div>
+                    <div class="batch-results" id="batchResults"></div>
+                </div>
+            </div>
+
+            <!-- 导出区域 -->
+            <div class="section">
+                <h2>💾 导出文件</h2>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="exportFileName">导出文件名</label>
+                        <input type="text" id="exportFileName" placeholder="输入文件名（不含扩展名）">
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 10px; align-items: end;">
+                        <button class="btn btn-secondary" onclick="copyCode()">📋 复制代码</button>
+                        <button class="btn btn-success" onclick="exportFile()">💾 导出HTML</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let fileContent = '';
+        let originalFileName = '';
+        // passwords array will store objects like { plainCode: "...", hash: "...", type: "...", createdAt: ... }
+        let passwords = []; 
+
+        // --- Utility Functions ---
+
+        /**
+         * Hashes a string using SHA-256.
+         * @param {string} str The string to hash.
+         * @returns {Promise<string>} The hexadecimal representation of the SHA-256 hash.
+         */
+        async function hashString(str) {
+            const textEncoder = new TextEncoder();
+            const data = textEncoder.encode(str);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hexHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hexHash;
+        }
+
+        /**
+         * Displays a temporary notification message.
+         * @param {string} message The message to display.
+         * @param {'info'|'success'|'error'} type The type of notification (determines color).
+         */
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 10px;
+                color: white;
+                font-weight: 600;
+                z-index: 1000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                max-width: 300px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            `;
+            
+            if (type === 'success') {
+                notification.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+            } else if (type === 'error') {
+                notification.style.background = 'linear-gradient(135deg, #dc3545 0%, #fd7e14 100%)';
+            } else {
+                notification.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            }
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // --- File Handling ---
+
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        fileUploadArea.addEventListener('click', () => fileInput.click());
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('dragover');
+        });
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files; // Assign files to the input element
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // FIX: Add change event listener for file input when selected via dialog
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        /**
+         * Handles the selection of an HTML file.
+         * Reads the file content and extracts existing passwords.
+         * @param {File} file The selected file.
+         */
+        function handleFileSelect(file) {
+            originalFileName = file.name.replace(/\.(html|htm)$/i, '');
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileInfo').style.display = 'block';
+            // Update the placeholder and default value for export file name
+            const exportFileNameInput = document.getElementById('exportFileName');
+            exportFileNameInput.value = `熊猫验证-${originalFileName}`;
+            exportFileNameInput.placeholder = `熊猫验证-${originalFileName}`;
+            
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                fileContent = e.target.result;
+                showNotification('文件内容已成功加载！', 'success'); // Added success notification
+                extractExistingPasswords(fileContent);
+            };
+
+            reader.onerror = function(e) { // Added error handling
+                console.error("Error reading file:", e);
+                showNotification('文件读取失败，请检查文件是否损坏或权限问题。', 'error');
+                fileContent = ''; // Clear content on error
+                document.getElementById('fileInfo').style.display = 'none'; // Hide file info
+                document.getElementById('fileName').textContent = '';
+                document.getElementById('exportFileName').value = '';
+            };
+
+            reader.readAsText(file);
+        }
+
+        // --- Password Management ---
+
+        /**
+         * Adds a new password to the list.
+         * Hashes the password before storing.
+         */
+        async function addAuthCode() {
+            const code = document.getElementById('authInput').value.trim();
+            const type = document.getElementById('passwordType').value;
+            
+            if (!code) {
+                showNotification('请输入密码', 'error');
+                return;
+            }
+            
+            // Check if plain text password already exists in the tool's current session
+            const existingPlainIndex = passwords.findIndex(p => p.plainCode === code && p.plainCode !== '[已加密/未知]');
+            if (existingPlainIndex !== -1) {
+                showNotification('该明文密码已存在！', 'error');
+                return;
+            }
+
+            const hashedPassword = await hashString(code);
+            
+            // Check if hash already exists (e.g., from an uploaded file)
+            const existingHashIndex = passwords.findIndex(p => p.hash === hashedPassword);
+            if (existingHashIndex !== -1) {
+                showNotification('该密码（哈希值）已存在！', 'error');
+                return;
+            }
+            
+            const password = {
+                plainCode: code, // Store plain text for display in the tool
+                hash: hashedPassword, // Store hash for embedding in protected file
+                type: type,
+                createdAt: new Date().getTime()
+            };
+            
+            passwords.push(password);
+            updateAuthList();
+            updateStats();
+            document.getElementById('authInput').value = '';
+            showNotification('密码添加成功！', 'success');
+        }
+
+        /**
+         * Updates the displayed list of passwords.
+         */
+        function updateAuthList() {
+            const list = document.getElementById('authList');
+            list.innerHTML = '';
+            
+            if (passwords.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">暂无密码，请添加密码</p>';
+                return;
+            }
+            
+            passwords.forEach((password, index) => {
+                const li = document.createElement('li');
+                li.className = 'password-item';
+                
+                const typeText = {
+                    'normal': '普通密码',
+                    'remember': '记住密码',
+                    'temporary': '临时密码'
+                }[password.type];
+                
+                const isExpired = password.type === 'temporary' && isPasswordExpired(password);
+                const statusClass = isExpired ? 'status-expired' : 'status-active';
+                const statusText = isExpired ? '已过期' : '有效';
+                
+                li.innerHTML = `
+                    <div class="password-info">
+                        <div class="password-code">${password.plainCode}</div>
+                        <div class="password-type">${typeText}</div>
+                        <small><span class="status-indicator ${statusClass}"></span>${statusText}</small>
+                    </div>
+                    <div class="password-actions">
+                        <button class="btn btn-small btn-secondary" onclick="testSinglePassword('${password.plainCode}')">测试</button>
+                        <button class="btn btn-small btn-danger" onclick="deletePassword(${index})">删除</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+        
+        /**
+         * Checks if a temporary password has expired.
+         * @param {object} password The password object.
+         * @returns {boolean} True if the password is expired, false otherwise.
+         */
+        function isPasswordExpired(password) {
+            if (password.type !== 'temporary') return false;
+            const now = new Date().getTime();
+            const daysDiff = (now - password.createdAt) / (1000 * 60 * 60 * 24);
+            return daysDiff > 7;
+        }
+        
+        /**
+         * Deletes a password from the list.
+         * @param {number} index The index of the password to delete.
+         */
+        function deletePassword(index) {
+            if (confirm('确定要删除这个密码吗？')) {
+                passwords.splice(index, 1);
+                updateAuthList();
+                updateStats();
+                showNotification('密码已删除', 'success');
+            }
+        }
+
+        /**
+         * Updates the statistics displayed (total, active, expired passwords).
+         */
+        function updateStats() {
+            const statsDiv = document.getElementById('passwordStats');
+            if (passwords.length > 0) {
+                statsDiv.style.display = 'grid';
+                document.getElementById('totalPasswords').textContent = passwords.length;
+                
+                const activePasswords = passwords.filter(p => !isPasswordExpired(p)).length;
+                const expiredPasswords = passwords.filter(p => isPasswordExpired(p)).length;
+                
+                document.getElementById('activePasswords').textContent = activePasswords;
+                document.getElementById('expiredPasswords').textContent = expiredPasswords;
+            } else {
+                statsDiv.style.display = 'none';
+            }
+        }
+
+        /**
+         * Extracts existing password data from an uploaded HTML file.
+         * This looks for the script generated by this tool.
+         * @param {string} content The HTML file content.
+         */
+        function extractExistingPasswords(content) {
+            const embeddedScriptRegex = /const embeddedPasswordsData = ([[\s\S]*?]);/;
+            const match = content.match(embeddedScriptRegex);
+
+            // Clear existing passwords before loading from file
+            passwords = [];
+
+            if (match && match[1]) {
+                try {
+                    const existingEmbedded = JSON.parse(match[1]);
+                    existingEmbedded.forEach(p => {
+                        // Check if this hash already exists in our current list (shouldn't if cleared)
+                        const existingIndex = passwords.findIndex(ep => ep.hash === p.hash);
+                        if (existingIndex === -1) {
+                            passwords.push({
+                                plainCode: '[已加密/未知]', // Cannot recover plain text from hash
+                                hash: p.hash,
+                                type: p.type,
+                                createdAt: p.createdAt
+                            });
+                        }
+                    });
+                    showNotification('从文件中提取了现有密码（已加密），无法显示原始密码。', 'info');
+                } catch (e) {
+                    console.error('解析文件中现有密码失败:', e);
+                    showNotification('解析文件中现有密码失败。', 'error');
+                }
+            } else {
+                showNotification('未在文件中找到本工具生成的密码。', 'info');
+            }
+            updateAuthList();
+            updateStats();
+        }
+
+        // --- Generated Script Logic for Protected HTML ---
+
+        /**
+         * Generates the full authentication script to be embedded in the protected HTML.
+         * This includes the login UI (HTML, CSS) and the JavaScript logic.
+         * @returns {Promise<string>} The complete script string.
+         */
+        async function generateAuthScript() {
+            const passwordsToEmbed = passwords.map(p => ({
+                hash: p.hash, // Embed hash
+                type: p.type,
+                createdAt: p.createdAt
+            }));
+            
+            // The login UI HTML and CSS, self-contained.
+            // THIS IS THE PANDA STYLE AND LOGIN FORM THAT WILL APPEAR IN THE *EXPORTED* HTML FILE.
+            // You will NOT see this panda in the current tool's interface.
+            const loginUIHtml = `
+            <div id="auth-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: #f5f6fa; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans', Arial, sans-serif;">
+                <style>
+                    /* Scoped styles for the login overlay */
+                    #auth-overlay .center-box {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        min-height: 100vh; /* This will be overridden by flexbox centering */
+                        width: 100%; /* Ensure it takes full width of overlay */
+                    }
+                    #auth-overlay .panda-box {
+                        position: relative;
+                        width: 340px;
+                        margin-bottom: -40px;
+                        z-index: 2;
+                    }
+                    #auth-overlay .login-container {
+                        position: relative;
+                        background: #fff;
+                        border-radius: 16px;
+                        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+                        padding: 40px 28px 28px 28px;
+                        width: 340px;
+                        z-index: 1;
+                        margin-top: -40px;
+                        text-align: center; /* For title and footer */
+                    }
+                    #auth-overlay .login-title {
+                        text-align: center;
+                        font-size: 1.5em;
+                        color: #333;
+                        margin-bottom: 28px;
+                        letter-spacing: 2px;
+                    }
+                    #auth-overlay .form-group {
+                        margin-bottom: 18px;
+                        text-align: left; /* Align label and input */
+                    }
+                    #auth-overlay label {
+                        display: block;
+                        margin-bottom: 6px;
+                        color: #555;
+                        font-size: 1em;
+                    }
+                    #auth-overlay input[type="password"] {
+                        width: 100%;
+                        padding: 8px 10px;
+                        border: 1px solid #d0d0d0;
+                        border-radius: 4px;
+                        font-size: 1em;
+                        background: #fafbfc;
+                        transition: border 0.2s;
+                    }
+                    #auth-overlay input[type="password"]:focus {
+                        border-color: #1976d2;
+                        outline: none;
+                    }
+                    #auth-overlay .login-btn {
+                        width: 100%;
+                        padding: 10px 0;
+                        background: #1976d2;
+                        color: #fff;
+                        border: none;
+                        border-radius: 4px;
+                        font-size: 1.1em;
+                        cursor: pointer;
+                        margin-top: 10px;
+                        transition: background 0.2s;
+                    }
+                    #auth-overlay .login-btn:hover {
+                        background: #1256a3;
+                    }
+                    #auth-overlay .login-footer {
+                        text-align: center;
+                        color: #aaa;
+                        font-size: 0.95em;
+                        margin-top: 18px;
+                    }
+                    #auth-overlay .error-message {
+                        color: #d32f2f;
+                        font-size: 0.9em;
+                        margin-top: -10px;
+                        margin-bottom: 10px;
+                        text-align: center;
+                        display: none; /* Hidden by default */
+                    }
+                    #auth-overlay .success-message { /* Added success message style */
+                        color: #28a745;
+                        font-size: 0.9em;
+                        font-weight: bold;
+                        margin-top: -10px;
+                        margin-bottom: 10px;
+                        text-align: center;
+                        display: none; /* Hidden by default */
+                    }
+                    @media (max-width: 500px) {
+                        #auth-overlay .panda-box, #auth-overlay .login-container {
+                            width: 90vw; /* Adjusted for better mobile fit */
+                            min-width: 0;
+                            max-width: 98vw;
+                        }
+                        #auth-overlay .login-container {
+                            padding: 30px 20px 20px 20px;
+                        }
+                        #auth-overlay .panda-box {
+                            width: 100%;
+                        }
+                        #auth-overlay .panda-box svg {
+                            width: 100%;
+                            height: auto;
+                        }
+                    }
+                </style>
+                <div class="center-box">
+                    <div class="panda-box">
+                        <svg width="340" height="180" viewBox="0 0 340 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <ellipse cx="70" cy="60" rx="36" ry="28" fill="#222"/>
+                            <ellipse cx="270" cy="60" rx="36" ry="28" fill="#222"/>
+                            <ellipse cx="170" cy="100" rx="100" ry="80" fill="#fff" stroke="#222" stroke-width="4"/>
+                            <ellipse cx="120" cy="110" rx="22" ry="16" fill="#222"/>
+                            <ellipse cx="220" cy="110" rx="22" ry="16" fill="#222"/>
+                            <ellipse cx="120" cy="115" rx="7" ry="7" fill="#fff"/>
+                            <ellipse cx="220" cy="115" rx="7" ry="7" fill="#fff"/>
+                            <ellipse cx="120" cy="117" rx="3" ry="3" fill="#222"/>
+                            <ellipse cx="220" cy="117" rx="3" ry="3" fill="#222"/>
+                            <ellipse cx="170" cy="135" rx="10" ry="7" fill="#222"/>
+                            <path d="M160 145 Q170 155 180 145" stroke="#222" stroke-width="3" fill="none"/>
+                            <ellipse cx="90" cy="170" rx="28" ry="18" fill="#222"/>
+                            <ellipse cx="90" cy="170" rx="12" ry="8" fill="#fff"/>
+                            <ellipse cx="250" cy="170" rx="28" ry="18" fill="#222"/>
+                            <ellipse cx="250" cy="170" rx="12" ry="8" fill="#fff"/>
+                            <ellipse cx="110" cy="160" rx="16" ry="10" fill="#222"/>
+                            <ellipse cx="230" cy="160" rx="16" ry="10" fill="#222"/>
+                        </svg>
+                    </div>
+                    <div class="login-container">
+                        <div class="login-title">页面验证</div>
+                        <form id="auth-form">
+                            <div class="form-group">
+                                <label for="auth-password">密码</label>
+                                <input type="password" id="auth-password" name="password" autocomplete="current-password" required>
+                            </div>
+                            <div id="auth-error-message" class="error-message"></div>
+                            <div id="auth-success-message" class="success-message"></div> <!-- Added success message area -->
+                            <button type="submit" class="login-btn">验证</button>
+                        </form>
+                        <div class="login-footer">
+                            &copy; 2025 熊猫验证
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+
+            return `
+            <script>
+                // --- Client-side Password Protection Script ---
+                // IMPORTANT: This is a client-side protection. Passwords (hashed) and content are still present
+                // in the HTML source code and can be bypassed by a determined user.
+                // This script provides a simple UI hurdle, not true security.
+                // Do not use for sensitive information requiring strong protection.
+                // ----------------------------------------------------
+
+                const embeddedPasswordsData = ${JSON.stringify(passwordsToEmbed)};
+                let authAttempts = 0;
+                const maxAuthAttempts = 5; // Max attempts before locking the page
+
+                // Hashing function (SHA-256) - must be consistent with the tool's hashing
+                async function _hashStringForAuth(str) {
+                    const textEncoder = new TextEncoder();
+                    const data = textEncoder.encode(str);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const hexHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    return hexHash;
+                }
+
+                // Check temporary passwords for expiration
+                function _isPasswordExpiredForAuth(password) {
+                    if (password.type !== 'temporary') return false;
+                    const now = new Date().getTime();
+                    const daysDiff = (now - password.createdAt) / (1000 * 60 * 60 * 24);
+                    return daysDiff > 7;
+                }
+                
+                // Check if password was remembered
+                function _isRememberedForAuth() {
+                    try {
+                        return localStorage.getItem('auth_remembered') === 'true';
+                    } catch (e) {
+                        console.warn('localStorage is not available or accessible.', e);
+                        return false;
+                    }
+                }
+                
+                // Set remembered state
+                function _setRememberedForAuth() {
+                    try {
+                        localStorage.setItem('auth_remembered', 'true');
+                    } catch (e) {
+                        console.warn('localStorage is not available or accessible.', e);
+                    }
+                }
+
+                // Display error message on the login UI
+                function _showAuthError(message) {
+                    const errorDiv = document.getElementById('auth-error-message');
+                    const successDiv = document.getElementById('auth-success-message');
+                    if (errorDiv) {
+                        errorDiv.textContent = message;
+                        errorDiv.style.display = 'block';
+                    }
+                    if (successDiv) successDiv.style.display = 'none'; // Hide success if error occurs
+                }
+
+                // Hide error message on the login UI
+                function _hideAuthError() {
+                    const errorDiv = document.getElementById('auth-error-message');
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                    }
+                }
+
+                /**
+                 * Displays a temporary success message after successful authentication.
+                 * @param {string} passwordType The type of password used ('normal', 'remember', 'temporary').
+                 */
+                function _displayAuthSuccessMessage(passwordType) {
+                    const successDiv = document.getElementById('auth-success-message');
+                    _hideAuthError(); // Hide any previous error messages
+
+                    if (successDiv) {
+                        let message = '✅ 验证成功！';
+                        if (passwordType === 'remember') {
+                            message += ' 此密码将在此浏览器中记住，下次访问无需再次输入。';
+                        } else if (passwordType === 'normal') {
+                            message += ' 此为普通密码，每次访问都需要重新输入。';
+                        } else if (passwordType === 'temporary') {
+                            message += ' 此为临时密码，有效期为7天。';
+                        }
+                        successDiv.innerHTML = message;
+                        successDiv.style.display = 'block';
+                    }
+
+                    // Delay revealing content to allow user to read the message
+                    setTimeout(() => {
+                        _revealProtectedContent();
+                    }, 2000); // Show message for 2 seconds
+                }
+                
+                /**
+                 * Handles the submission of the authentication form.
+                 * @param {Event} event The form submission event.
+                 */
+                async function handleAuthSubmit(event) {
+                    event.preventDefault();
+                    _hideAuthError(); // Clear previous errors
+
+                    const passwordInput = document.getElementById('auth-password');
+                    const userInput = passwordInput ? passwordInput.value.trim() : '';
+
+                    if (!userInput) {
+                        _showAuthError('请输入密码！');
+                        return;
+                    }
+                    
+                    const hashedUserInput = await _hashStringForAuth(userInput);
+                    
+                    const password = embeddedPasswordsData.find(p => p.hash === hashedUserInput);
+                    
+                    if (!password) {
+                        authAttempts++;
+                        _showAuthError('密码错误，请重新输入！');
+                        passwordInput.value = ''; // Clear input
+                        if (authAttempts >= maxAuthAttempts) {
+                            _lockPage('多次密码尝试失败，页面已被锁定。');
+                        }
+                        return;
+                    }
+                    
+                    // Check temporary password expiration
+                    if (_isPasswordExpiredForAuth(password)) {
+                        authAttempts++;
+                        _showAuthError('临时密码已过期，请使用其他密码！');
+                        passwordInput.value = ''; // Clear input
+                        if (authAttempts >= maxAuthAttempts) {
+                            _lockPage('多次密码尝试失败，页面已被锁定。');
+                        }
+                        return;
+                    }
+                    
+                    // Validation successful
+                    if (password.type === 'remember') {
+                        _setRememberedForAuth();
+                    }
+                    _displayAuthSuccessMessage(password.type); // Display success message and then reveal content
+                }
+
+                /**
+                 * Locks the page by replacing body content with an error message.
+                 * @param {string} message The message to display on the locked page.
+                 */
+                function _lockPage(message) {
+                    document.body.innerHTML = '<div style="text-align:center; padding:50px; font-size:2em; color:red; background-color:#f8d7da; border:1px solid #f5c6cb; border-radius:10px; margin:50px;">' + message + '</div>';
+                    document.body.style.overflow = 'hidden'; // Prevent scrolling
+                }
+
+                /**
+                 * Removes the authentication overlay and reveals the protected content.
+                 */
+                function _revealProtectedContent() {
+                    const authOverlay = document.getElementById('auth-overlay');
+                    if (authOverlay) {
+                        authOverlay.remove();
+                    }
+                    const protectedContent = document.getElementById('protected-content');
+                    if (protectedContent) {
+                        protectedContent.style.display = ''; // Revert to default display
+                    }
+                }
+
+                // Main authentication check on page load
+                document.addEventListener('DOMContentLoaded', async () => {
+                    // Wrap existing body content in a protected-content div if it's not already
+                    let protectedContent = document.getElementById('protected-content');
+                    if (!protectedContent) {
+                        const bodyChildren = Array.from(document.body.children);
+                        protectedContent = document.createElement('div');
+                        protectedContent.id = 'protected-content';
+                        protectedContent.style.display = 'none'; // Hide by default
+                        bodyChildren.forEach(child => protectedContent.appendChild(child));
+                        document.body.appendChild(protectedContent);
+                    } else {
+                        protectedContent.style.display = 'none'; // Ensure it's hidden if already there
+                    }
+
+                    // If password was remembered, reveal content immediately
+                    if (_isRememberedForAuth()) {
+                        _revealProtectedContent();
+                        return;
+                    }
+
+                    // Insert the login UI
+                    document.body.insertAdjacentHTML('beforeend', \`${loginUIHtml}\`);
+
+                    // Attach event listener to the form
+                    const authForm = document.getElementById('auth-form');
+                    if (authForm) {
+                        authForm.addEventListener('submit', handleAuthSubmit);
+                    }
+                });
+            <\/script>
+            `;
+        }
+
+        // --- Testing Functions ---
+
+        /**
+         * Simulates a user trying to verify a password using the new UI.
+         * This function will use the `prompt` for input, but the logic
+         * mirrors the embedded script's hashing and validation.
+         */
+        async function simulateUserVerification() {
+            if (passwords.length === 0) {
+                showNotification('请先添加至少一个密码', 'error');
+                return;
+            }
+            
+            const testResult = document.getElementById('testResult');
+            const batchResults = document.getElementById('batchResults');
+            testResult.className = 'test-result show';
+            batchResults.innerHTML = '';
+            
+            document.getElementById('testSummary').textContent = '用户输入验证测试';
+            
+            async function promptPasswordSimulation() {
+                const userInput = prompt('请输入密码进行验证');
+                if (userInput === null) { // User cancelled
+                    testResult.innerHTML = `
+                        <div class="test-result-header">
+                            <h3>测试结果</h3>
+                            <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                        </div>
+                        <div class="test-summary">测试已取消</div>
+                    `;
+                    return;
+                }
+                
+                const hashedUserInput = await hashString(userInput); // Hash the user input
+                
+                const password = passwords.find(p => p.hash === hashedUserInput); // Compare with stored hash
+                
+                if (!password) {
+                    testResult.innerHTML = `
+                        <div class="test-result-header">
+                            <h3>测试结果</h3>
+                            <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                        </div>
+                        <div class="test-summary">❌ 密码错误</div>
+                        <div class="result-details">请重新输入正确的密码</div>
+                    `;
+                    setTimeout(() => promptPasswordSimulation(), 1000); // Re-prompt after a short delay
+                    return;
+                }
+                
+                // Check temporary password expiration
+                if (password.type === 'temporary' && isPasswordExpired(password)) {
+                    testResult.innerHTML = `
+                        <div class="test-result-header">
+                            <h3>测试结果</h3>
+                            <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                        </div>
+                        <div class="test-summary">❌ 临时密码已过期</div>
+                        <div class="result-details">该密码已超过7天有效期</div>
+                    `;
+                    setTimeout(() => promptPasswordSimulation(), 1000); // Re-prompt after a short delay
+                    return;
+                }
+                
+                let message = '<strong>✅ 密码验证成功！</strong><br>';
+                if (password.type === 'remember') {
+                    message += '• 记住密码类型：输入一次长期有效<br>';
+                    message += '• 下次访问无需重新输入密码';
+                } else if (password.type === 'normal') {
+                    message += '• 普通密码类型：每次访问都需要输入密码<br>';
+                    message += '• 每次登录都会要求验证';
+                } else if (password.type === 'temporary') {
+                    const now = new Date().getTime();
+                    const daysLeft = 7 - Math.floor((now - password.createdAt) / (1000 * 60 * 60 * 24));
+                    message += `• 临时密码类型：剩余${daysLeft}天有效期<br>`;
+                    message += '• 过期后需要重新设置密码';
+                }
+                
+                testResult.innerHTML = `
+                    <div class="test-result-header">
+                        <h3>测试结果</h3>
+                        <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                    </div>
+                    <div class="test-summary">${message}</div>
+                `;
+            }
+            
+            promptPasswordSimulation();
+        }
+
+        /**
+         * Tests a single password from the list for its status (valid/expired).
+         * This does not involve user input.
+         * @param {string} plainCode The plain text code of the password to test.
+         */
+        function testSinglePassword(plainCode) {
+            const password = passwords.find(p => p.plainCode === plainCode);
+            if (!password) {
+                showNotification('测试密码未找到。', 'error');
+                return;
+            }
+            
+            const testResult = document.getElementById('testResult');
+            const batchResults = document.getElementById('batchResults');
+            testResult.className = 'test-result show';
+            batchResults.innerHTML = '';
+            
+            let message, summary;
+            if (password.type === 'temporary' && isPasswordExpired(password)) {
+                summary = `❌ 密码 "${password.plainCode}" 已过期`;
+                message = '该临时密码已超过7天有效期';
+            } else {
+                summary = `✅ 密码 "${password.plainCode}" 验证成功！`;
+                if (password.type === 'remember') {
+                    message = '• 记住密码类型：输入一次长期有效';
+                } else if (password.type === 'normal') {
+                    message = '• 普通密码类型：每次访问都需要输入密码';
+                } else if (password.type === 'temporary') {
+                    const now = new Date().getTime();
+                    const daysLeft = 7 - Math.floor((now - password.createdAt) / (1000 * 60 * 60 * 24));
+                    message = `• 临时密码类型：剩余${daysLeft}天有效期`;
+                }
+            }
+            
+            testResult.innerHTML = `
+                <div class="test-result-header">
+                    <h3>测试结果</h3>
+                    <button class="btn btn-small btn-secondary" onclick="hideTestResults()">关闭</button>
+                </div>
+                <div class="test-summary">${summary}</div>
+                <div class="result-details">${message}</div>
+            `;
+        }
+
+        /**
+         * Performs a batch test on all added passwords and displays results.
+         */
+        function batchTestAllPasswords() {
+            if (passwords.length === 0) {
+                showNotification('请先添加至少一个密码', 'error');
+                return;
+            }
+            
+            const testResult = document.getElementById('testResult');
+            const batchResults = document.getElementById('batchResults');
+            testResult.className = 'test-result show';
+            batchResults.innerHTML = '';
+            
+            let validCount = 0;
+            let expiredCount = 0;
+            
+            passwords.forEach(password => {
+                const isExpired = password.type === 'temporary' && isPasswordExpired(password);
+                const typeText = {
+                    'normal': '普通密码',
+                    'remember': '记住密码',
+                    'temporary': '临时密码'
+                }[password.type];
+                
+                const resultItem = document.createElement('div');
+                resultItem.className = `batch-result-item ${isExpired ? 'expired' : 'valid'}`;
+                
+                let details = `类型: ${typeText}`;
+                if (password.type === 'temporary') {
+                    const now = new Date().getTime();
+                    const daysDiff = (now - password.createdAt) / (1000 * 60 * 60 * 24);
+                    if (isExpired) {
+                        details += `, 已过期 ${Math.floor(daysDiff - 7)} 天`;
+                    } else {
+                        const daysLeft = 7 - Math.floor(daysDiff);
+                        details += `, 剩余 ${daysLeft} 天有效期`;
+                    }
+                }
+                
+                resultItem.innerHTML = `
+                    <div class="result-item-header">
+                        <span class="result-password">${password.plainCode}</span>
+                        <span class="result-status ${isExpired ? 'status-expired' : 'status-valid'}">
+                            ${isExpired ? '已过期' : '有效'}
+                        </span>
+                    </div>
+                    <div class="result-details">${details}</div>
+                `;
+                
+                batchResults.appendChild(resultItem);
+                
+                if (isExpired) {
+                    expiredCount++;
+                } else {
+                    validCount++;
+                }
+            });
+            
+            document.getElementById('testSummary').textContent = 
+                `批量测试完成 - 共 ${passwords.length} 个密码 (有效: ${validCount}, 已过期: ${expiredCount})`;
+                
+            showNotification(`批量测试完成，共测试 ${passwords.length} 个密码`, 'success');
+        }
+
+        // Hide test results display
+        function hideTestResults() {
+            document.getElementById('testResult').classList.remove('show');
+        }
+
+        // --- Export Functions ---
+
+        /**
+         * Prepares the final protected HTML content by wrapping the original body
+         * and injecting the authentication script.
+         * @returns {Promise<string>} The complete protected HTML string.
+         * @throws {Error} If file content is missing or body tag not found.
+         */
+        async function getFinalProtectedContent() {
+            if (!fileContent) {
+                showNotification('请先上传HTML文件！', 'error');
+                throw new Error('No file content to protect.');
+            }
+            if (passwords.length === 0) {
+                showNotification('请先添加至少一个密码', 'error');
+                throw new Error('No passwords added.');
+            }
+
+            const authScript = await generateAuthScript();
+
+            // Find the body tag and its content
+            const bodyRegex = /<body([^>]*)>([\s\S]*?)<\/body>/i; // Capture attributes and content
+            const match = fileContent.match(bodyRegex);
+
+            if (!match) {
+                showNotification('HTML文件缺少<body>标签，无法添加保护。', 'error');
+                throw new Error('Body tag not found in HTML file.');
+            }
+
+            const bodyAttributes = match[1]; // Attributes like 'class="my-body"'
+            let originalBodyInnerContent = match[2]; // Content between <body> and </body>
+
+            // Remove any existing auth-overlay or protected-content from previous runs
+            // This regex is made more robust to handle potential variations in whitespace/attributes
+            originalBodyInnerContent = originalBodyInnerContent.replace(/<div id="auth-overlay"[\s\S]*?<\/div>\s*/i, '');
+            originalBodyInnerContent = originalBodyInnerContent.replace(/<div id="protected-content"[\s\S]*?<\/div>\s*/i, '');
+
+
+            // Construct the new body content
+            const newBodyInnerContent = `
+                <div id="protected-content" style="display:none;">
+                    ${originalBodyInnerContent}
+                </div>
+                ${authScript}
+            `;
+
+            // Replace the original body content with the new structure
+            const updatedContent = fileContent.replace(bodyRegex, `<body${bodyAttributes}>${newBodyInnerContent}</body>`);
+            return updatedContent;
+        }
+
+        /**
+         * Copies the generated protected HTML code to the clipboard.
+         */
+        async function copyCode() {
+            try {
+                const updatedContent = await getFinalProtectedContent();
+                
+                navigator.clipboard.writeText(updatedContent).then(function() {
+                    showNotification('代码已复制到剪贴板！', 'success');
+                }).catch(function(err) {
+                    // Fallback for older browsers or non-secure contexts
+                    const textArea = document.createElement('textarea');
+                    textArea.value = updatedContent;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showNotification('代码已复制到剪贴板！', 'success');
+                });
+            } catch (error) {
+                console.error(error);
+                // Notification already shown by getFinalProtectedContent
+            }
+        }
+
+        /**
+         * Exports the generated protected HTML content as a downloadable file.
+         */
+        async function exportFile() {
+            try {
+                const updatedContent = await getFinalProtectedContent();
+                const blob = new Blob([updatedContent], {type: 'text/html'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                const fileNameInput = document.getElementById('exportFileName');
+                const customName = fileNameInput.value.trim();
+                
+                if (customName) {
+                    a.download = `${customName}.html`;
+                } else if (originalFileName) {
+                    // Changed prefix here
+                    a.download = `熊猫验证-${originalFileName}.html`;
+                } else {
+                    a.download = `protected-file.html`; // Generic fallback
+                }
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showNotification('文件导出成功！', 'success');
+            } catch (error) {
+                console.error(error);
+                // Notification already shown by getFinalProtectedContent
+            }
+        }
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthList();
+            updateStats();
+        });
+    </script>
+</body>
+</html>
