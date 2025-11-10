@@ -4,7 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HTML密码保护工具（熊猫装饰+直接输密码）</title>
-    <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;background:#f5f7fa;padding:20px;color:#333;}.container{max-width:800px;margin:0 auto;background:white;border-radius:12px;padding:30px;box-shadow:0 2px 15px rgba(0,0,0,0.1);}h1{color:#667eea;text-align:center;margin-bottom:30px;font-size:24px;}.section{margin-bottom:25px;padding-bottom:20px;border-bottom:1px solid #eee;}h2{color:#444;font-size:18px;margin-bottom:15px;display:flex;align-items:center;gap:8px;}h2::before{content:'';width:4px;height:18px;background:#667eea;border-radius:2px;}.form-group{margin-bottom:15px;}label{display:block;margin-bottom:8px;color:#555;font-weight:600;}input[type="text"],input[type="file"],select{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;}button{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;}button.primary{background:#667eea;color:white;}button.secondary{background:#eee;color:#333;margin-right:10px;}button:disabled{background:#ccc;cursor:not-allowed;}.file-area{border:2px dashed #ddd;border-radius:6px;padding:25px;text-align:center;margin-bottom:15px;cursor:pointer;}#fileInfo,#testResult{margin-top:10px;padding:10px;background:#f9faff;border-radius:6px;font-size:14px;display:none;}.password-list{margin-top:15px;}.password-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #eee;}.password-type{padding:3px 8px;border-radius:4px;font-size:12px;}.type-normal{background:#e8f4f8;color:#4299e1;}.type-remember{background:#f0f8fb;color:#38b2ac;}.type-temporary{background:#fdf2f8;color:#9f7aea;}.status-expired{color:#e53e3e;}.status-normal{color:#48bb78;}.notification{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:6px;color:white;font-size:14px;z-index:9999;transform:translateX(120%);transition:transform 0.3s ease;}.success{background:#48bb78;}.error{background:#e53e3e;}.warning{background:#f59e0b;}.show{transform:translateX(0);}.password-row{display:flex;gap:10px;align-items:center;}select#passwordType{width:150px;}</style>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:Arial,sans-serif;background:#f5f7fa;padding:20px;color:#333;}
+        .container{max-width:800px;margin:0 auto;background:white;border-radius:12px;padding:30px;box-shadow:0 2px 15px rgba(0,0,0,0.1);}
+        h1{color:#667eea;text-align:center;margin-bottom:30px;font-size:24px;}
+        .section{margin-bottom:25px;padding-bottom:20px;border-bottom:1px solid #eee;}
+        h2{color:#444;font-size:18px;margin-bottom:15px;display:flex;align-items:center;gap:8px;}
+        h2::before{content:'';width:4px;height:18px;background:#667eea;border-radius:2px;}
+        .form-group{margin-bottom:15px;}
+        label{display:block;margin-bottom:8px;color:#555;font-weight:600;}
+        input[type="text"],input[type="file"],select{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;}
+        button{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;}
+        button.primary{background:#667eea;color:white;}
+        button.secondary{background:#eee;color:#333;margin-right:10px;}
+        button:disabled{background:#ccc;cursor:not-allowed;}
+        .file-area{border:2px dashed #ddd;border-radius:6px;padding:25px;text-align:center;margin-bottom:15px;cursor:pointer;transition:border-color 0.3s;}
+        .file-area:hover{border-color:#667eea;}
+        #fileInfo,#testResult{margin-top:10px;padding:10px;background:#f9faff;border-radius:6px;font-size:14px;display:none;}
+        .password-list{margin-top:15px;max-height:300px;overflow-y:auto;}
+        .password-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #eee;}
+        .password-type{padding:3px 8px;border-radius:4px;font-size:12px;}
+        .type-normal{background:#e8f4f8;color:#4299e1;}
+        .type-remember{background:#f0f8fb;color:#38b2ac;}
+        .type-temporary{background:#fdf2f8;color:#9f7aea;}
+        .status-expired{color:#e53e3e;}
+        .status-normal{color:#48bb78;}
+        .notification{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:6px;color:white;font-size:14px;z-index:9999;transform:translateX(120%);transition:transform 0.3s ease;}
+        .success{background:#48bb78;}
+        .error{background:#e53e3e;}
+        .warning{background:#f59e0b;}
+        .show{transform:translateX(0);}
+        .password-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+        select#passwordType{width:150px;flex-shrink:0;}
+        @media (max-width: 600px) {
+            .password-row{flex-direction:column;align-items:stretch;}
+            select#passwordType{width:100%;}
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -12,7 +49,7 @@
         <div class="section">
             <h2>Worker域名配置</h2>
             <div class="form-group">
-                <label for="workerUrl">Worker域名（必填）</label>
+                <label for="workerUrl">Worker域名（已固定）</label>
                 <input type="text" id="workerUrl" placeholder="https://xxx.yourname.workers.dev" value="https://xmyz.baoge666.dpdns.org/" readonly>
             </div>
             <button class="secondary" onclick="testWorker()">测试连接</button>
@@ -22,6 +59,7 @@
             <h2>上传HTML文件</h2>
             <div class="file-area" onclick="document.getElementById('fileInput').click()">
                 <div>📂 点击或拖拽文件到此处上传</div>
+                <div style="font-size:12px;color:#666;margin-top:8px;">支持 .html / .htm 格式</div>
                 <input type="file" id="fileInput" accept=".html,.htm" style="display:none;" onchange="handleFileUpload(event)">
             </div>
             <div id="fileInfo"></div>
@@ -31,9 +69,9 @@
             <div class="form-group password-row">
                 <input type="text" id="passwordInput" placeholder="输入密码" style="flex:1;">
                 <select id="passwordType">
-                    <option value="normal">普通密码</option>
-                    <option value="remember">记住密码</option>
-                    <option value="temporary">临时密码（7天）</option>
+                    <option value="normal">普通密码（永久）</option>
+                    <option value="remember">记住密码（自动登录）</option>
+                    <option value="temporary">临时密码（7天过期）</option>
                 </select>
                 <button class="primary" onclick="addPassword()">添加密码</button>
             </div>
@@ -54,7 +92,8 @@
 
     <script>
         // 全局变量
-        let targetFileContent = '', targetFileName = '', passwords = [], fileId = 'f' + Date.now(), workerUrl = 'https://xmyz.baoge666.dpdns.org/';
+        let targetFileContent = '', targetFileName = '', passwords = [], fileId = 'f' + Date.now();
+        const workerUrl = document.getElementById('workerUrl').value;
         const exportBtn = document.getElementById('exportBtn');
 
         // 通知函数
@@ -66,7 +105,7 @@
             setTimeout(() => n.classList.remove('show'), 3000);
         }
 
-        // 测试Worker连接
+        // 测试Worker连接（带跨域参数）
         function testWorker() {
             const tr = document.getElementById('testResult');
             tr.style.display = 'block';
@@ -74,12 +113,14 @@
             fetch(workerUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'test' })
+                body: JSON.stringify({ action: 'test' }),
+                mode: 'cors',
+                credentials: 'omit'
             })
             .then(r => r.json().catch(() => ({ success: false, message: '响应格式错误' })))
             .then(d => {
                 if (d.success) {
-                    tr.textContent = '✅ 连接成功';
+                    tr.textContent = '✅ 连接成功！' + d.message;
                     tr.style.color = '#48bb78';
                     showNotice('连接成功', 'success');
                 } else {
@@ -93,7 +134,7 @@
             });
         }
 
-        // 处理文件上传（上传成功后启用导出按钮）
+        // 处理文件上传
         function handleFileUpload(e) {
             const f = e.target.files[0];
             if (!f) return;
@@ -101,7 +142,7 @@
             document.getElementById('exportName').value = targetFileName + '_加密';
             const fi = document.getElementById('fileInfo');
             fi.style.display = 'block';
-            fi.textContent = '已选文件：' + f.name;
+            fi.textContent = '已选文件：' + f.name + '（大小：' + (f.size / 1024).toFixed(2) + 'KB）';
             const r = new FileReader();
             r.onload = () => {
                 targetFileContent = r.result;
@@ -126,13 +167,13 @@
             return now.toLocaleString('zh-CN');
         }
 
-        // 添加三种类型密码
+        // 添加密码（同步到Worker的HTML_PASSWORD_HASHES）
         async function addPassword() {
             const pwd = document.getElementById('passwordInput').value.trim();
             const type = document.getElementById('passwordType').value;
             if (!pwd) return showNotice('请输入密码');
             
-            // SHA256加密密码
+            // SHA256加密密码（和Worker端一致）
             const encoder = new TextEncoder();
             const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pwd));
             const passwordHash = Array.from(new Uint8Array(hashBuffer))
@@ -144,7 +185,7 @@
                 return showNotice('该密码已存在', 'warning');
             }
             
-            // 记录密码信息（含类型、过期时间）
+            // 记录密码信息
             const passwordItem = {
                 hash: passwordHash,
                 type: type,
@@ -157,17 +198,25 @@
             document.getElementById('passwordInput').value = '';
             showNotice('密码添加成功', 'success');
             
-            // 同步到Worker
-            if (workerUrl) {
-                fetch(workerUrl, {
+            // 同步到Worker（存入HTML_PASSWORD_HASHES）
+            try {
+                await fetch(workerUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         action: 'sync', 
                         fileId, 
-                        passwords: passwords.map(item => ({ hash: item.hash, type: item.type, expireTime: item.expireTime }))
-                    })
-                }).catch(() => showNotice('密码同步Worker失败', 'warning'));
+                        passwords: passwords.map(item => ({ 
+                            hash: item.hash, 
+                            type: item.type, 
+                            expireTime: item.expireTime 
+                        }))
+                    }),
+                    mode: 'cors',
+                    credentials: 'omit'
+                });
+            } catch (err) {
+                showNotice('密码同步Worker失败', 'warning');
             }
         }
 
@@ -180,7 +229,8 @@
             }
             pl.innerHTML = passwords.map((item, i) => {
                 const config = passwordTypeConfig[item.type];
-                const statusText = item.type === 'temporary' && new Date(item.expireTime) < new Date() 
+                const isExpired = item.type === 'temporary' && new Date(item.expireTime) < new Date();
+                const statusText = isExpired 
                     ? '<span class="status-expired">已过期</span>' 
                     : '<span class="status-normal">有效</span>';
                 return `
@@ -195,7 +245,7 @@
             }).join('');
         }
 
-        // 删除密码
+        // 删除密码（同步到Worker）
         function removePassword(i) {
             passwords.splice(i, 1);
             updatePasswordList();
@@ -208,23 +258,28 @@
                     body: JSON.stringify({ 
                         action: 'sync', 
                         fileId, 
-                        passwords: passwords.map(item => ({ hash: item.hash, type: item.type, expireTime: item.expireTime }))
-                    })
+                        passwords: passwords.map(item => ({ 
+                            hash: item.hash, 
+                            type: item.type, 
+                            expireTime: item.expireTime 
+                        }))
+                    }),
+                    mode: 'cors',
+                    credentials: 'omit'
                 }).catch(() => {});
             }
         }
 
-        // 生成16字节的随机Counter（AES-CTR要求）
+        // 生成16字节Counter（AES-CTR要求）
         function generate16ByteCounter() {
-            const counter = new Uint8Array(16); // 固定16字节
-            crypto.getRandomValues(counter); // 生成随机值
-            return btoa(String.fromCharCode(...counter)); // 转为Base64存储/传输
+            const counter = new Uint8Array(16);
+            crypto.getRandomValues(counter);
+            return btoa(String.fromCharCode(...counter));
         }
 
-        // 熊猫纯装饰界面（无任何点击交互）
+        // 熊猫纯装饰界面（无点击交互）
         function createPandaUI() {
             return `
-                <!-- 熊猫纯装饰界面（仅展示，不点击） -->
                 <div id="pandaUI" style="text-align:center;margin-bottom:25px;">
                     <h3>🐼 加密内容保护</h3>
                     <div style="margin:15px auto;width:180px;height:180px;background:#f8f8f8;border-radius:50%;position:relative;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
@@ -234,7 +289,7 @@
                         <!-- 熊猫眼睛 -->
                         <div style="position:absolute;top:60px;left:45px;width:25px;height:25px;background:#000;border-radius:50%;"></div>
                         <div style="position:absolute;top:60px;right:45px;width:25px;height:25px;background:#000;border-radius:50%;"></div>
-                        <!-- 熊猫眼珠（白色点缀） -->
+                        <!-- 熊猫眼珠 -->
                         <div style="position:absolute;top:65px;left:50px;width:8px;height:8px;background:#fff;border-radius:50%;"></div>
                         <div style="position:absolute;top:65px;right:50px;width:8px;height:8px;background:#fff;border-radius:50%;"></div>
                         <!-- 熊猫鼻子 -->
@@ -247,7 +302,7 @@
             `;
         }
 
-        // 生成导出文件的HTML（熊猫装饰+直接显示密码框+解密渲染）
+        // 生成导出的加密HTML文件（熊猫+直接输密码）
         function createEncryptedDOM(workerUrl, fileId, decryptKey, encryptedBase64, counterBase64) {
             const html = document.createElement('html');
             html.setAttribute('lang', 'zh-CN');
@@ -256,6 +311,9 @@
             const head = document.createElement('head');
             const meta = document.createElement('meta');
             meta.setAttribute('charset', 'UTF-8');
+            const viewport = document.createElement('meta');
+            viewport.setAttribute('name', 'viewport');
+            viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
             const title = document.createElement('title');
             title.textContent = '加密内容（需密码解锁）';
             const style = document.createElement('style');
@@ -263,15 +321,18 @@
                 body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f5f7fa;}
                 .box{max-width:400px;margin:50px auto;background:white;padding:40px;border-radius:12px;box-shadow:0 2px 15px rgba(0,0,0,0.1);}
                 h1{color:#667eea;text-align:center;margin-bottom:20px;font-size:22px;}
-                .form-group{margin-bottom:20px;}/* 直接显示，不隐藏 */
+                .form-group{margin-bottom:20px;}
                 label{display:block;margin-bottom:8px;color:#555;font-weight:600;font-size:14px;}
-                input[type="password"]{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;}
+                input[type="password"]{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;outline:none;}
+                input[type="password"]:focus{border-color:#667eea;box-shadow:0 0 0 2px rgba(102,126,234,0.2);}
                 button{width:100%;padding:12px;border:none;border-radius:6px;background:#667eea;color:white;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.3s;}
                 button:hover{background:#5a6edb;}
+                button:disabled{background:#ccc;cursor:not-allowed;}
                 .error{margin-top:15px;padding:10px;background:#fef2f2;color:#dc2626;border-radius:6px;font-size:13px;display:none;text-align:center;}
                 .loading{margin-top:15px;padding:10px;background:#f0f9ff;color:#3b82f6;border-radius:6px;font-size:13px;text-align:center;display:none;}
             `;
             head.appendChild(meta);
+            head.appendChild(viewport);
             head.appendChild(title);
             head.appendChild(style);
             html.appendChild(head);
@@ -289,7 +350,7 @@
             box.appendChild(h1);
             box.appendChild(pandaUI);
 
-            // 密码输入组（直接显示）
+            // 密码输入组
             const formGroup = document.createElement('div');
             formGroup.className = 'form-group';
             const label = document.createElement('label');
@@ -301,12 +362,11 @@
             input.setAttribute('placeholder', '请输入密码...');
             input.setAttribute('autocomplete', 'off');
 
-            // 验证按钮
+            // 解锁按钮
             const button = document.createElement('button');
-            button.setAttribute('onclick', 'checkPassword()');
             button.textContent = '解锁内容';
 
-            // 加载提示和错误提示
+            // 加载和错误提示
             const loading = document.createElement('div');
             loading.className = 'loading';
             loading.setAttribute('id', 'loading');
@@ -315,7 +375,7 @@
             error.className = 'error';
             error.setAttribute('id', 'err');
 
-            // 组装
+            // 组装DOM
             formGroup.appendChild(label);
             formGroup.appendChild(input);
             box.appendChild(formGroup);
@@ -324,7 +384,7 @@
             box.appendChild(error);
             body.appendChild(box);
 
-            // 核心脚本：验证密码+解密+渲染原HTML内容
+            // 核心脚本：验证密码+解密+渲染
             const script = document.createElement('script');
             script.textContent = `
                 const config = {
@@ -335,27 +395,44 @@
                     counterBase64: "${counterBase64}"
                 };
 
-                // 验证密码+解密+渲染
+                // 页面加载完成后绑定事件（确保DOM已渲染）
+                document.addEventListener('DOMContentLoaded', function() {
+                    const btn = document.querySelector('button');
+                    const pwdInput = document.getElementById('pwd');
+
+                    // 绑定按钮点击事件
+                    btn.addEventListener('click', checkPassword);
+
+                    // 绑定回车提交
+                    pwdInput.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            checkPassword();
+                        }
+                    });
+                });
+
+                // 验证密码+解密+渲染原HTML
                 async function checkPassword() {
                     const pwd = document.getElementById('pwd').value.trim();
                     const errEl = document.getElementById('err');
                     const loadingEl = document.getElementById('loading');
                     const btn = document.querySelector('button');
 
+                    // 空密码校验
                     if (!pwd) {
                         errEl.textContent = '请输入密码';
                         errEl.style.display = 'block';
                         return;
                     }
 
-                    // 显示加载，禁用按钮
+                    // 显示加载+禁用按钮
                     errEl.style.display = 'none';
                     loadingEl.style.display = 'block';
                     btn.disabled = true;
                     btn.textContent = '解锁中...';
 
                     try {
-                        // 1. 加密输入密码（和工具端一致的SHA256）
+                        // 1. 加密输入密码（和工具端/Worker端一致的SHA256）
                         const encoder = new TextEncoder();
                         const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pwd));
                         const pwdHash = Array.from(new Uint8Array(hashBuffer))
@@ -370,21 +447,24 @@
                                 action: 'verify',
                                 fileId: config.fileId,
                                 passwordHash: pwdHash
-                            })
+                            }),
+                            mode: 'cors',
+                            credentials: 'omit'
                         });
 
+                        // 3. 处理Worker响应
+                        if (!res.ok) throw new Error('Worker响应失败：' + res.status);
                         const data = await res.json();
-                        if (!data.success || data.decryptKey !== config.decryptKey) {
-                            throw new Error('密码错误');
-                        }
+                        if (!data.success) throw new Error(data.message || '密码错误');
+                        if (data.decryptKey !== config.decryptKey) throw new Error('密钥不匹配');
 
-                        // 3. 解密原HTML内容（修复Counter长度问题）
+                        // 4. 解密原HTML内容
                         const counter = new Uint8Array(
                             atob(config.counterBase64).split('').map(c => c.charCodeAt(0))
                         );
                         const key = await crypto.subtle.importKey(
                             'raw',
-                            encoder.encode(config.decryptKey), // 32字节AES-256密钥
+                            encoder.encode(config.decryptKey),
                             { name: 'AES-CTR' },
                             true,
                             ['decrypt']
@@ -399,13 +479,15 @@
                         );
                         const decryptedContent = new TextDecoder('utf-8').decode(decryptedData);
 
-                        // 4. 渲染原HTML内容（替换当前页面，不显示代码）
+                        // 5. 渲染原HTML（替换当前页面）
                         document.open('text/html', 'replace');
                         document.write(decryptedContent);
                         document.close();
 
                     } catch (err) {
-                        errEl.textContent = err.message === '密码错误' ? '密码错误，请重新输入' : '解锁失败：' + err.message;
+                        // 错误反馈
+                        console.error('解锁失败：', err);
+                        errEl.textContent = '解锁失败：' + err.message;
                         errEl.style.display = 'block';
                     } finally {
                         // 恢复状态
@@ -414,13 +496,6 @@
                         btn.textContent = '解锁内容';
                     }
                 }
-
-                // 支持回车提交
-                document.getElementById('pwd').addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        checkPassword();
-                    }
-                });
             `;
             body.appendChild(script);
             html.appendChild(body);
@@ -428,16 +503,16 @@
             return new XMLSerializer().serializeToString(html);
         }
 
-        // 导出加密文件（核心逻辑不变，确保Counter和密钥正确）
+        // 导出加密文件（核心逻辑）
         async function exportEncryptedHTML() {
             // 前置校验
             if (!targetFileContent) return showNotice('请先上传文件');
             if (!passwords.length) return showNotice('请添加密码');
-            if (!workerUrl) return showNotice('请配置Worker');
+            if (!workerUrl) return showNotice('Worker域名未配置');
 
             const exportName = document.getElementById('exportName').value.trim() || '加密文件';
-            const decryptKey = Math.random().toString(36).substring(2, 34); // 32字符（32字节，AES-256）
-            const counterBase64 = generate16ByteCounter(); // 16字节Counter（Base64）
+            const decryptKey = Math.random().toString(36).substring(2, 34); // 32字符AES-256密钥
+            const counterBase64 = generate16ByteCounter(); // 16字节Counter
             const encoder = new TextEncoder();
             const contentData = encoder.encode(targetFileContent);
             const counter = new Uint8Array(atob(counterBase64).split('').map(c => c.charCodeAt(0)));
@@ -447,7 +522,7 @@
             exportBtn.disabled = true;
 
             try {
-                // 生成AES-256密钥并加密原文件
+                // 1. 生成AES-256密钥并加密原文件
                 const encryptionKey = await crypto.subtle.generateKey(
                     { name: 'AES-CTR', length: 256 },
                     true,
@@ -459,22 +534,13 @@
                     contentData
                 );
 
-                // 转为Base64存储
+                // 2. 加密后内容转为Base64
                 const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encryptedData)));
                 
-                // 生成最终导出的HTML文件
+                // 3. 生成最终导出的HTML
                 const encryptedHTML = createEncryptedDOM(workerUrl, fileId, decryptKey, encryptedBase64, counterBase64);
                 
-                // 下载文件
-                const blob = new Blob([encryptedHTML], { type: 'text/html; charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = exportName + '.html';
-                document.body.appendChild(a);
-                a.click();
-
-                // 同步密钥+Counter到Worker（用于密码验证）
+                // 4. 同步密钥到Worker（存入HTML_DECRYPT_KEYS）
                 await fetch(workerUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -483,10 +549,21 @@
                         fileId, 
                         decryptKey,
                         counterBase64
-                    })
+                    }),
+                    mode: 'cors',
+                    credentials: 'omit'
                 });
 
-                // 清理并提示
+                // 5. 下载文件
+                const blob = new Blob([encryptedHTML], { type: 'text/html; charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = exportName + '.html';
+                document.body.appendChild(a);
+                a.click();
+
+                // 清理+提示
                 setTimeout(() => {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
