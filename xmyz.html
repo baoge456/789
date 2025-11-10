@@ -277,11 +277,10 @@
             return btoa(String.fromCharCode(...counter));
         }
 
-        // 熊猫纯装饰界面（无点击交互）
+        // 熊猫纯装饰界面（精简重复文案）
         function createPandaUI() {
             return `
                 <div id="pandaUI" style="text-align:center;margin-bottom:25px;">
-                    <h3>🐼 加密内容保护</h3>
                     <div style="margin:15px auto;width:180px;height:180px;background:#f8f8f8;border-radius:50%;position:relative;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
                         <!-- 熊猫耳朵 -->
                         <div style="position:absolute;top:15px;left:30px;width:40px;height:40px;background:#000;border-radius:50%;"></div>
@@ -296,13 +295,14 @@
                         <div style="position:absolute;top:95px;left:80px;width:20px;height:15px;background:#000;border-radius:8px;"></div>
                         <!-- 熊猫嘴巴 -->
                         <div style="position:absolute;top:110px;left:75px;width:30px;height:10px;border-bottom:3px solid #000;border-radius:0 0 15px 15px;"></div>
-                        <div style="position:absolute;bottom:25px;left:50%;transform:translateX(-50%);color:#666;font-size:12px;">输入密码解锁内容</div>
+                        <!-- 精简核心提示 -->
+                        <div style="position:absolute;bottom:25px;left:50%;transform:translateX(-50%);color:#666;font-size:12px;">输入密码解锁</div>
                     </div>
                 </div>
             `;
         }
 
-        // 生成导出的加密HTML文件（熊猫+直接输密码）
+        // 生成导出的加密HTML文件（精简文案+修复点击）
         function createEncryptedDOM(workerUrl, fileId, decryptKey, encryptedBase64, counterBase64) {
             const html = document.createElement('html');
             html.setAttribute('lang', 'zh-CN');
@@ -350,12 +350,12 @@
             box.appendChild(h1);
             box.appendChild(pandaUI);
 
-            // 密码输入组
+            // 密码输入组（精简标签）
             const formGroup = document.createElement('div');
             formGroup.className = 'form-group';
             const label = document.createElement('label');
             label.setAttribute('for', 'pwd');
-            label.textContent = '输入设定的密码';
+            label.textContent = '解锁密码'; // 精简重复提示
             const input = document.createElement('input');
             input.setAttribute('type', 'password');
             input.setAttribute('id', 'pwd');
@@ -384,35 +384,42 @@
             box.appendChild(error);
             body.appendChild(box);
 
-            // 核心脚本：验证密码+解密+渲染
+            // 核心脚本：确保点击触发+详细日志
             const script = document.createElement('script');
             script.textContent = `
                 const config = {
-                    workerUrl: "${workerUrl}",
-                    fileId: "${fileId}",
-                    decryptKey: "${decryptKey}",
-                    encryptedBase64: "${encryptedBase64}",
-                    counterBase64: "${counterBase64}"
+                    workerUrl: "${workerUrl.replace(/"/g, '\\"')}",
+                    fileId: "${fileId.replace(/"/g, '\\"')}",
+                    decryptKey: "${decryptKey.replace(/"/g, '\\"')}",
+                    encryptedBase64: "${encryptedBase64.replace(/"/g, '\\"')}",
+                    counterBase64: "${counterBase64.replace(/"/g, '\\"')}"
                 };
 
-                // 页面加载完成后绑定事件（确保DOM已渲染）
-                document.addEventListener('DOMContentLoaded', function() {
+                console.log('加密文件脚本加载成功，配置：', config);
+
+                // 直接绑定事件（确保100%触发）
+                window.onload = function() {
                     const btn = document.querySelector('button');
                     const pwdInput = document.getElementById('pwd');
-
-                    // 绑定按钮点击事件
+                    
+                    // 双重绑定事件
+                    btn.onclick = checkPassword;
                     btn.addEventListener('click', checkPassword);
 
-                    // 绑定回车提交
-                    pwdInput.addEventListener('keydown', function(e) {
+                    // 回车提交
+                    pwdInput.onkeydown = function(e) {
                         if (e.key === 'Enter') {
+                            console.log('回车触发解锁');
                             checkPassword();
                         }
-                    });
-                });
+                    };
 
-                // 验证密码+解密+渲染原HTML
+                    console.log('事件绑定完成，按钮可点击');
+                };
+
+                // 核心解锁函数（全流程日志）
                 async function checkPassword() {
+                    console.log('进入解锁函数，开始执行');
                     const pwd = document.getElementById('pwd').value.trim();
                     const errEl = document.getElementById('err');
                     const loadingEl = document.getElementById('loading');
@@ -420,7 +427,8 @@
 
                     // 空密码校验
                     if (!pwd) {
-                        errEl.textContent = '请输入密码';
+                        console.log('未输入密码，提示用户');
+                        errEl.textContent = '请输入解锁密码';
                         errEl.style.display = 'block';
                         return;
                     }
@@ -432,14 +440,19 @@
                     btn.textContent = '解锁中...';
 
                     try {
-                        // 1. 加密输入密码（和工具端/Worker端一致的SHA256）
+                        console.log('步骤1：加密输入密码');
+                        // 1. SHA256加密密码
                         const encoder = new TextEncoder();
                         const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pwd));
                         const pwdHash = Array.from(new Uint8Array(hashBuffer))
                             .map(b => b.toString(16).padStart(2, '0'))
                             .join('');
+                        console.log('密码加密后：', pwdHash);
 
-                        // 2. 向Worker验证密码
+                        console.log('步骤2：向Worker发送验证请求');
+                        // 2. 发送请求（10秒超时）
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
                         const res = await fetch(config.workerUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -449,16 +462,24 @@
                                 passwordHash: pwdHash
                             }),
                             mode: 'cors',
-                            credentials: 'omit'
+                            credentials: 'omit',
+                            signal: controller.signal
                         });
+                        clearTimeout(timeoutId);
+                        console.log('Worker响应状态：', res.status);
 
-                        // 3. 处理Worker响应
+                        // 3. 解析响应
                         if (!res.ok) throw new Error('Worker响应失败：' + res.status);
                         const data = await res.json();
+                        console.log('Worker返回数据：', data);
+
+                        // 4. 验证响应结果
                         if (!data.success) throw new Error(data.message || '密码错误');
+                        if (!data.decryptKey || !data.counterBase64) throw new Error('Worker返回密钥缺失');
                         if (data.decryptKey !== config.decryptKey) throw new Error('密钥不匹配');
 
-                        // 4. 解密原HTML内容
+                        console.log('步骤3：解密原HTML内容');
+                        // 5. 解密
                         const counter = new Uint8Array(
                             atob(config.counterBase64).split('').map(c => c.charCodeAt(0))
                         );
@@ -478,15 +499,17 @@
                             encryptedData
                         );
                         const decryptedContent = new TextDecoder('utf-8').decode(decryptedData);
+                        console.log('解密成功，内容长度：', decryptedContent.length);
 
-                        // 5. 渲染原HTML（替换当前页面）
+                        console.log('步骤4：渲染原HTML内容');
+                        // 6. 渲染内容
                         document.open('text/html', 'replace');
                         document.write(decryptedContent);
                         document.close();
 
                     } catch (err) {
-                        // 错误反馈
-                        console.error('解锁失败：', err);
+                        // 错误日志+用户提示
+                        console.error('解锁失败：', err.message, err.stack);
                         errEl.textContent = '解锁失败：' + err.message;
                         errEl.style.display = 'block';
                     } finally {
@@ -494,6 +517,7 @@
                         loadingEl.style.display = 'none';
                         btn.disabled = false;
                         btn.textContent = '解锁内容';
+                        console.log('解锁流程结束，恢复按钮状态');
                     }
                 }
             `;
