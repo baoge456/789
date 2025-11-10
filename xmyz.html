@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML密码保护工具（带熊猫验证）</title>
+    <title>HTML密码保护工具（熊猫装饰+直接输密码）</title>
     <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;background:#f5f7fa;padding:20px;color:#333;}.container{max-width:800px;margin:0 auto;background:white;border-radius:12px;padding:30px;box-shadow:0 2px 15px rgba(0,0,0,0.1);}h1{color:#667eea;text-align:center;margin-bottom:30px;font-size:24px;}.section{margin-bottom:25px;padding-bottom:20px;border-bottom:1px solid #eee;}h2{color:#444;font-size:18px;margin-bottom:15px;display:flex;align-items:center;gap:8px;}h2::before{content:'';width:4px;height:18px;background:#667eea;border-radius:2px;}.form-group{margin-bottom:15px;}label{display:block;margin-bottom:8px;color:#555;font-weight:600;}input[type="text"],input[type="file"],select{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;}button{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;}button.primary{background:#667eea;color:white;}button.secondary{background:#eee;color:#333;margin-right:10px;}button:disabled{background:#ccc;cursor:not-allowed;}.file-area{border:2px dashed #ddd;border-radius:6px;padding:25px;text-align:center;margin-bottom:15px;cursor:pointer;}#fileInfo,#testResult{margin-top:10px;padding:10px;background:#f9faff;border-radius:6px;font-size:14px;display:none;}.password-list{margin-top:15px;}.password-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #eee;}.password-type{padding:3px 8px;border-radius:4px;font-size:12px;}.type-normal{background:#e8f4f8;color:#4299e1;}.type-remember{background:#f0f8fb;color:#38b2ac;}.type-temporary{background:#fdf2f8;color:#9f7aea;}.status-expired{color:#e53e3e;}.status-normal{color:#48bb78;}.notification{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:6px;color:white;font-size:14px;z-index:9999;transform:translateX(120%);transition:transform 0.3s ease;}.success{background:#48bb78;}.error{background:#e53e3e;}.warning{background:#f59e0b;}.show{transform:translateX(0);}.password-row{display:flex;gap:10px;align-items:center;}select#passwordType{width:150px;}</style>
 </head>
 <body>
@@ -159,7 +159,7 @@
             
             // 同步到Worker
             if (workerUrl) {
-                fetch(workerUrl + '/sync', {
+                fetch(workerUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -202,7 +202,7 @@
             showNotice('密码已删除', 'success');
             // 同步到Worker
             if (workerUrl) {
-                fetch(workerUrl + '/sync', {
+                fetch(workerUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -221,26 +221,33 @@
             return btoa(String.fromCharCode(...counter)); // 转为Base64存储/传输
         }
 
-        // 熊猫验证配置（简化DOM结构，确保点击有效）
-        function createPandaVerificationHTML() {
+        // 熊猫纯装饰界面（无任何点击交互）
+        function createPandaUI() {
             return `
-                <!-- 熊猫验证模块（简化结构，确保点击生效） -->
-                <div id="pandaVerify" style="text-align:center;margin-bottom:20px;">
-                    <h3>🐼 熊猫验证</h3>
-                    <div style="margin:20px auto;width:200px;height:200px;background:#f5f5f5;border-radius:8px;position:relative;">
-                        <!-- 左眼：添加id，直接绑定事件 -->
-                        <div id="leftEye" style="position:absolute;top:50px;left:50px;width:30px;height:30px;background:#000;border-radius:50%;cursor:pointer;"></div>
-                        <!-- 右眼：添加id，直接绑定事件 -->
-                        <div id="rightEye" style="position:absolute;top:50px;left:120px;width:30px;height:30px;background:#000;border-radius:50%;cursor:pointer;"></div>
-                        <div style="position:absolute;top:110px;left:85px;width:30px;height:20px;background:#ff6b6b;border-radius:10px;"></div>
-                        <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#666;font-size:12px;">点击熊猫的两只眼睛完成验证</div>
+                <!-- 熊猫纯装饰界面（仅展示，不点击） -->
+                <div id="pandaUI" style="text-align:center;margin-bottom:25px;">
+                    <h3>🐼 加密内容保护</h3>
+                    <div style="margin:15px auto;width:180px;height:180px;background:#f8f8f8;border-radius:50%;position:relative;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                        <!-- 熊猫耳朵 -->
+                        <div style="position:absolute;top:15px;left:30px;width:40px;height:40px;background:#000;border-radius:50%;"></div>
+                        <div style="position:absolute;top:15px;right:30px;width:40px;height:40px;background:#000;border-radius:50%;"></div>
+                        <!-- 熊猫眼睛 -->
+                        <div style="position:absolute;top:60px;left:45px;width:25px;height:25px;background:#000;border-radius:50%;"></div>
+                        <div style="position:absolute;top:60px;right:45px;width:25px;height:25px;background:#000;border-radius:50%;"></div>
+                        <!-- 熊猫眼珠（白色点缀） -->
+                        <div style="position:absolute;top:65px;left:50px;width:8px;height:8px;background:#fff;border-radius:50%;"></div>
+                        <div style="position:absolute;top:65px;right:50px;width:8px;height:8px;background:#fff;border-radius:50%;"></div>
+                        <!-- 熊猫鼻子 -->
+                        <div style="position:absolute;top:95px;left:80px;width:20px;height:15px;background:#000;border-radius:8px;"></div>
+                        <!-- 熊猫嘴巴 -->
+                        <div style="position:absolute;top:110px;left:75px;width:30px;height:10px;border-bottom:3px solid #000;border-radius:0 0 15px 15px;"></div>
+                        <div style="position:absolute;bottom:25px;left:50%;transform:translateX(-50%);color:#666;font-size:12px;">输入密码解锁内容</div>
                     </div>
-                    <div id="verifyTip" style="color:#e53e3e;margin-top:10px;display:none;">请先完成熊猫验证！</div>
                 </div>
             `;
         }
 
-        // DOM动态生成导出HTML（修复熊猫验证点击事件）
+        // 生成导出文件的HTML（熊猫装饰+直接显示密码框+解密渲染）
         function createEncryptedDOM(workerUrl, fileId, decryptKey, encryptedBase64, counterBase64) {
             const html = document.createElement('html');
             html.setAttribute('lang', 'zh-CN');
@@ -250,19 +257,19 @@
             const meta = document.createElement('meta');
             meta.setAttribute('charset', 'UTF-8');
             const title = document.createElement('title');
-            title.textContent = '加密内容（需验证）';
+            title.textContent = '加密内容（需密码解锁）';
             const style = document.createElement('style');
             style.textContent = `
                 body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f5f7fa;}
-                .box{max-width:400px;margin:0 auto;background:white;padding:40px;border-radius:12px;box-shadow:0 2px 15px rgba(0,0,0,0.1);}
-                h1{color:#667eea;text-align:center;margin-bottom:30px;}
-                .form-group{margin-bottom:20px;display:none;}/* 初始隐藏密码框 */
-                label{display:block;margin-bottom:8px;color:#555;}
-                input{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;}
-                button{width:100%;padding:12px;border:none;border-radius:6px;background:#667eea;color:white;font-size:14px;cursor:pointer;display:none;}/* 初始隐藏按钮 */
-                .error{margin-top:15px;padding:10px;background:#fef2f2;color:#dc2626;border-radius:6px;font-size:13px;display:none;}
-                /* 眼睛点击后的样式（明显反馈） */
-                #leftEye.active, #rightEye.active{background:#ffd700;box-shadow:0 0 15px #ffd700;transform:scale(1.2);transition:all 0.3s ease;}
+                .box{max-width:400px;margin:50px auto;background:white;padding:40px;border-radius:12px;box-shadow:0 2px 15px rgba(0,0,0,0.1);}
+                h1{color:#667eea;text-align:center;margin-bottom:20px;font-size:22px;}
+                .form-group{margin-bottom:20px;}/* 直接显示，不隐藏 */
+                label{display:block;margin-bottom:8px;color:#555;font-weight:600;font-size:14px;}
+                input[type="password"]{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;}
+                button{width:100%;padding:12px;border:none;border-radius:6px;background:#667eea;color:white;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.3s;}
+                button:hover{background:#5a6edb;}
+                .error{margin-top:15px;padding:10px;background:#fef2f2;color:#dc2626;border-radius:6px;font-size:13px;display:none;text-align:center;}
+                .loading{margin-top:15px;padding:10px;background:#f0f9ff;color:#3b82f6;border-radius:6px;font-size:13px;text-align:center;display:none;}
             `;
             head.appendChild(meta);
             head.appendChild(title);
@@ -274,29 +281,36 @@
             const box = document.createElement('div');
             box.className = 'box';
             const h1 = document.createElement('h1');
-            h1.textContent = '🔐 加密内容访问';
+            h1.textContent = '🔐 请输入解锁密码';
 
-            // 熊猫验证模块
-            const pandaVerify = document.createElement('div');
-            pandaVerify.innerHTML = createPandaVerificationHTML();
+            // 熊猫装饰界面
+            const pandaUI = document.createElement('div');
+            pandaUI.innerHTML = createPandaUI();
             box.appendChild(h1);
-            box.appendChild(pandaVerify);
+            box.appendChild(pandaUI);
 
-            // 密码输入组（初始隐藏）
+            // 密码输入组（直接显示）
             const formGroup = document.createElement('div');
             formGroup.className = 'form-group';
             const label = document.createElement('label');
             label.setAttribute('for', 'pwd');
-            label.textContent = '输入访问密码';
+            label.textContent = '输入设定的密码';
             const input = document.createElement('input');
             input.setAttribute('type', 'password');
             input.setAttribute('id', 'pwd');
-            input.setAttribute('placeholder', '输入添加的密码');
-            // 验证按钮（初始隐藏）
+            input.setAttribute('placeholder', '请输入密码...');
+            input.setAttribute('autocomplete', 'off');
+
+            // 验证按钮
             const button = document.createElement('button');
             button.setAttribute('onclick', 'checkPassword()');
-            button.textContent = '验证访问';
-            // 错误提示
+            button.textContent = '解锁内容';
+
+            // 加载提示和错误提示
+            const loading = document.createElement('div');
+            loading.className = 'loading';
+            loading.setAttribute('id', 'loading');
+            loading.textContent = '解锁中...';
             const error = document.createElement('div');
             error.className = 'error';
             error.setAttribute('id', 'err');
@@ -306,10 +320,11 @@
             formGroup.appendChild(input);
             box.appendChild(formGroup);
             box.appendChild(button);
+            box.appendChild(loading);
             box.appendChild(error);
             body.appendChild(box);
 
-            // 脚本（修复熊猫验证点击事件：直接用id选择，确保绑定成功）
+            // 核心脚本：验证密码+解密+渲染原HTML内容
             const script = document.createElement('script');
             script.textContent = `
                 const config = {
@@ -319,70 +334,36 @@
                     encryptedBase64: "${encryptedBase64}",
                     counterBase64: "${counterBase64}"
                 };
-                let verifyPassed = false;
-                // 直接通过id获取眼睛元素（避免选择器失效）
-                const leftEye = document.getElementById('leftEye');
-                const rightEye = document.getElementById('rightEye');
-                const verifyTip = document.getElementById('verifyTip');
-                const formGroup = document.querySelector('.form-group');
-                const submitBtn = document.querySelector('button');
-                let leftClicked = false, rightClicked = false;
 
-                // 左眼点击事件（直接绑定，确保生效）
-                leftEye.onclick = function() {
-                    if (!leftClicked) {
-                        this.classList.add('active');
-                        leftClicked = true;
-                        checkVerifyStatus(); // 检查是否两只都点击
-                    }
-                };
-
-                // 右眼点击事件（直接绑定，确保生效）
-                rightEye.onclick = function() {
-                    if (!rightClicked) {
-                        this.classList.add('active');
-                        rightClicked = true;
-                        checkVerifyStatus(); // 检查是否两只都点击
-                    }
-                };
-
-                // 检查验证状态
-                function checkVerifyStatus() {
-                    if (leftClicked && rightClicked) {
-                        verifyPassed = true;
-                        verifyTip.textContent = '✅ 验证通过！';
-                        verifyTip.style.color = '#48bb78';
-                        verifyTip.style.display = 'block';
-                        // 显示密码框和按钮
-                        formGroup.style.display = 'block';
-                        submitBtn.style.display = 'block';
-                    }
-                }
-
-                // 验证密码+解密
+                // 验证密码+解密+渲染
                 async function checkPassword() {
-                    if (!verifyPassed) {
-                        verifyTip.style.display = 'block';
-                        return;
-                    }
                     const pwd = document.getElementById('pwd').value.trim();
                     const errEl = document.getElementById('err');
+                    const loadingEl = document.getElementById('loading');
+                    const btn = document.querySelector('button');
+
                     if (!pwd) {
                         errEl.textContent = '请输入密码';
                         errEl.style.display = 'block';
                         return;
                     }
-                    errEl.style.display = 'none';
 
-                    // 加密输入密码
-                    const encoder = new TextEncoder();
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pwd));
-                    const pwdHash = Array.from(new Uint8Array(hashBuffer))
-                        .map(b => b.toString(16).padStart(2, '0'))
-                        .join('');
+                    // 显示加载，禁用按钮
+                    errEl.style.display = 'none';
+                    loadingEl.style.display = 'block';
+                    btn.disabled = true;
+                    btn.textContent = '解锁中...';
 
                     try {
-                        const res = await fetch(config.workerUrl + '/verify', {
+                        // 1. 加密输入密码（和工具端一致的SHA256）
+                        const encoder = new TextEncoder();
+                        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pwd));
+                        const pwdHash = Array.from(new Uint8Array(hashBuffer))
+                            .map(b => b.toString(16).padStart(2, '0'))
+                            .join('');
+
+                        // 2. 向Worker验证密码
+                        const res = await fetch(config.workerUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -391,44 +372,55 @@
                                 passwordHash: pwdHash
                             })
                         });
-                        const data = await res.json();
 
-                        if (data.success && data.decryptKey === config.decryptKey) {
-                            // 解码Counter（16字节）
-                            const counter = new Uint8Array(
-                                atob(config.counterBase64).split('').map(c => c.charCodeAt(0))
-                            );
-                            // 导入AES-256密钥
-                            const key = await crypto.subtle.importKey(
-                                'raw',
-                                encoder.encode(config.decryptKey),
-                                { name: 'AES-CTR' },
-                                true,
-                                ['decrypt']
-                            );
-                            // 解码加密内容
-                            const encryptedData = new Uint8Array(
-                                atob(config.encryptedBase64).split('').map(c => c.charCodeAt(0))
-                            );
-                            // 解密
-                            const decryptedData = await crypto.subtle.decrypt(
-                                { name: 'AES-CTR', counter: counter, length: 128 },
-                                key,
-                                encryptedData
-                            );
-                            const decryptedContent = new TextDecoder().decode(decryptedData);
-                            document.open();
-                            document.write(decryptedContent);
-                            document.close();
-                        } else {
-                            errEl.textContent = '密码错误';
-                            errEl.style.display = 'block';
+                        const data = await res.json();
+                        if (!data.success || data.decryptKey !== config.decryptKey) {
+                            throw new Error('密码错误');
                         }
+
+                        // 3. 解密原HTML内容（修复Counter长度问题）
+                        const counter = new Uint8Array(
+                            atob(config.counterBase64).split('').map(c => c.charCodeAt(0))
+                        );
+                        const key = await crypto.subtle.importKey(
+                            'raw',
+                            encoder.encode(config.decryptKey), // 32字节AES-256密钥
+                            { name: 'AES-CTR' },
+                            true,
+                            ['decrypt']
+                        );
+                        const encryptedData = new Uint8Array(
+                            atob(config.encryptedBase64).split('').map(c => c.charCodeAt(0))
+                        );
+                        const decryptedData = await crypto.subtle.decrypt(
+                            { name: 'AES-CTR', counter: counter, length: 128 },
+                            key,
+                            encryptedData
+                        );
+                        const decryptedContent = new TextDecoder('utf-8').decode(decryptedData);
+
+                        // 4. 渲染原HTML内容（替换当前页面，不显示代码）
+                        document.open('text/html', 'replace');
+                        document.write(decryptedContent);
+                        document.close();
+
                     } catch (err) {
-                        errEl.textContent = '网络错误或解密失败：' + err.message;
+                        errEl.textContent = err.message === '密码错误' ? '密码错误，请重新输入' : '解锁失败：' + err.message;
                         errEl.style.display = 'block';
+                    } finally {
+                        // 恢复状态
+                        loadingEl.style.display = 'none';
+                        btn.disabled = false;
+                        btn.textContent = '解锁内容';
                     }
                 }
+
+                // 支持回车提交
+                document.getElementById('pwd').addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        checkPassword();
+                    }
+                });
             `;
             body.appendChild(script);
             html.appendChild(body);
@@ -436,7 +428,7 @@
             return new XMLSerializer().serializeToString(html);
         }
 
-        // 导出逻辑
+        // 导出加密文件（核心逻辑不变，确保Counter和密钥正确）
         async function exportEncryptedHTML() {
             // 前置校验
             if (!targetFileContent) return showNotice('请先上传文件');
@@ -445,7 +437,7 @@
 
             const exportName = document.getElementById('exportName').value.trim() || '加密文件';
             const decryptKey = Math.random().toString(36).substring(2, 34); // 32字符（32字节，AES-256）
-            const counterBase64 = generate16ByteCounter(); // 16字节Counter
+            const counterBase64 = generate16ByteCounter(); // 16字节Counter（Base64）
             const encoder = new TextEncoder();
             const contentData = encoder.encode(targetFileContent);
             const counter = new Uint8Array(atob(counterBase64).split('').map(c => c.charCodeAt(0)));
@@ -455,23 +447,22 @@
             exportBtn.disabled = true;
 
             try {
-                // 生成AES-256密钥
+                // 生成AES-256密钥并加密原文件
                 const encryptionKey = await crypto.subtle.generateKey(
                     { name: 'AES-CTR', length: 256 },
                     true,
                     ['encrypt', 'decrypt']
                 );
-                // 加密
                 const encryptedData = await crypto.subtle.encrypt(
                     { name: 'AES-CTR', counter: counter, length: 128 },
                     encryptionKey,
                     contentData
                 );
 
-                // 转为Base64
+                // 转为Base64存储
                 const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encryptedData)));
                 
-                // 生成HTML
+                // 生成最终导出的HTML文件
                 const encryptedHTML = createEncryptedDOM(workerUrl, fileId, decryptKey, encryptedBase64, counterBase64);
                 
                 // 下载文件
@@ -483,8 +474,8 @@
                 document.body.appendChild(a);
                 a.click();
 
-                // 同步密钥+Counter到Worker
-                await fetch(workerUrl + '/sync-key', {
+                // 同步密钥+Counter到Worker（用于密码验证）
+                await fetch(workerUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -495,6 +486,7 @@
                     })
                 });
 
+                // 清理并提示
                 setTimeout(() => {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
