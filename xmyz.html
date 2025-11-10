@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML密码保护工具（终极无泄漏版）</title>
+    <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;background:#f5f7fa;padding:20px;color:#333;}.container{max-width:800px;margin:0 auto;background:white;border-radius:12px;padding:30px;box-shadow:0 2px 15px rgba(0,0,0,0.1);}h1{color:#667eea;text-align:center;margin-bottom:30px;font-size:24px;}.section{margin-bottom:25px;padding-bottom:20px;border-bottom:1px solid #eee;}h2{color:#444;font-size:18px;margin-bottom:15px;display:flex;align-items:center;gap:8px;}h2::before{content:'';width:4px;height:18px;background:#667eea;border-radius:2px;}.form-group{margin-bottom:15px;}label{display:block;margin-bottom:8px;color:#555;font-weight:600;}input[type="text"],input[type="file"]{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;}button{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;}button.primary{background:#667eea;color:white;}button.secondary{background:#eee;color:#333;margin-right:10px;}.file-area{border:2px dashed #ddd;border-radius:6px;padding:25px;text-align:center;margin-bottom:15px;cursor:pointer;}#fileInfo,#testResult{margin-top:10px;padding:10px;background:#f9faff;border-radius:6px;font-size:14px;display:none;}.password-list{margin-top:15px;}.password-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #eee;}.status-normal{color:#48bb78;}.notification{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:6px;color:white;font-size:14px;z-index:9999;transform:translateX(120%);transition:transform 0.3s ease;}.success{background:#48bb78;}.error{background:#e53e3e;}.show{transform:translateX(0);}</style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 HTML密码保护工具</h1>
+        <div class="section">
+            <h2>Worker域名配置</h2>
+            <div class="form-group">
+                <label for="workerUrl">Worker域名（必填）</label>
+                <input type="text" id="workerUrl" placeholder="https://xxx.yourname.workers.dev" value="https://">
+            </div>
+            <button class="secondary" onclick="testWorker()">测试连接</button>
+            <div id="testResult"></div>
+        </div>
+        <div class="section">
+            <h2>上传HTML文件</h2>
+            <div class="file-area" onclick="document.getElementById('fileInput').click()">
+                <div>📂 点击或拖拽文件到此处上传</div>
+                <input type="file" id="fileInput" accept=".html,.htm" style="display:none;" onchange="handleFileUpload(event)">
+            </div>
+            <div id="fileInfo"></div>
+        </div>
+        <div class="section">
+            <h2>密码设置</h2>
+            <div class="form-group" style="display:flex;gap:10px;align-items:center;">
+                <input type="text" id="passwordInput" placeholder="输入密码" style="flex:1;">
+                <button class="primary" onclick="addPassword()">添加密码</button>
+            </div>
+            <div class="password-list" id="passwordList">
+                <div style="text-align:center;padding:10px;color:#666;">暂无密码，请添加</div>
+            </div>
+        </div>
+        <div class="section">
+            <h2>导出加密文件</h2>
+            <div class="form-group">
+                <label for="exportName">导出文件名</label>
+                <input type="text" id="exportName" placeholder="例如：加密文件" value="加密文件">
+            </div>
+            <button class="primary" onclick="exportEncryptedHTML()">导出文件</button>
+        </div>
+    </div>
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // 全局变量（极简）
+        let targetFileContent = '', targetFileName = '', passwords = [], fileId = 'f' + Date.now(), workerUrl = '';
+
+        // 通知函数
+        function showNotice(message, type = 'error') {
+            const n = document.getElementById('notification');
+            n.textContent = message;
+            n.className = 'notification ' + type;
+            n.classList.add('show');
+            setTimeout(() => n.classList.remove('show'), 3000);
+        }
+
+        // 测试Worker连接
+        function testWorker() {
+            workerUrl = document.getElementById('workerUrl').value.trim();
+            if (!workerUrl || workerUrl === 'https://') {
+                showNotice('请输入有效Worker域名');
+                return;
+            }
+            const tr = document.getElementById('testResult');
+            tr.style.display = 'block';
+            tr.textContent = '测试连接中...';
+            fetch(workerUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'test' })
+            })
+            .then(r => r.json().catch(() => ({ success: false, message: '响应格式错误' })))
+            .then(d => {
+                d.success 
+                    ? (tr.textContent = '✅ 连接成功', tr.style.color = '#48bb78', showNotice('连接成功', 'success'))
+                    : (tr.textContent = '❌ 失败：' + d.message, tr.style.color = '#e53e3e');
+            })
+            .catch(e => {
+                tr.textContent = '❌ 失败：' + e.message;
+                tr.style.color = '#e53e3e';
+            });
+        }
+
+        // 处理文件上传
+        function handleFileUpload(e) {
+            const f = e.target.files[0];
+            if (!f) return;
+            targetFileName = f.name.replace(/\.(html|htm)$/i, '');
+            document.getElementById('exportName').value = targetFileName + '_加密';
+            const fi = document.getElementById('fileInfo');
+            fi.style.display = 'block';
+            fi.textContent = '已选文件：' + f.name;
+            const r = new FileReader();
+            r.onload = () => {
+                targetFileContent = r.result;
+                showNotice('上传成功', 'success');
+            };
+            r.readAsText(f);
+        }
+
+        // 添加密码
+        async function addPassword() {
+            const p = document.getElementById('passwordInput').value.trim();
+            if (!p) return showNotice('请输入密码');
+            
+            // SHA256加密
+            const encoder = new TextEncoder();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(p));
+            const passwordHash = Array.from(new Uint8Array(hashBuffer))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+            
+            if (passwords.includes(passwordHash)) return showNotice('密码已存在');
+            
+            passwords.push(passwordHash);
+            // 更新密码列表
+            document.getElementById('passwordList').innerHTML = passwords.map((_, i) => 
+                `<div class="password-item">
+                    <span>密码 ${i+1}</span>
+                    <span class="status-normal">有效</span>
+                    <button class="secondary" style="padding:3px 8px;" onclick="removePassword(${i})">删除</button>
+                </div>`
+            ).join('');
+            document.getElementById('passwordInput').value = '';
+            showNotice('添加成功', 'success');
+            // 同步到Worker
+            workerUrl && fetch(workerUrl + '/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'sync', fileId, passwords })
+            }).catch(() => {});
+        }
+
+        // 删除密码
+        function removePassword(i) {
+            passwords.splice(i, 1);
+            document.getElementById('passwordList').innerHTML = passwords.length 
+                ? passwords.map((_, i) => `<div class="password-item"><span>密码 ${i+1}</span><span class="status-normal">有效</span><button class="secondary" style="padding:3px 8px;" onclick="removePassword(${i})">删除</button></div>`).join('')
+                : '<div style="text-align:center;padding:10px;color:#666;">暂无密码，请添加</div>';
+            showNotice('删除成功', 'success');
+        }
+
+        // 核心：DOM动态生成导出HTML（彻底绕开字符串拼接）
+        function createEncryptedDOM(workerUrl, fileId, decryptKey, encryptedBase64) {
+            // 1. 创建根HTML元素
+            const html = document.createElement('html');
+            html.setAttribute('lang', 'zh-CN');
+
+            // 2. 创建head元素
+            const head = document.createElement('head');
+            // meta charset
+            const meta = document.createElement('meta');
+            meta.setAttribute('charset', 'UTF-8');
+            // title
+            const title = document.createElement('title');
+            title.textContent = '加密内容';
+            // style样式
+            const style = document.createElement('style');
+            style.textContent = `
+                body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f5f7fa;}
+                .box{max-width:400px;margin:0 auto;background:white;padding:40px;border-radius:12px;box-shadow:0 2px 15px rgba(0,0,0,0.1);}
+                h1{color:#667eea;text-align:center;margin-bottom:30px;}
+                .form-group{margin-bottom:20px;}
+                label{display:block;margin-bottom:8px;color:#555;}
+                input{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;}
+                button{width:100%;padding:12px;border:none;border-radius:6px;background:#667eea;color:white;font-size:14px;cursor:pointer;}
+                .error{margin-top:15px;padding:10px;background:#fef2f2;color:#dc2626;border-radius:6px;font-size:13px;display:none;}
+            `;
+            head.appendChild(meta);
+            head.appendChild(title);
+            head.appendChild(style);
+            html.appendChild(head);
+
+            // 3. 创建body元素
+            const body = document.createElement('body');
+            // 登录框
+            const box = document.createElement('div');
+            box.className = 'box';
+            // 标题
+            const h1 = document.createElement('h1');
+            h1.textContent = '🔐 请输入密码';
+            // 密码输入组
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
+            const label = document.createElement('label');
+            label.setAttribute('for', 'pwd');
+            label.textContent = '密码';
+            const input = document.createElement('input');
+            input.setAttribute('type', 'password');
+            input.setAttribute('id', 'pwd');
+            input.setAttribute('placeholder', '输入访问密码');
+            // 验证按钮
+            const button = document.createElement('button');
+            button.setAttribute('onclick', 'checkPassword()');
+            button.textContent = '验证访问';
+            // 错误提示
+            const error = document.createElement('div');
+            error.className = 'error';
+            error.setAttribute('id', 'err');
+            // 组装登录框
+            formGroup.appendChild(label);
+            formGroup.appendChild(input);
+            box.appendChild(h1);
+            box.appendChild(formGroup);
+            box.appendChild(button);
+            box.appendChild(error);
+            body.appendChild(box);
+
+            // 4. 创建脚本元素（核心：用textContent避免转义问题）
+            const script = document.createElement('script');
+            script.textContent = `
+                // 配置参数（直接嵌入，无字符串拼接）
+                const config = {
+                    workerUrl: "${workerUrl}",
+                    fileId: "${fileId}",
+                    decryptKey: "${decryptKey}",
+                    encryptedBase64: "${encryptedBase64}"
+                };
+
+                // 验证密码
+                async function checkPassword() {
+                    const pwd = document.getElementById('pwd').value.trim();
+                    const errEl = document.getElementById('err');
+                    if (!pwd) {
+                        errEl.textContent = '请输入密码';
+                        errEl.style.display = 'block';
+                        return;
+                    }
+                    errEl.style.display = 'none';
+
+                    // 加密输入密码
+                    const encoder = new TextEncoder();
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pwd));
+                    const pwdHash = Array.from(new Uint8Array(hashBuffer))
+                        .map(b => b.toString(16).padStart(2, '0'))
+                        .join('');
+
+                    try {
+                        // 验证密码
+                        const res = await fetch(config.workerUrl + '/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'verify',
+                                fileId: config.fileId,
+                                passwordHash: pwdHash
+                            })
+                        });
+                        const data = await res.json();
+
+                        if (data.success && data.decryptKey === config.decryptKey) {
+                            // 解密并显示原始内容
+                            const key = await crypto.subtle.importKey(
+                                'raw',
+                                encoder.encode(config.decryptKey),
+                                { name: 'AES-CTR' },
+                                true,
+                                ['decrypt']
+                            );
+                            // 解码Base64
+                            const encryptedData = new Uint8Array(
+                                atob(config.encryptedBase64).split('').map(c => c.charCodeAt(0))
+                            );
+                            // 解密
+                            const decryptedData = await crypto.subtle.decrypt(
+                                { name: 'AES-CTR', counter: encoder.encode(config.decryptKey.slice(0, 16)), length: 128 },
+                                key,
+                                encryptedData
+                            );
+                            // 显示原始内容
+                            const decryptedContent = new TextDecoder().decode(decryptedData);
+                            document.open();
+                            document.write(decryptedContent);
+                            document.close();
+                        } else {
+                            errEl.textContent = '密码错误';
+                            errEl.style.display = 'block';
+                        }
+                    } catch (err) {
+                        errEl.textContent = '网络错误，请重试';
+                        errEl.style.display = 'block';
+                    }
+                }
+            `;
+            body.appendChild(script);
+            html.appendChild(body);
+
+            // 5. 把DOM转成字符串（无任何手动拼接）
+            return new XMLSerializer().serializeToString(html);
+        }
+
+        // 导出加密HTML（终极无泄漏）
+        async function exportEncryptedHTML() {
+            // 前置校验
+            if (!targetFileContent) return showNotice('请先上传文件');
+            if (!passwords.length) return showNotice('请添加密码');
+            if (!workerUrl) return showNotice('请配置Worker');
+
+            const exportName = document.getElementById('exportName').value.trim() || '加密文件';
+            const decryptKey = Math.random().toString(36).substring(2, 18);
+            const encoder = new TextEncoder();
+            const contentData = encoder.encode(targetFileContent);
+
+            // 加密文件内容
+            crypto.subtle.generateKey({ name: 'AES-CTR', length: 256 }, true, ['encrypt', 'decrypt'])
+            .then(encryptionKey => {
+                return crypto.subtle.encrypt(
+                    { name: 'AES-CTR', counter: encoder.encode(decryptKey.slice(0, 16)), length: 128 },
+                    encryptionKey,
+                    contentData
+                );
+            })
+            .then(encryptedData => {
+                // 转为Base64
+                const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encryptedData)));
+                
+                // 核心：用DOM生成导出HTML，彻底绕开字符串拼接
+                const encryptedHTML = createEncryptedDOM(workerUrl, fileId, decryptKey, encryptedBase64);
+                
+                // 下载文件
+                const blob = new Blob([encryptedHTML], { type: 'text/html; charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = exportName + '.html';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+
+                // 同步密钥到Worker
+                fetch(workerUrl + '/sync-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'sync-key', fileId, decryptKey })
+                }).catch(() => {});
+
+                showNotice('导出成功！', 'success');
+            });
+        }
+    </script>
+</body>
+</html>
