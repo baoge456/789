@@ -221,15 +221,17 @@
             return btoa(String.fromCharCode(...counter)); // 转为Base64存储/传输
         }
 
-        // 熊猫验证配置（导出页面用）
+        // 熊猫验证配置（简化DOM结构，确保点击有效）
         function createPandaVerificationHTML() {
             return `
-                <!-- 熊猫验证模块 -->
+                <!-- 熊猫验证模块（简化结构，确保点击生效） -->
                 <div id="pandaVerify" style="text-align:center;margin-bottom:20px;">
                     <h3>🐼 熊猫验证</h3>
-                    <div style="margin:20px auto;width:200px;height:200px;background:#f5f5f5;border-radius:8px;position:relative;cursor:pointer;" id="pandaArea">
-                        <div style="position:absolute;top:50px;left:50px;width:30px;height:30px;background:#000;border-radius:50%;" class="panda-eye left"></div>
-                        <div style="position:absolute;top:50px;left:120px;width:30px;height:30px;background:#000;border-radius:50%;" class="panda-eye right"></div>
+                    <div style="margin:20px auto;width:200px;height:200px;background:#f5f5f5;border-radius:8px;position:relative;">
+                        <!-- 左眼：添加id，直接绑定事件 -->
+                        <div id="leftEye" style="position:absolute;top:50px;left:50px;width:30px;height:30px;background:#000;border-radius:50%;cursor:pointer;"></div>
+                        <!-- 右眼：添加id，直接绑定事件 -->
+                        <div id="rightEye" style="position:absolute;top:50px;left:120px;width:30px;height:30px;background:#000;border-radius:50%;cursor:pointer;"></div>
                         <div style="position:absolute;top:110px;left:85px;width:30px;height:20px;background:#ff6b6b;border-radius:10px;"></div>
                         <div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#666;font-size:12px;">点击熊猫的两只眼睛完成验证</div>
                     </div>
@@ -238,7 +240,7 @@
             `;
         }
 
-        // DOM动态生成导出HTML（含熊猫验证）
+        // DOM动态生成导出HTML（修复熊猫验证点击事件）
         function createEncryptedDOM(workerUrl, fileId, decryptKey, encryptedBase64, counterBase64) {
             const html = document.createElement('html');
             html.setAttribute('lang', 'zh-CN');
@@ -259,7 +261,8 @@
                 input{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;}
                 button{width:100%;padding:12px;border:none;border-radius:6px;background:#667eea;color:white;font-size:14px;cursor:pointer;display:none;}/* 初始隐藏按钮 */
                 .error{margin-top:15px;padding:10px;background:#fef2f2;color:#dc2626;border-radius:6px;font-size:13px;display:none;}
-                .panda-eye.active{background:#ffd700;box-shadow:0 0 10px #ffd700;}
+                /* 眼睛点击后的样式（明显反馈） */
+                #leftEye.active, #rightEye.active{background:#ffd700;box-shadow:0 0 15px #ffd700;transform:scale(1.2);transition:all 0.3s ease;}
             `;
             head.appendChild(meta);
             head.appendChild(title);
@@ -306,7 +309,7 @@
             box.appendChild(error);
             body.appendChild(box);
 
-            // 脚本（含熊猫验证+修复后的解密逻辑）
+            // 脚本（修复熊猫验证点击事件：直接用id选择，确保绑定成功）
             const script = document.createElement('script');
             script.textContent = `
                 const config = {
@@ -314,39 +317,49 @@
                     fileId: "${fileId}",
                     decryptKey: "${decryptKey}",
                     encryptedBase64: "${encryptedBase64}",
-                    counterBase64: "${counterBase64}" // 新增：16字节Counter的Base64值
+                    counterBase64: "${counterBase64}"
                 };
-                let verifyPassed = false; // 验证是否通过
-
-                // 熊猫验证逻辑：点击两只眼睛完成验证
-                const pandaArea = document.getElementById('pandaArea');
-                const eyes = pandaArea.querySelectorAll('.panda-eye');
+                let verifyPassed = false;
+                // 直接通过id获取眼睛元素（避免选择器失效）
+                const leftEye = document.getElementById('leftEye');
+                const rightEye = document.getElementById('rightEye');
                 const verifyTip = document.getElementById('verifyTip');
                 const formGroup = document.querySelector('.form-group');
                 const submitBtn = document.querySelector('button');
+                let leftClicked = false, rightClicked = false;
 
-                let eyeClicked = { left: false, right: false };
-                eyes.forEach(eye => {
-                    eye.addEventListener('click', function() {
+                // 左眼点击事件（直接绑定，确保生效）
+                leftEye.onclick = function() {
+                    if (!leftClicked) {
                         this.classList.add('active');
-                        if (this.classList.contains('left')) eyeClicked.left = true;
-                        if (this.classList.contains('right')) eyeClicked.right = true;
-                        
-                        // 两只眼睛都点击则验证通过
-                        if (eyeClicked.left && eyeClicked.right) {
-                            verifyPassed = true;
-                            pandaArea.style.cursor = 'default';
-                            verifyTip.textContent = '✅ 验证通过！';
-                            verifyTip.style.color = '#48bb78';
-                            verifyTip.style.display = 'block';
-                            // 显示密码框和按钮
-                            formGroup.style.display = 'block';
-                            submitBtn.style.display = 'block';
-                        }
-                    });
-                });
+                        leftClicked = true;
+                        checkVerifyStatus(); // 检查是否两只都点击
+                    }
+                };
 
-                // 验证密码+解密（修复Counter逻辑）
+                // 右眼点击事件（直接绑定，确保生效）
+                rightEye.onclick = function() {
+                    if (!rightClicked) {
+                        this.classList.add('active');
+                        rightClicked = true;
+                        checkVerifyStatus(); // 检查是否两只都点击
+                    }
+                };
+
+                // 检查验证状态
+                function checkVerifyStatus() {
+                    if (leftClicked && rightClicked) {
+                        verifyPassed = true;
+                        verifyTip.textContent = '✅ 验证通过！';
+                        verifyTip.style.color = '#48bb78';
+                        verifyTip.style.display = 'block';
+                        // 显示密码框和按钮
+                        formGroup.style.display = 'block';
+                        submitBtn.style.display = 'block';
+                    }
+                }
+
+                // 验证密码+解密
                 async function checkPassword() {
                     if (!verifyPassed) {
                         verifyTip.style.display = 'block';
@@ -381,14 +394,14 @@
                         const data = await res.json();
 
                         if (data.success && data.decryptKey === config.decryptKey) {
-                            // 修复：从Base64解码16字节Counter（确保长度正确）
+                            // 解码Counter（16字节）
                             const counter = new Uint8Array(
                                 atob(config.counterBase64).split('').map(c => c.charCodeAt(0))
                             );
-                            // 修复：AES-256密钥（32字节）
+                            // 导入AES-256密钥
                             const key = await crypto.subtle.importKey(
                                 'raw',
-                                encoder.encode(config.decryptKey), // decryptKey是32字符，转字节后32字节（AES-256要求）
+                                encoder.encode(config.decryptKey),
                                 { name: 'AES-CTR' },
                                 true,
                                 ['decrypt']
@@ -397,9 +410,9 @@
                             const encryptedData = new Uint8Array(
                                 atob(config.encryptedBase64).split('').map(c => c.charCodeAt(0))
                             );
-                            // 解密（使用正确的16字节Counter）
+                            // 解密
                             const decryptedData = await crypto.subtle.decrypt(
-                                { name: 'AES-CTR', counter: counter, length: 128 }, // 直接用解码后的16字节Counter
+                                { name: 'AES-CTR', counter: counter, length: 128 },
                                 key,
                                 encryptedData
                             );
@@ -423,7 +436,7 @@
             return new XMLSerializer().serializeToString(html);
         }
 
-        // 修复导出逻辑（生成正确的密钥和Counter）
+        // 导出逻辑
         async function exportEncryptedHTML() {
             // 前置校验
             if (!targetFileContent) return showNotice('请先上传文件');
@@ -431,29 +444,26 @@
             if (!workerUrl) return showNotice('请配置Worker');
 
             const exportName = document.getElementById('exportName').value.trim() || '加密文件';
-            // 修复1：生成32字符的密钥（AES-256要求32字节，英文/数字每个字符1字节）
-            const decryptKey = Math.random().toString(36).substring(2, 34); // 32个字符
-            // 修复2：生成16字节的随机Counter（转为Base64传输/存储）
-            const counterBase64 = generate16ByteCounter();
+            const decryptKey = Math.random().toString(36).substring(2, 34); // 32字符（32字节，AES-256）
+            const counterBase64 = generate16ByteCounter(); // 16字节Counter
             const encoder = new TextEncoder();
             const contentData = encoder.encode(targetFileContent);
-            // 解码Counter（用于加密）
             const counter = new Uint8Array(atob(counterBase64).split('').map(c => c.charCodeAt(0)));
 
             // 显示加载提示
             showNotice('导出中...', 'warning');
-            exportBtn.disabled = true; // 防止重复点击
+            exportBtn.disabled = true;
 
             try {
-                // 修复3：生成AES-256密钥（长度256位=32字节）
+                // 生成AES-256密钥
                 const encryptionKey = await crypto.subtle.generateKey(
-                    { name: 'AES-CTR', length: 256 }, // 明确指定256位
+                    { name: 'AES-CTR', length: 256 },
                     true,
                     ['encrypt', 'decrypt']
                 );
-                // 修复4：加密时使用正确的16字节Counter
+                // 加密
                 const encryptedData = await crypto.subtle.encrypt(
-                    { name: 'AES-CTR', counter: counter, length: 128 }, // counter是16字节Uint8Array
+                    { name: 'AES-CTR', counter: counter, length: 128 },
                     encryptionKey,
                     contentData
                 );
@@ -461,7 +471,7 @@
                 // 转为Base64
                 const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encryptedData)));
                 
-                // 生成含熊猫验证的HTML
+                // 生成HTML
                 const encryptedHTML = createEncryptedDOM(workerUrl, fileId, decryptKey, encryptedBase64, counterBase64);
                 
                 // 下载文件
@@ -473,7 +483,7 @@
                 document.body.appendChild(a);
                 a.click();
 
-                // 同步密钥+Counter到Worker（两者都需要用于解密）
+                // 同步密钥+Counter到Worker
                 await fetch(workerUrl + '/sync-key', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -481,7 +491,7 @@
                         action: 'sync-key', 
                         fileId, 
                         decryptKey,
-                        counterBase64 // 新增：同步Counter到Worker
+                        counterBase64
                     })
                 });
 
@@ -493,7 +503,7 @@
                 }, 100);
             } catch (err) {
                 showNotice('导出失败：' + err.message);
-                exportBtn.disabled = false; // 失败后启用按钮
+                exportBtn.disabled = false;
             }
         }
     </script>
