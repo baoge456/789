@@ -1070,6 +1070,8 @@ input:focus, textarea:focus, select:focus {
     - **新增全屏按钮**: 在主题模式按钮右侧添加全屏按钮，支持全屏/退出全屏，并根据状态切换图标。
     - **文本修改**: "未选择歌曲 点击右下方列表歌曲以播放" -> "未选择音频文件 双击下方列表内文件播放"。
     - **文本修改**: "歌曲列表" -> "播放列表"。
+    - **新增记忆功能**: 记住上次播放的列表、文件、进度、播放状态、音量、循环模式。
+    - **记忆功能优化**: 恢复播放时，始终以暂停状态恢复，并移除自动播放失败的提示。
 */
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".mp3",".flac",".wav",".m4a",".ogg",".aac",".ape"];
@@ -1219,7 +1221,13 @@ const state = {
   // 新增排序和主题状态
   currentSearchTerm: '',
   currentSortCriteria: 'default', // 默认排序
-  currentTheme: 'default'
+  currentTheme: 'default',
+
+  // 记忆功能相关状态
+  lastPlayedCollectionPath: null,
+  lastPlayedSongKey: null,
+  lastPlayedTime: 0,
+  lastPlayedIsPlaying: false // 依然存储，但恢复时不再自动播放
 };
 
 window.addEventListener('load', init);
@@ -1233,6 +1241,7 @@ async function init() {
   bindEvents();
   loadSettings(); // 加载播放器设置 (包括音量、循环模式、随机播放)
   loadTheme(); // 加载主题
+  loadPlayerState(); // 加载上次播放的状态
   await fetchAndPopulateCollections(); // 首先获取并填充集合，然后会触发歌曲列表加载
   updateVolumeIcon();
   updateFullscreenButtonIcon(); // 初始化全屏按钮图标
@@ -1258,6 +1267,11 @@ function bindEvents() {
   el.audioPlayer.addEventListener('loadedmetadata', updateTotalTime);
   el.audioPlayer.addEventListener('ended', handlePlayEnd);
   el.audioPlayer.addEventListener('error', handleAudioError); // 新增音频错误处理
+  el.audioPlayer.addEventListener('pause', savePlayerState); // 暂停时保存状态
+  el.audioPlayer.addEventListener('play', savePlayerState); // 播放时保存状态
+
+  // 页面卸载前保存状态
+  window.addEventListener('beforeunload', savePlayerState);
 
   // 音量控制事件
   el.volumeBar.addEventListener('click', adjustVolume);
@@ -1477,14 +1491,19 @@ async function fetchAndPopulateCollections() {
                 el.uploadCollectionDropdown.appendChild(uploadOption);
             });
 
-            // 默认选择第一个集合
-            const defaultCollection = state.availableCollections[0];
-            if (defaultCollection) {
-                el.collectionDropdown.value = defaultCollection.path;
-                state.currentCollectionPath = defaultCollection.path;
-                state.currentCollectionName = defaultCollection.name; // 初始化友好名称
-                await fetchAndRenderSongs(state.currentCollectionPath); // 首次加载默认集合的歌曲
+            // 尝试恢复上次播放的列表
+            let targetCollectionPath = state.lastPlayedCollectionPath || state.availableCollections[0].path;
+            const collectionExists = state.availableCollections.some(c => c.path === targetCollectionPath);
+            if (!collectionExists) {
+                targetCollectionPath = state.availableCollections[0].path;
             }
+
+            el.collectionDropdown.value = targetCollectionPath;
+            state.currentCollectionPath = targetCollectionPath;
+            const selectedOption = Array.from(el.collectionDropdown.options).find(opt => opt.value === targetCollectionPath);
+            state.currentCollectionName = selectedOption ? selectedOption.textContent : '';
+
+            await fetchAndRenderSongs(state.currentCollectionPath, true); // 首次加载默认集合的歌曲，并尝试恢复播放
         } else {
             console.error('Failed to fetch collections:', result.message);
             showAppToast('获取列表失败: ' + result.message, true);
@@ -1499,8 +1518,9 @@ async function fetchAndPopulateCollections() {
 /**
  * 从后端获取指定集合的歌曲列表，并渲染
  * @param {string} collectionPath - 要获取歌曲的集合路径
+ * @param {boolean} isInitialLoad - 是否是页面初始加载
  */
-async function fetchAndRenderSongs(collectionPath) {
+async function fetchAndRenderSongs(collectionPath, isInitialLoad = false) {
   if (!collectionPath) {
     el.songList.innerHTML = '<li class="empty-list">请选择一个列表。</li>';
     state.songListData = [];
@@ -1528,15 +1548,21 @@ async function fetchAndRenderSongs(collectionPath) {
     // 获取歌曲后立即应用过滤和排序
     applySortAndFilter();
     el.songCount.textContent = '（' + state.songListData.length + ' 首）';
-    // 确保当前播放的歌曲在列表更新后仍然高亮
-    if (state.currentSongIndex !== -1 && state.currentSongIndex < state.songListData.length) {
-        highlightCurrentSong();
+
+    if (isInitialLoad) {
+        restorePlayback(); // 初始加载时尝试恢复播放
     } else {
-        el.currentSongTitleText.textContent = '未选择音频文件'; // 修改文本
-        stopSongTitleScrolling(); // 停止滚动
-        el.currentSongSubtitle.textContent = '双击下方列表内文件播放'; // 修改文本
+        // 如果不是初始加载，且切换了列表，则重置播放状态
+        el.currentSongTitleText.textContent = '未选择音频文件';
+        stopSongTitleScrolling();
+        el.currentSongSubtitle.textContent = '双击下方列表内文件播放';
         el.discImage.src = getSongCoverUrl('defaultmusic', 80);
+        state.currentSongIndex = -1;
+        state.selectedSongIndex = -1;
+        state.isPlaying = false;
         updatePlayBtnState();
+        el.audioPlayer.pause();
+        el.audioPlayer.currentTime = 0;
     }
   } catch (err) {
     console.error("获取歌曲列表失败:", err);
@@ -1665,7 +1691,7 @@ function escapeHtml(s) {
  */
 function togglePlay() {
   if (state.songListData.length === 0) {
-    showAppToast('歌曲列表为空，无法播放。', true);
+    showAppToast('播放列表为空，无法播放。', true);
     return;
   }
   if (state.currentSongIndex === -1) {
@@ -1967,6 +1993,95 @@ function loadSettings() {
     el.audioPlayer.loop = false;
   }
 }
+
+/**
+ * 保存播放器当前状态到 localStorage (记忆功能)
+ */
+function savePlayerState() {
+  const playerState = {
+    lastPlayedCollectionPath: state.currentCollectionPath,
+    lastPlayedSongKey: state.songListData[state.currentSongIndex] ? state.songListData[state.currentSongIndex].key : null,
+    lastPlayedTime: el.audioPlayer.currentTime,
+    lastPlayedIsPlaying: state.isPlaying
+  };
+  localStorage.setItem('lastPlayerState', JSON.stringify(playerState));
+  console.log('Player state saved:', playerState); // 调试信息
+}
+
+/**
+ * 从 localStorage 加载并恢复播放器状态 (记忆功能)
+ */
+function loadPlayerState() {
+  const savedState = JSON.parse(localStorage.getItem('lastPlayerState') || '{}');
+  state.lastPlayedCollectionPath = savedState.lastPlayedCollectionPath || null;
+  state.lastPlayedSongKey = savedState.lastPlayedSongKey || null;
+  state.lastPlayedTime = savedState.lastPlayedTime || 0;
+  state.lastPlayedIsPlaying = savedState.lastPlayedIsPlaying || false;
+  console.log('Player state loaded:', savedState); // 调试信息
+}
+
+/**
+ * 恢复上次播放的歌曲和进度
+ */
+function restorePlayback() {
+    if (state.lastPlayedCollectionPath && state.lastPlayedSongKey && state.songListData.length > 0) {
+        // 确保当前选中的列表是上次播放的列表
+        if (state.currentCollectionPath !== state.lastPlayedCollectionPath) {
+            // 这应该在 fetchAndPopulateCollections 中处理，如果列表不匹配，则不恢复歌曲
+            // 或者，如果列表已切换到上次播放的列表，则继续
+            // 这里的逻辑假设 fetchAndPopulateCollections 已经设置了 currentCollectionPath
+            // 并且 fetchAndRenderSongs 已经加载了该列表的歌曲
+            return;
+        }
+
+        const songIndex = state.songListData.findIndex(s => s.key === state.lastPlayedSongKey);
+        if (songIndex !== -1) {
+            const song = state.songListData[songIndex];
+            state.currentSongIndex = songIndex;
+            state.selectedSongIndex = -1; // 播放新歌曲时，清除任何单独的选中状态
+            highlightCurrentSong(); // 高亮当前播放的歌曲
+
+            el.currentSongTitleText.textContent = song.displayName || song.name;
+            startSongTitleScrolling();
+
+            let subtitleText = '';
+            if (song.size) subtitleText += song.size + '🎵';
+            if (song.lastModified) {
+                if (subtitleText) subtitleText += ' · ';
+                subtitleText += song.lastModified;
+            }
+            el.currentSongSubtitle.textContent = subtitleText || '双击下方列表内文件播放';
+
+            el.discImage.src = getSongCoverUrl(song.key, 80);
+
+            const playbackUrl = getDirectStorageUrl(song.url);
+            el.audioPlayer.src = playbackUrl;
+            el.audioPlayer.currentTime = state.lastPlayedTime;
+
+            // --- 修改开始 ---
+            // 无论上次是否在播放，都恢复到暂停状态
+            state.isPlaying = false; // 强制内部状态为暂停
+            el.audioPlayer.pause(); // 确保音频播放器暂停
+            el.musicDisc.classList.remove('disc-spin'); // 停止唱片动画
+            updatePlayBtnState(); // 更新播放/暂停按钮图标
+
+            // 统一显示恢复到上次播放位置的提示，不区分是否自动播放失败
+            showAppToast('已恢复至上次播放位置: ' + (song.displayName || song.name));
+            // --- 修改结束 ---
+
+        } else {
+            console.log('上次播放的歌曲未在当前列表中找到。');
+            // 清除上次播放的歌曲信息，避免下次尝试播放不存在的歌曲
+            state.lastPlayedSongKey = null;
+            state.lastPlayedTime = 0;
+            state.lastPlayedIsPlaying = false;
+            savePlayerState(); // 保存清理后的状态
+        }
+    } else {
+        console.log('无上次播放状态可恢复或列表为空。');
+    }
+}
+
 
 /**
  * 打开密码模态框以验证上传权限
@@ -2349,7 +2464,7 @@ function showPasswordModalForAction(actionType, index = -1, key = null) {
     title = '请输入管理密钥以确认删除';
   } else if (actionType === 'view') {
     title = '请输入管理密钥以确认查看/复制';
-  } else if (actionType === 'exportAllJson') { // 修改点 5: 导出所有 JSON 的标题
+  } else if (actionType === 'exportAllJson') { // 修改点 5: 触发导出所有 JSON 的标题
     title = '请输入管理密钥以确认导出当前列表 JSON';
   }
 
@@ -2390,6 +2505,7 @@ async function executeDeleteSong(songKey, secret) {
       state.currentSongIndex = -1;
       state.selectedSongIndex = -1; // 删除后也清除选中状态
       updatePlayBtnState();
+      savePlayerState(); // 删除当前播放歌曲后，保存状态
     }
   } catch (err) {
     // 这里只负责报告删除 API 的错误，不应该重新弹出密码模态框
@@ -2562,8 +2678,9 @@ function updatePlayBtnState() {
 /**
  * 播放指定索引的歌曲
  * @param {number} index - 歌曲在 songListData 中的索引
+ * @param {boolean} seekToLastPlayedTime - 是否跳转到上次播放的时间点
  */
-function playSong(index) {
+function playSong(index, seekToLastPlayedTime = false) {
   if (index < 0 || index >= state.songListData.length) {
     showAppToast('无效的歌曲索引。', true);
     return;
@@ -2610,6 +2727,14 @@ function playSong(index) {
   el.audioPlayer.src = playbackUrl;
   console.log("Playing song from direct URL:", playbackUrl); // 调试信息
 
+  if (seekToLastPlayedTime && state.lastPlayedTime > 0) {
+      el.audioPlayer.currentTime = state.lastPlayedTime;
+      state.lastPlayedTime = 0; // 使用后清零，避免下次非恢复播放时也跳转
+  } else {
+      el.audioPlayer.currentTime = 0;
+  }
+
+
   state.loadingKey = newKey; // 标记正在加载
   el.audioPlayer.load && el.audioPlayer.load();
 
@@ -2618,6 +2743,7 @@ function playSong(index) {
     el.musicDisc.classList.add('disc-spin');
     updatePlayBtnState();
     showAppToast('正在播放: ' + (song.displayName || song.name));
+    savePlayerState(); // 播放新歌曲时保存状态
   }).catch(err => {
     console.warn('播放尝试失败：', err && err.message);
     state.isPlaying = false;
@@ -3011,7 +3137,7 @@ function toggleFullscreen() {
         } else if (document.webkitExitFullscreen) { /* Chrome, Safari & Opera */
             document.webkitExitFullscreen();
         } else if (document.msExitFullscreen) { /* IE/Edge */
-            document.msExitFullscreen();
+            document.documentElement.msExitFullscreen();
         }
     }
 }
