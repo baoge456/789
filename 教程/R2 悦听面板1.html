@@ -448,7 +448,7 @@ input:focus, textarea:focus, select:focus {
 .list-title-group {
   display: flex;
   align-items: center;
-  flex-shrink: 0; /* 防止标题被压缩 */
+  flex-shrink: 0; /* 标题组不收缩 */
 }
 .list-title { font-size:1.1rem; font-weight:700; color:var(--color-primary-blue); letter-spacing:0.5px; }
 .list-count { color:var(--color-text-secondary); font-size:0.85rem; margin-left:var(--spacing-md); font-weight:500; }
@@ -1047,7 +1047,7 @@ input:focus, textarea:focus, select:focus {
     - **主题模式：** 添加主题切换按钮和 JavaScript/CSS 逻辑，支持默认、浅色、深蓝、紫色、橙色、绿色六种主题。
   - **本次细节优化：**
     - **播放器歌曲名称循环滚动：** 对于超长歌曲名称，实现从左到右的循环滚动显示。
-    - **手机端歌曲列表头部布局：** 优化手机端 "歌曲列表"、"排序" 和 "添加歌曲" 按钮的布局，使其尽可能集中到一行。
+    - **手机端歌曲列表头部布局：** 优化了手机端 "歌曲列表"、"排序" 和 "添加歌曲" 按钮的布局，使其尽可能集中到一行。
   - **本次修复重点 (针对“无代理”问题):**
     - **API_BASE_URL 配置：** 引入 `API_BASE_URL` 变量，允许用户配置后端 API 的基础 URL。
     - **所有 API 请求使用 `API_BASE_URL`：** 确保 `fetch('/api/...')` 调用都加上 `API_BASE_URL` 前缀，以便在不同部署环境下正确找到 API。
@@ -1072,6 +1072,7 @@ input:focus, textarea:focus, select:focus {
     - **文本修改**: "歌曲列表" -> "播放列表"。
     - **新增记忆功能**: 记住上次播放的列表、文件、进度、播放状态、音量、循环模式。
     - **记忆功能优化**: 恢复播放时，始终以暂停状态恢复，并移除自动播放失败的提示。
+    - **本次修改重点**: 彻底移除 `el.audioPlayer.play()` 失败时，针对 `NotAllowedError` 的错误提示。
 */
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".mp3",".flac",".wav",".m4a",".ogg",".aac",".ape"];
@@ -1704,9 +1705,8 @@ function togglePlay() {
   } else {
     el.audioPlayer.play().catch(err => {
       console.warn('播放请求被拒绝：', err && err.message);
-      if (err.name === "NotAllowedError") {
-        showAppToast("浏览器阻止了自动播放。请点击播放按钮手动播放。", true);
-      } else {
+      // 移除针对 NotAllowedError 的特定提示
+      if (err.name !== "NotAllowedError") {
         showAppToast("播放失败：" + (err.message || '未知错误'), true);
       }
     });
@@ -1843,7 +1843,13 @@ function endDragProgress(e) {
   const newTime = clamped * (el.audioPlayer.duration || 0);
   if (!isNaN(newTime) && isFinite(newTime)) el.audioPlayer.currentTime = newTime;
   if (state.wasPlayingBeforeDrag) {
-    el.audioPlayer.play();
+    el.audioPlayer.play().catch(err => {
+      console.warn('恢复播放失败：', err && err.message);
+      // 移除针对 NotAllowedError 的特定提示
+      if (err.name !== "NotAllowedError") {
+        showAppToast("播放失败：" + (err.message || '未知错误'), true);
+      }
+    });
     state.isPlaying = true;
     el.musicDisc.classList.add('disc-spin');
   } else {
@@ -1895,7 +1901,13 @@ function updateTotalTime() {
 function handlePlayEnd() {
   if (state.loopMode === 1) { // 单曲循环
     el.audioPlayer.currentTime = 0;
-    el.audioPlayer.play();
+    el.audioPlayer.play().catch(err => {
+      console.warn('单曲循环播放失败：', err && err.message);
+      // 移除针对 NotAllowedError 的特定提示
+      if (err.name !== "NotAllowedError") {
+        showAppToast("播放失败：" + (err.message || '未知错误'), true);
+      }
+    });
   } else { // 列表循环或随机播放
     playNextSong();
   }
@@ -2058,16 +2070,14 @@ function restorePlayback() {
             el.audioPlayer.src = playbackUrl;
             el.audioPlayer.currentTime = state.lastPlayedTime;
 
-            // --- 修改开始 ---
             // 无论上次是否在播放，都恢复到暂停状态
             state.isPlaying = false; // 强制内部状态为暂停
             el.audioPlayer.pause(); // 确保音频播放器暂停
             el.musicDisc.classList.remove('disc-spin'); // 停止唱片动画
             updatePlayBtnState(); // 更新播放/暂停按钮图标
 
-            // 统一显示恢复到上次播放位置的提示，不区分是否自动播放失败
+            // 统一显示恢复到上次播放位置的提示
             showAppToast('已恢复至上次播放位置: ' + (song.displayName || song.name));
-            // --- 修改结束 ---
 
         } else {
             console.log('上次播放的歌曲未在当前列表中找到。');
@@ -2718,7 +2728,7 @@ function playSong(index, seekToLastPlayedTime = false) {
       if (subtitleText) subtitleText += ' · ';
       subtitleText += song.lastModified;
   }
-  el.currentSongSubtitle.textContent = subtitleText || '双击下方列表内文件播放'; // 修改文本
+  el.currentSongSubtitle.textContent = subtitleText || '双击下方列表内文件播放';
 
   el.discImage.src = getSongCoverUrl(song.key, 80); // 优化：使用 80x80 尺寸
 
@@ -2749,13 +2759,12 @@ function playSong(index, seekToLastPlayedTime = false) {
     state.isPlaying = false;
     el.musicDisc.classList.remove('disc-spin');
     updatePlayBtnState();
-    if (err.name === "NotAllowedError") {
-      showAppToast("浏览器阻止了自动播放。请点击播放按钮手动播放。", true);
-    } else if (err.name === "NetworkError" || err.name === "AbortError") {
+    // 移除针对 NotAllowedError 的特定提示
+    if (err.name === "NetworkError" || err.name === "AbortError") {
       showAppToast("播放失败，请检查网络或稍后再试。", true);
     } else if (err.name === "SecurityError" && err.message.includes("CORS")) {
       showAppToast("播放失败：跨域访问受限。请检查存储桶的 CORS 配置。", true);
-    } else {
+    } else if (err.name !== "NotAllowedError") { // 仅当不是 NotAllowedError 时才显示通用错误
       showAppToast("播放失败：" + (err.message || '未知错误'), true);
     }
   }).finally(() => {
