@@ -1,0 +1,760 @@
+// ====================== 需修改的配置项（必改！）======================
+// 这些是 Worker 后端使用的配置项
+const R2_BUCKET_NAME = "R2_BUCKET_NAME"; // 请改为你在 Worker 绑定 R2 时使用的变量名（例如 MY_R2）
+const FRONTEND_HTML_URL = "https://fr2.bgyy.dpdns.org/"; // <-- 请替换为你的前端HTML页面的实际URL
+// 例如：如果你部署在 Cloudflare Pages 上，可能是 https://your-project-name.pages.dev/
+// ===================================================================
+
+// ====================== 新增和优化的常量 ======================
+// const MUSIC_PREFIX = "music/"; // R2 存储桶中音乐文件的前缀 - 此常量将被移除，由动态 collectionPath 替代
+
+// 定义可用的媒体集合路径及其友好名称
+const COLLECTION_PATHS = [
+  { name: "音乐库", path: "music/" },
+  { name: "播客", path: "podcast/" },
+  { name: "有声书", path: "audiobook/" },
+  // 您可以根据需要在 R2 存储桶中创建更多顶级目录，并在此处添加
+  // { name: "我的录音", path: "recordings/" },
+];
+
+const PLAYER_SESSION_COOKIE_NAME = "player_session"; // 播放器会话 Cookie 的名称
+const PLAYER_SESSION_MAX_AGE_SECONDS = 86400; // 播放器会话 Cookie 有效期（1天 = 86400秒）
+const ADMIN_AUTH_HEADER_NAME = "Authorization"; // 管理员认证头部名称
+
+const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50MB文件限制
+const MIME_TYPES = {
+  ".mp3": "audio/mpeg",
+  ".flac": "audio/flac",
+  ".wav": "audio/wav",
+  ".m4a": "audio/mp4",
+  ".ogg": "audio/ogg",
+  ".aac": "audio/aac",
+  ".ape": "audio/ape"
+};
+const ALLOWED_EXTENSIONS = Object.keys(MIME_TYPES);
+
+// ====================== 硬编码的管理员密钥（请注意安全风险！）======================
+// **重要安全提示：** 直接将密钥写入代码是不推荐的安全实践。
+// 如果您的代码被泄露，此密钥也会随之泄露。
+// 建议使用 Cloudflare Worker 的环境变量来管理敏感信息。
+const HARDCODED_AUTH_SECRET = "admin"; // 管理员密钥，请根据需要修改
+// ===================================================================
+
+// ====================== 登录页面 HTML (嵌入到 Worker 中) ======================
+// 这个 HTML 会在用户未登录时显示。它包含一个简单的密码输入框和提交逻辑。
+// 注意：为了安全和隔离，这个登录页面直接由 Worker 提供，不从外部链接获取。
+const LOGIN_PAGE_HTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>音乐面板登录</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #f5f6fa;
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #333;
+    }
+    .panda-box {
+      position: relative;
+      width: 340px;
+      /* 调整：减少负边距，使熊猫向上移动或登录框向下移动 */
+      margin-bottom: -20px; /* 原为 -40px */
+      z-index: 2;
+    }
+    .login-container {
+      position: relative;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      padding: 40px 28px 28px 28px;
+      width: 340px;
+      z-index: 1;
+      /* 调整：减少负边距，与 panda-box 的调整保持一致 */
+      margin-top: -20px; /* 原为 -40px */
+      max-width: 96vw; /* 响应式调整 */
+    }
+    .login-title {
+      text-align: center;
+      font-size: 1.5em;
+      color: #333;
+      margin-bottom: 28px;
+      letter-spacing: 2px;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #555;
+      font-size: 1em;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      font-size: 1em;
+      background: #fafbfc;
+      transition: border 0.2s;
+      box-sizing: border-box; /* 确保 padding 不会增加宽度 */
+    }
+    input[type="password"]:focus {
+      border-color: #1976d2;
+      outline: none;
+    }
+    .login-btn {
+      width: 100%;
+      padding: 10px 0;
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 1.1em;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+    .login-btn:hover {
+      background: #1256a3;
+    }
+    .login-footer {
+      text-align: center;
+      color: #aaa;
+      font-size: 0.95em;
+      margin-top: 18px;
+    }
+    .error-message {
+      color: #e53e3e;
+      text-align: center;
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+    @media (max-width: 500px) {
+      .panda-box, .login-container {
+        width: 90vw; /* 调整为更小的宽度 */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="panda-box">
+    <!-- 可爱的熊猫SVG -->
+    <svg width="340" height="180" viewBox="0 0 340 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- 耳朵 -->
+      <ellipse cx="70" cy="60" rx="36" ry="28" fill="#222"/>
+      <ellipse cx="270" cy="60" rx="36" ry="28" fill="#222"/>
+      <!-- 头部 -->
+      <ellipse cx="170" cy="100" rx="100" ry="80" fill="#fff" stroke="#222" stroke-width="4"/>
+      <!-- 眼圈 -->
+      <ellipse cx="120" cy="110" rx="22" ry="16" fill="#222"/>
+      <ellipse cx="220" cy="110" rx="22" ry="16" fill="#222"/>
+      <!-- 眼睛 -->
+      <ellipse cx="120" cy="115" rx="7" ry="7" fill="#fff"/>
+      <ellipse cx="220" cy="115" rx="7" ry="7" fill="#fff"/>
+      <ellipse cx="120" cy="117" rx="3" ry="3" fill="#222"/>
+      <ellipse cx="220" cy="117" rx="3" ry="3" fill="#222"/>
+      <!-- 鼻子 -->
+      <ellipse cx="170" cy="135" rx="10" ry="7" fill="#222"/>
+      <!-- 嘴巴 -->
+      <path d="M160 145 Q170 155 180 145" stroke="#222" stroke-width="3" fill="none"/>
+      <!-- 左爪 -->
+      <ellipse cx="90" cy="170" rx="28" ry="18" fill="#222"/>
+      <ellipse cx="90" cy="170" rx="12" ry="8" fill="#fff"/>
+      <!-- 右爪 -->
+      <ellipse cx="250" cy="170" rx="28" ry="18" fill="#222"/>
+      <ellipse cx="250" cy="170" rx="12" ry="8" fill="#fff"/>
+      <!-- 爪子搭在登录框上 -->
+      <ellipse cx="110" cy="160" rx="16" ry="10" fill="#222"/>
+      <ellipse cx="230" cy="160" rx="16" ry="10" fill="#222"/>
+    </svg>
+  </div>
+  <div class="login-container">
+    <div class="login-title">音乐面板 - 密码验证</div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="password">播放密码</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="login-btn">进入面板</button>
+      <div id="errorMessage" class="error-message" style="display:none;"></div>
+    </form>
+    <div class="login-footer">
+      &copy; 2025 R2音乐面板
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(event) {
+      event.preventDefault(); // 阻止表单默认提交行为
+      const password = document.getElementById('password').value;
+      const errorMessage = document.getElementById('errorMessage');
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ password: password }),
+        });
+
+        if (response.ok) {
+          // 登录成功，重定向到主页，Worker 会设置 cookie
+          window.location.href = '/';
+        } else {
+          const errorData = await response.json();
+          errorMessage.textContent = errorData.msg || '密码错误';
+          errorMessage.style.display = 'block';
+        }
+      } catch (error) {
+        errorMessage.textContent = '网络错误或服务器无响应';
+        errorMessage.style.display = 'block';
+        console.error('Login error:', error);
+      }
+    });
+  </script>
+</body>
+</html>`;
+
+// Cloudflare Worker 的入口点
+export default {
+  async fetch(request, env) {
+    // 仅将 PLAYER_PASSWORD 作为参数传递给 handleRequest
+    // env.PLAYER_PASSWORD 是你需要在 Worker 设置中配置的环境变量
+    return handleRequest(request, env, env.PLAYER_PASSWORD);
+  }
+};
+
+// Cloudflare Worker 的请求处理函数
+// 注意：AUTH_SECRET_FROM_ENV 已被移除，PLAYER_PASSWORD_FROM_ENV 从 env 获取
+async function handleRequest(request, env, PLAYER_PASSWORD_FROM_ENV) {
+  const url = new URL(request.url);
+  const bucket = env[R2_BUCKET_NAME];
+
+  // ==================== 辅助函数：检查播放器会话 ====================
+  // 检查请求中是否包含有效的 player_session cookie
+  const checkPlayerSession = (req) => {
+    const cookieHeader = req.headers.get("Cookie");
+    // 使用常量 PLAYER_SESSION_COOKIE_NAME
+    return cookieHeader && cookieHeader.includes(`${PLAYER_SESSION_COOKIE_NAME}=true`);
+  };
+
+  // ==================== CORS 预检请求处理 ====================
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        "Access-Control-Max-Age": "86400"
+      }
+    });
+  }
+
+  // ==================== POST /api/login - 处理播放器密码验证 ====================
+  // 用户提交密码后，Worker 验证密码并设置会话 Cookie
+  if (url.pathname === "/api/login" && request.method === "POST") {
+    try {
+      const { password } = await request.json();
+      // 使用从 env 传递过来的 PLAYER_PASSWORD 进行验证
+      if (password === PLAYER_PASSWORD_FROM_ENV) {
+        // 密码正确，设置一个安全的会话 cookie
+        const response = jsonResponse({ success: true, msg: "登录成功" });
+        // 使用常量 PLAYER_SESSION_COOKIE_NAME 和 PLAYER_SESSION_MAX_AGE_SECONDS
+        response.headers.set("Set-Cookie", `${PLAYER_SESSION_COOKIE_NAME}=true; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${PLAYER_SESSION_MAX_AGE_SECONDS}`);
+        return response;
+      } else {
+        return jsonResponse({ success: false, msg: "密码错误" }, 401);
+      }
+    } catch (err) {
+      console.error("Login error:", err); // 记录完整错误信息
+      return jsonResponse({ success: false, msg: "登录请求处理失败" }, 500);
+    }
+  }
+
+  // ==================== POST /api/verify-admin - 验证管理密码 (新接口) ====================
+  // 用于前端在显示上传界面前验证管理密钥
+  if (url.pathname === "/api/verify-admin" && request.method === "POST") {
+    try {
+      const authHeader = request.headers.get(ADMIN_AUTH_HEADER_NAME); // 使用常量 ADMIN_AUTH_HEADER_NAME
+      // 使用硬编码的管理员密钥进行验证
+      if (authHeader !== HARDCODED_AUTH_SECRET) {
+        return jsonResponse({ success: false, msg: "管理密钥错误" }, 401);
+      }
+      return jsonResponse({ success: true, msg: "管理密钥验证成功" });
+    } catch (err) {
+      console.error("Admin verification error:", err); // 记录完整错误信息
+      return jsonResponse({ success: false, msg: "验证请求处理失败" }, 500);
+    }
+  }
+
+  // ==================== GET /api/collections - 获取所有可用集合 (新增) ====================
+  // 不需要播放器会话，但为了安全考虑，可以考虑添加
+  // 这里暂时不要求播放器会话，因为集合列表是公开的
+  if (url.pathname === "/api/collections" && request.method === "GET") {
+    try {
+      // 检查是否有有效的播放器会话，如果需要，可以取消注释
+      // if (!checkPlayerSession(request)) {
+      //   return jsonResponse({ success: false, msg: "未授权访问，请先登录" }, 401);
+      // }
+      return jsonResponse({ success: true, data: COLLECTION_PATHS });
+    } catch (err) {
+      console.error("Error fetching collections:", err);
+      return jsonResponse({ success: false, msg: "获取集合列表失败：" + err.message }, 500);
+    }
+  }
+
+  // ==================== 根路径 "/" 请求处理 ====================
+  // 检查用户是否已登录，未登录则返回登录页面，已登录则返回音乐面板
+  if (url.pathname === "/" && request.method === "GET") {
+    if (!checkPlayerSession(request)) {
+      // 如果没有有效的会话 cookie，返回登录页面
+      return new Response(LOGIN_PAGE_HTML, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    }
+
+    // 如果有有效的会话 cookie，则加载音乐面板前端 HTML
+    const cache = caches.default; // 获取 Worker 缓存
+    const cacheKey = new Request(url.toString(), request); // 使用请求 URL 作为缓存键
+
+    let response = await cache.match(cacheKey); // 尝试从缓存中获取响应
+
+    if (!response) {
+      // 如果缓存中没有，则从外部 URL 获取 HTML
+      try {
+        const externalResponse = await fetch(FRONTEND_HTML_URL);
+        if (!externalResponse.ok) {
+          throw new Error(`Failed to fetch frontend HTML from ${FRONTEND_HTML_URL}: ${externalResponse.statusText}`);
+        }
+        // 克隆响应，一份用于存储到缓存，一份用于返回给客户端
+        response = new Response(externalResponse.body, externalResponse);
+        // 设置 Cache-Control 头，告诉浏览器和 CDN 缓存此响应
+        response.headers.set("Cache-Control", "public, max-age=3600"); // 缓存1小时
+        // 将响应存储到 Worker 缓存中
+        await cache.put(cacheKey, response.clone());
+      } catch (error) {
+        console.error("Error fetching frontend HTML:", error); // 记录完整错误信息
+        return new Response(
+          `<h1>Error loading frontend:</h1><p>${error.message}</p><p>请检查 Worker 中的 FRONTEND_HTML_URL 配置，并确保外部 HTML 可访问。</p>`,
+          {
+            status: 500,
+            headers: { "Content-Type": "text/html; charset=utf-8" }
+          }
+        );
+      }
+    }
+    return response;
+  }
+
+  // ==================== /api/songs - 获取歌曲列表 (修改) ====================
+  // 需要播放器会话才能访问
+  if (url.pathname === "/api/songs" && request.method === "GET") {
+    if (!checkPlayerSession(request)) {
+      return jsonResponse({ success: false, msg: "未授权访问，请先登录" }, 401);
+    }
+    try {
+      // 从查询参数获取 collectionPath，如果没有提供，则使用 COLLECTION_PATHS 中的第一个
+      const requestedCollectionPath = url.searchParams.get("collectionPath");
+      let collectionPath = COLLECTION_PATHS[0]?.path || ""; // 默认第一个集合
+      if (requestedCollectionPath) {
+        // 验证请求的 collectionPath 是否在允许的列表中
+        const isValidCollection = COLLECTION_PATHS.some(c => c.path === requestedCollectionPath);
+        if (isValidCollection) {
+          collectionPath = requestedCollectionPath;
+        } else {
+          return jsonResponse({ success: false, msg: "无效的集合路径" }, 400);
+        }
+      }
+
+      if (!collectionPath) {
+        return jsonResponse({ success: false, msg: "未配置任何媒体集合" }, 500);
+      }
+
+      const listResult = await bucket.list({ prefix: collectionPath });
+      const objects = listResult.objects || [];
+      const songs = objects.map(obj => {
+        const fileName = obj.key.replace(collectionPath, "");
+        const fileUrl = url.origin + "/api/song/" + encodeURIComponent(obj.key);
+        const fileSize = formatBytes(obj.size || 0);
+        const customDisplay = (obj.customMetadata && obj.customMetadata.originalDisplayName) ? obj.customMetadata.originalDisplayName : null;
+        const originalName = (obj.customMetadata && obj.customMetadata.originalName) ? obj.customMetadata.originalName : fileName;
+        const externalLink = (obj.customMetadata && obj.customMetadata.externalLink) ? obj.customMetadata.externalLink : null;
+        const lastModified = obj.uploaded ? new Date(obj.uploaded).toLocaleString() : '';
+        return {
+          key: obj.key,
+          name: originalName,
+          displayName: customDisplay,
+          externalLink,
+          url: fileUrl,
+          size: fileSize,
+          lastModified
+        };
+      });
+      return jsonResponse({ success: true, data: songs });
+    } catch (err) {
+      console.error("Error listing songs:", err); // 记录完整错误信息
+      return jsonResponse({ success: false, msg: "获取歌曲列表失败：" + err.message }, 500);
+    }
+  }
+
+  // ==================== /api/song/:key - 返回歌曲流 ====================
+  // 需要播放器会话才能访问
+  if (url.pathname.startsWith("/api/song/") && request.method === "GET") {
+    if (!checkPlayerSession(request)) {
+      // 对于媒体流，返回 401 Unauthorized 状态码，而不是 JSON
+      return new Response("Unauthorized", { status: 401 });
+    }
+    try {
+      const fileKey = decodeURIComponent(url.pathname.slice("/api/song/".length));
+      // 验证 fileKey 是否属于任何一个允许的集合路径
+      const isAllowedKey = COLLECTION_PATHS.some(cp => fileKey.startsWith(cp.path));
+      if (!isAllowedKey) {
+        return jsonResponse({ success: false, msg: "非法访问或文件不在允许的集合中" }, 403);
+      }
+
+      const obj = await bucket.get(fileKey); // 获取 R2 对象
+      if (!obj || !obj.body) return jsonResponse({ success: false, msg: "歌曲不存在" }, 404);
+
+      const headers = new Headers();
+      let contentType = "application/octet-stream"; // 默认 Content-Type
+
+      // 优先使用 R2 对象提供的 Content-Type
+      if (obj.httpMetadata && obj.httpMetadata.contentType) {
+          contentType = obj.httpMetadata.contentType;
+      } else {
+          // 如果 R2 对象没有提供，则根据扩展名推断
+          const ext = fileKey.slice(fileKey.lastIndexOf(".")).toLowerCase();
+          contentType = MIME_TYPES[ext] || contentType;
+      }
+      headers.set("Content-Type", contentType);
+
+      // --- 关键修改：强制 Content-Disposition 为 inline ---
+      // 只有当 Content-Type 是音频类型时，才强制设置为 inline
+      if (contentType.startsWith("audio/")) {
+          headers.set("Content-Disposition", "inline");
+      } else if (obj.httpMetadata && obj.httpMetadata.contentDisposition) {
+          // 如果不是音频，但 R2 有设置 Content-Disposition，则尊重 R2 的设置
+          headers.set("Content-Disposition", obj.httpMetadata.contentDisposition);
+      }
+      // ----------------------------------------------------
+
+      headers.set("Content-Length", String(obj.size || 0));
+      headers.set("Access-Control-Allow-Origin", "*");
+      headers.set("Cache-Control", "public, max-age=31536000"); // 缓存一年
+      return new Response(obj.body, { headers });
+    } catch (err) {
+      console.error(`Error streaming song ${url.pathname}:`, err); // 记录完整错误信息
+      return jsonResponse({ success: false, msg: "获取歌曲流失败：" + err.message }, 500);
+    }
+  }
+
+  // ==================== /api/song/:key - 删除歌曲（需管理密码）====================
+  // 需要硬编码的管理员密钥才能访问
+  if (url.pathname.startsWith("/api/song/") && request.method === "DELETE") {
+    try {
+      const authHeader = request.headers.get(ADMIN_AUTH_HEADER_NAME); // 使用常量 ADMIN_AUTH_HEADER_NAME
+      // 使用硬编码的管理员密钥进行验证
+      if (authHeader !== HARDCODED_AUTH_SECRET) return jsonResponse({ success: false, msg: "权限不足" }, 401);
+      const fileKey = decodeURIComponent(url.pathname.slice("/api/song/".length));
+      // 验证 fileKey 是否属于任何一个允许的集合路径
+      const isAllowedKey = COLLECTION_PATHS.some(cp => fileKey.startsWith(cp.path));
+      if (!isAllowedKey) {
+        return jsonResponse({ success: false, msg: "非法操作或文件不在允许的集合中" }, 403);
+      }
+      await bucket.delete(fileKey);
+      return jsonResponse({ success: true, msg: "删除成功" });
+    } catch (err) {
+      console.error(`Error deleting song ${url.pathname}:`, err); // 记录完整错误信息
+      return jsonResponse({ success: false, msg: "删除歌曲失败：" + err.message }, 500);
+    }
+  }
+
+  // ==================== /api/upload - 上传歌曲（需管理密码）(修改) ====================
+  // 需要硬编码的管理员密钥才能访问
+  if (url.pathname === "/api/upload" && request.method === "POST") {
+    try {
+      const authHeader = request.headers.get(ADMIN_AUTH_HEADER_NAME); // 使用常量 ADMIN_AUTH_HEADER_NAME
+      // 使用硬编码的管理员密钥进行验证
+      if (authHeader !== HARDCODED_AUTH_SECRET) return jsonResponse({ success: false, msg: "权限不足" }, 401);
+
+      const contentType = request.headers.get("Content-Type") || "";
+      if (!contentType.includes("multipart/form-data")) return jsonResponse({ success: false, msg: "请上传 multipart/form-data 格式" }, 400);
+
+      const formData = await request.formData();
+      const uploadMode = (formData.get("uploadMode") || "local").toString();
+      // 获取目标集合路径
+      const targetCollectionPath = (formData.get("targetCollectionPath") || "").toString();
+
+      // 验证 targetCollectionPath 是否有效
+      const isValidCollection = COLLECTION_PATHS.some(c => c.path === targetCollectionPath);
+      if (!isValidCollection) {
+        return jsonResponse({ success: false, msg: "无效的目标集合路径" }, 400);
+      }
+
+      if (uploadMode === "local") {
+        const file = formData.get("songFile");
+        if (!file) return jsonResponse({ success: false, msg: "请选择音频文件" }, 400);
+        const size = file.size || 0;
+        if (size > MAX_UPLOAD_SIZE) return jsonResponse({ success: false, msg: `文件最大支持${MAX_UPLOAD_SIZE / (1024 * 1024)}MB` }, 400); // 使用常量 MAX_UPLOAD_SIZE
+
+        const originalName = file.name || "unknown";
+        const fileExt = originalName.slice(originalName.lastIndexOf(".")).toLowerCase();
+        if (!ALLOWED_EXTENSIONS.includes(fileExt)) return jsonResponse({ success: false, msg: "不支持的文件格式" }, 400);
+
+        const timestamp = Date.now();
+        // 使用 targetCollectionPath 构建 fileKey
+        const fileKey = targetCollectionPath + timestamp + "-" + originalName;
+
+        const arrayBuffer = await file.arrayBuffer();
+        await bucket.put(fileKey, arrayBuffer, {
+          httpMetadata: {
+            contentType: MIME_TYPES[fileExt] || "application/octet-stream",
+            // 关键：上传时明确设置为 inline，确保后续访问时浏览器能播放
+            contentDisposition: MIME_TYPES[fileExt] ? "inline" : undefined
+          },
+          customMetadata: {
+            originalName: originalName,
+            uploadTime: new Date().toISOString(),
+            originalDisplayName: sanitizeForMetadata(originalName), // 优化后的 sanitizeForMetadata
+            externalLink: ""
+          }
+        });
+
+        const fileSize = formatBytes(size); // 使用 formatBytes 辅助函数
+
+        return jsonResponse({
+          success: true,
+          msg: "上传成功",
+          data: { key: fileKey, name: originalName, size: fileSize }
+        });
+      } else if (uploadMode === "remote") {
+        const remoteName = (formData.get("remoteName") || "").toString().trim();
+        const remoteUrl = (formData.get("remoteUrl") || "").toString().trim();
+        if (!remoteName) return jsonResponse({ success: false, msg: "remoteName（歌曲名称）为必填项" }, 400);
+        if (!remoteUrl) return jsonResponse({ success: false, msg: "remoteUrl（歌曲链接）为必填项" }, 400);
+        // download remote file server-side
+        let resp;
+        try {
+          resp = await fetch(remoteUrl, { redirect: 'follow' });
+        } catch (err) {
+          console.error(`Error fetching remote URL ${remoteUrl}:`, err); // 记录完整错误信息
+          return jsonResponse({ success: false, msg: "无法下载外链：" + err.message }, 400);
+        }
+        if (!resp.ok) return jsonResponse({ success: false, msg: "下载外链失败，状态码：" + resp.status }, 400);
+
+        // Try to determine extension from content-disposition or url or content-type
+        let inferredExt = '';
+        // from url
+        try {
+          const u = new URL(remoteUrl);
+          const path = u.pathname || '';
+          const maybe = path.slice(path.lastIndexOf(".")).toLowerCase();
+          if (maybe && ALLOWED_EXTENSIONS.includes(maybe)) inferredExt = maybe;
+        } catch (e) { /* 忽略 URL 解析错误 */ }
+        // from content-type
+        if (!inferredExt) {
+          const ct = (resp.headers.get('Content-Type') || '').toLowerCase();
+          for (const ext of ALLOWED_EXTENSIONS) {
+            if (MIME_TYPES[ext] && ct.includes(MIME_TYPES[ext])) { inferredExt = ext; break; }
+          }
+        }
+        // from content-disposition
+        if (!inferredExt) {
+          const cd = resp.headers.get('Content-Disposition') || '';
+          const m = cd.match(/filename="?([^"]+)"?/);
+          if (m && m[1]) {
+            const maybe2 = m[1].slice(m[1].lastIndexOf(".")).toLowerCase();
+            if (ALLOWED_EXTENSIONS.includes(maybe2)) inferredExt = maybe2;
+          }
+        }
+
+        if (!inferredExt) {
+          return jsonResponse({ success: false, msg: "无法判断外链文件类型或不被支持" }, 400);
+        }
+
+        // read arrayBuffer (be careful with large files)
+        const arrayBuffer = await resp.arrayBuffer();
+        const size = arrayBuffer.byteLength || 0;
+        if (size > MAX_UPLOAD_SIZE) return jsonResponse({ success: false, msg: `远程文件超过 ${MAX_UPLOAD_SIZE / (1024 * 1024)}MB 限制` }, 400); // 使用常量 MAX_UPLOAD_SIZE
+
+        const timestamp = Date.now();
+        const safeName = remoteName.endsWith(inferredExt) ? remoteName : (remoteName + inferredExt);
+        // 使用 targetCollectionPath 构建 fileKey
+        const fileKey = targetCollectionPath + timestamp + "-" + safeName;
+
+        await bucket.put(fileKey, arrayBuffer, {
+          httpMetadata: {
+            contentType: MIME_TYPES[inferredExt] || "application/octet-stream",
+            // 关键：上传时明确设置为 inline，确保后续访问时浏览器能播放
+            contentDisposition: MIME_TYPES[inferredExt] ? "inline" : undefined
+          },
+          customMetadata: {
+            originalName: safeName,
+            uploadTime: new Date().toISOString(),
+            originalDisplayName: sanitizeForMetadata(safeName),
+            externalLink: remoteUrl
+          }
+        });
+
+        const fileSize = formatBytes(size); // 使用 formatBytes 辅助函数
+
+        return jsonResponse({
+          success: true,
+          msg: "远程文件下载并上传成功",
+          data: { key: fileKey, name: safeName, size: fileSize }
+        });
+      } else {
+        return jsonResponse({ success: false, msg: "未知的 uploadMode" }, 400);
+      }
+    } catch (err) {
+      console.error("Error uploading file:", err); // 记录完整错误信息
+      return jsonResponse({ success: false, msg: "上传歌曲失败：" + err.message }, 500);
+    }
+  }
+
+  // ==================== PUT /api/song/:key/metadata - 更新元数据（需管理密码）====================
+  // 需要硬编码的管理员密钥才能访问
+  if (url.pathname.startsWith("/api/song/") && url.pathname.endsWith("/metadata") && request.method === "PUT") {
+    try {
+      const authHeader = request.headers.get(ADMIN_AUTH_HEADER_NAME); // 使用常量 ADMIN_AUTH_HEADER_NAME
+      // 使用硬编码的管理员密钥进行验证
+      if (authHeader !== HARDCODED_AUTH_SECRET) return jsonResponse({ success: false, msg: "权限不足" }, 401);
+
+      const keyEncoded = url.pathname.slice("/api/song/".length, url.pathname.length - "/metadata".length);
+      const fileKey = decodeURIComponent(keyEncoded);
+      // 验证 fileKey 是否属于任何一个允许的集合路径
+      const isAllowedKey = COLLECTION_PATHS.some(cp => fileKey.startsWith(cp.path));
+      if (!isAllowedKey) {
+        return jsonResponse({ success: false, msg: "非法操作或文件不在允许的集合中" }, 403);
+      }
+
+      const body = await request.json();
+      const newName = (body.name || "").trim();
+      if (!newName) return jsonResponse({ success: false, msg: "名称不能为空" }, 400);
+
+      const obj = await bucket.get(fileKey);
+      if (!obj || !obj.body) return jsonResponse({ success: false, msg: "对象不存在" }, 404);
+
+      const arrayBuf = await obj.arrayBuffer();
+      const existingMeta = obj.customMetadata || {};
+      // 更新 originalDisplayName，保持 originalName 不变（R2 键名）
+      const newMeta = Object.assign({}, existingMeta, { originalDisplayName: sanitizeForMetadata(newName) });
+
+      const ext = fileKey.slice(fileKey.lastIndexOf(".")).toLowerCase();
+      // 确定 Content-Type
+      const currentContentType = (obj.httpMetadata && obj.httpMetadata.contentType) || MIME_TYPES[ext] || "application/octet-stream";
+
+      // 确定 Content-Disposition
+      let currentContentDisposition = "inline"; // 默认设置为 inline
+      if (!currentContentType.startsWith("audio/") && obj.httpMetadata && obj.httpMetadata.contentDisposition) {
+          // 如果不是音频文件，并且R2有设置，则尊重R2的设置
+          currentContentDisposition = obj.httpMetadata.contentDisposition;
+      }
+
+      await bucket.put(fileKey, arrayBuf, {
+        httpMetadata: {
+          contentType: currentContentType,
+          contentDisposition: currentContentDisposition
+        },
+        customMetadata: newMeta
+      });
+
+      return jsonResponse({ success: true, msg: "更新成功", meta: newMeta });
+    } catch (err) {
+      console.error(`Error updating metadata for ${url.pathname}:`, err); // 记录完整错误信息
+      return jsonResponse({ success: false, msg: "更新元数据失败：" + err.message }, 500);
+    }
+  }
+
+  // ==================== GET /api/metadata/:key - 获取歌曲元数据 (新增) ====================
+  // 需要硬编码的管理员密钥才能访问
+  if (url.pathname.startsWith("/api/metadata/") && request.method === "GET") {
+    try {
+      const authHeader = request.headers.get(ADMIN_AUTH_HEADER_NAME);
+      if (authHeader !== HARDCODED_AUTH_SECRET) return jsonResponse({ success: false, msg: "权限不足" }, 401);
+
+      const fileKey = decodeURIComponent(url.pathname.slice("/api/metadata/".length));
+      // 验证 fileKey 是否属于任何一个允许的集合路径
+      const isAllowedKey = COLLECTION_PATHS.some(cp => fileKey.startsWith(cp.path));
+      if (!isAllowedKey) {
+        return jsonResponse({ success: false, msg: "非法访问或文件不在允许的集合中" }, 403);
+      }
+
+      const obj = await bucket.head(fileKey); // 使用 head 获取元数据，不下载文件内容
+      if (!obj) return jsonResponse({ success: false, msg: "歌曲不存在" }, 404);
+
+      const metadata = {
+        key: obj.key,
+        name: obj.key.split('/').pop(), // 文件名部分
+        displayName: obj.customMetadata?.originalDisplayName || obj.key.split('/').pop(),
+        size: formatBytes(obj.size || 0),
+        rawSize: obj.size || 0,
+        lastModified: obj.uploaded ? new Date(obj.uploaded).toLocaleString() : '',
+        uploadTime: obj.customMetadata?.uploadTime || null,
+        externalLink: obj.customMetadata?.externalLink || null,
+        customMetadata: obj.customMetadata || {}, // 包含所有自定义元数据
+        contentType: obj.httpMetadata?.contentType || "application/octet-stream"
+      };
+
+      return jsonResponse({ success: true, data: metadata });
+    } catch (err) {
+      console.error(`Error fetching metadata for ${url.pathname}:`, err);
+      return jsonResponse({ success: false, msg: "获取元数据失败：" + err.message }, 500);
+    }
+  }
+
+
+  // ==================== 未匹配的路径 ====================
+  return jsonResponse({ success: false, msg: "路径不存在" }, 404);
+}
+
+// 辅助函数：返回 JSON 响应
+function jsonResponse(obj, status = 200) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" }
+  });
+}
+
+// 辅助函数：清理显示名称用于元数据
+function sanitizeForMetadata(name) {
+  if (!name) return name;
+  let n = name;
+  // 1. 移除开头的数字和连字符 (例如 "1234567890-")
+  n = n.replace(/^[0-9]+-/, '');
+
+  // 2. 尝试移除文件扩展名（如果它是允许的音频格式）
+  const lastDotIndex = n.lastIndexOf('.');
+  // 确保不是以 '.' 开头的隐藏文件，且 '.' 不在字符串开头
+  if (lastDotIndex > 0) {
+    const ext = n.substring(lastDotIndex).toLowerCase();
+    if (ALLOWED_EXTENSIONS.includes(ext)) {
+      n = n.substring(0, lastDotIndex);
+    }
+  }
+
+  // 3. 去除首尾空格
+  n = n.trim();
+
+  // 4. 限制长度
+  if (n.length > 200) n = n.slice(0, 200);
+  return n;
+}
+
+// 辅助函数：格式化文件大小为可读的字符串 (例如 "1.2 MB", "500 KB")
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
