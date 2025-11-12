@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>R2 悦听面板</title> <!-- 修改点 1 -->
+<title>R2 悦听面板</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='%233b82f6' d='M8 3a5 5 0 0 0-5 5v2a5 5 0 0 0 10 0V8a5 5 0 0 0-5-5zm0 11a3 3 0 0 1-3-3V8a3 3 0 0 1 6 0v3a3 3 0 0 1-3-3z'/></svg>" type="image/svg+xml">
 <style>
 /* =================================================================== */
@@ -375,42 +375,42 @@ input:focus, textarea:focus, select:focus {
     display: flex; /* 使用 Flexbox 布局 */
     justify-content: space-between; /* 子元素两端对齐 */
     align-items: center; /* 垂直居中 */
-    margin-bottom: var(--spacing-xl); /* 修改点 2: 减少与下方列表的间隔 */
-    padding: var(--spacing-md); /* 修改点 2: 减少内边距 */
-    background-color: var(--color-player-bg); /* 与播放器背景色一致 */
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-md);
+    background-color: var(--color-player-bg);
     border: 1px solid var(--color-player-border);
     border-radius: 8px;
     box-shadow: 0 2px 4px var(--color-shadow);
     width: 100%;
+    flex-wrap: nowrap; /* 确保始终保持一行显示 */
+    gap: var(--spacing-md); /* 增加元素之间的默认间距 */
 }
 
-.collection-selector,
-.search-input-container {
-    flex: 1; /* 每个子元素占据等宽空间 */
-    padding: 0 10px;
+/* 桌面端宽度分配 */
+.collection-selector {
+    flex: 3; /* 给予更多空间，例如占据 3/5 宽度 */
     display: flex;
     align-items: center;
     gap: 8px;
 }
-
 .collection-selector label {
-    margin-right: 0; /* 已有 gap，移除 label 的 margin-right */
-    font-weight: bold;
-    color: var(--color-text-primary);
-    white-space: nowrap; /* 防止标签换行 */
+    white-space: nowrap; /* 确保标签不换行 */
     flex-shrink: 0; /* 防止标签被压缩 */
 }
+#collection-dropdown {
+    flex: 1; /* 填充父容器 (collection-selector) 的剩余空间 */
+    min-width: 0; /* 允许在必要时缩小 */
+}
 
-#collection-dropdown,
-#searchInput { /* 搜索框 ID 保持 #searchInput */
-    width: 100%; /* 填充父容器宽度 */
-    padding: 8px;
-    border: 1px solid var(--color-input-border);
-    border-radius: 4px;
-    font-size: 0.95rem; /* 与原搜索框字体大小一致 */
-    box-sizing: border-box; /* 包含 padding 和 border 在宽度内 */
-    background: var(--color-input-bg);
-    color: var(--color-text-primary);
+.search-input-container {
+    flex: 2; /* 给予较少空间，例如占据 2/5 宽度 */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+#searchInput {
+    flex: 1; /* 填充父容器 (search-input-container) 的剩余空间 */
+    min-width: 0; /* 允许在必要时缩小 */
 }
 
 #searchInput {
@@ -576,7 +576,7 @@ input:focus, textarea:focus, select:focus {
 /* 主题切换器容器 (新位置) */
 .theme-switcher-container {
   position: relative; /* 用于定位下拉菜单 */
-  margin-left: var(--spacing-md); /* 与 uploaderStatus 保持距离 */
+  /* margin-left: var(--spacing-md); */ /* 与 uploaderStatus 保持距离，现在由 flex gap 控制 */
   flex-shrink: 0; /* 防止主题切换器被压缩 */
 }
 
@@ -770,42 +770,30 @@ input:focus, textarea:focus, select:focus {
     /* padding 已经为 0，不需要再次设置 */
   }
 
-  /* --- 修改点 4: 响应式调整：控制面板 (集合下拉框和搜索框在同一行) --- */
+  /* --- 手机端控制面板布局优化 --- */
   .control-panel {
-      flex-direction: row; /* 保持在同一行 */
-      flex-wrap: nowrap; /* 不换行 */
-      justify-content: space-between; /* 元素之间均匀分布空间 */
-      align-items: center; /* 垂直居中 */
       gap: var(--spacing-sm); /* 缩小间距 */
       padding: var(--spacing-sm); /* 缩小内边距 */
   }
   .collection-selector {
-      flex: 0 1 auto; /* 不强制增长，但可以收缩，宽度由内容决定 */
-      padding: 0;
+      flex: 2; /* 手机端下拉框占据更多空间 (例如 2/3 宽度) */
       gap: var(--spacing-xs); /* 标签和下拉框之间的间距 */
   }
   .collection-selector label {
       font-size: 0.8rem; /* 缩小标签字体 */
-      white-space: nowrap; /* 防止标签换行 */
-      flex-shrink: 0;
   }
   #collection-dropdown {
-      flex: 1; /* 允许下拉框占据剩余空间 */
-      min-width: 60px; /* 最小宽度 */
-      max-width: 100px; /* 最大宽度，保持适当长度 */
-      font-size: 0.8rem; /* 缩小字体 */
-      padding: 4px 6px; /* 缩小内边距 */
+      font-size: 0.8rem;
+      padding: 4px 6px;
   }
   .search-input-container {
-      flex: 1 1 auto; /* 允许搜索框占据剩余空间 */
-      padding: 0;
-      min-width: 80px; /* 搜索框的最小宽度 */
+      flex: 1; /* 手机端搜索框占据较少空间 (例如 1/3 宽度) */
   }
   #searchInput {
-      font-size: 0.8rem; /* 缩小字体 */
-      padding: 4px 30px 4px 6px; /* 缩小内边距，并为搜索图标留出空间 */
-      background-size: 14px; /* 缩小搜索图标 */
-      background-position: right 6px center; /* 调整图标位置 */
+      font-size: 0.8rem;
+      padding: 4px 30px 4px 6px;
+      background-size: 14px;
+      background-position: right 6px center;
   }
 }
 </style>
@@ -819,7 +807,7 @@ input:focus, textarea:focus, select:focus {
   <div class="music-player">
     <div class="player-header">
       <div style="display:flex;align-items:center;gap:8px;">
-        <h1 class="player-title">R2 悦听面板</h1> <!-- 修改点 1 -->
+        <h1 class="player-title">R2 悦听面板</h1>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <div id="uploaderStatus" style="font-size:0.85rem;color:#cbd5e1;"></div>
@@ -835,6 +823,8 @@ input:focus, textarea:focus, select:focus {
                 <button data-theme="green" class="theme-btn">绿色</button>
             </div>
         </div>
+        <!-- 全屏按钮 -->
+        <button id="fullscreenToggleButton" class="theme-toggle-btn" title="全屏"><i class="fas fa-expand"></i></button>
       </div>
     </div>
 
@@ -846,8 +836,8 @@ input:focus, textarea:focus, select:focus {
         </div>
       </div>
       <div class="music-info">
-        <div id="currentSongTitle" class="music-title"><span id="currentSongTitleText">未选择歌曲</span></div>
-        <div id="currentSongSubtitle" class="music-empty">点击右下方列表歌曲以播放</div>
+        <div id="currentSongTitle" class="music-title"><span id="currentSongTitleText">未选择音频文件</span></div>
+        <div id="currentSongSubtitle" class="music-empty">双击下方列表内文件播放</div>
       </div>
     </div>
 
@@ -885,7 +875,7 @@ input:focus, textarea:focus, select:focus {
           </select>
       </div>
       <div class="search-input-container">
-          <input id="searchInput" placeholder="当前列表内检索..." aria-label="搜索歌曲" /> <!-- 修改点 3 -->
+          <input id="searchInput" placeholder="当前列表内检索..." aria-label="搜索歌曲" />
       </div>
   </div>
 
@@ -893,7 +883,7 @@ input:focus, textarea:focus, select:focus {
   <div class="song-list-section">
     <div class="list-header">
       <div class="list-title-group">
-        <div class="list-title">歌曲列表</div>
+        <div class="list-title">播放列表</div> <!-- 修改为播放列表 -->
         <div id="songCount" class="list-count">（0 首）</div>
       </div>
       <!-- 排序控件 -->
@@ -1021,7 +1011,7 @@ input:focus, textarea:focus, select:focus {
   <button id="contextMenuView" class="context-menu-item" data-action="view"><i class="fas fa-info-circle"></i> 查看/复制</button>
   <button id="contextMenuDownload" class="context-menu-item" data-action="download"><i class="fas fa-download"></i> 下载</button>
   <button id="contextMenuDelete" class="context-menu-item" data-action="delete"><i class="fas fa-trash"></i> 删除</button>
-  <button id="contextMenuExportJson" class="context-menu-item" data-action="exportAllJson"><i class="fas fa-file-export"></i> 导出当前列表 JSON</button> <!-- 修改点 5 -->
+  <button id="contextMenuExportJson" class="context-menu-item" data-action="exportAllJson"><i class="fas fa-file-export"></i> 导出当前列表 JSON</button>
 </div>
 
 <audio id="audioPlayer" preload="metadata"></audio>
@@ -1077,6 +1067,9 @@ input:focus, textarea:focus, select:focus {
     - **搜索框占位符修改**: "搜索当前列表歌曲..." -> "当前列表内检索..."。
     - **手机端控制面板布局**: 优化了集合选择和搜索框在手机端的布局，使其在同一行内显示，并调整了宽度和字体大小以保持紧凑。
     - **导出 JSON 行为修改**: 上下文菜单中的“导出 JSON”现在导出当前列表的所有歌曲，并以列表名称命名文件。
+    - **新增全屏按钮**: 在主题模式按钮右侧添加全屏按钮，支持全屏/退出全屏，并根据状态切换图标。
+    - **文本修改**: "未选择歌曲 点击右下方列表歌曲以播放" -> "未选择音频文件 双击下方列表内文件播放"。
+    - **文本修改**: "歌曲列表" -> "播放列表"。
 */
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".mp3",".flac",".wav",".m4a",".ogg",".aac",".ape"];
@@ -1175,7 +1168,9 @@ const el = {
   collectionDropdown: document.getElementById('collection-dropdown'),
   uploadCollectionDropdown: document.getElementById('upload-collection-dropdown'),
   viewMetadataContainer: document.getElementById('viewMetadataContainer'), // 新增
-  viewMetadataTextarea: document.getElementById('viewMetadataTextarea') // 新增
+  viewMetadataTextarea: document.getElementById('viewMetadataTextarea'), // 新增
+  // 新增全屏按钮
+  fullscreenToggleButton: document.getElementById('fullscreenToggleButton') // 新增
 };
 
 // 状态管理
@@ -1240,6 +1235,7 @@ async function init() {
   loadTheme(); // 加载主题
   await fetchAndPopulateCollections(); // 首先获取并填充集合，然后会触发歌曲列表加载
   updateVolumeIcon();
+  updateFullscreenButtonIcon(); // 初始化全屏按钮图标
 }
 
 /**
@@ -1379,6 +1375,14 @@ function bindEvents() {
       el.themeOptions.classList.add('hidden'); // 选择主题后关闭下拉菜单
     }
   });
+
+  // 全屏按钮事件
+  el.fullscreenToggleButton.addEventListener('click', toggleFullscreen);
+  // 监听全屏状态变化，更新按钮图标
+  document.addEventListener('fullscreenchange', updateFullscreenButtonIcon);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenButtonIcon); // 兼容旧版 Chrome/Safari
+  document.addEventListener('mozfullscreenchange', updateFullscreenButtonIcon);    // 兼容 Firefox
+  document.addEventListener('MSFullscreenChange', updateFullscreenButtonIcon);      // 兼容 IE/Edge
 }
 
 /**
@@ -1528,9 +1532,9 @@ async function fetchAndRenderSongs(collectionPath) {
     if (state.currentSongIndex !== -1 && state.currentSongIndex < state.songListData.length) {
         highlightCurrentSong();
     } else {
-        el.currentSongTitleText.textContent = '未选择歌曲';
+        el.currentSongTitleText.textContent = '未选择音频文件'; // 修改文本
         stopSongTitleScrolling(); // 停止滚动
-        el.currentSongSubtitle.textContent = '点击右下方列表歌曲以播放';
+        el.currentSongSubtitle.textContent = '双击下方列表内文件播放'; // 修改文本
         el.discImage.src = getSongCoverUrl('defaultmusic', 80);
         updatePlayBtnState();
     }
@@ -1980,7 +1984,7 @@ async function openPasswordModalForUpload() {
     console.log('[openPasswordModalForUpload] 发现 sessionStorage 中有上传密钥，尝试静默验证...');
     try {
       // --- 优化点：使用 API_BASE_URL ---
-      const response = await fetch(`${API_BASE_BASE_URL}/api/verify-admin`, {
+      const response = await fetch(`${API_BASE_URL}/api/verify-admin`, { // 修正：API_BASE_BASE_URL -> API_BASE_URL
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2379,9 +2383,9 @@ async function executeDeleteSong(songKey, secret) {
       el.audioPlayer.pause();
       state.isPlaying = false;
       el.musicDisc.classList.remove('disc-spin');
-      el.currentSongTitleText.textContent = '未选择歌曲';
+      el.currentSongTitleText.textContent = '未选择音频文件'; // 修改文本
       stopSongTitleScrolling(); // 停止滚动
-      el.currentSongSubtitle.textContent = '点击右下方列表歌曲以播放';
+      el.currentSongSubtitle.textContent = '双击下方列表内文件播放'; // 修改文本
       el.discImage.src = getSongCoverUrl('defaultmusic', 80); // 重置为默认封面
       state.currentSongIndex = -1;
       state.selectedSongIndex = -1; // 删除后也清除选中状态
@@ -2597,7 +2601,7 @@ function playSong(index) {
       if (subtitleText) subtitleText += ' · ';
       subtitleText += song.lastModified;
   }
-  el.currentSongSubtitle.textContent = subtitleText || '点击右下方列表歌曲以播放';
+  el.currentSongSubtitle.textContent = subtitleText || '双击下方列表内文件播放'; // 修改文本
 
   el.discImage.src = getSongCoverUrl(song.key, 80); // 优化：使用 80x80 尺寸
 
@@ -2978,6 +2982,58 @@ function loadTheme() {
     const savedTheme = localStorage.getItem('selectedTheme') || 'default';
     applyTheme(savedTheme);
 }
+
+// ===================================================================
+//                             全屏功能
+// ===================================================================
+
+/**
+ * 切换全屏模式。
+ */
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        // 请求全屏，对整个文档元素 (<html>)
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) { /* Firefox */
+            document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+            document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.msRequestFullscreen) { /* IE/Edge */
+            document.documentElement.msRequestFullscreen();
+        }
+    } else {
+        // 退出全屏
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) { /* Firefox */
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) { /* Chrome, Safari & Opera */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE/Edge */
+            document.msExitFullscreen();
+        }
+    }
+}
+
+/**
+ * 更新全屏按钮的图标和标题，以反映当前全屏状态。
+ */
+function updateFullscreenButtonIcon() {
+    const icon = el.fullscreenToggleButton.querySelector('i');
+    if (document.fullscreenElement) {
+        // 当前处于全屏模式，显示“退出全屏”图标
+        icon.classList.remove('fa-expand');
+        icon.classList.add('fa-compress');
+        el.fullscreenToggleButton.title = '退出全屏';
+    } else {
+        // 当前非全屏模式，显示“全屏”图标
+        icon.classList.remove('fa-compress');
+        icon.classList.add('fa-expand');
+        el.fullscreenToggleButton.title = '全屏';
+    }
+}
+
 
 // ===================================================================
 //                         歌曲名称滚动功能
