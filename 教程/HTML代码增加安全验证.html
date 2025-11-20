@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> HTML 保护生成器</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; margin: 20px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; margin-bottom: 40px; color: #2c3e50; }
+        h2 { color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-top: 30px; margin-bottom: 20px; }
+        .section { margin-bottom: 30px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #fdfdfd; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        input[type="file"], input[type="text"], input[type="password"], select {
+            width: calc(100% - 22px); padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; font-size: 1em; box-sizing: border-box;
+        }
+        button {
+            background-color: #6c757d;
+            color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-right: 10px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        button:hover { background-color: #5a6268; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; transform: none; }
+        #generateBtn { background-color: #007bff; }
+        #generateBtn:hover { background-color: #0056b3; }
+        #addPasswordBtn { background-color: #28a745; }
+        #addPasswordBtn:hover { background-color: #218838; }
+        .status-message, .error-message { padding: 10px; margin-top: 10px; border-radius: 5px; font-weight: bold; }
+        .status-message { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .error-message { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .info-box { background-color: #e0f7fa; border-left: 5px solid #00bcd4; padding: 15px; margin-top: 30px; border-radius: 8px; color: #006064; }
+        .info-box p { margin: 0 0 10px 0; }
+        .password-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #eee; }
+        .password-item:last-child { border-bottom: none; }
+        .password-item button { background-color: #dc3545; padding: 6px 10px; font-size: 0.9em; margin: 0; }
+        .password-item button:hover { background-color: #c82333; }
+        .password-list-container { max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; padding: 10px; background-color: #fff; }
+        .flex-group { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; }
+        .flex-group input[type="password"], .flex-group select { flex-grow: 1; margin-bottom: 0; }
+        .flex-group button { flex-shrink: 0; margin-bottom: 0; }
+        .filename-hint { color: #666; font-size: 0.9em; margin-top: -10px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HTML 页面保护生成器</h1>
+
+        <div class="section">
+            <h2>1. 上传原始 HTML 文件</h2>
+            <label for="htmlFileInput">选择要保护的 HTML 文件：</label>
+            <input type="file" id="htmlFileInput" accept=".html">
+            <div id="fileStatus" class="status-message" style="display: none;"></div>
+            <button id="previewOriginalBtn" style="display: none;">预览原始HTML</button>
+        </div>
+
+        <div class="section">
+            <h2>2. 管理密码</h2>
+            <div class="flex-group">
+                <input type="password" id="newPasswordInput" placeholder="输入新密码">
+                <select id="passwordTypeSelect">
+                    <option value="normal">普通密码 (每次访问)</option>
+                    <option value="temporary">临时密码 (7天有效)</option>
+                    <option value="remember">记住密码 (浏览器记住)</option>
+                </select>
+                <button id="addPasswordBtn">添加密码</button>
+            </div>
+            <div id="passwordError" class="error-message" style="display: none;"></div>
+            <div class="password-list-container">
+                <div id="passwordList">
+                    <p style="text-align: center; color: #888;">暂无密码</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>3. 生成受保护的 HTML 文件</h2>
+            <label>导出文件名规则：</label>
+            <p class="filename-hint">固定格式为「密码验证-原文件名」，无需手动输入</p>
+            <button id="generateBtn" disabled>生成并下载受保护的HTML</button>
+            <button id="previewProtectedBtn" style="display: none;">预览受保护的HTML</button>
+            <div id="generateStatus" class="status-message" style="display: none;"></div>
+            <div id="generateError" class="error-message" style="display: none;"></div>
+        </div>
+
+        <div class="info-box">
+            <h2>重要提示</h2>
+            <p><strong>隐私与安全：</strong>所有文件处理均在您的浏览器本地完成，不会上传到任何服务器。但是，请注意，这种客户端密码保护并非真正的安全措施，有经验的用户可以通过查看源代码绕过。请勿用于保护高度敏感的信息。</p>
+            <p><strong>HTML 结构：</strong>请确保您的原始 HTML 文件包含一个有效的 <code>&lt;body&gt;</code> 标签，否则生成可能失败。</p>
+            <p><strong>脚本兼容性：</strong>如果您的原始 HTML 中包含 <code>DOMContentLoaded</code> 事件监听器，它们会在密码验证成功并显示内容后正常触发。</p>
+        </div>
+    </div>
+
+    <!-- 登录界面的 CSS 模板 (隐藏) -->
+    <style id="panda-auth-css-template" type="text/css" style="display: none;">
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            overflow: hidden;
+        }
+        #panda-auth-login-container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInSlideUp 0.6s ease-out forwards;
+        }
+        @keyframes fadeInSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #panda-auth-login-container h2 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        #panda-auth-login-container p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+        #panda-auth-password-input {
+            width: calc(100% - 20px);
+            padding: 12px 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        #panda-auth-submit-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+        }
+        #panda-auth-submit-button:hover {
+            background-color: #45a049;
+        }
+        #panda-auth-error-message {
+            color: #d9534f;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+        }
+        #protected-content {
+            display: none;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+        #protected-content.show {
+            display: block;
+            opacity: 1;
+        }
+    </style>
+
+    <!-- 登录界面的 HTML 模板 (隐藏) -->
+    <div id="panda-auth-html-template" style="display: none;">
+        <div id="panda-auth-login-container">
+            <h2>安全 验证</h2>
+            <p>请输入密码以访问此页面。</p>
+            <input type="password" id="panda-auth-password-input" placeholder="输入密码">
+            <button id="panda-auth-submit-button">解锁</button>
+            <div id="panda-auth-error-message">密码错误，请重试。</div>
+        </div>
+    </div>
+
+    <!-- 安全 登录界面的 JavaScript 模板 (隐藏) -->
+    <script id="panda-auth-script-template" type="text/template" style="display: none;">
+        (function() {
+            function loadCryptoJSAndInit() {
+                if (typeof window.CryptoJS === 'undefined') {
+                    var script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
+                    script.onload = function() {
+                        if (typeof window.CryptoJS !== 'undefined') {
+                            initPandaAuth();
+                        } else {
+                            console.error("CryptoJS loaded but not found globally. Check CDN link.");
+                        }
+                    };
+                    script.onerror = function() {
+                        console.error("Failed to load CryptoJS CDN. Please check your internet connection or CDN availability.");
+                        const loginContainer = document.getElementById('panda-auth-login-container');
+                        if (loginContainer) {
+                            loginContainer.innerHTML = '<p style="color: red;">无法加载必要的验证组件，请检查网络连接。</p>';
+                        }
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    initPandaAuth();
+                }
+            }
+
+            loadCryptoJSAndInit();
+
+            function initPandaAuth() {
+                const passwordInput = document.getElementById('panda-auth-password-input');
+                const submitButton = document.getElementById('panda-auth-submit-button');
+                const errorMessage = document.getElementById('panda-auth-error-message');
+                const loginContainer = document.getElementById('panda-auth-login-container');
+                const protectedContent = document.getElementById('protected-content');
+
+                const storedPasswords = JSON.parse(decodeURIComponent("{{PASSWORDS_JSON}}"));
+                const pageKey = location.pathname;
+
+                const rememberedPasswordHash = localStorage.getItem('panda_auth_remember_' + pageKey);
+                if (rememberedPasswordHash) {
+                    for (const p of storedPasswords) {
+                        if (p.hash === rememberedPasswordHash && p.type === 'remember') {
+                            showProtectedContent();
+                            return;
+                        }
+                    }
+                    localStorage.removeItem('panda_auth_remember_' + pageKey);
+                }
+
+                submitButton.addEventListener('click', checkPassword);
+                passwordInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        checkPassword();
+                    }
+                });
+
+                function checkPassword() {
+                    const enteredPassword = passwordInput.value;
+                    if (!enteredPassword) {
+                        errorMessage.textContent = "请输入密码。";
+                        errorMessage.style.display = 'block';
+                        return;
+                    }
+
+                    const enteredHash = CryptoJS.SHA256(enteredPassword).toString();
+                    let isAuthenticated = false;
+
+                    for (const p of storedPasswords) {
+                        if (p.hash === enteredHash) {
+                            if (p.type === 'normal') {
+                                isAuthenticated = true;
+                                break;
+                            } else if (p.type === 'temporary') {
+                                const now = new Date().getTime();
+                                if (now - p.timestamp < (7 * 24 * 60 * 60 * 1000)) {
+                                    isAuthenticated = true;
+                                    break;
+                                }
+                            } else if (p.type === 'remember') {
+                                localStorage.setItem('panda_auth_remember_' + pageKey, enteredHash);
+                                isAuthenticated = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (isAuthenticated) {
+                        showProtectedContent();
+                    } else {
+                        errorMessage.textContent = "密码错误，请重试。";
+                        errorMessage.style.display = 'block';
+                        passwordInput.value = '';
+                    }
+                }
+
+                function showProtectedContent() {
+                    if (loginContainer) loginContainer.style.display = 'none';
+                    if (protectedContent) {
+                        protectedContent.style.display = 'block';
+                        void protectedContent.offsetWidth;
+                        protectedContent.classList.add('show');
+                    }
+
+                    const event = new Event('DOMContentLoaded', {
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    document.dispatchEvent(event);
+                }
+            }
+        })();
+    </script>
+
+    <script>
+        let originalHtmlContent = '';
+        let originalFileName = '';
+        let protectedHtmlContent = '';
+        let passwords = [];
+
+        const htmlFileInput = document.getElementById('htmlFileInput');
+        const fileStatus = document.getElementById('fileStatus');
+        const previewOriginalBtn = document.getElementById('previewOriginalBtn');
+        const newPasswordInput = document.getElementById('newPasswordInput');
+        const passwordTypeSelect = document.getElementById('passwordTypeSelect');
+        const addPasswordBtn = document.getElementById('addPasswordBtn');
+        const passwordList = document.getElementById('passwordList');
+        const passwordError = document.getElementById('passwordError');
+        const generateBtn = document.getElementById('generateBtn');
+        const previewProtectedBtn = document.getElementById('previewProtectedBtn');
+        const generateStatus = document.getElementById('generateStatus');
+        const generateError = document.getElementById('generateError');
+
+        if (typeof CryptoJS === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
+            script.onload = () => { console.log('CryptoJS loaded for generator.'); };
+            script.onerror = () => {
+                console.error('Failed to load CryptoJS for generator. Password hashing may not work.');
+                passwordError.textContent = '无法加载密码加密库，请检查网络连接。';
+                passwordError.style.display = 'block';
+            };
+            document.head.appendChild(script);
+        }
+
+        htmlFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                originalFileName = file.name;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    originalHtmlContent = e.target.result;
+                    fileStatus.textContent = `文件已加载: ${originalFileName} (${(file.size / 1024).toFixed(2)} KB)`;
+                    fileStatus.style.display = 'block';
+                    fileStatus.className = 'status-message';
+                    previewOriginalBtn.style.display = 'inline-block';
+                    checkGenerateButtonState();
+                };
+                reader.onerror = () => {
+                    fileStatus.textContent = '文件读取失败。';
+                    fileStatus.style.display = 'block';
+                    fileStatus.className = 'error-message';
+                    originalHtmlContent = '';
+                    previewOriginalBtn.style.display = 'none';
+                    checkGenerateButtonState();
+                };
+                reader.readAsText(file);
+            } else {
+                fileStatus.textContent = '请选择一个 HTML 文件。';
+                fileStatus.style.display = 'block';
+                fileStatus.className = 'error-message';
+                originalHtmlContent = '';
+                originalFileName = '';
+                previewOriginalBtn.style.display = 'none';
+                checkGenerateButtonState();
+            }
+        });
+
+        previewOriginalBtn.addEventListener('click', () => {
+            if (originalHtmlContent) {
+                const newWindow = window.open();
+                newWindow.document.write(originalHtmlContent);
+                newWindow.document.close();
+            }
+        });
+
+        addPasswordBtn.addEventListener('click', () => {
+            const password = newPasswordInput.value;
+            const type = passwordTypeSelect.value;
+            if (password) {
+                if (typeof CryptoJS === 'undefined') {
+                    passwordError.textContent = 'CryptoJS 库尚未加载，请稍候再试。';
+                    passwordError.style.display = 'block';
+                    return;
+                }
+                const hash = CryptoJS.SHA256(password).toString();
+                if (passwords.some(p => p.hash === hash)) {
+                    passwordError.textContent = '此密码已存在，请勿重复添加。';
+                    passwordError.style.display = 'block';
+                    return;
+                }
+                passwords.push({ hash, type, timestamp: Date.now() });
+                newPasswordInput.value = '';
+                passwordError.style.display = 'none';
+                renderPasswordList();
+                checkGenerateButtonState();
+            } else {
+                passwordError.textContent = '密码不能为空。';
+                passwordError.style.display = 'block';
+            }
+        });
+
+        function renderPasswordList() {
+            passwordList.innerHTML = '';
+            if (passwords.length === 0) {
+                passwordList.innerHTML = '<p style="text-align: center; color: #888;">暂无密码</p>';
+                return;
+            }
+            passwords.forEach((p, index) => {
+                const div = document.createElement('div');
+                div.className = 'password-item';
+                const typeText = {
+                    normal: '普通',
+                    temporary: '临时 (7天)',
+                    remember: '记住'
+                }[p.type];
+                div.innerHTML = `
+                    <span>类型: ${typeText}, 哈希: ${p.hash.substring(0, 10)}...</span>
+                    <button data-index="${index}">删除</button>
+                `;
+                div.querySelector('button').addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.dataset.index);
+                    passwords.splice(idx, 1);
+                    renderPasswordList();
+                    checkGenerateButtonState();
+                });
+                passwordList.appendChild(div);
+            });
+        }
+
+        generateBtn.addEventListener('click', () => {
+            generateStatus.style.display = 'none';
+            generateError.style.display = 'none';
+            previewProtectedBtn.style.display = 'none';
+
+            if (!originalHtmlContent) {
+                generateError.textContent = '请先上传原始 HTML 文件。';
+                generateError.style.display = 'block';
+                return;
+            }
+            if (passwords.length === 0) {
+                generateError.textContent = '请至少添加一个密码。';
+                generateError.style.display = 'block';
+                return;
+            }
+
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(originalHtmlContent, 'text/html');
+
+                const head = doc.head;
+                const body = doc.body;
+
+                if (!body) {
+                    generateError.textContent = '原始 HTML 文件中未找到 <body> 标签。';
+                    generateError.style.display = 'block';
+                    return;
+                }
+
+                const originalBodyContent = body.innerHTML;
+                body.innerHTML = `<div id="protected-content">${originalBodyContent}</div>`;
+                body.style.margin = '0';
+
+                const pandaAuthCssTemplate = document.getElementById('panda-auth-css-template').textContent;
+                const styleElement = doc.createElement('style');
+                styleElement.textContent = pandaAuthCssTemplate;
+                head.appendChild(styleElement);
+
+                const pandaAuthHtmlTemplate = document.getElementById('panda-auth-html-template').innerHTML;
+                const tempDiv = doc.createElement('div');
+                tempDiv.innerHTML = pandaAuthHtmlTemplate;
+                const loginContainer = tempDiv.firstElementChild;
+                if (loginContainer) {
+                    body.prepend(loginContainer);
+                }
+
+                let pandaAuthScriptTemplateContent = document.getElementById('panda-auth-script-template').textContent;
+                const passwordsJson = encodeURIComponent(JSON.stringify(passwords));
+                pandaAuthScriptTemplateContent = pandaAuthScriptTemplateContent.replace('{{PASSWORDS_JSON}}', passwordsJson);
+
+                const scriptElement = doc.createElement('script');
+                scriptElement.textContent = pandaAuthScriptTemplateContent;
+                body.appendChild(scriptElement);
+
+                protectedHtmlContent = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+
+                generateStatus.textContent = `HTML 文件生成成功！导出文件名为：密码验证-${originalFileName}`;
+                generateStatus.style.display = 'block';
+                previewProtectedBtn.style.display = 'inline-block';
+
+                const blob = new Blob([protectedHtmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `密码验证-${originalFileName}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error('生成失败:', error);
+                generateError.textContent = '生成失败: ' + error.message;
+                generateError.style.display = 'block';
+            }
+        });
+
+        previewProtectedBtn.addEventListener('click', () => {
+            if (protectedHtmlContent) {
+                const newWindow = window.open();
+                newWindow.document.write(protectedHtmlContent);
+                newWindow.document.close();
+            }
+        });
+
+        function checkGenerateButtonState() {
+            generateBtn.disabled = !(originalHtmlContent && passwords.length > 0);
+        }
+
+        renderPasswordList();
+        checkGenerateButtonState();
+    </script>
+</body>
+</html>
