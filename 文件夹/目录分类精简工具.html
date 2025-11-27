@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>目录分类精简工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 4px solid #4b6cb7;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #4b6cb7;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #f0f4f8;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            background: #e8eff7;
+            border-color: #3a5a9c;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #4b6cb7;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background: #4b6cb7;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn:hover {
+            background: #3a5a9c;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .btn-download {
+            background: #2ecc71;
+        }
+        
+        .btn-download:hover {
+            background: #27ae60;
+        }
+        
+        .processing-options {
+            margin: 20px 0;
+        }
+        
+        .option-item {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .option-item label {
+            margin-left: 10px;
+            font-size: 15px;
+        }
+        
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4fd;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        .file-info p {
+            margin-bottom: 8px;
+        }
+        
+        .preview {
+            margin-top: 25px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 15px;
+            background: #f8fafc;
+        }
+        
+        .preview h3 {
+            margin-bottom: 10px;
+            color: #4a5568;
+        }
+        
+        .preview-item {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .preview-item:last-child {
+            border-bottom: none;
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #718096;
+            font-size: 14px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #4b6cb7;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 0;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .actions {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>目录分类精简工具</h1>
+            <p class="subtitle">导入JSON文件，精简catelog字段，导出处理后的数据</p>
+        </header>
+        
+        <div class="content">
+            <div class="card">
+                <h2>1. 上传JSON文件</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <p class="upload-text">点击或拖拽JSON文件到这里</p>
+                    <button class="btn" id="selectFileBtn">
+                        <i>📂</i> 选择文件
+                    </button>
+                    <input type="file" id="fileInput" class="file-input" accept=".json">
+                </div>
+                
+                <div class="file-info" id="fileInfo">
+                    <p><strong>文件名:</strong> <span id="fileName"></span></p>
+                    <p><strong>文件大小:</strong> <span id="fileSize"></span></p>
+                    <p><strong>数据条数:</strong> <span id="dataCount"></span></p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>2. 处理选项</h2>
+                <div class="processing-options">
+                    <div class="option-item">
+                        <input type="checkbox" id="simplifyCatalog" checked>
+                        <label for="simplifyCatalog">精简catelog字段（三级目录简化为"发现-最后一级"）</label>
+                    </div>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>正在处理数据...</p>
+                </div>
+                
+                <div class="preview" id="preview">
+                    <h3>数据预览 (前5条)</h3>
+                    <div id="previewContent"></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>3. 导出处理后的文件</h2>
+                <div class="actions">
+                    <button class="btn" id="processBtn" disabled>
+                        <i>⚙️</i> 处理数据
+                    </button>
+                    <button class="btn btn-download" id="downloadBtn" disabled>
+                        <i>💾</i> 下载文件
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>目录分类精简工具 &copy; 2023</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            const selectFileBtn = document.getElementById('selectFileBtn');
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const dataCount = document.getElementById('dataCount');
+            const processBtn = document.getElementById('processBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const preview = document.getElementById('preview');
+            const previewContent = document.getElementById('previewContent');
+            const loading = document.getElementById('loading');
+            
+            let originalData = null;
+            let processedData = null;
+            
+            // 点击选择文件按钮
+            selectFileBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // 拖放功能
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.style.background = '#e1e9f5';
+                uploadArea.style.borderColor = '#3a5a9c';
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.style.background = '#f0f4f8';
+                uploadArea.style.borderColor = '#4b6cb7';
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.style.background = '#f0f4f8';
+                uploadArea.style.borderColor = '#4b6cb7';
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect();
+                }
+            });
+            
+            // 文件选择处理
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            function handleFileSelect() {
+                if (!fileInput.files.length) return;
+                
+                const file = fileInput.files[0];
+                
+                // 检查文件类型
+                if (!file.name.endsWith('.json')) {
+                    alert('请选择JSON文件');
+                    return;
+                }
+                
+                // 显示文件信息
+                fileName.textContent = file.name;
+                fileSize.textContent = formatFileSize(file.size);
+                fileInfo.classList.add('show');
+                
+                // 读取文件内容
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        originalData = JSON.parse(e.target.result);
+                        dataCount.textContent = originalData.length;
+                        
+                        // 启用处理按钮
+                        processBtn.disabled = false;
+                        
+                        // 显示预览
+                        showPreview(originalData);
+                    } catch (error) {
+                        alert('文件解析错误: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+            
+            // 处理数据
+            processBtn.addEventListener('click', function() {
+                if (!originalData) return;
+                
+                loading.style.display = 'block';
+                
+                // 模拟处理时间
+                setTimeout(function() {
+                    processedData = processData(originalData);
+                    showPreview(processedData, true);
+                    
+                    // 启用下载按钮
+                    downloadBtn.disabled = false;
+                    loading.style.display = 'none';
+                }, 800);
+            });
+            
+            // 下载处理后的文件
+            downloadBtn.addEventListener('click', function() {
+                if (!processedData) return;
+                
+                const dataStr = JSON.stringify(processedData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const url = URL.createObjectURL(dataBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '发现-().json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            // 处理数据的函数
+            function processData(data) {
+                return data.map(item => {
+                    // 创建副本，避免修改原始数据
+                    const newItem = {...item};
+                    
+                    // 精简catelog字段
+                    if (newItem.catelog) {
+                        // 处理三级目录（包含">"的情况）
+                        if (newItem.catelog.includes('>')) {
+                            const parts = newItem.catelog.split('>');
+                            const lastPart = parts[parts.length - 1].trim();
+                            newItem.catelog = `发现-${lastPart}`;
+                        }
+                        // 处理"相关导航"的情况
+                        else if (newItem.catelog === '相关导航') {
+                            newItem.catelog = '发现-相关导航';
+                        }
+                        // 已经是"发现-"开头的不做处理
+                        else if (!newItem.catelog.startsWith('发现-')) {
+                            // 其他情况保持不变
+                        }
+                    }
+                    
+                    return newItem;
+                });
+            }
+            
+            // 显示数据预览
+            function showPreview(data, isProcessed = false) {
+                previewContent.innerHTML = '';
+                
+                const count = Math.min(data.length, 5);
+                const title = isProcessed ? '处理后的数据预览' : '原始数据预览';
+                preview.querySelector('h3').textContent = `${title} (前${count}条)`;
+                
+                for (let i = 0; i < count; i++) {
+                    const item = data[i];
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    
+                    previewItem.innerHTML = `
+                        <div><strong>${item.name}</strong></div>
+                        <div>分类: ${item.catelog || '无'}</div>
+                    `;
+                    
+                    previewContent.appendChild(previewItem);
+                }
+                
+                preview.style.display = 'block';
+            }
+            
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        });
+    </script>
+</body>
+</html>
