@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON格式双向转换工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #7f8c8d;
+            font-weight: normal;
+        }
+        
+        .converter {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .input-section, .output-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-info {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background-color: #2ecc71;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #27ae60;
+        }
+        
+        .btn-warning {
+            background-color: #e74c3c;
+        }
+        
+        .btn-warning:hover {
+            background-color: #c0392b;
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #27ae60;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        .stats {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .conversion-direction {
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        @media (min-width: 768px) {
+            .converter {
+                flex-direction: row;
+            }
+            
+            .input-section, .output-section {
+                width: 50%;
+            }
+        }
+        
+        .format-info {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .format-info h3 {
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JSON格式双向转换工具</h1>
+        <p class="subtitle">发现导航 ↔ 拾光集 格式相互转换</p>
+        
+        <div class="format-info">
+            <h3>转换说明</h3>
+            <p>此工具支持"发现导航"与"拾光集"两种JSON格式的相互转换。</p>
+            <p><strong>发现导航格式</strong>: 复杂的嵌套结构，包含分类层级</p>
+            <p><strong>拾光集格式</strong>: 扁平化网站列表，使用分类路径</p>
+        </div>
+        
+        <div class="converter">
+            <div class="input-section">
+                <div class="section-header">
+                    <h2>输入</h2>
+                    <div class="file-info" id="inputFileInfo">未选择文件</div>
+                </div>
+                <textarea id="inputJson" placeholder="请粘贴JSON数据..."></textarea>
+                <div class="button-group">
+                    <div class="file-input-wrapper">
+                        <button class="btn-secondary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14,2 14,8 20,8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10,9 9,9 8,9"></polyline>
+                            </svg>
+                            导入文件
+                        </button>
+                        <input type="file" id="fileInput" accept=".json">
+                    </div>
+                    <button id="convertBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="17 1 21 5 17 9"></polyline>
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                            <polyline points="7 23 3 19 7 15"></polyline>
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                        </svg>
+                        转换
+                    </button>
+                    <button id="clearBtn" class="btn-warning">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        清空
+                    </button>
+                </div>
+                <div id="inputError" class="error"></div>
+            </div>
+            
+            <div class="output-section">
+                <div class="section-header">
+                    <h2>输出</h2>
+                    <div class="file-info" id="outputFileInfo">未生成文件</div>
+                </div>
+                <div class="conversion-direction" id="conversionDirection"></div>
+                <textarea id="outputJson" placeholder="转换结果将显示在这里..." readonly></textarea>
+                <div class="button-group">
+                    <button id="copyBtn" class="btn-secondary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        复制结果
+                    </button>
+                    <button id="downloadBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        下载JSON
+                    </button>
+                </div>
+                <div id="outputMessage" class="success"></div>
+                <div id="stats" class="stats"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputJson = document.getElementById('inputJson');
+            const outputJson = document.getElementById('outputJson');
+            const convertBtn = document.getElementById('convertBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const fileInput = document.getElementById('fileInput');
+            const inputError = document.getElementById('inputError');
+            const outputMessage = document.getElementById('outputMessage');
+            const stats = document.getElementById('stats');
+            const inputFileInfo = document.getElementById('inputFileInfo');
+            const outputFileInfo = document.getElementById('outputFileInfo');
+            const conversionDirection = document.getElementById('conversionDirection');
+            
+            let inputFileName = '';
+            let outputFileName = '';
+            let currentConversionDirection = '';
+            
+            // 文件导入功能
+            fileInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                inputFileName = file.name.replace('.json', '');
+                inputFileInfo.textContent = `已导入: ${file.name}`;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const content = e.target.result;
+                        const jsonData = JSON.parse(content);
+                        inputJson.value = JSON.stringify(jsonData, null, 2);
+                        inputError.textContent = '';
+                        
+                        // 自动检测格式并生成输出文件名
+                        detectFormatAndSetOutputName(jsonData);
+                    } catch (error) {
+                        inputError.textContent = `文件解析错误: ${error.message}`;
+                    }
+                };
+                reader.readAsText(file);
+            });
+            
+            // 检测输入格式并设置输出文件名
+            function detectFormatAndSetOutputName(data) {
+                // 检测是否是发现导航格式
+                if (isDiscoveryFormat(data)) {
+                    currentConversionDirection = '发现导航 → 拾光集';
+                    outputFileName = inputFileName.includes('发现') ? 
+                        `${inputFileName}-拾光集` : `发现-${inputFileName}-拾光集`;
+                } 
+                // 检测是否是拾光集格式
+                else if (isShiguangjiFormat(data)) {
+                    currentConversionDirection = '拾光集 → 发现导航';
+                    outputFileName = inputFileName.includes('拾光集') ? 
+                        `${inputFileName}-发现导航` : `拾光集-${inputFileName}-发现导航`;
+                } 
+                // 无法识别格式
+                else {
+                    currentConversionDirection = '未知格式';
+                    outputFileName = `${inputFileName}-转换结果`;
+                }
+                
+                conversionDirection.textContent = currentConversionDirection;
+                outputFileInfo.textContent = `将导出: ${outputFileName}.json`;
+            }
+            
+            // 检测是否为发现导航格式
+            function isDiscoveryFormat(data) {
+                return data && 
+                       (data.db && Array.isArray(data.db)) || 
+                       (data.nav && Array.isArray(data.nav)) ||
+                       (data.title && data.nav);
+            }
+            
+            // 检测是否为拾光集格式
+            function isShiguangjiFormat(data) {
+                return Array.isArray(data) && 
+                       data.length > 0 && 
+                       data[0].name && 
+                       data[0].url && 
+                       data[0].catelog !== undefined;
+            }
+            
+            // 转换按钮点击事件
+            convertBtn.addEventListener('click', function() {
+                try {
+                    inputError.textContent = '';
+                    outputMessage.textContent = '';
+                    stats.textContent = '';
+                    
+                    const inputData = JSON.parse(inputJson.value);
+                    
+                    // 检测输入格式
+                    let result;
+                    if (isDiscoveryFormat(inputData)) {
+                        result = convertDiscoveryToShiguangji(inputData);
+                        currentConversionDirection = '发现导航 → 拾光集';
+                        if (!outputFileName) {
+                            outputFileName = '发现-拾光集';
+                        }
+                    } else if (isShiguangjiFormat(inputData)) {
+                        result = convertShiguangjiToDiscovery(inputData);
+                        currentConversionDirection = '拾光集 → 发现导航';
+                        if (!outputFileName) {
+                            outputFileName = '拾光集-发现导航';
+                        }
+                    } else {
+                        throw new Error('无法识别的JSON格式');
+                    }
+                    
+                    // 输出结果
+                    outputJson.value = JSON.stringify(result, null, 2);
+                    
+                    // 显示转换方向和统计信息
+                    conversionDirection.textContent = currentConversionDirection;
+                    outputFileInfo.textContent = `将导出: ${outputFileName}.json`;
+                    
+                    // 显示统计信息
+                    if (isShiguangjiFormat(inputData)) {
+                        stats.textContent = `成功转换了 ${inputData.length} 个网站`;
+                    } else {
+                        const count = countWebsitesInDiscovery(inputData);
+                        stats.textContent = `成功转换了 ${count} 个网站`;
+                    }
+                    
+                } catch (error) {
+                    inputError.textContent = `转换错误: ${error.message}`;
+                }
+            });
+            
+            // 计算发现导航格式中的网站数量
+            function countWebsitesInDiscovery(data) {
+                let count = 0;
+                
+                function countInNav(navItems) {
+                    if (!navItems || !Array.isArray(navItems)) return;
+                    
+                    for (const item of navItems) {
+                        if (item.name && item.url) {
+                            count++;
+                        }
+                        
+                        if (item.nav && Array.isArray(item.nav)) {
+                            countInNav(item.nav);
+                        }
+                    }
+                }
+                
+                if (data.db && Array.isArray(data.db)) {
+                    for (const dbItem of data.db) {
+                        if (dbItem.nav && Array.isArray(dbItem.nav)) {
+                            countInNav(dbItem.nav);
+                        }
+                    }
+                } else if (data.nav && Array.isArray(data.nav)) {
+                    countInNav(data.nav);
+                }
+                
+                return count;
+            }
+            
+            // 将发现导航格式转换为拾光集格式
+            function convertDiscoveryToShiguangji(inputData) {
+                let websites = [];
+                let currentId = 1;
+                
+                // 递归遍历导航结构
+                function traverseNav(navItems, catalogPath = []) {
+                    if (!navItems || !Array.isArray(navItems)) return;
+                    
+                    for (const item of navItems) {
+                        if (item.name && item.url) {
+                            // 这是一个网站项
+                            websites.push({
+                                id: currentId++,
+                                name: item.name,
+                                url: item.url,
+                                logo: item.icon || '',
+                                desc: item.desc || '',
+                                catelog: catalogPath.join(' > ') || '未分类',
+                                sort_order: 9999,
+                                create_time: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                                update_time: new Date().toISOString().slice(0, 19).replace('T', ' ')
+                            });
+                        }
+                        
+                        // 如果有子导航，递归遍历
+                        if (item.nav && Array.isArray(item.nav)) {
+                            const newCatalogPath = [...catalogPath];
+                            if (item.title) {
+                                newCatalogPath.push(item.title);
+                            }
+                            traverseNav(item.nav, newCatalogPath);
+                        }
+                    }
+                }
+                
+                // 从db开始遍历
+                if (inputData.db && Array.isArray(inputData.db)) {
+                    for (const dbItem of inputData.db) {
+                        if (dbItem.nav && Array.isArray(dbItem.nav)) {
+                            const catalogPath = dbItem.title ? [dbItem.title] : [];
+                            traverseNav(dbItem.nav, catalogPath);
+                        }
+                    }
+                } else if (inputData.nav && Array.isArray(inputData.nav)) {
+                    const catalogPath = inputData.title ? [inputData.title] : [];
+                    traverseNav(inputData.nav, catalogPath);
+                }
+                
+                return websites;
+            }
+            
+            // 将拾光集格式转换为发现导航格式
+            function convertShiguangjiToDiscovery(inputData) {
+                // 创建基本的发现导航结构
+                const discoveryData = {
+                    db: [
+                        {
+                            id: 1,
+                            title: "转换后的导航",
+                            icon: "",
+                            nav: []
+                        }
+                    ]
+                };
+                
+                // 按分类路径组织网站
+                const categoryMap = {};
+                
+                for (const site of inputData) {
+                    const categories = site.catelog.split(' > ');
+                    
+                    let currentNav = discoveryData.db[0].nav;
+                    let currentPath = "";
+                    
+                    // 遍历分类路径，创建嵌套结构
+                    for (let i = 0; i < categories.length; i++) {
+                        const category = categories[i];
+                        currentPath += category;
+                        
+                        if (!categoryMap[currentPath]) {
+                            // 创建新的分类节点
+                            const newCategory = {
+                                id: 1000 + Object.keys(categoryMap).length,
+                                title: category,
+                                icon: "",
+                                nav: []
+                            };
+                            
+                            currentNav.push(newCategory);
+                            categoryMap[currentPath] = newCategory.nav;
+                        }
+                        
+                        currentNav = categoryMap[currentPath];
+                    }
+                    
+                    // 在最后一级分类中添加网站
+                    currentNav.push({
+                        id: site.id,
+                        name: site.name,
+                        desc: site.desc || "",
+                        rate: 5,
+                        icon: site.logo || "",
+                        url: site.url,
+                        breadcrumb: categories,
+                        tags: []
+                    });
+                }
+                
+                return discoveryData;
+            }
+            
+            // 清空按钮点击事件
+            clearBtn.addEventListener('click', function() {
+                inputJson.value = '';
+                outputJson.value = '';
+                inputError.textContent = '';
+                outputMessage.textContent = '';
+                stats.textContent = '';
+                inputFileInfo.textContent = '未选择文件';
+                outputFileInfo.textContent = '未生成文件';
+                conversionDirection.textContent = '';
+                fileInput.value = '';
+                inputFileName = '';
+                outputFileName = '';
+                currentConversionDirection = '';
+            });
+            
+            // 复制按钮点击事件
+            copyBtn.addEventListener('click', function() {
+                if (outputJson.value) {
+                    outputJson.select();
+                    document.execCommand('copy');
+                    outputMessage.textContent = '结果已复制到剪贴板！';
+                    setTimeout(() => {
+                        outputMessage.textContent = '';
+                    }, 3000);
+                }
+            });
+            
+            // 下载按钮点击事件
+            downloadBtn.addEventListener('click', function() {
+                if (outputJson.value) {
+                    const blob = new Blob([outputJson.value], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    
+                    // 使用生成的文件名或默认文件名
+                    const fileName = outputFileName ? `${outputFileName}.json` : '转换结果.json';
+                    a.download = fileName;
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    outputMessage.textContent = `文件 "${fileName}" 已下载！`;
+                    setTimeout(() => {
+                        outputMessage.textContent = '';
+                    }, 3000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
