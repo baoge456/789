@@ -1,0 +1,373 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker部署Nastools全自动化影音中心教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        h2 {
+            color: #3498db;
+            margin: 25px 0 15px;
+        }
+        h3 {
+            color: #2980b9;
+            margin: 20px 0 10px;
+        }
+        p {
+            margin-bottom: 10px;
+        }
+        ul {
+            margin: 10px 0 10px 20px;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        code {
+            font-family: "Consolas", "Monaco", monospace;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .reference {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .note {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Docker部署Nastools全自动化影音中心教程（NAS端 + 电脑端）</h1>
+        
+        <div class="reference">
+            <h3>参考来源</h3>
+            <ul>
+                <li>视频教程：<a href="https://www.youtube.com/watch?v=ALXLq_Ejss8" target="_blank">https://www.youtube.com/watch?v=ALXLq_Ejss8</a></li>
+                <li>图文教程：<a href="https://blog.910501.xyz/archives/Nastools" target="_blank">https://blog.910501.xyz/archives/Nastools</a></li>
+            </ul>
+        </div>
+
+        <h2>一、NAS端部署（以飞牛NAS fnOS为例）</h2>
+        
+        <h3>1. 准备工作</h3>
+        <ul>
+            <li>确保飞牛NAS已安装并运行 <strong>Docker应用</strong>（登录NAS后台确认Docker状态）。</li>
+            <li>存储盘需有足够空间（建议预留100GB以上用于影视存储）。</li>
+        </ul>
+
+        <h3>2. 目录创建（自动创建，无需手动）</h3>
+        <p>Docker Compose会通过 <code>init-setup</code> 服务自动创建以下目录结构：</p>
+        <pre><code>/vol1
+└── 1000
+    ├── docker（程序配置目录）
+    │   ├── nastools、qbittorrent、jackett
+    └── 影视（媒体存储目录）
+        ├── 下载（临时下载目录）
+        │   ├── 电影、电视剧
+        ├── 电影、电视剧（整理后入库目录）</code></pre>
+
+        <h3>3. 编写Docker Compose配置</h3>
+        <ol>
+            <li>登录NAS后台，进入 <code>/vol1/1000/docker/nastools</code> 目录（若未创建可手动新建）。</li>
+            <li>新建文件 <code>docker-compose.yml</code>，粘贴以下配置：</li>
+        </ol>
+        <pre><code>version: "3.8"
+services:
+  init-setup:
+    image: alpine:latest
+    container_name: init-setup
+    command: >
+      sh -c "
+      mkdir -p /vol1/1000/docker/nastools &&
+      mkdir -p /vol1/1000/docker/qbittorrent &&
+      mkdir -p /vol1/1000/docker/jackett &&
+      mkdir -p /vol1/1000/影视/下载/电影 &&
+      mkdir -p /vol1/1000/影视/下载/电视剧 &&
+      mkdir -p /vol1/1000/影视/电影 &&
+      mkdir -p /vol1/1000/影视/电视剧 &&
+      chown -R 1000:1000 /vol1/1000
+      "
+    volumes:
+      - /vol1/1000:/vol1/1000
+    restart: "no"
+
+  nastools:
+    image: syly948/nastools:2.9.1
+    container_name: nastools
+    hostname: nastools
+    ports:
+      - 3005:3000  # 原3000端口改为3005（避免冲突）
+    volumes:
+      - /vol1/1000/docker/nastools:/config
+      - /vol1/1000/影视:/影视
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=022
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    depends_on:
+      init-setup:
+        condition: service_completed_successfully
+      qbittorrent:
+        condition: service_healthy
+      jackett:
+        condition: service_healthy
+
+  qbittorrent:
+    image: superng6/qbittorrent
+    container_name: qbittorrent
+    hostname: qbittorrent
+    ports:
+      - 8089:8080  # 原8088端口改为8089（避免冲突）
+      - 6881:6881
+      - 6881:6881/udp
+    volumes:
+      - /vol1/1000/docker/qbittorrent:/config
+      - /vol1/1000/影视/下载:/下载
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      - WEBUI_PORT=8080
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  jackett:
+    image: linuxserver/jackett
+    container_name: jackett
+    hostname: jackett
+    ports:
+      - 9117:9117
+    volumes:
+      - /vol1/1000/docker/jackett:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      - AUTO_UPDATE=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9117/UI/Login"]
+      interval: 30s
+      timeout: 10s
+      retries: 5</code></pre>
+
+        <h3>4. 启动容器</h3>
+        <ol>
+            <li>打开NAS的终端工具（或通过SSH连接NAS）。</li>
+            <li>切换到 <code>docker-compose.yml</code> 所在目录：</li>
+        </ol>
+        <pre><code>cd /vol1/1000/docker/nastools</code></pre>
+        <ol start="3">
+            <li>启动容器（后台运行）：</li>
+        </ol>
+        <pre><code>docker-compose up -d</code></pre>
+        <p>验证：在NAS Docker容器列表中，看到 <code>nastools</code>、<code>qbittorrent</code>、<code>jackett</code> 状态为“运行中”即成功。</p>
+
+        <h2>二、电脑端部署（Windows/Linux/Mac通用）</h2>
+        
+        <h3>1. 准备工作</h3>
+        <ul>
+            <li>安装Docker Desktop（Windows需开启Hyper-V，Linux直接安装Docker）。</li>
+            <li>预留足够磁盘空间（建议选择非系统盘，如Windows的D盘、Linux的/home目录）。</li>
+        </ul>
+
+        <h3>2. 目录创建（手动/脚本创建）</h3>
+        
+        <h4>（1）Windows系统（CMD/PowerShell）</h4>
+        <p>CMD命令（管理员身份运行）：</p>
+        <pre><code>set ROOT=D:\vol1\1000
+md "%ROOT%\docker\nastools"
+md "%ROOT%\docker\qbittorrent"
+md "%ROOT%\docker\jackett"
+md "%ROOT%\影视\下载\电影"
+md "%ROOT%\影视\下载\电视剧"
+md "%ROOT%\影视\电影"
+md "%ROOT%\影视\电视剧"
+icacls "%ROOT%" /grant "%USERDOMAIN%\%USERNAME%":(OI)(CI)F /T</code></pre>
+        <p>PowerShell命令（管理员身份运行）：</p>
+        <pre><code>$ROOT = "D:\vol1\1000"
+mkdir "$ROOT\docker\nastools" -Force
+mkdir "$ROOT\docker\qbittorrent" -Force
+mkdir "$ROOT\docker\jackett" -Force
+mkdir "$ROOT\影视\下载\电影" -Force
+mkdir "$ROOT\影视\下载\电视剧" -Force
+mkdir "$ROOT\影视\电影" -Force
+mkdir "$ROOT\影视\电视剧" -Force
+$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+icacls "$ROOT" /grant "$currentUser":(OI)(CI)F /T</code></pre>
+
+        <h4>（2）Linux/Mac系统（终端）</h4>
+        <pre><code>ROOT=/home/user/vol1/1000  # 替换为实际路径
+mkdir -p $ROOT/docker/{nastools,qbittorrent,jackett}
+mkdir -p $ROOT/影视/下载/{电影,电视剧}
+mkdir -p $ROOT/影视/{电影,电视剧}
+chown -R $USER:$USER $ROOT  # 设置权限</code></pre>
+
+        <h3>3. 编写Docker Compose配置</h3>
+        <ol>
+            <li>在目录 <code>$ROOT/docker/nastools</code> 下新建 <code>docker-compose.yml</code>。</li>
+            <li>粘贴以下配置（修改 <code>volumes</code> 路径为电脑实际目录）：</li>
+        </ol>
+        <pre><code>version: "3.8"
+services:
+  nastools:
+    image: syly948/nastools:2.9.1
+    container_name: nastools
+    ports:
+      - 3005:3000
+    volumes:
+      - /home/user/vol1/1000/docker/nastools:/config  # 替换为电脑实际路径
+      - /home/user/vol1/1000/影视:/影视  # 替换为电脑实际路径
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=022
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    depends_on:
+      qbittorrent:
+        condition: service_healthy
+      jackett:
+        condition: service_healthy
+
+  qbittorrent:
+    image: superng6/qbittorrent
+    container_name: qbittorrent
+    ports:
+      - 8089:8080
+      - 6881:6881
+      - 6881:6881/udp
+    volumes:
+      - /home/user/vol1/1000/docker/qbittorrent:/config  # 替换为电脑实际路径
+      - /home/user/vol1/1000/影视/下载:/下载  # 替换为电脑实际路径
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      - WEBUI_PORT=8080
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  jackett:
+    image: linuxserver/jackett
+    container_name: jackett
+    ports:
+      - 9117:9117
+    volumes:
+      - /home/user/vol1/1000/docker/jackett:/config  # 替换为电脑实际路径
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      - AUTO_UPDATE=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9117/UI/Login"]
+      interval: 30s
+      timeout: 10s
+      retries: 5</code></pre>
+        <div class="note">
+            注意：Windows路径需写为 <code>D:/vol1/1000/...</code>（正斜杠），而非 <code>D:\vol1\1000\...</code>。
+        </div>
+
+        <h3>4. 启动容器</h3>
+        <ol>
+            <li>打开电脑终端（Windows用CMD/PowerShell，Linux/Mac用终端）。</li>
+            <li>切换到 <code>docker-compose.yml</code> 所在目录：</li>
+        </ol>
+        <pre><code>cd /home/user/vol1/1000/docker/nastools  # Linux/Mac
+# Windows：cd D:\vol1\1000\docker\nastools</code></pre>
+        <ol start="3">
+            <li>启动容器：</li>
+        </ol>
+        <pre><code>docker-compose up -d</code></pre>
+        <p>验证：打开Docker Desktop，查看容器是否全部“运行中”。</p>
+
+        <h2>三、通用后续配置（NAS/电脑端一致）</h2>
+        
+        <h3>1. 配置Jackett索引器</h3>
+        <ul>
+            <li>访问：<code>http://设备IP:9117</code>（设备IP为NAS/电脑的局域网IP）。</li>
+            <li>操作：点击“+ Add indexer”添加资源站点，复制页面中的“API Key”（后续用于连接Nastools）。</li>
+        </ul>
+
+        <h3>2. 配置Nastools</h3>
+        <ul>
+            <li>访问：<code>http://设备IP:3005</code>，默认账号 <code>admin</code>、密码 <code>password</code>。</li>
+            <li>关键配置：
+                <ol>
+                    <li>索引器：进入“设置 → 索引器”，选择“Jackett”，填入 <code>http://设备IP:9117</code> 和Jackett的API Key，测试连接后保存。</li>
+                    <li>下载器：进入“设置 → 下载器”，选择“qBittorrent”，填入 <code>http://设备IP:8089</code>，默认账号 <code>admin</code>、密码 <code>adminadmin</code>，测试连接后保存。</li>
+                </ol>
+            </li>
+        </ul>
+
+        <h3>3. 配置qBittorrent</h3>
+        <ul>
+            <li>访问：<code>http://设备IP:8089</code>，默认账号 <code>admin</code>、密码 <code>adminadmin</code>。</li>
+            <li>建议操作：修改WebUI密码（“工具 → 选项 → Web UI → 身份验证”），设置下载限速（根据网络带宽调整）。</li>
+        </ul>
+
+        <h2>四、使用流程</h2>
+        <ol>
+            <li>在Nastools中搜索电影/电视剧，或通过豆瓣“添加订阅”追新。</li>
+            <li>系统自动通过Jackett查找资源，调用qBittorrent下载。</li>
+            <li>下载完成后，Nastools自动重命名文件、刮削海报，整理到 <code>影视/电影</code> 或 <code>影视/电视剧</code> 目录。</li>
+            <li>可搭配Jellyfin/Emby实现跨设备播放（需额外部署）。</li>
+        </ol>
+    </div>
+</body>
+</html>
