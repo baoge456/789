@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare D1 网页端执行 SQL 报错解决教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+        body {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.8;
+            color: #333;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+        }
+        h2 {
+            color: #3498db;
+            margin: 1.5rem 0 1rem;
+        }
+        h3 {
+            color: #2980b9;
+            margin: 1rem 0 0.8rem;
+        }
+        .section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            position: relative;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            overflow-x: auto;
+            font-family: "Consolas", "Monaco", monospace;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.3rem 0.8rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .copy-btn:hover {
+            background: #2980b9;
+        }
+        .copy-btn.copied {
+            background: #27ae60;
+        }
+        .note {
+            background: #fff3cd;
+            padding: 1rem;
+            border-left: 4px solid #ffc107;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cloudflare D1 网页端执行 SQL 报错解决教程</h1>
+
+    <div class="section">
+        <h2>一、问题说明</h2>
+        <p>在 Cloudflare D1 网页端控制台执行书签项目的 schema.sql 时，出现以下报错：</p>
+        <div class="code-block">
+            The request is malformed: Requests without any query are not supported.
+        </div>
+        <p><strong>核心原因</strong>：Cloudflare D1 网页端控制台不支持一次性粘贴带注释（-- 开头）的多段 SQL，注释/换行/多语句混在一起会被识别为「空查询」。</p>
+    </div>
+
+    <div class="section">
+        <h2>二、可选：修复 wrangler 命令（推荐）</h2>
+        <p>若终端提示 <code>wrangler: command not found</code>，先修复 Wrangler 安装（可选，优先推荐网页端方案）：</p>
+        <h3>2.1 重新安装 Wrangler</h3>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+npm uninstall -g wrangler
+npm install -g wrangler
+        </div>
+        <h3>2.2 验证安装</h3>
+        <ul>
+            <li><strong>macOS/Linux</strong>：执行 <code>which wrangler</code>，输出路径则正常；无输出执行：
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+export PATH="$HOME/.npm-global/bin:$PATH"
+                    </div>
+            </li>
+            <li><strong>Windows</strong>：管理员 PowerShell 执行 <code>where wrangler</code>，无输出则将 <code>C:\Users\XXX\AppData\Roaming\npm</code> 加入系统环境变量，重启终端。</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>三、核心方案：网页端拆分执行 SQL（无需 wrangler）</h2>
+        <p>步骤：删除注释 → 拆分 SQL 为「建表语句」和「建索引语句」→ 逐块执行。</p>
+        
+        <h3>3.1 步骤1：进入 D1 控制台</h3>
+        <ol>
+            <li>登录 Cloudflare 控制台 → 左侧「Workers & Pages」→ 点击「D1」；</li>
+            <li>进入你创建的数据库 → 点击「Console」标签（SQL 控制台）。</li>
+        </ol>
+
+        <h3>3.2 步骤2：执行建表语句（删除注释版）</h3>
+        <p>复制以下代码，粘贴到控制台 → 点击「Run」执行：</p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+CREATE TABLE IF NOT EXISTS categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  parent_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
+  depth INTEGER NOT NULL DEFAULT 0,
+  is_private INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(name, parent_id)
+);
+
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  description TEXT,
+  icon TEXT,
+  category_id INTEGER NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  is_private INTEGER DEFAULT 0,
+  tags TEXT DEFAULT '',
+  notes TEXT DEFAULT '',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  key TEXT NOT NULL UNIQUE,
+  value TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+        </div>
+        <p>✅ 执行成功提示：<code>Executed 3 statements</code> 或「Success」。</p>
+
+        <h3>3.3 步骤3：执行建索引语句（删除注释版）</h3>
+        <p>复制以下代码，粘贴到控制台 → 点击「Run」执行：</p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+CREATE INDEX IF NOT EXISTS idx_bookmarks_category_position 
+ON bookmarks(category_id, position);
+
+CREATE INDEX IF NOT EXISTS idx_bookmarks_private 
+ON bookmarks(is_private);
+
+CREATE INDEX IF NOT EXISTS idx_bookmarks_url 
+ON bookmarks(url);
+
+CREATE INDEX IF NOT EXISTS idx_bookmarks_tags 
+ON bookmarks(tags);
+
+CREATE INDEX IF NOT EXISTS idx_categories_position 
+ON categories(position);
+
+CREATE INDEX IF NOT EXISTS idx_categories_parent_id 
+ON categories(parent_id);
+
+CREATE INDEX IF NOT EXISTS idx_categories_parent_position 
+ON categories(parent_id, position);
+
+CREATE INDEX IF NOT EXISTS idx_categories_private 
+ON categories(is_private);
+
+CREATE INDEX IF NOT EXISTS idx_settings_key 
+ON settings(key);
+        </div>
+        <p>✅ 执行成功提示：<code>Executed 9 statements</code> 或「Success」。</p>
+
+        <h3>3.4 备选：单条执行（若批量执行仍报错）</h3>
+        <p>若上述批量执行报错，拆成单条 SQL 逐行执行（示例）：</p>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0, parent_id INTEGER REFERENCES categories(id) ON DELETE CASCADE, depth INTEGER NOT NULL DEFAULT 0, is_private INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(name, parent_id));
+        </div>
+        <p>执行完一条点击「Run」，成功后再粘贴下一条执行。</p>
+    </div>
+
+    <div class="section">
+        <h2>四、验证执行结果</h2>
+        <ol>
+            <li>在 D1 数据库控制台点击「Tables」标签；</li>
+            <li>能看到 <code>categories</code>、<code>bookmarks</code>、<code>settings</code> 三张表 → 建表成功；</li>
+            <li>点击任意表（如 <code>bookmarks</code>）→ 切换到「Indexes」标签 → 能看到对应索引名（如 <code>idx_bookmarks_url</code>）→ 建索引成功。</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>五、注意事项</h2>
+        <div class="note">
+            <strong>重要提醒</strong>：
+            <ul>
+                <li>网页端控制台不支持 <code>--</code> 注释，所有注释行必须删除；</li>
+                <li>语句末尾无需加 <code>;</code> 分隔（加了也不影响）；</li>
+                <li>复制粘贴前，建议将 SQL 粘贴到纯文本编辑器（记事本/VS Code）清理格式，避免不可见字符；</li>
+                <li>若提示「表已存在」：脚本中 <code>IF NOT EXISTS</code> 会跳过创建，属于正常现象。</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 复制代码功能
+        function copyCode(btn) {
+            // 获取代码块内容
+            const codeBlock = btn.parentElement;
+            const code = codeBlock.textContent.trim().replace(/复制/g, '').trim();
+            
+            // 复制到剪贴板
+            navigator.clipboard.writeText(code).then(() => {
+                // 按钮状态提示
+                btn.textContent = "已复制";
+                btn.classList.add("copied");
+                
+                // 2秒后恢复按钮状态
+                setTimeout(() => {
+                    btn.textContent = "复制";
+                    btn.classList.remove("copied");
+                }, 2000);
+            }).catch(err => {
+                alert("复制失败：" + err);
+            });
+        }
+    </script>
+</body>
+</html>
