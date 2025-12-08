@@ -1,0 +1,302 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Worker 书签管理部署教程</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f0f2f5; /* Light grey background */
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+        }
+        h1 { font-size: 2.2em; text-align: center; margin-bottom: 30px; color: #1890ff; }
+        h2 { font-size: 1.8em; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px; }
+        h3 { font-size: 1.4em; }
+        p { margin-bottom: 1em; }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            position: relative;
+            margin-bottom: 1em;
+            border: 1px solid #ddd;
+        }
+        code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background-color: #e6f7ff; /* Light blue background for inline code */
+            color: #0050b3; /* Darker blue text */
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+            color: #333; /* Default text color for code blocks */
+        }
+        .inline-copy-button {
+            background-color: #1890ff; /* Primary blue */
+            color: white;
+            border: 1px solid #1890ff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 0.85em;
+            font-weight: bold;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+            vertical-align: middle; /* Align with text */
+        }
+        .inline-copy-button:hover {
+            background-color: #40a9ff;
+            border-color: #40a9ff;
+        }
+        ul, ol {
+            margin-bottom: 1em;
+            padding-left: 25px;
+        }
+        li {
+            margin-bottom: 0.5em;
+        }
+        .note {
+            background-color: #fffbe6; /* Light yellow */
+            border-left: 5px solid #ffe58f;
+            padding: 10px 15px;
+            margin: 1em 0;
+            border-radius: 4px;
+            color: #614700;
+        }
+        .important {
+            background-color: #fff1f0; /* Light red */
+            border-left: 5px solid #ffccc7;
+            padding: 10px 15px;
+            margin: 1em 0;
+            border-radius: 4px;
+            color: #cf1322;
+        }
+        .code-link-container {
+            background-color: #e6f7ff; /* Light blue */
+            border: 1px solid #91d5ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 1em;
+            text-align: center;
+        }
+        .code-link-container a {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #1890ff;
+            text-decoration: none;
+            transition: color 0.2s;
+            display: inline-block; /* Ensure padding/margin works */
+            padding: 8px 15px;
+            border: 1px solid #1890ff;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+        .code-link-container a:hover {
+            color: #40a9ff;
+            border-color: #40a9ff;
+            background-color: #e6f7ff;
+            text-decoration: none;
+        }
+
+        /* Panel Styling */
+        .section-panel {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .section-panel h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        .section-panel h3 {
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+            color: #434343;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Cloudflare Worker 书签管理部署教程</h1>
+
+    <div class="section-panel">
+        <h2>简介</h2>
+        <p>这个 Cloudflare Worker 提供了一个功能丰富的书签管理页面，支持分类、搜索、管理员登录、数据导入导出、拖拽排序等功能。</p>
+    </div>
+
+    <div class="section-panel">
+        <h2>核心功能亮点</h2>
+        <ul>
+            <li><strong>响应式设计：</strong> 适配桌面和移动设备。</li>
+            <li><strong>分类管理：</strong> 方便地组织您的书签。</li>
+            <li><strong>站内搜索：</strong> 快速找到所需书签。</li>
+            <li><strong>管理员模式：</strong> 密码保护，可编辑、添加、删除、排序书签和分类。</li>
+            <li><strong>数据持久化：</strong> 使用 Cloudflare KV 存储数据。</li>
+            <li><strong>数据导入/导出：</strong> 支持 JSON 格式，方便备份和迁移。</li>
+            <li><strong>公共访问密码：：</strong> 可选设置，保护您的公共页面。</li>
+        </ul>
+    </div>
+
+    <div class="section-panel">
+        <h2>部署步骤</h2>
+
+        <h3>1. 登录 Cloudflare 并创建 Worker</h3>
+        <ol>
+            <li>登录您的 <a href="https://dash.cloudflare.com/" target="_blank">Cloudflare 账号</a>。</li>
+            <li>在左侧导航栏中，点击 <strong>Workers & Pages</strong>。</li>
+            <li>点击 <strong>创建应用程序</strong>。</li>
+            <li>点击 <strong>创建 Worker</strong>。</li>
+            <li>为您的 Worker 命名（例如：<code>my-bookmarks-worker</code>），然后点击 <strong>部署</strong>。</li>
+        </ol>
+
+        <h3>2. 获取并粘贴 Worker 代码</h3>
+        <ol>
+            <li>Worker 部署成功后，点击 <strong>编辑代码</strong>。</li>
+            <li>将默认的代码全部删除。</li>
+            <li>点击下方链接，在新页面中复制代码：
+                <div class="code-link-container">
+                    <a href="https://dfile.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/%E7%A7%91%E5%AD%A6%E8%AE%A2%E9%98%85-workers%E6%A8%A1%E6%9D%BF.txt" target="_blank">点此获取 Worker 代码</a>
+                </div>
+                <p>在新打开的页面中，复制全部代码内容，并粘贴到 Cloudflare Worker 的代码编辑器中。</p>
+            </li>
+        </ol>
+
+        <p>3. 点击 <strong>保存并部署</strong>。</p>
+
+        <h3>3. 配置 KV 存储</h3>
+        <p>为了持久化存储书签数据，您需要绑定一个 Cloudflare KV Namespace。</p>
+        <ol>
+            <li>在 Worker 页面中，点击 <strong>设置</strong> 选项卡。</li>
+            <li>滚动到 <strong>变量</strong> 部分，找到 <strong>KV Namespace 绑定</strong>。</li>
+            <li>点击 <strong>添加绑定</strong>。</li>
+            <li>在 <strong>变量名称</strong> 字段中，输入：<code id="kv-binding-name">CARD_ORDER</code> <button onclick="copyText('kv-binding-name')" class="inline-copy-button">复制</button></li>
+            <li>在 <strong>KV Namespace</strong> 下拉菜单中，选择一个现有的 KV Namespace，或者点击 <strong>创建新的 KV Namespace</strong> 并为其命名（例如：<code>my-bookmarks-data</code>）。</li>
+            <li>点击 <strong>保存</strong>。</li>
+        </ol>
+
+        <h3>4. 配置环境变量</h3>
+        <p>为了设置管理员密码和可选的公共访问密码，您需要添加环境变量。</p>
+        <ol>
+            <li>在 Worker 页面中，点击 <strong>设置</strong> 选项卡。</li>
+            <li>滚动到 <strong>变量</strong> 部分，找到 <strong>环境变量</strong>。</li>
+            <li>点击 <strong>添加变量</strong>。</li>
+        </ol>
+
+        <h4>管理员密码 (ADMIN_PASSWORD)</h4>
+        <ul>
+            <li>在 <strong>变量名称</strong> 字段中，输入：<code id="admin-password-var">ADMIN_PASSWORD</code> <button onclick="copyText('admin-password-var')" class="inline-copy-button">复制</button></li>
+            <li>在 <strong>值</strong> 字段中，输入您的管理员密码。<strong>请务必设置一个强密码！</strong></li>
+            <li>点击 <strong>保存</strong>。</li>
+        </ul>
+
+        <h4>公共访问密码 (PUBLIC_PASSWORD) - 可选</h4>
+        <ul>
+            <li>如果您希望您的书签页面在公共访问时也需要密码，请添加此变量。</li>
+            <li>在 <strong>变量名称</strong> 字段中，输入：<code id="public-password-var">PUBLIC_PASSWORD</code> <button onclick="copyText('public-password-var')" class="inline-copy-button">复制</button></li>
+            <li>在 <strong>值</strong> 字段中，输入您的公共访问密码。</li>
+            <li>点击 <strong>保存</strong>。</li>
+            <li class="note"><strong>注意：</strong> 如果不设置此变量，或者将其值留空，您的书签页面将对所有人公开可见，无需密码即可访问。</li>
+        </ul>
+    </div>
+
+    <div class="section-panel">
+        <h2>5. 访问您的 Worker</h2>
+        <p>部署完成后，Cloudflare 会为您提供一个 Worker URL (例如：<code>your-worker-name.your-username.workers.dev</code>)。您可以通过这个 URL 访问您的书签页面。</p>
+
+        <h3>可选：绑定自定义域名</h3>
+        <p>如果您想使用自己的域名（例如：<code>bookmarks.yourdomain.com</code>），可以按照以下步骤操作：</p>
+        <ol>
+            <li>在 Worker 页面中，点击 <strong>触发器</strong> 选项卡。</li>
+            <li>在 <strong>自定义域</strong> 部分，点击 <strong>添加自定义域</strong>。</li>
+            <li>输入您想要绑定的域名，然后按照提示完成 DNS 配置。</li>
+        </ol>
+    </div>
+
+    <div class="section-panel">
+        <h2>如何使用</h2>
+
+        <h3>1. 公共访问：</h3>
+        <ul>
+            <li>直接访问 Worker URL 或自定义域名。</li>
+            <li>如果设置了 <code>PUBLIC_PASSWORD</code>，会先显示一个登录页面。</li>
+        </ul>
+
+        <h3>2. 管理员模式：</h3>
+        <ul>
+            <li>在页面顶部，<strong>长按</strong>标题（例如：“科学订阅”）约 0.7 秒。</li>
+            <li>页面将切换到管理员登录界面。</li>
+            <li>输入您设置的 <code>ADMIN_PASSWORD</code> 登录。</li>
+            <li>登录成功后，您会看到页面右上角出现一个返回按钮，并且页面底部会显示管理操作按钮（添加分类、添加书签、保存更改等）。</li>
+            <li>在管理员模式下，书签和分类卡片上会出现编辑、删除和排序按钮。</li>
+            <li>点击右上角的返回按钮可以退出管理员模式，回到公共视图。</li>
+        </ul>
+    </div>
+
+    <div class="section-panel">
+        <h2>自定义名称和 Logo</h2>
+        <p>您可以轻松地将“科学订阅”更改为“书签管理”或其他您喜欢的名称，并更换 Logo。</p>
+
+        <p>1. <strong>回到 Cloudflare Worker 的代码编辑界面。</strong></p>
+
+        <p>2. <strong>修改 Logo 链接：</strong></p>
+        <ul>
+            <li>在代码编辑器中，使用 <code>CTRL + H</code> (Windows/Linux) 或 <code>CMD + F</code> (macOS) 打开查找功能。</li>
+            <li>在检索框中输入：<code id="search-logo-term">科学订阅 Logo</code> <button onclick="copyText('search-logo-term')" class="inline-copy-button">复制</button></li>
+            <li>查找结果会定位到 Logo 的 <code>alt</code> 属性。在该位置附近，您会找到 <code>href</code> 属性，其值是 Logo 图片的 URL。</li>
+            <li>将 <code>href</code> 属性的值替换为您自己的 Logo 图片 URL。通常会有 2 处需要更换（公共访问页面和主页面）。</li>
+        </ul>
+
+        <p>3. <strong>修改名称：</strong></p>
+        <ul>
+            <li>同样使用 <code>CTRL + H</code> (Windows/Linux) 或 <code>CMD + F</code> (macOS) 打开查找功能。</li>
+            <li>在检索框中输入：<code id="search-name-term">科学订阅</code> <button onclick="copyText('search-name-term')" class="inline-copy-button">复制</button></li>
+            <li>在替换框中输入您想要的新名称，例如：<code>书签管理</code>。</li>
+            <li>点击“全部替换”按钮（或类似功能）进行批量替换。</li>
+        </ul>
+
+        <p>4. 完成所有修改后，点击 <strong>保存并部署</strong> 您的 Worker。</p>
+    </div>
+
+    <script>
+        function copyText(elementId) {
+            const textElement = document.getElementById(elementId);
+            navigator.clipboard.writeText(textElement.innerText).then(() => {
+                const button = textElement.nextElementSibling; // Assuming button is next to the code element
+                if (button && button.classList.contains('inline-copy-button')) {
+                    const originalText = button.innerText;
+                    button.innerText = '已复制!';
+                    setTimeout(() => {
+                        button.innerText = originalText;
+                    }, 1500);
+                }
+            }).catch(err => {
+                console.error('无法复制文本: ', err);
+                alert('复制失败，请手动复制。');
+            });
+        }
+    </script>
+
+</body>
+</html>
