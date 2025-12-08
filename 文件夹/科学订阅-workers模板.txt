@@ -1,0 +1,2179 @@
+
+// --- itty-router START ---
+// This is a robust, embedded version of itty-router, adapted for Cloudflare Workers Quick Edit.
+// It avoids the Proxy-based complexity and is less prone to syntax errors during embedding.
+const Router = ({ base = '', routes = [] } = {}) => ({
+    get: (path, ...handlers) => routes.push(['GET', base + path, handlers]) && Router({ base, routes }),
+    post: (path, ...handlers) => routes.push(['POST', base + path, handlers]) && Router({ base, routes }),
+    put: (path, ...handlers) => routes.push(['PUT', base + path, handlers]) && Router({ base, routes }),
+    patch: (path, ...handlers) => routes.push(['PATCH', base + path, handlers]) && Router({ base, routes }),
+    delete: (path, ...handlers) => routes.push(['DELETE', base + path, handlers]) && Router({ base, routes }),
+    options: (path, ...handlers) => routes.push(['OPTIONS', base + path, handlers]) && Router({ base, routes }),
+    all: (path, ...handlers) => routes.push(['ALL', base + path, handlers]) && Router({ base, routes }),
+    
+    handle: async (request, ...args) => {
+      let response, match, url = new URL(request.url)
+      request.query = Object.fromEntries(url.searchParams) // Attach query parameters to request
+  
+      for (let [method, path, handlers] of routes) {
+        if ((method === request.method || method === 'ALL') && (match = url.pathname.match(new RegExp(`^${path.replace(/\/:\w+/g, '/([^/]+)')}/*$`)))) {
+          // Extract parameter names from the original path string (e.g., /users/:id -> ['id'])
+          const paramNames = (path.match(/\/:\w+/g) || []).map(p => p.substring(2)); // Remove '/:' prefix
+  
+          request.params = {};
+          if (match.length > 1) { // If there are captured groups in the regex match
+              match.slice(1).forEach((value, index) => {
+                  if (paramNames[index]) { // Ensure we have a corresponding parameter name
+                      request.params[paramNames[index]] = value;
+                  }
+              });
+          }
+  
+          for (let handler of handlers) {
+            if ((response = await handler(request, ...args)) !== undefined) return response
+          }
+        }
+      }
+    }
+  })
+  // --- itty-router END ---
+  
+  const router = Router(); // Now Router is defined in this file
+  
+  const USER_DATA_KEY = 'main_user_links_categories'; // KV中存储数据的键名
+  
+  // --- 辅助函数：认证检查 ---
+  async function isAuthenticatedAdmin(request, env) {
+      const cookieHeader = request.headers.get('Cookie');
+      if (!cookieHeader) return false;
+  
+      const cookies = cookieHeader.split(';').map(c => c.trim());
+      const authCookie = cookies.find(c => c.startsWith('auth_token='));
+  
+      // 简单的认证：检查是否存在名为 'auth_token' 且值为 'authenticated' 的 cookie
+      if (authCookie && authCookie.split('=')[1] === 'authenticated') {
+          return true;
+      }
+      return false;
+  }
+  
+  async function isAuthenticatedPublic(request, env) {
+      // 如果没有设置公共密码，则默认公开访问
+      if (!env.PUBLIC_PASSWORD || env.PUBLIC_PASSWORD === '') return true;
+  
+      const cookieHeader = request.headers.get('Cookie');
+      if (!cookieHeader) return false;
+  
+      const cookies = cookieHeader.split(';').map(c => c.trim());
+      const publicAuthCookie = cookies.find(c => c.startsWith('public_auth_token='));
+  
+      if (publicAuthCookie && publicAuthCookie.split('=')[1] === 'authenticated') {
+          return true;
+      }
+      return false;
+  }
+  
+  // --- 路由定义 ---
+  
+  // 1. 根路径：提供修改后的 HTML 页面 (现在会先检查公共访问权限)
+  router.get('/', async (request, env) => {
+      // 如果设置了公共密码，且用户未认证，则显示公共登录页面
+      if (!await isAuthenticatedPublic(request, env)) {
+          const publicLoginHtml = `
+  <!DOCTYPE html>
+  <html lang="zh-CN">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>访问验证 - 科学订阅</title>
+      <link rel="icon" href="https://s3.bmp.ovh/imgs/2025/04/16/73d944905f090a66.jpg" alt="科学订阅 Logo" />
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+      <style>
+          /* Minimal styles for public login, reusing existing login-form styles */
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; margin: 0; padding: 12px; color: #333; line-height: 1.6; }
+          #main { max-width: 800px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; position: relative; }
+          .brand { text-align: center; padding: 28px 20px; background: linear-gradient(135deg, #3a7bd5, #00d2ff); color: white; }
+          .brand-title { font-size: 2.2rem; font-weight: 700; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+          .login-container { display: flex; justify-content: center; align-items: center; min-height: 300px; padding: 20px; }
+          .login-form { background-color: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; max-width: 350px; width: 100%; }
+          .login-form input[type="password"] { width: calc(100% - 20px); padding: 10px; margin-bottom: 15px; border: 1px solid #e6e6e6; border-radius: 12px; font-size: 16px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); }
+          .login-form button { background-color: #3a7bd5; color: white; padding: 10px 20px; border: none; border-radius: 12px; cursor: pointer; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 8px rgba(58, 123, 213, 0.2); }
+          .login-form button:hover { background: #2d62a7; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(58, 123, 213, 0.3); }
+          .login-form .error-message { color: #e53e3e; margin-top: 10px; }
+          .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; border-top: 1px solid #f0f0f0; margin-top: 20px; }
+      </style>
+  </head>
+  <body>
+      <div id="main">
+          <div class="brand">
+              <div class="brand-title">科学订阅</div>
+          </div>
+          <div class="login-container">
+              <div class="login-form">
+                  <h2 class="brand-title" style="font-size: 1.8rem; margin-bottom: 20px; color: #333;">访问验证</h2>
+                  <input type="password" id="public-password" placeholder="请输入访问密码">
+                  <button id="public-login-button">进入</button>
+                  <p class="error-message"></p>
+              </div>
+          </div>
+          <div class="footer">
+              © 2023 科学订阅 | 宝哥制作
+          </div>
+      </div>
+      <script>
+          document.getElementById('public-login-button').addEventListener('click', async () => {
+              const password = document.getElementById('public-password').value;
+              const response = await fetch('/api/public-login', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ password })
+              });
+              if (response.ok) {
+                  window.location.reload(); // Reload to get authenticated content
+              } else {
+                  const errorData = await response.json();
+                  document.querySelector('.error-message').textContent = errorData.message || '登录失败';
+              }
+          });
+          document.getElementById('public-password').addEventListener('keypress', (e) => {
+              if (e.key === 'Enter') {
+                  document.getElementById('public-login-button').click();
+              }
+          });
+      </script>
+  </body>
+  </html>
+          `;
+          return new Response(publicLoginHtml, {
+              headers: { 'Content-Type': 'text/html;charset=UTF-8' }
+          });
+      }
+  
+      // 如果已通过公共认证，则渲染主页面
+      const originalHtml = `
+  <!DOCTYPE html>
+  <html lang="zh-CN">
+  
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>科学订阅</title>
+      <link rel="icon" href="https://s3.bmp.ovh/imgs/2025/04/16/73d944905f090a66.jpg" alt="科学订阅 Logo" />
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"> <!-- Added Font Awesome for icons -->
+  
+      <style>
+          /* --- START: Custom Styles for Admin UI --- */
+          /* 这些样式是为登录表单、模态框和编辑模式指示器准备的。
+             它们已与你提供的样式合并，确保管理界面能正确显示。 */
+          .login-container {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 300px; /* Adjusted for smaller page */
+              padding: 20px;
+          }
+          .login-form {
+              background-color: #fff;
+              padding: 30px;
+              border-radius: 16px; /* Match main container */
+              box-shadow: 0 4px 20px rgba(0,0,0,0.08); /* Match main container */
+              text-align: center;
+              max-width: 350px;
+              width: 100%;
+          }
+          .login-form input[type="password"] {
+              width: calc(100% - 20px);
+              padding: 10px;
+              margin-bottom: 15px;
+              border: 1px solid #e6e6e6; /* Match existing inputs */
+              border-radius: 12px; /* Match existing buttons */
+              font-size: 16px;
+              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+          }
+          .login-form button {
+              background-color: #3a7bd5; /* Match existing buttons */
+              color: white;
+              padding: 10px 20px;
+              border: none;
+              border-radius: 12px;
+              cursor: pointer;
+              font-size: 16px;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 8px rgba(58, 123, 213, 0.2);
+          }
+          .login-form button:hover {
+              background: #2d62a7;
+              transform: translateY(-2px);
+              box-shadow: 0 6px 12px rgba(58, 123, 213, 0.3);
+          }
+          .login-form .error-message {
+              color: #e53e3e;
+              margin-top: 10px;
+          }
+  
+          /* Settings button */
+          .settings-button {
+              position: absolute;
+              top: 20px;
+              right: 20px;
+              background: none;
+              border: none;
+              color: white;
+              font-size: 24px;
+              cursor: pointer;
+              transition: transform 0.3s ease;
+              z-index: 10;
+              display: none; /* 默认隐藏设置按钮 */
+          }
+          .settings-button:hover {
+              transform: rotate(90deg);
+          }
+          .settings-button.back-button {
+              color: #333;
+              font-size: 20px;
+              top: 20px;
+              left: 20px;
+              right: auto;
+              transform: none; /* Reset rotation */
+          }
+          .settings-button.back-button:hover {
+              transform: translateX(-5px);
+          }
+  
+          /* Edit mode styles */
+          .edit-mode-category-title {
+              position: relative;
+              display: inline-block;
+              padding-right: 120px; /* Space for edit/delete/sort buttons */
+          }
+          .edit-mode-category-actions {
+              position: absolute;
+              top: 50%;
+              right: 0;
+              transform: translateY(-50%);
+              display: flex;
+              gap: 5px;
+              background: rgba(255,255,255,0.8);
+              border-radius: 8px;
+              padding: 2px 5px;
+              z-index: 10;
+              box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          }
+          .edit-mode-category-actions button {
+              background: #3a7bd5;
+              color: white;
+              border: none;
+              border-radius: 6px;
+              padding: 4px 8px;
+              font-size: 12px;
+              cursor: pointer;
+              transition: background-color 0.2s;
+          }
+          .edit-mode-category-actions button:hover {
+              background: #2d62a7;
+          }
+          .edit-mode-category-actions button.sort-btn {
+              background: #6c757d; /* A neutral gray for sort buttons */
+          }
+          .edit-mode-category-actions button.sort-btn:hover {
+              background: #5a6268;
+          }
+  
+          .tool-button.edit-mode {
+              position: relative;
+              border: 1px dashed #3a7bd5; /* Indicate editable */
+              box-shadow: 0 0 0 2px rgba(58, 123, 213, 0.3);
+          }
+          .tool-button.edit-mode:hover {
+              box-shadow: 0 0 0 3px rgba(58, 123, 213, 0.5);
+          }
+          /* MODIFIED: Added specific margin-right for span in edit mode to make space for buttons */
+          .tool-button.edit-mode span {
+              margin-right: 60px; /* Approximate width of the 4 buttons + gap + padding */
+          }
+          .edit-mode-bookmark-actions {
+              position: absolute;
+              top: 1px;
+              right: 1px;
+              display: flex;
+              gap: 3px;
+              background: rgba(255,255,255,0.9);
+              border-radius: 6px;
+              padding: 2px 4px;
+              z-index: 10;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          }
+          .edit-mode-bookmark-actions button {
+              background: #3a7bd5;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              padding: 3px 6px;
+              font-size: 10px;
+              cursor: pointer;
+              transition: background-color 0.2s;
+          }
+          .edit-mode-bookmark-actions button:hover {
+              background: #2d62a7;
+          }
+          .edit-mode-bookmark-actions button.sort-btn {
+              background: #6c757d; /* A neutral gray for sort buttons */
+          }
+          .edit-mode-bookmark-actions button.sort-btn:hover {
+              background: #5a6268;
+          }
+  
+          .admin-action-buttons {
+              display: flex;
+              flex-wrap: wrap; /* Allow wrapping on smaller screens */
+              justify-content: flex-end;
+              gap: 10px;
+              /* 调整这里，减少与搜索框的间距 */
+              margin-top: 15px; /* 确保与搜索框有适当间距 */
+              margin-bottom: 0px; /* 减少下方空白，依赖card的padding */
+              padding: 0 20px; /* Match card padding */
+          }
+          .admin-action-buttons button {
+              background-color: #28a745; /* Add/Save color */
+              color: white;
+              padding: 10px 18px;
+              border: none;
+              border-radius: 12px;
+              cursor: pointer;
+              font-size: 15px;
+              font-weight: 600;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 8px rgba(40, 167, 69, 0.2);
+          }
+          .admin-action-buttons button:hover {
+              background: #218838;
+              transform: translateY(-2px);
+              box-shadow: 0 6px 12px rgba(40, 167, 69, 0.3);
+          }
+          .admin-action-buttons .save-changes-btn {
+              background-color: #007bff;
+              box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+          }
+          .admin-action-buttons .save-changes-btn:hover {
+              background-color: #0056b3;
+              box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
+          }
+          .admin-action-buttons .import-json-btn,
+          .admin-action-buttons .export-json-btn {
+              background-color: #ffc107; /* Warning yellow */
+              color: #333;
+              box-shadow: 0 4px 8px rgba(255, 193, 7, 0.2);
+          }
+          .admin-action-buttons .import-json-btn:hover,
+          .admin-action-buttons .export-json-btn:hover {
+              background-color: #e0a800;
+              box-shadow: 0 6px 12px rgba(255, 193, 7, 0.3);
+          }
+  
+  
+          /* Modal styles */
+          .modal {
+              display: none; /* Hidden by default */
+              position: fixed; /* Stay in place */
+              z-index: 1000; /* Sit on top */
+              left: 0;
+              top: 0;
+              width: 100%; /* Full width */
+              height: 100%; /* Full height */
+              overflow: auto; /* Enable scroll if needed */
+              background-color: rgba(0,0,0,0.6); /* Darker overlay */
+              justify-content: center;
+              align-items: center;
+          }
+          .modal-content {
+              background-color: #fefefe;
+              margin: auto;
+              padding: 25px;
+              border-radius: 16px;
+              box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+              width: 90%;
+              max-width: 500px;
+              position: relative;
+          }
+          .modal-content input, .modal-content select {
+              width: calc(100% - 20px);
+              padding: 12px;
+              margin-bottom: 15px;
+              border: 1px solid #e6e6e6;
+              border-radius: 12px;
+              font-size: 16px;
+              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+          }
+          .modal-content label {
+              display: block;
+              font-size: 15px;
+              font-weight: 600;
+              margin-bottom: 8px;
+              color: #333;
+          }
+          .modal-content button {
+              background-color: #3a7bd5;
+              color: white;
+              padding: 10px 20px;
+              border: none;
+              border-radius: 12px;
+              cursor: pointer;
+              margin-right: 10px;
+              font-size: 16px;
+              font-weight: 600;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 8px rgba(58, 123, 213, 0.2);
+          }
+          .modal-content button.cancel {
+              background-color: #ccc;
+              color: #333;
+              box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          }
+          .modal-content button.cancel:hover {
+              background-color: #bbb;
+              transform: translateY(-2px);
+              box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+          }
+          .close-button {
+              color: #aaa;
+              position: absolute;
+              top: 15px;
+              right: 20px;
+              font-size: 30px;
+              font-weight: bold;
+              cursor: pointer;
+          }
+          .close-button:hover,
+          .close-button:focus {
+              color: #333;
+              text-decoration: none;
+          }
+  
+          /* --- Flash Message Styles --- */
+          #flash-message-container {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              z-index: 10000;
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              max-width: 300px; /* Limit width */
+          }
+  
+          .flash-message {
+              background-color: #fff;
+              color: #333;
+              padding: 12px 20px;
+              border-radius: 8px;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+              opacity: 0;
+              transform: translateY(-20px);
+              animation: fadeInOut 3s forwards; /* Default duration */
+              position: relative;
+              overflow: hidden;
+              word-break: break-word; /* Ensure long messages wrap */
+          }
+  
+          .flash-message.flash-success {
+              border-left: 5px solid #28a745;
+          }
+  
+          .flash-message.flash-error {
+              border-left: 5px solid #dc3545;
+          }
+  
+          .flash-message.flash-info {
+              border-left: 5px solid #007bff;
+          }
+  
+          @keyframes fadeInOut {
+              0% { opacity: 0; transform: translateY(-20px); }
+              10% { opacity: 1; transform: translateY(0); }
+              90% { opacity: 1; transform: translateY(0); }
+              100% { opacity: 0; transform: translateY(-20px); }
+          }
+          /* --- END: Custom Styles for Admin UI --- */
+  
+          /* Original styles from the user's HTML */
+          * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+          }
+  
+          body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background: #f5f5f7;
+              margin: 0;
+              padding: 12px;
+              color: #333;
+              line-height: 1.6;
+          }
+  
+          #main {
+              max-width: 800px;
+              margin: 0 auto;
+              background: white;
+              border-radius: 16px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+              overflow: hidden;
+              position: relative; /* For settings button positioning */
+          }
+  
+          .brand {
+              text-align: center;
+              padding: 28px 20px;
+              background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+              color: white;
+              position: relative; /* For settings button positioning */
+          }
+  
+          .brand-title {
+              font-size: 2.2rem;
+              font-weight: 700;
+              margin: 0;
+              text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          }
+  
+          .card {
+              padding: 20px;
+              border-bottom: 1px solid #f0f0f0;
+          }
+  
+          .card:last-child {
+              border-bottom: none;
+          }
+  
+          .title {
+              color: #2c3e50;
+              font-size: 1.4rem;
+              margin-bottom: 16px;
+              font-weight: 700;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #eaeaea;
+          }
+  
+          .link-list {
+              list-style: none;
+              margin: 0;
+              padding: 0;
+          }
+  
+          .link-list li {
+              margin: 12px 0;
+              line-height: 1.6;
+              font-size: 16px;
+              display: flex;
+              align-items: center;
+          }
+  
+          .link-list a {
+              color: #3a7bd5;
+              text-decoration: none;
+              font-weight: 500;
+              transition: color 0.2s;
+          }
+  
+          .link-list a:hover {
+              color: #2d62a7;
+              text-decoration: underline;
+          }
+  
+          .tip-item {
+              margin: 12px 0; /* Reduced margin */
+          }
+  
+          .tip-item b {
+              display: block;
+              font-size: 1.2rem;
+              color: #2c3e50;
+              margin-bottom: 12px;
+              position: relative; /* Ensure category actions are positioned correctly */
+          }
+  
+          .tip-item p {
+              color: #666;
+              margin-top: 8px;
+              line-height: 1.6;
+              font-size: 16px;
+          }
+  
+          /* 关键修改：添加书签容器滚动样式 */
+          .tool-buttons {
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+              gap: 12px;
+              margin-top: 16px;
+              /* 新增滚动基础配置 */
+              overflow-y: auto; /* 垂直超出时显示滚动条 */
+              overflow-x: hidden; /* 禁止水平滚动 */
+              height: auto; /* 默认自适应高度 */
+              max-height: none; /* 电脑端默认无最大高度限制 */
+              padding-right: 4px; /* 给滚动条留空间，避免遮挡内容 */
+          }
+  
+          .tool-button {
+              background: white;
+              color: #3a7bd5;
+              padding: 14px 12px;
+              border-radius: 12px;
+              text-decoration: none;
+              font-size: 14px; /* 电脑端公共/管理模式字体 */
+              font-weight: 600;
+              transition: all 0.3s ease;
+              box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+              border: 1px solid #e6e6e6;
+              display: flex;
+              align-items: center;
+              justify-content: flex-start; /* Changed from center */
+              min-height: 52px; /* Base min-height for desktop */
+          }
+          /* Favicon display disabled, so .bookmark-icon CSS is now unused */
+          /* .tool-button .bookmark-icon {
+              width: 18px;
+              height: 18px;
+              margin-right: 8px;
+              flex-shrink: 0;
+          } */
+          .tool-button span {
+              flex-grow: 1; /* Allow text to take remaining space */
+              overflow: hidden; /* Keep overflow hidden for the span itself */
+              white-space: normal; /* Allow text to wrap */
+              word-break: break-word; /* Break long words */
+              text-align: left;
+          }
+  
+          .tool-button:hover {
+              background: #3a7bd5;
+              color: white;
+              transform: translateY(-2px);
+              box-shadow: 0 6px 12px rgba(58, 123, 213, 0.25);
+          }
+          /* Favicon display disabled, so this hover effect is now unused */
+          /* .tool-button:hover .bookmark-icon {
+              filter: brightness(0) invert(1);
+          } */
+  
+          /* --- 搜索框样式调整 START --- */
+          .search-container {
+              width: 100%;
+              display: flex;
+              gap: 8px;
+              margin-top: 0; /* 移除顶部外边距，依赖 .card 的 padding */
+              margin-bottom: 12px; /* 减少底部外边距 */
+              padding: 0; /* 确保自身没有额外内边距 */
+          }
+  
+          .search-input {
+              flex: 1;
+              padding: 8px 12px; /* 缩小内边距，减少高度 */
+              border: 1px solid #e6e6e6;
+              border-radius: 8px; /* 稍微缩小圆角 */
+              font-size: 14px; /* 缩小字体大小 */
+              color: #333;
+              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+              transition: border-color 0.3s ease;
+          }
+  
+          .search-input:focus {
+              outline: none;
+              border-color: #3a7bd5;
+              box-shadow: 0 0 0 2px rgba(58, 123, 213, 0.1);
+          }
+          /* --- 搜索框样式调整 END --- */
+  
+          /* 菜单滚动提示样式 */
+          .scroll-hint {
+              font-size: 12px;
+              color: #666;
+              margin-bottom: 8px;
+              text-align: center;
+              font-weight: 500;
+              display: none; /* 默认隐藏，手机端显示 */
+          }
+  
+          @media (max-width: 768px) {
+              body {
+                  padding: 10px;
+                  background: #f5f5f7;
+              }
+              
+              #main {
+                  border-radius: 12px;
+                  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+              }
+  
+              .brand {
+                  padding: 24px 16px;
+                  border-radius: 12px 12px 0 0;
+              }
+  
+              .brand-title {
+                  font-size: 1.8rem;
+              }
+  
+              .card {
+                  padding: 16px;
+              }
+  
+              .title {
+                  font-size: 1.2rem;
+                  margin-bottom: 14px;
+              }
+  
+              .link-list li {
+                  margin: 10px 0;
+                  font-size: 14px;
+                  flex-wrap: wrap;
+              }
+  
+              .tip-item {
+                  margin: 10px 0; /* Reduced margin */
+              }
+  
+              .tip-item b {
+                  font-size: 1.1rem;
+              }
+  
+              .tip-item p {
+                  font-size: 14px;
+              }
+  
+              /* --- Mobile Specific Styles --- */
+              /* Settings button */
+              .settings-button {
+                  font-size: 20px; /* Smaller cog icon */
+                  top: 15px;
+                  right: 15px;
+              }
+              .settings-button.back-button {
+                  font-size: 18px; /* Smaller back icon */
+                  top: 15px;
+                  left: 15px;
+              }
+  
+              /* Admin Action Buttons (top section) */
+              .admin-action-buttons {
+                  justify-content: center; /* Center buttons when wrapped */
+                  gap: 8px; /* Slightly smaller gap */
+                  margin-top: 12px; /* 调整手机端间距 */
+                  padding: 0 16px; /* Match card padding */
+              }
+              .admin-action-buttons button {
+                  flex: 1 1 calc(50% - 8px); /* Two buttons per row, with gap */
+                  max-width: calc(50% - 8px);
+                  padding: 8px 12px; /* Smaller padding */
+                  font-size: 14px; /* Smaller font */
+              }
+  
+              /* Category Action Buttons */
+              .edit-mode-category-title {
+                  padding-right: 90px; /* Reduce space for category buttons */
+              }
+              .edit-mode-category-actions {
+                  gap: 3px;
+                  padding: 1px 3px;
+              }
+              .edit-mode-category-actions button {
+                  padding: 3px 6px;
+                  font-size: 10px;
+              }
+  
+              /* Bookmarks Grid: Always 4 columns on all mobile */
+              .tool-buttons {
+                  grid-template-columns: repeat(4, 1fr); /* Force 4 columns on all mobile */
+                  gap: 6px; /* Consistent gap */
+                  max-height: calc(100vh - 180px); /* Keep max-height */
+              }
+  
+              /* Bookmark Card (tool-button) */
+              .tool-button {
+                  min-height: 60px; /* Increase min-height for mobile to allow more text */
+                  font-size: 12px; /* Public view on mobile */
+                  padding: 8px 6px; /* Adjust padding */
+              }
+              /* Favicon display disabled, so .bookmark-icon CSS is now unused */
+              /* .tool-button .bookmark-icon {
+                  width: 16px;
+                  height: 16px;
+                  margin-right: 6px;
+              } */
+              /* Admin mode specific adjustments for text and buttons */
+              .tool-button.edit-mode span {
+                  font-size: 11px; /* Slightly smaller for admin mode to fit buttons */
+                  margin-right: 50px; /* Space for smaller buttons */
+              }
+              .edit-mode-bookmark-actions {
+                  gap: 2px;
+                  padding: 1px 2px;
+              }
+              .edit-mode-bookmark-actions button {
+                  padding: 2px 4px;
+                  font-size: 9px;
+              }
+  
+              /* 手机端搜索框调整 */
+              .search-input {
+                  padding: 6px 10px; /* 进一步缩小内边距 */
+                  font-size: 13px; /* 进一步缩小字体 */
+              }
+  
+              .scroll-hint {
+                  display: block; /* 手机端显示滚动提示 */
+              }
+          }
+  
+          @media (max-width: 480px) {
+              #flash-message-container {
+                  top: 10px;
+                  left: 10px;
+                  right: 10px;
+                  max-width: none;
+              }
+              /* Admin Action Buttons (top section) */
+              .admin-action-buttons button {
+                  flex: 1 1 100%; /* One button per row for very small screens */
+                  max-width: 100%;
+              }
+  
+              /* Category Action Buttons */
+              .edit-mode-category-title {
+                  padding-right: 80px; /* Further reduce space */
+              }
+              .edit-mode-category-actions {
+                  gap: 2px;
+                  padding: 0 2px;
+              }
+              .edit-mode-category-actions button {
+                  padding: 2px 5px;
+                  font-size: 9px;
+              }
+  
+              /* Bookmark Card (tool-button) - keep 4 columns, adjust font/padding */
+              .tool-button {
+                  font-size: 12px; /* Keep 12px for public view */
+                  padding: 6px 4px;
+                  min-height: 55px; /* Adjust min-height */
+              }
+              .tool-button.edit-mode span {
+                  font-size: 11px; /* Keep 11px for admin view */
+                  margin-right: 45px; /* Adjust space for even smaller buttons */
+              }
+  
+              .search-container {
+                  gap: 6px;
+              }
+  
+              /* 极小屏幕搜索框调整 */
+              .search-input {
+                  padding: 5px 8px; /* 最小内边距 */
+                  font-size: 12px; /* 最小字体 */
+                  border-radius: 6px; /* 最小圆角 */
+              }
+  
+              .menu-item {
+                  padding: 8px 10px;
+                  font-size: 12px;
+                  min-width: 80px;
+              }
+  
+              /* 全部按钮小屏适配 */
+              .menu-item.all-btn {
+                  min-width: 60px;
+                  padding: 8px 8px;
+              }
+          }
+  
+          .contact-info {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 16px;
+              margin-top: 8px;
+          }
+  
+          .contact-item {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 14px;
+          }
+  
+          /* Favicon display disabled, so .icon CSS is now unused */
+          /* .icon {
+              width: 18px;
+              height: 18px;
+              opacity: 0.8;
+          } */
+  
+          .footer {
+              text-align: center;
+              padding: 20px;
+              color: #666;
+              font-size: 14px;
+              border-top: 1px solid #f0f0f0;
+              margin-top: 20px;
+          }
+  
+          .content-menu {
+              display: flex;
+              gap: 10px;
+              margin-bottom: 0;
+              width: 100%;
+              overflow-x: auto;
+              padding-bottom: 8px;
+          }
+  
+          .menu-item {
+              border-radius: 8px;
+              font-size: 15px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              flex: 1;
+              min-width: 100px;
+              text-align: center;
+              position: relative;
+          }
+  
+          /* 全部按钮样式强化 - 电脑端 */
+          .menu-item.all-btn {
+              background: #e6f0ff;
+              border: 1px solid #99c1ff;
+              color: #1e65e3;
+          }
+  
+          /* 其他菜单按钮样式 - 电脑端 */
+          .menu-item:not(.all-btn) {
+                  background: #f0f7ff;
+              border: 1px solid #c1d3fe;
+              color: #3a7bd5;
+          }
+  
+          .menu-item.active {
+              background: #3a7bd5;
+              color: white;
+              border-color: #2d62a7;
+              box-shadow: 0 4px 8px rgba(58, 123, 213, 0.2);
+          }
+  
+          .menu-item:hover {
+              background: #e1edff;
+              border-color: #99c1ff;
+              transform: translateY(-1px);
+          }
+  
+          .menu-item.all-btn:hover {
+              background: #d9e8ff;
+          }
+  
+          .menu-item.active:hover {
+              background: #2d62a7;
+          }
+  
+          .menu-tooltip {
+              position: absolute;
+              top: -40px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: rgba(0, 0, 0, 0.8);
+              color: white;
+              padding: 6px 12px;
+              border-radius: 4px;
+              font-size: 12px;
+              white-space: nowrap;
+              opacity: 0;
+              visibility: hidden;
+              transition: all 0.3s ease;
+              z-index: 10;
+          }
+  
+          .menu-tooltip::after {
+              content: '';
+              position: absolute;
+              bottom: -6px;
+              left: 50%;
+              transform: translateX(-50%);
+              border-width: 6px 6px 0;
+              border-style: solid;
+              border-color: rgba(0, 0, 0, 0.8) transparent transparent;
+          }
+  
+          .content-module {
+              display: none;
+              animation: fadeIn 0.4s ease;
+          }
+  
+          .content-module.active {
+              display: block;
+          }
+  
+          /* 全部模式下的分隔线 */
+          .module-divider {
+              height: 1px;
+              background: #f0f0f0;
+              margin: 24px 0;
+          }
+      </style>
+  </head>
+  
+  <body>
+      <div id="main">
+          <div class="brand">
+              <div class="brand-title" id="brand-title">科学订阅</div> <!-- Added id="brand-title" -->
+              <button id="settings-button" class="settings-button" title="管理设置">
+                  <i class="fas fa-arrow-left"></i> <!-- Default to back arrow, will be hidden by CSS -->
+              </button>
+          </div>
+  
+          <div id="app-content">
+              <!-- Dynamic content will be rendered here by app.js -->
+          </div>
+  
+          <div class="footer">
+              © 2023 科学订阅 | 宝哥制作
+          </div>
+      </div>
+      <!-- Flash Message Container -->
+      <div id="flash-message-container"></div>
+  
+      <script defer src="https://fx.baoge.wang/tracker.min.js" data-website-id="科学订阅"></script>
+      <script src="/app.js"></script>
+      <script defer src="https://umami.baoge.wang/script.js" data-website-id="6fd57429-c4a7-498f-b42c-a1ee5eaa3094"></script>
+  </body>
+  </html>
+      `;
+  
+      return new Response(originalHtml, {
+          headers: {
+              'Content-Type': 'text/html;charset=UTF-8',
+              'Cache-Control': 'no-cache, no-store, must-revalidate' // 确保每次都获取最新内容
+          },
+      });
+  });
+  
+  // 2. 提供前端 JavaScript 文件 (app.js)
+  router.get('/app.js', async (request, env) => {
+      // START OF appJsRawContent - All internal backticks and ${ must be escaped
+      const appJsRawContent = `
+// app.js - 前端应用程序代码
+(function() {
+    console.log("app.js loaded and started"); // <-- Added this line for debugging
+    const appContent = document.getElementById('app-content'); // Main content area
+    const settingsButton = document.getElementById('settings-button');
+    const brandTitleElement = document.getElementById('brand-title'); // 获取主题名称元素
+    let isAuthenticatedUser = false; // Admin authentication status
+    let isAdminMode = false; // Current view mode: true for admin, false for public
+    let currentLinks = [];
+    let currentCategories = [];
+    let currentActiveMenuId = 'all'; // 默认激活“全部”菜单
+    let currentSearchTerm = ''; // 用于站内搜索的关键词
+
+    // --- 辅助函数：生成 Favicon URL (已修改为不加载显示缩略图) ---
+    function getFaviconUrl(url) {
+        return ''; // 始终返回空字符串，禁用自动加载和显示 Favicon
+    }
+
+    // --- 模态框隐藏函数 (提前定义，确保可用) ---
+    function hideModal() {
+        const modal = document.getElementById('edit-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    // --- Flash Message Function ---
+    function showFlashMessage(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('flash-message-container');
+        if (!container) {
+            console.warn('Flash message container not found. Falling back to alert:', message);
+            alert(message);
+            return;
+        }
+    
+        const messageEl = document.createElement('div');
+        messageEl.className = \`flash-message flash-\${type}\`;
+        messageEl.textContent = message;
+    
+        // Append to container
+        container.appendChild(messageEl);
+    
+        // Remove after duration
+        setTimeout(() => {
+            messageEl.remove();
+        }, duration);
+    }
+
+    // --- API 调用辅助函数 ---
+    async function callApi(method, path, body = null) {
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        };
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+        const response = await fetch(path, options);
+
+        if (response.status === 401) {
+            // Only update isAuthenticatedUser if it's an admin-related POST request or if we are in admin mode
+            if (method === 'POST' && (path.startsWith('/api/data') || path === '/api/login')) {
+                isAuthenticatedUser = false;
+                if (isAdminMode) { // If currently in admin mode, re-render to show login form
+                    render();
+                }
+            }
+            throw new Error('Unauthorized');
+        }
+
+        if (!response.ok) { // response.ok 是 200-299 状态码的简写
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch (jsonError) {
+                errorData = { message: await response.text() };
+            }
+            // 修正：使用字符串拼接
+            throw new Error('API Error (' + response.status + ' ' + response.statusText + '): ' + (errorData.message || 'Unknown error'));
+        }
+        return response.json();
+    }
+
+    // --- 认证相关 ---
+    async function checkAdminAuthStatus() {
+        try {
+            const cookieExists = document.cookie.split(';').some((item) => item.trim().startsWith('auth_token=authenticated'));
+            isAuthenticatedUser = cookieExists;
+        } catch (error) {
+            console.warn('Error checking admin auth status:', error);
+            isAuthenticatedUser = false;
+        }
+    }
+
+    async function handleLogin(password) {
+        try {
+            const result = await callApi('POST', '/api/login', { password });
+            if (result.success) {
+                isAuthenticatedUser = true;
+                toggleAdminMode(true);
+            } else {
+                // 修正：使用字符串字面量
+                throw new Error(result.message || 'Login failed');
+            }
+        } catch (error) {
+            console.error('Admin Login error:', error);
+            const errorMessage = appContent.querySelector('.error-message');
+            if (errorMessage) errorMessage.textContent = error.message;
+            showFlashMessage(error.message, 'error'); // Show flash message for login error
+        }
+    }
+
+    // --- 数据获取与保存 ---
+    async function fetchData() {
+        try {
+            const data = await callApi('GET', '/api/data');
+            currentLinks = data.links || [];
+            currentCategories = data.categories || [];
+        } catch (error) {
+            console.error('Failed to fetch data:', error);
+            currentLinks = [];
+            currentCategories = [];
+            showFlashMessage('获取数据失败！ ' + error.message, 'error'); // Flash message for data fetch error
+        }
+    }
+
+    async function saveData() {
+        try {
+            await callApi('POST', '/api/data', { links: currentLinks, categories: currentCategories });
+            showFlashMessage('数据保存成功！', 'success'); // Changed from alert to flash message
+            await fetchDataAndRender();
+        } catch (error) {
+            console.error('Failed to save data:', error);
+            showFlashMessage('数据保存失败！ ' + error.message, 'error'); // Changed from alert to flash message
+        }
+    }
+
+    // --- 站内搜索过滤功能 ---
+    function filterLinks(links, searchTerm) {
+        if (!searchTerm) {
+            return links;
+        }
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        return links.filter(link => 
+            link.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+            link.url.toLowerCase().includes(lowerCaseSearchTerm) ||
+            (link.description && link.description.toLowerCase().includes(lowerCaseSearchTerm))
+        );
+    }
+
+    // --- 渲染函数 ---
+    function renderLoginForm() {
+        appContent.innerHTML = \`
+            <div class="login-container">
+                <div class="login-form">
+                    <h2 class="brand-title" style="font-size: 1.8rem; margin-bottom: 20px; color: #333;">管理登录</h2>
+                    <input type="password" id="admin-password" placeholder="请输入管理密码">
+                    <button id="login-button">登录</button>
+                    <p class="error-message"></p>
+                </div>
+            </div>
+        \`;
+        appContent.querySelector('#login-button').addEventListener('click', () => {
+            const password = appContent.querySelector('#admin-password').value;
+            handleLogin(password);
+        });
+        appContent.querySelector('#admin-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const password = appContent.querySelector('#admin-password').value;
+                handleLogin(password);
+            }
+        });
+    }
+
+    // 新增：只渲染分类内的书签列表
+    // 增加 containerIdPrefix 参数，用于生成唯一的 DOM ID
+    function renderCategoryLinks(categoryId, linksToRender, containerIdPrefix = '', isEditMode = false) {
+        // 使用前缀确保 ID 唯一性
+        const containerId = \`tool-buttons-\${containerIdPrefix}\${categoryId}\`; 
+        const toolButtonsEl = document.getElementById(containerId);
+        if (!toolButtonsEl) {
+            console.warn('Container element not found for ID:', containerId);
+            return;
+        }
+
+        let linksHtml = '';
+        if (linksToRender.length === 0 && currentSearchTerm) {
+            linksHtml = \`<p style="text-align: center; color: #999; margin-top: 10px;">无匹配结果。</p>\`;
+        } else if (linksToRender.length === 0 && !currentSearchTerm) {
+            linksHtml = \`<p style="text-align: center; color: #999; margin-top: 10px;">此分类暂无书签。</p>\`;
+        } else {
+            linksToRender.forEach(link => {
+                if (isEditMode) {
+                    linksHtml += \`
+                        <a href="\${link.url}" target="_blank" class="tool-button edit-mode" data-bookmark-id="\${link.id}">
+                            <span>\${link.name}</span>
+                            <div class="edit-mode-bookmark-actions">
+                                <button data-action="edit-bookmark" data-id="\${link.id}" title="编辑书签"><i class="fas fa-edit"></i></button>
+                                <button data-action="delete-bookmark" data-id="\${link.id}" title="删除书签"><i class="fas fa-trash-alt"></i></button>
+                                <button class="sort-btn" data-action="move-bookmark-up" data-id="\${link.id}" title="上移书签"><i class="fas fa-arrow-up"></i></button>
+                                <button class="sort-btn" data-action="move-bookmark-down" data-id="\${link.id}" title="下移书签"><i class="fas fa-arrow-down"></i></button>
+                            </div>
+                        </a>
+                    \`;
+                } else {
+                    linksHtml += \`
+                        <a href="\${link.url}" target="_blank" class="tool-button">
+                            <span>\${link.name}</span>
+                        </a>
+                    \`;
+                }
+            });
+        }
+        toolButtonsEl.innerHTML = linksHtml;
+        ScrollController.updateToolButtonScroll(toolButtonsEl); // 更新滚动条
+    }
+
+    // 新增：更新所有过滤后的书签显示
+    function updateFilteredLinksDisplay() {
+        const isEditMode = isAdminMode && isAuthenticatedUser;
+
+        if (currentActiveMenuId === 'all') {
+            currentCategories.forEach(category => {
+                const categoryLinks = filterLinks(currentLinks.filter(link => link.categoryId === category.id), currentSearchTerm);
+                // 传入 'all-' 作为前缀
+                renderCategoryLinks(category.id, categoryLinks, 'all-', isEditMode); 
+            });
+        } else {
+            const activeCategory = currentCategories.find(cat => cat.id === currentActiveMenuId);
+            if (activeCategory) {
+                const categoryLinks = filterLinks(currentLinks.filter(link => link.categoryId === activeCategory.id), currentSearchTerm);
+                // 传入 'single-' 作为前缀
+                renderCategoryLinks(activeCategory.id, categoryLinks, 'single-', isEditMode); 
+            }
+        }
+        ScrollController.updateAllToolButtons();
+    }
+
+
+    function renderPublicView() {
+        let html = \`
+            <div class="card">
+                <div class="search-container">
+                    <input type="text" id="in-page-search-input" class="search-input" placeholder="搜索所有书签..." value="\${currentSearchTerm}">
+                </div>
+            </div>
+        \`;
+
+        if (currentCategories.length === 0 && currentLinks.length === 0) {
+            html += \`<div class="card"><div class="tip-item" style="text-align: center; color: #666;">暂无内容。</div></div>\`;
+        } else {
+            // Render menu
+            html += \`
+                <div class="card">
+                    <div class="content-menu-wrapper">
+                        <div class="scroll-hint">请左右拖动菜单，选择查看</div>
+                        <div class="content-menu">
+                            <button class="menu-item all-btn \${currentActiveMenuId === 'all' ? 'active' : ''}" data-target="all">
+                                全部
+                                <span class="menu-tooltip">展开所有分类内容</span>
+                            </button>
+                \`;
+
+            currentCategories.forEach(category => {
+                html += \`
+                    <button class="menu-item \${currentActiveMenuId === category.id ? 'active' : ''}" data-target="\${category.id}">
+                        \${category.name}
+                    </button>
+                \`;
+            });
+            html += \`</div></div>\`;
+
+            // Render content modules
+            // "全部" 模块
+            html += \`<div id="all" class="content-module \${currentActiveMenuId === 'all' ? 'active' : ''}">\`;
+            currentCategories.forEach((category, index) => {
+                html += \`
+                    <div class="tip-item">
+                        <b>\${category.name}</b>
+                        <div class="tool-buttons" id="tool-buttons-all-\${category.id}"></div> <!-- Changed ID for uniqueness -->
+                    </div>
+                \`;
+            });
+            html += \`</div>\`;
+
+            // Individual category modules
+            currentCategories.forEach(category => {
+                html += \`
+                    <div id="\${category.id}" class="content-module \${currentActiveMenuId === category.id ? 'active' : ''}">
+                        <div class="tip-item">
+                            <b>\${category.name}</b>
+                            <div class="tool-buttons" id="tool-buttons-single-\${category.id}"></div> <!-- Changed ID for uniqueness -->
+                        </div>
+                    </div>
+                \`;
+            });
+            html += \`</div>\`;
+        }
+
+        appContent.innerHTML = html;
+        setupMenuEvents();
+        setupSearchEvents(); // Setup event listener for the new search input
+        updateFilteredLinksDisplay(); // Initial display of filtered links
+    }
+
+    function renderAuthenticatedAdminView() {
+        let html = \`
+            <div class="card">
+                <div class="search-container">
+                    <input type="text" id="in-page-search-input" class="search-input" placeholder="搜索所有书签..." value="\${currentSearchTerm}">
+                </div>
+                <div class="admin-action-buttons">
+                    <button class="add-category-btn" id="add-category-btn">添加分类</button>
+                    <button class="add-bookmark-btn" id="add-bookmark-btn">添加书签</button>
+                    <button class="import-json-btn" id="import-json-btn">导入 JSON</button>
+                    <button class="export-json-btn" id="export-json-btn">导出 JSON</button>
+                    <button class="save-changes-btn" id="save-changes-btn">保存更改</button>
+                </div>
+            </div>
+        \`;
+
+        if (currentCategories.length === 0 && currentLinks.length === 0) {
+            html += \`<div class="card"><div class="tip-item" style="text-align: center; color: #666;">您还没有添加任何分类或书签。</div></div>\`;
+        } else {
+            // Render menu (without edit/delete buttons in the menu itself)
+            html += \`
+                <div class="card">
+                    <div class="content-menu-wrapper">
+                        <div class="scroll-hint">请左右拖动菜单，选择查看</div>
+                        <div class="content-menu">
+                            <button class="menu-item all-btn \${currentActiveMenuId === 'all' ? 'active' : ''}" data-target="all">
+                                全部
+                            </button>
+                \`;
+
+            currentCategories.forEach(category => {
+                html += \`
+                    <button class="menu-item \${currentActiveMenuId === category.id ? 'active' : ''}" data-target="\${category.id}">
+                        \${category.name}
+                    </button>
+                \`;
+            });
+            html += \`</div></div>\`;
+
+            // Render content modules (with admin controls and sort buttons)
+            // "全部" 模块
+            html += \`<div id="all" class="content-module \${currentActiveMenuId === 'all' ? 'active' : ''}">\`;
+            currentCategories.forEach((category, index) => {
+                html += \`
+                    <div class="tip-item">
+                        <b class="edit-mode-category-title">
+                            \${category.name}
+                            <div class="edit-mode-category-actions">
+                                <button data-action="edit-category" data-id="\${category.id}" title="编辑分类"><i class="fas fa-edit"></i></button>
+                                <button data-action="delete-category" data-id="\${category.id}" title="删除分类"><i class="fas fa-trash-alt"></i></button>
+                                <button class="sort-btn" data-action="move-category-up" data-id="\${category.id}" title="上移分类"><i class="fas fa-arrow-up"></i></button>
+                                <button class="sort-btn" data-action="move-category-down" data-id="\${category.id}" title="下移分类"><i class="fas fa-arrow-down"></i></button>
+                            </div>
+                        </b>
+                        <div class="tool-buttons" id="tool-buttons-all-\${category.id}"></div> <!-- Changed ID for uniqueness -->
+                    </div>
+                \`;
+            });
+            html += \`</div>\`;
+
+            // Individual category modules - 书签卡片上的编辑按钮始终显示
+            currentCategories.forEach(category => {
+                html += \`
+                    <div id="\${category.id}" class="content-module \${currentActiveMenuId === category.id ? 'active' : ''}">
+                        <div class="tip-item">
+                            <b class="edit-mode-category-title">
+                                \${category.name}
+                                <div class="edit-mode-category-actions">
+                                    <button data-action="edit-category" data-id="\${category.id}" title="编辑分类"><i class="fas fa-edit"></i></button>
+                                    <button data-action="delete-category" data-id="\${category.id}" title="删除分类"><i class="fas fa-trash-alt"></i></button>
+                                    <button class="sort-btn" data-action="move-category-up" data-id="\${category.id}" title="上移分类"><i class="fas fa-arrow-up"></i></button>
+                                    <button class="sort-btn" data-action="move-category-down" data-id="\${category.id}" title="下移分类"><i class="fas fa-arrow-down"></i></button>
+                                </div>
+                            </b>
+                            <div class="tool-buttons" id="tool-buttons-single-\${category.id}"></div> <!-- Changed ID for uniqueness -->
+                        </div>
+                    </div>
+                \`;
+            });
+            html += \`</div>\`;
+        }
+
+        appContent.innerHTML = html;
+        setupMenuEvents();
+        setupSearchEvents(); // Setup event listener for the new search input
+        setupAdminEventListeners(); // Ensure admin event listeners are set up after rendering
+        updateFilteredLinksDisplay(); // Initial display of filtered links
+    }
+
+    async function fetchDataAndRender() {
+        await fetchData();
+        render();
+    }
+
+    function render() {
+        // Update settings button visibility and icon
+        if (isAdminMode) {
+            settingsButton.innerHTML = '<i class="fas fa-arrow-left"></i>';
+            settingsButton.classList.add('back-button');
+            settingsButton.style.display = 'block'; // 管理模式下显示
+        } else {
+            // 公共模式下，settingsButton 保持隐藏，长按主题名称触发管理登录
+            settingsButton.innerHTML = '<i class="fas fa-cog"></i>'; // 恢复齿轮图标，但仍然隐藏
+            settingsButton.classList.remove('back-button');
+            settingsButton.style.display = 'none'; // 公共模式下隐藏
+        }
+
+        // Decide which main content to render based on isAdminMode and authentication
+        if (isAdminMode) { // If admin mode is active
+            if (isAuthenticatedUser) { // And authenticated as admin
+                renderAuthenticatedAdminView();
+            } else { // Not authenticated as admin, show admin login
+                renderLoginForm();
+            }
+        } else { // If public mode is active
+            renderPublicView();
+        }
+        setupModals(); // Ensure modals are set up after rendering
+    }
+
+    // --- 菜单切换逻辑 (适配用户提供的 HTML) ---
+    function switchMenu(targetId) {
+        currentActiveMenuId = targetId;
+        // 移除所有菜单active状态
+        document.querySelectorAll('.content-menu .menu-item').forEach(item => { // Added .content-menu to be more specific
+            item.classList.remove('active');
+        });
+        
+        // 激活目标菜单
+        // 修正：使用字符串拼接
+        const targetMenu = document.querySelector('.content-menu .menu-item[data-target="' + targetId + '"]');
+        if (targetMenu) {
+            targetMenu.classList.add('active');
+        }
+
+        const contentModules = Array.from(document.querySelectorAll('.content-module'));
+        
+        // 清除现有分隔线
+        document.querySelectorAll('.module-divider').forEach(div => div.remove());
+        
+        if (targetId === 'all') {
+            // 激活主 'all' 模块
+            const allModule = document.getElementById('all');
+            if (allModule) allModule.classList.add('active');
+
+            // 停用所有单独的分类模块
+            contentModules.filter(mod => mod.id !== 'all').forEach(mod => mod.classList.remove('active'));
+
+            // 在 'all' 模块内的分类之间添加分隔线
+            const allModuleTipItems = allModule ? allModule.querySelectorAll('.tip-item') : [];
+            allModuleTipItems.forEach((item, index) => {
+                if (index < allModuleTipItems.length - 1) {
+                    const divider = document.createElement('div');
+                    divider.className = 'module-divider';
+                    item.after(divider);
+                }
+            });
+
+        } else {
+            // 停用主 'all' 模块
+            const allModule = document.getElementById('all');
+            if (allModule) allModule.classList.remove('active');
+
+            // 激活目标单独分类模块
+            contentModules.forEach(module => {
+                if (module.id === targetId) {
+                    module.classList.add('active');
+                } else {
+                    module.classList.remove('active');
+                }
+            });
+        }
+        // Save the active menu state to localStorage
+        localStorage.setItem('lastActiveMenuId', targetId);
+        updateFilteredLinksDisplay(); // 切换菜单后重新渲染书签列表
+    }
+
+    function setupMenuEvents() {
+        // 绑定菜单按钮的点击事件
+        document.querySelectorAll('.content-menu .menu-item').forEach(button => {
+            button.addEventListener('click', (event) => {
+                // 如果是管理模式下的 tooltip 按钮，阻止事件冒泡，不切换菜单
+                if (event.target.closest('.menu-tooltip button')) {
+                    event.stopPropagation();
+                    return;
+                }
+                const targetId = button.dataset.target;
+                app.switchMenu(targetId);
+            });
+        });
+
+        // 恢复上次激活的菜单状态
+        const lastActive = localStorage.getItem('lastActiveMenuId') || 'all';
+        if (lastActive !== currentActiveMenuId) {
+            switchMenu(lastActive);
+        } else {
+            // 如果是首次加载或没有历史记录，确保 "all" 菜单是激活的
+            switchMenu('all');
+        }
+    }
+
+    function setupSearchEvents() {
+        const searchInput = document.getElementById('in-page-search-input');
+        if (searchInput) {
+            // Remove existing listener to prevent duplicates
+            if (searchInput.__searchListener) {
+                searchInput.removeEventListener('input', searchInput.__searchListener);
+            }
+
+            const listener = (event) => {
+                currentSearchTerm = event.target.value.trim();
+                updateFilteredLinksDisplay(); // Only update the filtered links display, don't re-render entire app
+            };
+            searchInput.addEventListener('input', listener);
+            searchInput.__searchListener = listener; // Store listener for removal
+        }
+    }
+
+    // --- 模态框管理 ---
+    let currentModalType = ''; // 'category' or 'bookmark'
+    let currentEditId = null;
+
+    function showModal(type, data = {}) {
+        currentModalType = type;
+        currentEditId = data.id || null;
+        const modal = document.getElementById('edit-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+
+        modalBody.innerHTML = ''; // Clear previous content
+
+        if (type === 'category') {
+            modalTitle.textContent = currentEditId ? '编辑分类' : '添加分类';
+            // 修正：使用字符串拼接
+            modalBody.innerHTML = ' <label for="category-name">分类名称</label> <input type="text" id="category-name" value="' + (data.name || '') + '" placeholder="例如：常用工具"> ';
+        } else if (type === 'bookmark') {
+            modalTitle.textContent = currentEditId ? '编辑书签' : '添加书签';
+            // 修正：使用字符串拼接
+            // 移除了自动生成 favicon 的提示，但保留了图标URL输入框
+            modalBody.innerHTML = ' <label for="bookmark-name">名称</label> <input type="text" id="bookmark-name" value="' + (data.name || '') + '" placeholder="例如：Google"> <label for="bookmark-url">URL</label> <input type="url" id="bookmark-url" value="' + (data.url || '') + '" placeholder="例如：https://www.google.com"> <label for="bookmark-description">描述 (可选)</label> <input type="text" id="bookmark-description" value="' + (data.description || '') + '" placeholder="例如：全球最大的搜索引擎"> <label for="bookmark-icon">图标URL (可选)</label> <input type="url" id="bookmark-icon" value="' + (data.icon || '') + '" placeholder="请输入图标URL"> <label for="bookmark-category">分类</label> <select id="bookmark-category">' + currentCategories.map(cat => '<option value="' + cat.id + '" ' + (cat.id === data.categoryId ? 'selected' : '') + '>' + cat.name + '</option>').join('') + '</select> ';
+        }
+        modal.style.display = 'flex'; // Show modal
+    }
+
+    function saveModalChanges() {
+        if (currentModalType === 'category') {
+            const name = document.getElementById('category-name').value.trim();
+            if (!name) { showFlashMessage('分类名称不能为空！', 'error'); return; } // Changed from alert to flash message
+
+            if (currentEditId) {
+                // 编辑现有分类
+                currentCategories = currentCategories.map(cat =>
+                    cat.id === currentEditId ? { ...cat, name: name } : cat
+                );
+            } else {
+                // 添加新分类
+                currentCategories.push({ id: crypto.randomUUID(), name: name });
+            }
+        } else if (currentModalType === 'bookmark') {
+            const name = document.getElementById('bookmark-name').value.trim();
+            const url = document.getElementById('bookmark-url').value.trim();
+            const description = document.getElementById('bookmark-description').value.trim();
+            let icon = document.getElementById('bookmark-icon').value.trim(); // 用户手动输入的图标URL
+            const categoryId = document.getElementById('bookmark-category').value;
+
+            if (!name || !url || !categoryId) { showFlashMessage('名称、URL和分类不能为空！', 'error'); return; } // Changed from alert to flash message
+            // if (!icon) icon = getFaviconUrl(url); // 如果未提供图标，自动生成 - 此行已移除，不再自动生成 favicon
+
+            if (currentEditId) {
+                // 编辑现有书签
+                currentLinks = currentLinks.map(link =>
+                    link.id === currentEditId ? { ...link, name, url, description, icon, categoryId } : link
+                );
+            } else {
+                // 添加新书签
+                currentLinks.push({ id: crypto.randomUUID(), name, url, description, icon, categoryId });
+            }
+        }
+        hideModal();
+        render(); // 重新渲染内容，但不立即保存到KV
+        showFlashMessage('更改已暂存，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
+    }
+
+    function showAddCategoryModal() {
+        if (currentCategories.length === 0 && currentLinks.length > 0) {
+            showFlashMessage('您有书签但没有分类，请先添加分类！', 'info'); // Changed to info, not error if links exist
+            // If there are links but no categories, it means the data is malformed or imported without categories.
+            // Still allow adding a category.
+        }
+        showModal('category');
+    }
+
+    function showEditCategoryModal(id) {
+        const category = currentCategories.find(cat => cat.id === id);
+        if (category) {
+            showModal('category', category);
+        }
+    }
+
+    function deleteCategory(id) {
+        if (!confirm('确定要删除此分类吗？该分类下的所有书签也将被删除！')) return;
+        currentCategories = currentCategories.filter(cat => cat.id !== id);
+        currentLinks = currentLinks.filter(link => link.categoryId !== id); // 删除分类下的所有书签
+        render();
+        showFlashMessage('分类及其书签已删除，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
+    }
+
+    function showAddBookmarkModal() {
+        if (currentCategories.length === 0) {
+            showFlashMessage('请先添加至少一个分类！', 'error'); // Changed from alert to flash message
+            return;
+        }
+        showModal('bookmark');
+    }
+
+    function showEditBookmarkModal(id) {
+        const bookmark = currentLinks.find(link => link.id === id);
+        if (bookmark) {
+            showModal('bookmark', bookmark);
+        }
+    }
+
+    function deleteBookmark(id) {
+        if (!confirm('确定要删除此书签吗？')) return;
+        currentLinks = currentLinks.filter(link => link.id !== id);
+        render();
+        showFlashMessage('书签已删除，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
+    }
+
+    // --- 排序功能辅助函数 ---
+    function moveItemInArray(arr, id, direction) {
+        const index = arr.findIndex(item => item.id === id);
+        if (index === -1) return arr;
+
+        const newArr = [...arr]; // Create a shallow copy to avoid direct mutation
+        const [movedItem] = newArr.splice(index, 1); // Remove the item
+
+        if (direction === 'up' && index > 0) {
+            newArr.splice(index - 1, 0, movedItem); // Insert before
+        } else if (direction === 'down' && index < arr.length) { // Note: arr.length because we removed one item
+            newArr.splice(index + 1, 0, movedItem); // Insert after
+        } else {
+            newArr.splice(index, 0, movedItem); // If no move, re-insert at original position
+        }
+        return newArr;
+    }
+
+    function moveCategory(id, direction) {
+        currentCategories = moveItemInArray(currentCategories, id, direction);
+        render();
+        showFlashMessage('分类顺序已调整，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
+    }
+
+    function moveBookmark(id, direction) {
+        const bookmarkToMove = currentLinks.find(link => link.id === id);
+        if (!bookmarkToMove) return;
+
+        const categoryId = bookmarkToMove.categoryId;
+        let linksInTargetCategory = currentLinks.filter(link => link.categoryId === categoryId);
+        let otherLinks = currentLinks.filter(link => link.categoryId !== categoryId);
+
+        linksInTargetCategory = moveItemInArray(linksInTargetCategory, id, direction);
+
+        // Reconstruct currentLinks, ensuring categories maintain their order
+        // This approach first sorts categories, then inserts their sorted links.
+        let newCurrentLinks = [];
+        currentCategories.forEach(category => {
+            const linksForThisCategory = (category.id === categoryId ? linksInTargetCategory : currentLinks.filter(link => link.categoryId === category.id));
+            newCurrentLinks.push(...linksForThisCategory);
+        });
+        currentLinks = newCurrentLinks;
+        render();
+        showFlashMessage('书签顺序已调整，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
+    }
+
+    // --- 导入/导出 JSON 功能 ---
+    function importJsonData() {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none'; // Hide the input
+
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        let newLinks = [];
+                        let newCategoriesToAdd = []; // Temporary list for new categories from import
+                        
+                        // Use a Set to track existing category names for de-duplication
+                        const existingCategoryNames = new Set(currentCategories.map(c => c.name));
+                        // Use a Set to track existing link identifiers (name|url|categoryId) for de-duplication
+                        const existingLinkIdentifiers = new Set(currentLinks.map(link => \`\${link.name}|\${link.url}|\${link.categoryId}\`));
+                        const importedLinkIdentifiersInBatch = new Set(); // To track links within the current import batch
+
+                        for (const categoryName in importedData) {
+                            if (Object.prototype.hasOwnProperty.call(importedData, categoryName)) {
+                                let categoryId;
+                                // Find or create category
+                                const existingCategory = currentCategories.find(c => c.name === categoryName);
+                                if (existingCategory) {
+                                    categoryId = existingCategory.id;
+                                } else {
+                                    categoryId = crypto.randomUUID();
+                                    // Add to a temporary list, will merge later
+                                    newCategoriesToAdd.push({ id: categoryId, name: categoryName });
+                                }
+                                
+                                importedData[categoryName].forEach(bookmark => {
+                                    const linkIdentifier = \`\${bookmark.name}|\${bookmark.url}|\${categoryId}\`;
+                                    // Check if this link already exists in current data OR if it's a duplicate within the current import batch
+                                    if (!existingLinkIdentifiers.has(linkIdentifier) && !importedLinkIdentifiersInBatch.has(linkIdentifier)) {
+                                        newLinks.push({
+                                            id: crypto.randomUUID(),
+                                            name: bookmark.name,
+                                            url: bookmark.url,
+                                            description: bookmark.description || '',
+                                            icon: bookmark.favicon || '', // 不再自动生成 favicon
+                                            categoryId: categoryId
+                                        });
+                                        importedLinkIdentifiersInBatch.add(linkIdentifier); // Mark as added in this batch
+                                    } else {
+                                        console.log(\`Skipping duplicate bookmark during import: \${bookmark.name} - \${bookmark.url} in category \${categoryName}\`);
+                                        showFlashMessage(\`跳过重复书签: \${bookmark.name}\`, 'info', 2000); // Inform user about skipped duplicates
+                                    }
+                                });
+                            }
+                        }
+                        
+                        // Merge new categories with existing ones
+                        newCategoriesToAdd.forEach(newCat => {
+                            if (!currentCategories.some(cat => cat.name === newCat.name)) { // Check against the current state of currentCategories
+                                currentCategories.push(newCat);
+                            }
+                        });
+                        // Add all non-duplicate new links
+                        currentLinks.push(...newLinks);
+
+                        await saveData(); // Save to KV and re-render
+                        showFlashMessage('JSON 数据导入成功！', 'success');
+                    } catch (parseError) {
+                        // 修正：使用字符串拼接
+                        showFlashMessage('JSON 文件解析失败，请检查文件格式。 ' + parseError.message, 'error'); // Changed from alert to flash message
+                        console.error('JSON parse error:', parseError);
+                    }
+                };
+                reader.readAsText(file);
+            } catch (readError) {
+                // 修正：使用字符串拼接
+                showFlashMessage('文件读取失败。 ' + readError.message, 'error'); // Changed from alert to flash message
+                console.error('File read error:', readError);
+            } finally {
+                document.body.removeChild(fileInput); // Clean up
+            }
+        });
+
+        document.body.appendChild(fileInput);
+        fileInput.click(); // Programmatically click the hidden input
+    }
+
+    function exportJsonData() {
+        const exportedData = {};
+        currentCategories.forEach(category => {
+            exportedData[category.name] = currentLinks
+                .filter(link => link.categoryId === category.id)
+                .map(link => {
+                    const bookmark = {
+                        name: link.name,
+                        url: link.url,
+                        favicon: link.icon || '', // 不再尝试生成 favicon，只导出已有的或空字符串
+                    };
+                    if (link.description) { // Add description only if it exists
+                        bookmark.description = link.description;
+                    }
+                    return bookmark;
+                });
+        });
+        const jsonString = JSON.stringify(exportedData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const now = new Date();
+        // 修正：使用字符串拼接
+        const filename = '科学订阅_' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '_' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0') + '.json';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href); // Clean up the object URL
+        showFlashMessage('数据已成功导出为 JSON 文件！', 'success'); // Changed from alert to flash message
+    }
+
+
+    // --- 书签容器滚动控制 (适配用户提供的 HTML) ---
+    const ScrollController = {
+        // 电脑端书签数量阈值（超过此数显示滚动条）
+        DESKTOP_MAX_COUNT: 36,
+        // 电脑端对应最大高度（36个书签大约1872px，设1800px留余）
+        DESKTOP_MAX_HEIGHT: '1800px',
+
+        // 统计单个.tool-buttons的书签数量，设置高度
+        updateToolButtonScroll: function(toolButtonsEl) {
+            if (!toolButtonsEl) return;
+
+            const bookmarkCount = toolButtonsEl.querySelectorAll('a').length;
+            const isDesktop = window.innerWidth > 768;
+
+            if (isDesktop) {
+                if (bookmarkCount > this.DESKTOP_MAX_COUNT) {
+                    toolButtonsEl.style.maxHeight = this.DESKTOP_MAX_HEIGHT;
+                } else {
+                    toolButtonsEl.style.maxHeight = 'none';
+                }
+            } else {
+                // 手机端：CSS已默认限制max-height，无需额外处理
+                toolButtonsEl.style.maxHeight = ''; // 清除可能由桌面端设置的maxHeight
+            }
+        },
+
+        // 处理所有显示中的.content-module的.tool-buttons
+        updateAllToolButtons: function() {
+            // 获取所有可能包含 .tool-buttons 的元素
+            // 注意：'all' 模式下的模块和单个分类模块的 ID 略有不同
+            const allToolButtons = document.querySelectorAll('#app-content .tool-buttons');
+            allToolButtons.forEach(toolButtonsEl => {
+                // 仅对当前激活的模块的 tool-buttons 进行处理
+                // 或者在 "all" 模式下，对所有模块的 tool-buttons 进行处理
+                const parentModule = toolButtonsEl.closest('.content-module');
+                if (parentModule && parentModule.classList.contains('active')) {
+                    this.updateToolButtonScroll(toolButtonsEl);
+                } else if (!parentModule) { // 可能是直接在 app-root 下的 tool-buttons，例如登录表单
+                    this.updateToolButtonScroll(toolButtonsEl);
+                }
+            });
+        }
+    };
+
+    // --- 管理模式切换 ---
+    function toggleAdminMode(forceState = null) {
+        if (forceState !== null) {
+            isAdminMode = forceState;
+        } else {
+            isAdminMode = !isAdminMode;
+        }
+        fetchDataAndRender(); // Re-fetch data and render the entire app based on new state
+    }
+
+    // --- 初始化 ---
+    async function init() {
+        // 模态框 HTML (添加到 body 标签的末尾)
+        const modalHtml = \`
+            <div id="edit-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-button" id="modal-close-btn">&times;</span>
+                    <h2 id="modal-title" class="title" style="margin-top: 0; padding-top: 0; border-bottom: none;"></h2>
+                    <div id="modal-body"></div>
+                    <div class="mt-4" style="text-align: right;">
+                        <button class="cancel" id="modal-cancel-btn">取消</button>
+                        <button id="modal-save-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+        \`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // --- 长按主题名称触发管理员登录 ---
+        let pressTimer;
+        const LONG_PRESS_THRESHOLD = 700; // 长按时间阈值，单位毫秒
+
+        function startPress(e) {
+            e.preventDefault(); // 阻止默认行为，如移动端长按弹出菜单
+            if (!isAdminMode) { // 只有在非管理员模式下才触发长按登录
+                pressTimer = setTimeout(() => {
+                    toggleAdminMode(true); // 直接进入管理员模式（会显示登录界面如果未认证）
+                    showFlashMessage('已进入管理员模式登录界面。', 'info');
+                }, LONG_PRESS_THRESHOLD);
+            }
+        }
+
+        function cancelPress() {
+            clearTimeout(pressTimer);
+        }
+
+        brandTitleElement.addEventListener('mousedown', startPress);
+        brandTitleElement.addEventListener('touchstart', startPress, { passive: false }); // passive: false 允许 preventDefault
+
+        brandTitleElement.addEventListener('mouseup', cancelPress);
+        brandTitleElement.addEventListener('mouseleave', cancelPress);
+        brandTitleElement.addEventListener('touchend', cancelPress);
+        brandTitleElement.addEventListener('touchcancel', cancelPress);
+
+        // Settings button listener
+        settingsButton.addEventListener('click', () => {
+            // settingsButton 仅在 isAdminMode 为 true 时显示，此时点击它表示退出管理模式
+            if (isAdminMode) {
+                window.location.reload(); // 重新加载页面，清除 cookie，回到公共视图
+            }
+            // 如果 isAdminMode 为 false，settingsButton 默认是隐藏的，点击事件不会被触发
+        });
+
+        // 检查管理员认证状态 (基于 cookie)
+        await checkAdminAuthStatus();
+        // 首次加载时，默认显示公共视图
+        isAdminMode = false;
+        await fetchDataAndRender();
+    }
+
+    function setupModals() {
+        const modal = document.getElementById('edit-modal');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
+        
+        // Remove existing listeners to prevent duplicates
+        modalCloseBtn.removeEventListener('click', hideModal);
+        modalCancelBtn.removeEventListener('click', hideModal);
+        modalSaveBtn.removeEventListener('click', saveModalChanges);
+        window.removeEventListener('click', modalOutsideClickListener);
+
+        // Add new listeners
+        modalCloseBtn.addEventListener('click', hideModal);
+        modalCancelBtn.addEventListener('click', hideModal);
+        modalSaveBtn.addEventListener('click', saveModalChanges);
+        window.addEventListener('click', modalOutsideClickListener);
+
+        function modalOutsideClickListener(event) {
+            if (event.target == modal) {
+                hideModal();
+            }
+        }
+    }
+
+    function setupAdminEventListeners() {
+        // Main action buttons
+        document.getElementById('add-category-btn')?.addEventListener('click', app.showAddCategoryModal);
+        document.getElementById('add-bookmark-btn')?.addEventListener('click', app.showAddBookmarkModal);
+        document.getElementById('import-json-btn')?.addEventListener('click', app.importJsonData);
+        document.getElementById('export-json-btn')?.addEventListener('click', app.exportJsonData);
+        document.getElementById('save-changes-btn')?.addEventListener('click', app.saveData);
+
+        // Category actions (edit/delete/sort) - using event delegation for dynamically added buttons
+        document.querySelectorAll('.edit-mode-category-title').forEach(container => {
+            // Remove existing listeners to prevent duplicates if render() is called multiple times
+            const oldListener = container.__categoryActionListener;
+            if (oldListener) {
+                container.removeEventListener('click', oldListener);
+            }
+
+            const newListener = (event) => {
+                const targetBtn = event.target.closest('button[data-action]');
+                if (!targetBtn) return;
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                const action = targetBtn.dataset.action;
+                const id = targetBtn.dataset.id;
+
+                if (action === 'edit-category') {
+                    app.showEditCategoryModal(id);
+                } else if (action === 'delete-category') {
+                    app.deleteCategory(id);
+                } else if (action === 'move-category-up') {
+                    app.moveCategory(id, 'up');
+                } else if (action === 'move-category-down') {
+                    app.moveCategory(id, 'down');
+                }
+            };
+            container.addEventListener('click', newListener);
+            container.__categoryActionListener = newListener; // Store listener for removal
+        });
+
+        // Bookmark actions (edit/delete/sort) - using event delegation
+        document.querySelectorAll('.tool-buttons').forEach(container => {
+            // Remove existing listeners to prevent duplicates if render() is called multiple times
+            const oldListener = container.__bookmarkActionListener;
+            if (oldListener) {
+                container.removeEventListener('click', oldListener);
+            }
+
+            const newListener = (event) => {
+                const targetBtn = event.target.closest('button[data-action]');
+                if (!targetBtn) return;
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                const action = targetBtn.dataset.action;
+                const id = targetBtn.dataset.id;
+
+                if (action === 'edit-bookmark') {
+                    app.showEditBookmarkModal(id);
+                } else if (action === 'delete-bookmark') {
+                    app.deleteBookmark(id);
+                } else if (action === 'move-bookmark-up') {
+                    app.moveBookmark(id, 'up');
+                } else if (action === 'move-bookmark-down') {
+                    app.moveBookmark(id, 'down');
+                }
+            };
+            container.addEventListener('click', newListener);
+            container.__bookmarkActionListener = newListener; // Store listener for removal
+        });
+    }
+
+
+    // 将需要外部调用的函数暴露到全局对象 app
+    window.app = {
+        saveData,
+        showAddCategoryModal,
+        showEditCategoryModal,
+        deleteCategory,
+        showAddBookmarkModal,
+        showEditBookmarkModal,
+        deleteBookmark,
+        hideModal,
+        saveModalChanges,
+        switchMenu,
+        toggleAdminMode,
+        importJsonData,
+        exportJsonData,
+        moveCategory,
+        moveBookmark
+    };
+
+    init();
+})();
+      `; // END OF appJsRawContent
+  
+      return new Response(appJsRawContent, {
+          headers: { 'Content-Type': 'application/javascript;charset=UTF-8' },
+      });
+  });
+  
+  // 3. 登录 API (管理员)
+  router.post('/api/login', async (request, env) => {
+      const { password } = await request.json();
+      if (password === env.ADMIN_PASSWORD) {
+          return new Response(JSON.stringify({ success: true }), {
+              headers: {
+                  'Content-Type': 'application/json',
+                  // 设置 HttpOnly 和 Secure 确保 cookie 安全
+                  'Set-Cookie': `auth_token=authenticated; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 7}` // 7天有效期
+              }
+          });
+      }
+      return new Response(JSON.stringify({ success: false, message: 'Invalid password' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  });
+  
+  // 4. 公共访问登录 API
+  router.post('/api/public-login', async (request, env) => {
+      const { password } = await request.json();
+      if (password === env.PUBLIC_PASSWORD) {
+          return new Response(JSON.stringify({ success: true }), {
+              headers: {
+                  'Content-Type': 'application/json',
+                  // 设置 HttpOnly 和 Secure 确保 cookie 安全，有效期设置为一年
+                  'Set-Cookie': `public_auth_token=authenticated; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 365}`
+              }
+          });
+      }
+      return new Response(JSON.stringify({ success: false, message: 'Invalid password' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  });
+  
+  // 5. 获取数据 API (现在公共可读，无需认证)
+  router.get('/api/data', async (request, env) => {
+      // GET /api/data 请求现在无需认证，任何人都可以读取数据
+      try {
+          if (!env.CARD_ORDER || typeof env.CARD_ORDER.get !== 'function') {
+              console.error("KV binding 'CARD_ORDER' is not correctly configured or is undefined.");
+              return new Response(JSON.stringify({ success: false, message: 'Server configuration error: KV storage not available.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+          }
+          const data = await env.CARD_ORDER.get(USER_DATA_KEY);
+          // 如果 KV 中没有数据，返回空数组
+          return new Response(data || JSON.stringify({ links: [], categories: [] }), { headers: { 'Content-Type': 'application/json' } });
+      } catch (e) {
+          console.error("Error fetching data from KV:", e);
+          return new Response(JSON.stringify({ success: false, message: `Failed to fetch data from server: ${e.message}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      }
+  });
+  
+  // 6. 保存数据 API (需要管理员认证)
+  router.post('/api/data', async (request, env) => {
+      if (!(await isAuthenticatedAdmin(request, env))) {
+          return new Response('Unauthorized', { status: 401 });
+      }
+      try {
+          const { links, categories } = await request.json();
+          if (!env.CARD_ORDER || typeof env.CARD_ORDER.put !== 'function') {
+              console.error("KV binding 'CARD_ORDER' is not correctly configured or is undefined.");
+              return new Response(JSON.stringify({ success: false, message: 'Server configuration error: KV storage not available.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+          }
+  
+          await env.CARD_ORDER.put(USER_DATA_KEY, JSON.stringify({ links, categories }));
+          return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+      } catch (e) {
+          console.error("Error saving data to KV:", e);
+          return new Response(JSON.stringify({ success: false, message: `Failed to save data on server: ${e.message}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      }
+  });
+  
+  // 捕获所有其他请求，返回 404
+  router.all('*', () => new Response('Not Found', { status: 404 }));
+  
+  // Worker 入口点
+  export default {
+      async fetch(request, env, ctx) {
+          return router.handle(request, env, ctx);
+      },
+  };
