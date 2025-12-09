@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON格式转换工具（修复丢失版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .convert-area {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .input-area, .output-area {
+            flex: 1;
+            min-width: 400px;
+        }
+        
+        .file-upload {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .upload-btn {
+            padding: 8px 15px;
+            background-color: #409eff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .upload-btn:hover {
+            background-color: #337ecc;
+        }
+        
+        #fileInfo, #exportInfo {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        h2 {
+            color: #444;
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            resize: vertical;
+            font-size: 14px;
+            line-height: 1.5;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            border-color: #409eff;
+        }
+        
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            background-color: #409eff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #337ecc;
+        }
+        
+        button.secondary {
+            background-color: #67c23a;
+        }
+        
+        button.secondary:hover {
+            background-color: #529b2e;
+        }
+        
+        button.danger {
+            background-color: #f56c6c;
+        }
+        
+        button.danger:hover {
+            background-color: #e45656;
+        }
+        
+        .tips, .warning {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .error {
+            color: #f56c6c;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        
+        .success {
+            color: #67c23a;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        
+        .warning {
+            color: #e6a23c;
+            font-weight: 500;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JSON格式转换工具（修复丢失版）</h1>
+        
+        <div class="convert-area">
+            <div class="input-area">
+                <div class="file-upload">
+                    <button class="upload-btn" id="uploadBtn">选择JSON文件导入</button>
+                    <input type="file" id="fileInput" accept=".json">
+                    <span id="fileInfo">未选择文件</span>
+                </div>
+                <h2>导入的JSON内容</h2>
+                <textarea id="inputJson" placeholder="导入的JSON内容将显示在这里..."></textarea>
+            </div>
+            <div class="output-area">
+                <div class="file-upload">
+                    <button class="upload-btn secondary" id="exportBtn" disabled>导出JSON文件</button>
+                    <span id="exportInfo">转换后可导出</span>
+                </div>
+                <h2>转换结果</h2>
+                <textarea id="outputJson" readonly placeholder="转换后的JSON内容将显示在这里..."></textarea>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button id="convertBtn" disabled>开始转换</button>
+            <button id="copyBtn" class="secondary" disabled>复制结果</button>
+            <button id="clearBtn" class="danger">清空内容</button>
+        </div>
+        
+        <div id="message" class="tips"></div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const exportInfo = document.getElementById('exportInfo');
+        const inputJson = document.getElementById('inputJson');
+        const outputJson = document.getElementById('outputJson');
+        const convertBtn = document.getElementById('convertBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const message = document.getElementById('message');
+
+        // 存储当前转换后的格式类型（1:all-bookmarks, 2:card-tab）
+        let currentOutputFormat = 0;
+        // 存储转换后的JSON对象
+        let convertedJsonObj = null;
+
+        // 显示消息提示
+        function showMessage(text, type = 'tips') {
+            message.textContent = text;
+            message.className = type;
+            
+            // 警告类提示不自动清除，其他3秒清除
+            if (type !== 'warning') {
+                setTimeout(() => {
+                    message.textContent = '';
+                    message.className = 'tips';
+                }, 3000);
+            }
+        }
+
+        // 优化格式检测逻辑：不再依赖第一条数据，检查整体结构
+        function detectJsonType(jsonObj) {
+            // 格式1特征：顶层是对象，所有属性值都是数组，且数组项包含name+url（放宽favicon）
+            if (typeof jsonObj === 'object' && jsonObj !== null && !Array.isArray(jsonObj)) {
+                const entries = Object.entries(jsonObj);
+                if (entries.length === 0) return 0; // 空对象
+                
+                let isFormat1 = true;
+                for (const [_, items] of entries) {
+                    if (!Array.isArray(items)) {
+                        isFormat1 = false;
+                        break;
+                    }
+                    // 检查数组中至少有一个有效条目（包含name+url）
+                    const hasValidItem = items.some(item => 
+                        item && typeof item === 'object' && item.name && item.url
+                    );
+                    if (!hasValidItem) {
+                        isFormat1 = false;
+                        break;
+                    }
+                }
+                if (isFormat1) return 1;
+            }
+            
+            // 格式2特征：顶层是数组，且数组项包含id+name+url+catelog（放宽其他字段）
+            if (Array.isArray(jsonObj)) {
+                if (jsonObj.length === 0) return 0; // 空数组
+                
+                let isFormat2 = true;
+                // 检查数组中至少有一个有效条目（包含id+name+url+catelog）
+                const hasValidItem = jsonObj.some(item => 
+                    item && typeof item === 'object' && item.id && item.name && item.url && item.catelog
+                );
+                if (hasValidItem) return 2;
+            }
+            
+            return 0; // 无法识别
+        }
+
+        // 格式1转格式2 (all-bookmarks → card-tab)：添加容错，跳过无效条目
+        function format1ToFormat2(jsonObj) {
+            const result = [];
+            let id = 1;
+            let skipCount = 0; // 统计跳过的无效条目
+            const currentTime = new Date().toISOString();
+            
+            // 遍历所有分类
+            for (const [catelog, items] of Object.entries(jsonObj)) {
+                // 跳过非数组的分类
+                if (!Array.isArray(items)) {
+                    skipCount++;
+                    continue;
+                }
+                
+                items.forEach((item, index) => {
+                    // 跳过无效条目（null/undefined/无name/url）
+                    if (!item || typeof item !== 'object' || !item.name || !item.url) {
+                        skipCount++;
+                        return; // 跳过当前条目，继续下一个
+                    }
+                    
+                    result.push({
+                        id: id++,
+                        name: item.name.trim() || `未命名书签${id}`, // 处理空名称
+                        url: item.url.trim() || '',
+                        logo: item.favicon || null,
+                        desc: item.desc || null, // 兼容可能的desc字段
+                        catelog: catelog.trim() || '未分类',
+                        sort_order: index + 1,
+                        create_time: currentTime,
+                        update_time: currentTime,
+                        is_private: 0
+                    });
+                });
+            }
+            
+            // 提示跳过的条目数
+            if (skipCount > 0) {
+                showMessage(`转换完成！跳过${skipCount}个无效/缺失核心字段的书签`, 'warning');
+            }
+            
+            return result;
+        }
+
+        // 格式2转格式1 (card-tab → all-bookmarks)：添加容错，跳过无效条目
+        function format2ToFormat1(jsonObj) {
+            const result = {};
+            let skipCount = 0; // 统计跳过的无效条目
+            
+            jsonObj.forEach(item => {
+                // 跳过无效条目（null/undefined/无name/url）
+                if (!item || typeof item !== 'object' || !item.name || !item.url) {
+                    skipCount++;
+                    return; // 跳过当前条目，继续下一个
+                }
+                
+                const catelog = (item.catelog || '未分类').trim();
+                
+                if (!result[catelog]) {
+                    result[catelog] = [];
+                }
+                
+                result[catelog].push({
+                    name: item.name.trim() || `未命名书签${result[catelog].length + 1}`,
+                    url: item.url.trim() || '',
+                    favicon: item.logo || null
+                });
+            });
+            
+            // 提示跳过的条目数
+            if (skipCount > 0) {
+                showMessage(`转换完成！跳过${skipCount}个无效/缺失核心字段的书签`, 'warning');
+            }
+            
+            return result;
+        }
+
+        // 格式化JSON输出
+        function formatJson(jsonObj) {
+            return JSON.stringify(jsonObj, null, 2);
+        }
+
+        // 导入文件处理：添加更严格的校验
+        function handleFileUpload(file) {
+            if (!file) return;
+            
+            // 验证文件类型
+            if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+                showMessage('请选择JSON格式的文件！', 'error');
+                return;
+            }
+            
+            fileInfo.textContent = `已选择：${file.name}`;
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    const jsonObj = JSON.parse(content);
+                    
+                    // 检查是否为空内容
+                    if (JSON.stringify(jsonObj) === '{}' || JSON.stringify(jsonObj) === '[]') {
+                        inputJson.value = '';
+                        convertBtn.disabled = true;
+                        showMessage('导入的JSON文件为空！', 'warning');
+                        return;
+                    }
+                    
+                    // 显示导入的内容
+                    inputJson.value = formatJson(jsonObj);
+                    
+                    // 启用转换按钮
+                    convertBtn.disabled = false;
+                    showMessage(`文件导入成功：${file.name}（共${countBookmarks(jsonObj)}个书签）`, 'success');
+                    
+                } catch (e) {
+                    inputJson.value = '';
+                    convertBtn.disabled = true;
+                    showMessage(`文件解析失败：${e.message}`, 'error');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // 统计书签数量（辅助提示）
+        function countBookmarks(jsonObj) {
+            const type = detectJsonType(jsonObj);
+            let count = 0;
+            
+            if (type === 1) { // 格式1
+                for (const [_, items] of Object.entries(jsonObj)) {
+                    if (Array.isArray(items)) {
+                        count += items.filter(item => item && item.name && item.url).length;
+                    }
+                }
+            } else if (type === 2) { // 格式2
+                count = jsonObj.filter(item => item && item.name && item.url).length;
+            }
+            
+            return count;
+        }
+
+        // 导出JSON文件
+        function exportJsonFile() {
+            if (!convertedJsonObj || currentOutputFormat === 0) {
+                showMessage('暂无可导出的内容！', 'error');
+                return;
+            }
+            
+            // 根据格式确定文件名
+            const fileName = currentOutputFormat === 1 
+                ? 'all-bookmarks.json' 
+                : 'card-tab.json';
+            
+            // 生成JSON Blob
+            const jsonContent = formatJson(convertedJsonObj);
+            const blob = new Blob([jsonContent], { type: 'application/json; charset=utf-8' });
+            
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showMessage(`文件导出成功：${fileName}（共${countBookmarks(convertedJsonObj)}个书签）`, 'success');
+        }
+
+        // 转换核心逻辑：优化容错，统计数量
+        function convertJson() {
+            try {
+                // 清空输出和消息
+                outputJson.value = '';
+                exportBtn.disabled = true;
+                exportInfo.textContent = '转换后可导出';
+                message.textContent = '';
+                
+                // 获取输入内容并去除首尾空格
+                const inputText = inputJson.value.trim();
+                if (!inputText) {
+                    showMessage('请先导入JSON文件！', 'error');
+                    return;
+                }
+                
+                // 解析JSON
+                let jsonObj;
+                try {
+                    jsonObj = JSON.parse(inputText);
+                } catch (e) {
+                    showMessage('JSON格式错误：' + e.message, 'error');
+                    return;
+                }
+                
+                // 检测格式类型
+                const formatType = detectJsonType(jsonObj);
+                if (formatType === 0) {
+                    showMessage('无法识别的JSON格式，请检查导入的文件！', 'error');
+                    return;
+                }
+                
+                // 统计原始书签数量
+                const originalCount = countBookmarks(jsonObj);
+                
+                // 执行转换
+                let resultObj;
+                if (formatType === 1) {
+                    // 格式1 → 格式2 (all-bookmarks → card-tab)
+                    resultObj = format1ToFormat2(jsonObj);
+                    currentOutputFormat = 2;
+                    exportInfo.textContent = '将导出：card-tab.json';
+                    showMessage(`all-bookmarks → card-tab 转换完成！原始${originalCount}个有效书签，转换后${resultObj.length}个`, 'success');
+                } else {
+                    // 格式2 → 格式1 (card-tab → all-bookmarks)
+                    resultObj = format2ToFormat1(jsonObj);
+                    currentOutputFormat = 1;
+                    exportInfo.textContent = '将导出：all-bookmarks.json';
+                    const convertedCount = countBookmarks(resultObj);
+                    showMessage(`card-tab → all-bookmarks 转换完成！原始${originalCount}个有效书签，转换后${convertedCount}个`, 'success');
+                }
+                
+                // 存储转换后的对象
+                convertedJsonObj = resultObj;
+                
+                // 格式化输出
+                outputJson.value = formatJson(resultObj);
+                
+                // 启用导出和复制按钮
+                exportBtn.disabled = false;
+                copyBtn.disabled = false;
+                
+            } catch (e) {
+                showMessage('转换失败：' + e.message, 'error');
+                console.error('转换错误：', e);
+            }
+        }
+
+        // 复制结果到剪贴板
+        function copyResult() {
+            const text = outputJson.value.trim();
+            if (!text) {
+                showMessage('没有可复制的内容！', 'error');
+                return;
+            }
+            
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    showMessage('复制成功！', 'success');
+                })
+                .catch(() => {
+                    // 降级方案：手动创建textarea复制
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    showMessage('复制成功！', 'success');
+                });
+        }
+
+        // 清空所有内容
+        function clearAll() {
+            inputJson.value = '';
+            outputJson.value = '';
+            fileInfo.textContent = '未选择文件';
+            exportInfo.textContent = '转换后可导出';
+            fileInput.value = '';
+            convertBtn.disabled = true;
+            exportBtn.disabled = true;
+            copyBtn.disabled = true;
+            currentOutputFormat = 0;
+            convertedJsonObj = null;
+            message.textContent = '';
+            message.className = 'tips';
+            showMessage('已清空所有内容！', 'tips');
+        }
+
+        // 绑定事件
+        uploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFileUpload(file);
+            }
+        });
+        
+        convertBtn.addEventListener('click', convertJson);
+        exportBtn.addEventListener('click', exportJsonFile);
+        copyBtn.addEventListener('click', copyResult);
+        clearBtn.addEventListener('click', clearAll);
+        
+        // 支持回车触发转换（输入框聚焦时）
+        inputJson.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter' && !convertBtn.disabled) {
+                convertJson();
+            }
+        });
+    </script>
+</body>
+</html>
