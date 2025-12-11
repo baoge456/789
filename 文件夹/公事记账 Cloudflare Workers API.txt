@@ -1,0 +1,720 @@
+// 公事记账簿 Cloudflare Workers API
+// 多用户数据隔离版本 - 支持用户管理多个主办方
+
+// 全局CORS头配置
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+};
+
+export default {
+  async fetch(request, env, ctx) {
+    // 处理CORS预检请求
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    try {
+      const url = new URL(request.url);
+      const path = url.pathname;
+
+      // 健康检查
+      if (path === '/health') {
+        return new Response(JSON.stringify({
+          status: 'ok',
+          version: env.API_VERSION || '1.0.0',
+          environment: env.ENVIRONMENT || 'production',
+          timestamp: new Date().toISOString()
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // API信息端点 - 不需要认证
+      if (path === '/') {
+        return new Response(JSON.stringify({
+          name: '公事记账簿 API',
+          version: env.API_VERSION || '1.0.0',
+          endpoints: [
+            '/api/basic-info',
+            '/api/gifts',
+            '/api/expenses',
+            '/api/statistics',
+            '/api/organizers',
+            '/api/switch-organizer',
+            '/api/export-data',
+            '/api/import-data'
+          ]
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // API路由处理
+      if (path.startsWith('/api/')) {
+        const authResult = await authenticateUser(request, env);
+        if (!authResult.authenticated) {
+          return new Response(JSON.stringify({
+            error: 'Unauthorized',
+            message: authResult.message
+          }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        const userId = authResult.userId;
+        const organizerName = authResult.organizerName;
+        const apiPath = path.replace('/api/', '');
+        
+        switch (apiPath) {
+          case 'basic-info':
+            return await handleBasicInfo(request, env, userId, organizerName);
+          case 'gifts':
+            return await handleGifts(request, env, userId, organizerName);
+          case 'expenses':
+            return await handleExpenses(request, env, userId, organizerName);
+          case 'statistics':
+            return await handleStatistics(request, env, userId, organizerName);
+          case 'organizers':
+            return await handleOrganizers(request, env, userId);
+          case 'switch-organizer':
+            return await handleSwitchOrganizer(request, env, userId);
+          case 'export-data':
+            return await handleExportData(request, env, userId);
+          case 'import-data':
+            return await handleImportData(request, env, userId);
+          case 'delete-organizer':
+            return await handleDeleteOrganizer(request, env, userId);
+          default:
+            return new Response(JSON.stringify({
+              error: 'Not Found',
+              message: 'API endpoint not found'
+            }), {
+              status: 404,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+      }
+
+    } catch (error) {
+      console.error('API Error:', error);
+      return new Response(JSON.stringify({
+        error: 'Internal Server Error',
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+};
+
+// 用户认证函数 - 支持用户级别的认证
+async function authenticateUser(request, env) {
+  const authHeader = request.headers.get('Authorization');
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { authenticated: false, message: 'Missing or invalid authorization header' };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  // 解析token格式：userId:organizerName 或 userId
+  const tokenParts = token.split(':');
+  const userId = decodeURIComponent(tokenParts[0] || '');
+  const organizerName = decodeURIComponent(tokenParts[1] || 'default'); // 如果没有指定主办方，使用'default'
+  
+  if (userId && userId.trim() !== '') {
+    return { 
+      authenticated: true, 
+      userId: userId,
+      organizerName: organizerName
+    };
+  }
+  
+  return { authenticated: false, message: 'Invalid token' };
+}
+
+// 处理主办方列表 - 获取用户管理的所有主办方
+async function handleOrganizers(request, env, userId) {
+  if (request.method === 'GET') {
+    // 获取用户管理的所有主办方
+    const organizersKey = `user-organizers:${userId}`;
+    const organizersData = await env.USERS.get(organizersKey);
+    const organizers = organizersData ? JSON.parse(organizersData) : [];
+    
+    return new Response(JSON.stringify(organizers), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  if (request.method === 'POST') {
+    // 添加新的主办方
+    const data = await request.json();
+    const organizersKey = `user-organizers:${userId}`;
+    const organizersData = await env.USERS.get(organizersKey);
+    const organizers = organizersData ? JSON.parse(organizersData) : [];
+    
+    // 检查主办方是否已存在
+    const existingIndex = organizers.findIndex(org => org.name === data.name);
+    if (existingIndex >= 0) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: '主办方已存在' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // 添加新主办方
+    const newOrganizer = {
+      name: data.name,
+      type: data.type || '',
+      created: new Date().toISOString(),
+      lastActive: new Date().toISOString()
+    };
+    
+    // 如果是自定义类型，添加customType字段
+    if (data.type === '其他' && data.customType) {
+      newOrganizer.customType = data.customType;
+    }
+    
+    organizers.push(newOrganizer);
+    
+    await env.USERS.put(organizersKey, JSON.stringify(organizers));
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      organizers: organizers 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  if (request.method === 'PUT') {
+    // 更新主办方信息（名称或类型）
+    const data = await request.json();
+    const organizersKey = `user-organizers:${userId}`;
+    const organizersData = await env.USERS.get(organizersKey);
+    const organizers = organizersData ? JSON.parse(organizersData) : [];
+    
+    // 查找要更新的主办方
+    const organizerIndex = organizers.findIndex(org => org.name === data.oldName);
+    if (organizerIndex === -1) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: '主办方不存在' 
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // 如果名称改变了，检查新名称是否已存在
+    if (data.newName && data.newName !== data.oldName) {
+      const existingIndex = organizers.findIndex(org => org.name === data.newName);
+      if (existingIndex >= 0) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          message: '新主办方名称已存在' 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // 更新主办方名称
+      organizers[organizerIndex].name = data.newName;
+    }
+    
+    // 更新主办方类型
+    if (data.type !== undefined) {
+      organizers[organizerIndex].type = data.type;
+    }
+    
+    // 更新自定义类型
+    if (data.type === '其他' && data.customType) {
+      organizers[organizerIndex].customType = data.customType;
+    } else {
+      delete organizers[organizerIndex].customType;
+    }
+    
+    // 更新最后活跃时间
+    organizers[organizerIndex].lastActive = new Date().toISOString();
+    
+    await env.USERS.put(organizersKey, JSON.stringify(organizers));
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      organizer: organizers[organizerIndex] 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// 处理切换主办方
+async function handleSwitchOrganizer(request, env, userId) {
+  if (request.method === 'POST') {
+    const data = await request.json();
+    const organizerName = data.organizerName;
+    
+    // 验证主办方是否属于该用户
+    const organizersKey = `user-organizers:${userId}`;
+    const organizersData = await env.USERS.get(organizersKey);
+    const organizers = organizersData ? JSON.parse(organizersData) : [];
+    
+    const organizer = organizers.find(org => org.name === organizerName);
+    if (!organizer) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: '主办方不存在或无权限访问' 
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // 更新最后活跃时间
+    organizer.lastActive = new Date().toISOString();
+    await env.USERS.put(organizersKey, JSON.stringify(organizers));
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      organizer: organizer 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// 处理基本信息 - 按用户和主办方存储
+async function handleBasicInfo(request, env, userId, organizerName) {
+  // 使用用户ID和主办方名称作为数据存储的键前缀
+  const key = `basic-info:${userId}:${organizerName}`;
+  
+  if (request.method === 'GET') {
+    const data = await env.USERS.get(key);
+    return new Response(data || '{}', {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  if (request.method === 'POST') {
+    const data = await request.json();
+    
+    // 如果organizer字段与当前的organizerName不同，说明名称改变了
+    if (data.organizer && data.organizer !== organizerName) {
+      // 删除旧的数据
+      await env.USERS.delete(key);
+      
+      // 使用新的名称创建键
+      const newKey = `basic-info:${userId}:${data.organizer}`;
+      await env.USERS.put(newKey, JSON.stringify(data));
+      
+      // 同时更新主办方列表中的最后活跃时间
+      const organizersKey = `user-organizers:${userId}`;
+      const organizersData = await env.USERS.get(organizersKey);
+      if (organizersData) {
+        const organizers = JSON.parse(organizersData);
+        const organizer = organizers.find(org => org.name === data.organizer);
+        if (organizer) {
+          organizer.lastActive = new Date().toISOString();
+          await env.USERS.put(organizersKey, JSON.stringify(organizers));
+        }
+      }
+    } else {
+      // 名称没有改变，直接保存
+      await env.USERS.put(key, JSON.stringify(data));
+      
+      // 同时更新主办方列表中的最后活跃时间
+      const organizersKey = `user-organizers:${userId}`;
+      const organizersData = await env.USERS.get(organizersKey);
+      if (organizersData) {
+        const organizers = JSON.parse(organizersData);
+        const organizer = organizers.find(org => org.name === organizerName);
+        if (organizer) {
+          organizer.lastActive = new Date().toISOString();
+          await env.USERS.put(organizersKey, JSON.stringify(organizers));
+        }
+      }
+    }
+    
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// 处理收礼记录 - 按用户和主办方存储
+async function handleGifts(request, env, userId, organizerName) {
+  // 使用用户ID和主办方名称作为数据存储的键前缀
+  const key = `gifts:${userId}:${organizerName}`;
+  
+  if (request.method === 'GET') {
+    const data = await env.USERS.get(key);
+    return new Response(data || '[]', {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  if (request.method === 'POST') {
+    const data = await request.json();
+    const existingData = await env.USERS.get(key);
+    const gifts = existingData ? JSON.parse(existingData) : [];
+    gifts.push(data);
+    await env.USERS.put(key, JSON.stringify(gifts));
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  if (request.method === 'PUT') {
+    const data = await request.json();
+    await env.USERS.put(key, JSON.stringify(data));
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// 处理支出记录 - 按用户和主办方存储
+async function handleExpenses(request, env, userId, organizerName) {
+  // 使用用户ID和主办方名称作为数据存储的键前缀
+  const key = `expenses:${userId}:${organizerName}`;
+  
+  if (request.method === 'GET') {
+    const data = await env.USERS.get(key);
+    return new Response(data || '[]', {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  if (request.method === 'POST') {
+    const data = await request.json();
+    const existingData = await env.USERS.get(key);
+    const expenses = existingData ? JSON.parse(existingData) : [];
+    expenses.push(data);
+    await env.USERS.put(key, JSON.stringify(expenses));
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  if (request.method === 'PUT') {
+    const data = await request.json();
+    await env.USERS.put(key, JSON.stringify(data));
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// 处理统计信息 - 按用户和主办方计算
+async function handleStatistics(request, env, userId, organizerName) {
+  if (request.method === 'GET') {
+    // 获取收礼和支出数据
+    const giftsKey = `gifts:${userId}:${organizerName}`;
+    const expensesKey = `expenses:${userId}:${organizerName}`;
+    
+    const giftsData = await env.USERS.get(giftsKey);
+    const expensesData = await env.USERS.get(expensesKey);
+    
+    const gifts = giftsData ? JSON.parse(giftsData) : [];
+    const expenses = expensesData ? JSON.parse(expensesData) : [];
+    
+    // 计算统计信息
+    const totalGifts = gifts.reduce((sum, gift) => sum + (parseFloat(gift.amount) || 0), 0);
+    const totalExpenses = expenses.reduce((sum, expense) => sum + (parseFloat(expense.amount) || 0), 0);
+    const balance = totalGifts - totalExpenses;
+    
+    const statistics = {
+      totalGifts,
+      totalExpenses,
+      balance,
+      giftsCount: gifts.length,
+      expensesCount: expenses.length,
+      organizerName
+    };
+    
+    return new Response(JSON.stringify(statistics), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+} 
+
+// 处理数据导出 - 导出用户的所有数据
+async function handleExportData(request, env, userId) {
+  if (request.method === 'GET') {
+    try {
+      // 获取用户管理的所有主办方
+      const organizersKey = `user-organizers:${userId}`;
+      const organizersData = await env.USERS.get(organizersKey);
+      const organizers = organizersData ? JSON.parse(organizersData) : [];
+      
+      const exportData = {
+        userId: userId,
+        exportTime: new Date().toISOString(),
+        version: '1.0.0',
+        organizers: [],
+        totalOrganizers: organizers.length
+      };
+      
+      // 为每个主办方导出数据
+      for (const organizer of organizers) {
+        const organizerName = organizer.name;
+        
+        // 获取主办方的基本信息
+        const basicInfoKey = `basic-info:${userId}:${organizerName}`;
+        const basicInfoData = await env.USERS.get(basicInfoKey);
+        
+        // 获取收礼记录
+        const giftsKey = `gifts:${userId}:${organizerName}`;
+        const giftsData = await env.USERS.get(giftsKey);
+        
+        // 获取支出记录
+        const expensesKey = `expenses:${userId}:${organizerName}`;
+        const expensesData = await env.USERS.get(expensesKey);
+        
+        const organizerData = {
+          name: organizerName,
+          type: organizer.type,
+          created: organizer.created,
+          lastActive: organizer.lastActive,
+          basicInfo: basicInfoData ? JSON.parse(basicInfoData) : null,
+          gifts: giftsData ? JSON.parse(giftsData) : [],
+          expenses: expensesData ? JSON.parse(expensesData) : []
+        };
+        
+        exportData.organizers.push(organizerData);
+      }
+      
+      return new Response(JSON.stringify(exportData, null, 2), {
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Content-Disposition': `attachment; filename="gongshi-jizhangbu-${userId}-${new Date().toISOString().split('T')[0]}.json"`
+        }
+      });
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      return new Response(JSON.stringify({
+        error: 'Export failed',
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+  
+  return new Response(JSON.stringify({
+    error: 'Method not allowed'
+  }), {
+    status: 405,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+// 处理数据导入 - 导入并覆盖用户的所有数据
+async function handleImportData(request, env, userId) {
+  if (request.method === 'POST') {
+    try {
+      const importData = await request.json();
+      
+      // 验证导入数据格式
+      if (!importData.organizers || !Array.isArray(importData.organizers)) {
+        return new Response(JSON.stringify({
+          error: 'Invalid import data format',
+          message: '导入数据格式不正确'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // 备份当前数据（可选）
+      const backupKey = `backup:${userId}:${new Date().toISOString()}`;
+      const currentOrganizersKey = `user-organizers:${userId}`;
+      const currentOrganizersData = await env.USERS.get(currentOrganizersKey);
+      if (currentOrganizersData) {
+        await env.USERS.put(backupKey, currentOrganizersData);
+      }
+      
+      // 清除当前用户的所有数据
+      await clearUserData(env, userId);
+      
+      // 导入新数据
+      const importedOrganizers = [];
+      
+      for (const organizerData of importData.organizers) {
+        const organizerName = organizerData.name;
+        
+        // 保存主办方信息
+        importedOrganizers.push({
+          name: organizerName,
+          type: organizerData.type || '',
+          created: organizerData.created || new Date().toISOString(),
+          lastActive: new Date().toISOString()
+        });
+        
+        // 保存基本信息
+        if (organizerData.basicInfo) {
+          const basicInfoKey = `basic-info:${userId}:${organizerName}`;
+          await env.USERS.put(basicInfoKey, JSON.stringify(organizerData.basicInfo));
+        }
+        
+        // 保存收礼记录
+        if (organizerData.gifts && Array.isArray(organizerData.gifts)) {
+          const giftsKey = `gifts:${userId}:${organizerName}`;
+          await env.USERS.put(giftsKey, JSON.stringify(organizerData.gifts));
+        }
+        
+        // 保存支出记录
+        if (organizerData.expenses && Array.isArray(organizerData.expenses)) {
+          const expensesKey = `expenses:${userId}:${organizerName}`;
+          await env.USERS.put(expensesKey, JSON.stringify(organizerData.expenses));
+        }
+      }
+      
+      // 保存主办方列表
+      const organizersKey = `user-organizers:${userId}`;
+      await env.USERS.put(organizersKey, JSON.stringify(importedOrganizers));
+      
+      return new Response(JSON.stringify({
+        success: true,
+        message: '数据导入成功',
+        importedOrganizers: importedOrganizers.length,
+        backupKey: backupKey
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      return new Response(JSON.stringify({
+        error: 'Import failed',
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+  
+  return new Response(JSON.stringify({
+    error: 'Method not allowed'
+  }), {
+    status: 405,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+// 删除指定主办方的数据
+async function handleDeleteOrganizer(request, env, userId) {
+  if (request.method === 'DELETE') {
+    try {
+      const data = await request.json();
+      const organizerName = data.organizerName;
+      
+      if (!organizerName) {
+        return new Response(JSON.stringify({
+          error: 'Missing organizer name',
+          message: '缺少主办方名称'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // 验证主办方是否属于该用户
+      const organizersKey = `user-organizers:${userId}`;
+      const organizersData = await env.USERS.get(organizersKey);
+      const organizers = organizersData ? JSON.parse(organizersData) : [];
+      
+      const organizerIndex = organizers.findIndex(org => org.name === organizerName);
+      if (organizerIndex === -1) {
+        return new Response(JSON.stringify({
+          error: 'Organizer not found',
+          message: '主办方不存在'
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // 删除主办方的所有数据
+      const basicInfoKey = `basic-info:${userId}:${organizerName}`;
+      const giftsKey = `gifts:${userId}:${organizerName}`;
+      const expensesKey = `expenses:${userId}:${organizerName}`;
+      
+      await Promise.all([
+        env.USERS.delete(basicInfoKey),
+        env.USERS.delete(giftsKey),
+        env.USERS.delete(expensesKey)
+      ]);
+      
+      // 从主办方列表中移除
+      organizers.splice(organizerIndex, 1);
+      await env.USERS.put(organizersKey, JSON.stringify(organizers));
+      
+      return new Response(JSON.stringify({
+        success: true,
+        message: '主办方删除成功',
+        remainingOrganizers: organizers.length
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+      
+    } catch (error) {
+      console.error('Delete organizer error:', error);
+      return new Response(JSON.stringify({
+        error: 'Delete failed',
+        message: error.message
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+  
+  return new Response(JSON.stringify({
+    error: 'Method not allowed'
+  }), {
+    status: 405,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+// 清除用户所有数据的辅助函数
+async function clearUserData(env, userId) {
+  // 获取用户的所有主办方
+  const organizersKey = `user-organizers:${userId}`;
+  const organizersData = await env.USERS.get(organizersKey);
+  const organizers = organizersData ? JSON.parse(organizersData) : [];
+  
+  // 删除每个主办方的数据
+  for (const organizer of organizers) {
+    const organizerName = organizer.name;
+    
+    // 删除基本信息
+    const basicInfoKey = `basic-info:${userId}:${organizerName}`;
+    await env.USERS.delete(basicInfoKey);
+    
+    // 删除收礼记录
+    const giftsKey = `gifts:${userId}:${organizerName}`;
+    await env.USERS.delete(giftsKey);
+    
+    // 删除支出记录
+    const expensesKey = `expenses:${userId}:${organizerName}`;
+    await env.USERS.delete(expensesKey);
+  }
+  
+  // 删除主办方列表
+  await env.USERS.delete(organizersKey);
+}
