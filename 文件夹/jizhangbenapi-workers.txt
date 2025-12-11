@@ -1,0 +1,352 @@
+// 简化的Cloudflare Workers版本
+// 家庭记账本API服务 - 多用户数据隔离
+
+export default {
+  async fetch(request, env, ctx) {
+    // CORS处理
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Max-Age': '86400'
+        }
+      });
+    }
+
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // 健康检查
+    if (path === '/api/health') {
+      return new Response(JSON.stringify({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        version: '2.0.0',
+        features: ['multi-user', 'data-isolation', 'jwt-auth', 'cloudflare-workers']
+      }), {
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+
+    // 用户注册
+    if (path === '/api/auth/register' && request.method === 'POST') {
+      try {
+        const { username, password, email } = await request.json();
+        
+        if (!username || !password) {
+          return new Response(JSON.stringify({ error: '用户名和密码不能为空' }), {
+            status: 400,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        // 检查用户名是否已存在
+        const existingUser = await env.USERS.get(`user:${username}`);
+        if (existingUser) {
+          return new Response(JSON.stringify({ error: '用户名已存在' }), {
+            status: 400,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        const userId = crypto.randomUUID();
+        const hashedPassword = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password))
+          .then(buffer => Array.from(new Uint8Array(buffer))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join(''));
+
+        const newUser = {
+          id: userId,
+          username,
+          email: email || '',
+          password: hashedPassword,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString()
+        };
+
+        // 保存用户信息
+        await env.USERS.put(`user:${username}`, JSON.stringify(newUser));
+        await env.USERS.put(`userid:${userId}`, JSON.stringify(newUser));
+
+        // 创建用户数据
+        const userData = {
+          records: [],
+          categories: [],
+          accounts: [],
+          loans: [],
+          investments: [],
+          settings: {},
+          profile: {
+            username,
+            email: email || '',
+            createdAt: new Date().toISOString(),
+            settings: {
+              theme: 'light',
+              currency: 'CNY',
+              language: 'zh-CN'
+            }
+          }
+        };
+
+        await env.USERS.put(`data:${userId}`, JSON.stringify(userData));
+
+        // 生成简单token (实际生产环境应使用JWT)
+        const token = btoa(JSON.stringify({ userId, username, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 }));
+        
+        return new Response(JSON.stringify({
+          success: true,
+          message: '注册成功',
+          token,
+          user: {
+            id: userId,
+            username,
+            email: email || ''
+          }
+        }), {
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ error: '注册失败' }), {
+          status: 500,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
+
+    // 用户登录
+    if (path === '/api/auth/login' && request.method === 'POST') {
+      try {
+        const { username, password } = await request.json();
+        
+        if (!username || !password) {
+          return new Response(JSON.stringify({ error: '用户名和密码不能为空' }), {
+            status: 400,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        const userData = await env.USERS.get(`user:${username}`);
+        if (!userData) {
+          return new Response(JSON.stringify({ error: '用户名或密码错误' }), {
+            status: 401,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        const user = JSON.parse(userData);
+        const hashedPassword = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password))
+          .then(buffer => Array.from(new Uint8Array(buffer))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join(''));
+
+        if (user.password !== hashedPassword) {
+          return new Response(JSON.stringify({ error: '用户名或密码错误' }), {
+            status: 401,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        // 更新最后登录时间
+        user.lastLogin = new Date().toISOString();
+        await env.USERS.put(`user:${username}`, JSON.stringify(user));
+        await env.USERS.put(`userid:${user.id}`, JSON.stringify(user));
+
+        // 生成简单token
+        const token = btoa(JSON.stringify({ userId: user.id, username: user.username, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 }));
+        
+        return new Response(JSON.stringify({
+          success: true,
+          message: '登录成功',
+          token,
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email
+          }
+        }), {
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ error: '登录失败' }), {
+          status: 500,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
+
+    // 获取数据
+    if (path === '/api/data' && request.method === 'GET') {
+      try {
+        const authHeader = request.headers.get('authorization');
+        const token = authHeader && authHeader.split(' ')[1];
+
+        if (!token) {
+          return new Response(JSON.stringify({ error: '访问令牌缺失' }), {
+            status: 401,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        // 验证token
+        const tokenData = JSON.parse(atob(token));
+        if (tokenData.exp < Date.now()) {
+          return new Response(JSON.stringify({ error: '访问令牌已过期' }), {
+            status: 401,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        const userData = await env.USERS.get(`data:${tokenData.userId}`);
+        if (!userData) {
+          return new Response(JSON.stringify({
+            records: [],
+            categories: [],
+            accounts: [],
+            loans: [],
+            investments: [],
+            settings: {}
+          }), {
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        const data = JSON.parse(userData);
+        
+        return new Response(JSON.stringify({
+          records: data.records || [],
+          categories: data.categories || [],
+          accounts: data.accounts || [],
+          loans: data.loans || [],
+          investments: data.investments || [],
+          settings: data.settings || {}
+        }), {
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ error: '获取数据失败' }), {
+          status: 500,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
+
+    // 保存数据
+    if (path === '/api/data' && request.method === 'POST') {
+      try {
+        const authHeader = request.headers.get('authorization');
+        const token = authHeader && authHeader.split(' ')[1];
+
+        if (!token) {
+          return new Response(JSON.stringify({ error: '访问令牌缺失' }), {
+            status: 401,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        // 验证token
+        const tokenData = JSON.parse(atob(token));
+        if (tokenData.exp < Date.now()) {
+          return new Response(JSON.stringify({ error: '访问令牌已过期' }), {
+            status: 401,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        const { records, categories, accounts, loans, investments, settings } = await request.json();
+        
+        let userData = await env.USERS.get(`data:${tokenData.userId}`);
+        let data = userData ? JSON.parse(userData) : {};
+        
+        data = {
+          ...data,
+          records: records || [],
+          categories: categories || [],
+          accounts: accounts || [],
+          loans: loans || [],
+          investments: investments || [],
+          settings: settings || {}
+        };
+
+        await env.USERS.put(`data:${tokenData.userId}`, JSON.stringify(data));
+
+        return new Response(JSON.stringify({ success: true, message: '所有数据保存成功' }), {
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ error: '保存数据失败' }), {
+          status: 500,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
+
+    // 404处理
+    return new Response(JSON.stringify({ error: '接口不存在' }), {
+      status: 404,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+};
