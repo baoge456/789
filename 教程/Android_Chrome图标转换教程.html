@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Chrome图标转换教程</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .step {
+            background: #ecf0f1;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+            border-radius: 5px;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .tip {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        ol, ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Android Chrome图标转换教程</h1>
+        
+        <div class="tip">
+            <strong>📘 教程说明：</strong>本教程详细介绍如何将Android Chrome应用图标从一种图片转换为另一种图片，包括Base64编码和外部manifest文件两种方法。
+        </div>
+
+        <h2>📋 准备工作</h2>
+        <ul>
+            <li>新的图标图片URL（例如：https://example.com/new-icon.png）</li>
+            <li>文本编辑器（记事本、VS Code等）</li>
+            <li>可选：Base64编码工具或编程环境</li>
+        </ul>
+
+        <h2>🔧 方法一：Base64编码方式（内嵌）</h2>
+        
+        <div class="step">
+            <h3>步骤1：准备Manifest JSON内容</h3>
+            <p>创建以下JSON结构，替换其中的图片URL：</p>
+            <div class="code-block">
+{
+  "name": "人情往来记账本",
+  "short_name": "人情往来",
+  "icons": [
+    {
+      "src": "https://s3.bmp.ovh/imgs/2025/12/13/5bce67f5e8de0397.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://s3.bmp.ovh/imgs/2025/12/13/5bce67f5e8de0397.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea"
+}
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>步骤2：进行Base64编码</h3>
+            <p>选择以下任一方式进行编码：</p>
+            
+            <h4>方式A：使用在线工具</h4>
+            <ol>
+                <li>访问 <a href="https://base64.us/" target="_blank">Base64.us</a> 或 <a href="https://www.base64encode.org/" target="_blank">Base64Encode.org</a></li>
+                <li>将上面的JSON内容复制到输入框</li>
+                <li>点击"编码"按钮</li>
+                <li>复制编码结果</li>
+            </ol>
+            
+            <h4>方式B：使用JavaScript控制台</h4>
+            <ol>
+                <li>按F12打开开发者工具</li>
+                <li>切换到Console标签</li>
+                <li>输入并执行以下代码：</li>
+            </ol>
+            <div class="code-block">
+btoa('{"name":"人情往来记账本","short_name":"人情往来","icons":[{"src":"新图片URL","sizes":"192x192","type":"image/png"},{"src":"新图片URL","sizes":"512x512","type":"image/png"}],"start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#667eea"}')
+            </div>
+            
+            <h4>方式C：使用Python</h4>
+            <div class="code-block">
+import base64
+import json
+
+manifest = {
+    "name": "人情往来记账本",
+    "short_name": "人情往来",
+    "icons": [
+        {
+            "src": "新图片URL",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "新图片URL",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#667eea"
+}
+
+encoded = base64.b64encode(json.dumps(manifest, separators=(',', ':')).encode('utf-8')).decode('utf-8')
+print(f"data:application/manifest+json,{encoded}")
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>步骤3：格式化最终结果</h3>
+            <p>将编码结果前面加上前缀：</p>
+            <div class="code-block">
+data:application/manifest+json,编码结果
+            </div>
+            <p>完整示例：</p>
+            <div class="code-block">
+data:application/manifest+json,ewogICJuYW1lIjogIuS6uuaDheW+gOadpeiusOi0puacrCIsCiAgInNob3J0X25hbWUiOiAi5Lq65oOF5b6A5p2lIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9zMy5ibXAub3ZoL2ltZ3MvMjAyNS8xMi8xMy81YmNlNjdmNWU4ZGUwMzk3LnBuZyIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL3MzLmJtcC5vdmgvaW1ncy8yMDI1LzEyLzEzLzViY2U2N2Y1ZThkZTAzOTcucG5nIiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9CiAgXSwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNmZmZmZmYiLAogICJ0aGVtZV9jb2xvciI6ICIjNjY3ZWVhIgp9
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>步骤4：更新HTML代码</h3>
+            <p>在HTML文件中找到manifest链接，替换为新的编码结果：</p>
+            <div class="code-block">
+&lt;link rel="manifest" href="data:application/manifest+json,完整的编码结果"&gt;
+            </div>
+        </div>
+
+        <h2>📁 方法二：外部manifest.json文件（推荐）</h2>
+        
+        <div class="step">
+            <h3>步骤1：创建manifest.json文件</h3>
+            <p>在网站根目录创建manifest.json文件，内容如下：</p>
+            <div class="code-block">
+{
+  "name": "人情往来记账本",
+  "short_name": "人情往来",
+  "icons": [
+    {
+      "src": "https://s3.bmp.ovh/imgs/2025/12/13/5bce67f5e8de0397.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://s3.bmp.ovh/imgs/2025/12/13/5bce67f5e8de0397.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea"
+}
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>步骤2：更新HTML引用</h3>
+            <p>在HTML文件中使用外部引用：</p>
+            <div class="code-block">
+&lt;link rel="manifest" href="manifest.json"&gt;
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>步骤3：更换图标</h3>
+            <p>需要更换图标时，只需修改manifest.json中的src字段：</p>
+            <div class="code-block">
+{
+  "icons": [
+    {
+      "src": "新的图片URL",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "新的图片URL",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+            </div>
+        </div>
+
+        <h2>✅ 验证结果</h2>
+        <ol>
+            <li>保存所有修改的文件</li>
+            <li>在手机浏览器中打开网页</li>
+            <li>选择"添加到主屏幕"</li>
+            <li>检查图标是否正确显示</li>
+        </ol>
+
+        <div class="tip">
+            <strong>💡 小贴士：</strong>
+            <ul>
+                <li>推荐使用外部manifest.json文件方式，更易于维护</li>
+                <li>确保图片URL可以正常访问</li>
+                <li>图标建议使用PNG格式，尺寸至少192x192像素</li>
+                <li>修改后可能需要清除浏览器缓存才能看到效果</li>
+            </ul>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 注意事项：</strong>
+            <ul>
+                <li>Base64编码方式修改复杂，容易出错</li>
+                <li>外部文件方式需要确保manifest.json文件可访问</li>
+                <li>图片URL必须使用HTTPS协议</li>
+                <li>修改后建议在不同设备上测试效果</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
