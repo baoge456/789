@@ -288,6 +288,39 @@ const Router = ({ base = '', routes = [] } = {}) => ({
           .tool-button.edit-mode:hover {
               box-shadow: 0 0 0 3px rgba(58, 123, 213, 0.5);
           }
+          
+          /* 拖拽样式 */
+          .tool-button.dragging {
+              opacity: 0.5;
+              background: #e3f2fd;
+              z-index: 100;
+              position: relative;
+          }
+          
+          .tool-button.drag-over-top {
+              border-top: 2px solid #3a7bd5;
+          }
+          
+          .tool-button.drag-over-bottom {
+              border-bottom: 2px solid #3a7bd5;
+          }
+          
+          /* 书签触摸样式 */
+          .tool-button.touch-active {
+              opacity: 0.8;
+              transform: scale(0.98);
+              transition: all 0.2s ease;
+          }
+          
+          .tool-button.long-press-drag {
+              opacity: 0.6;
+              transform: scale(1.02);
+              box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+              z-index: 100;
+              position: relative;
+          }
+          
+
           /* MODIFIED: Added specific margin-right for span in edit mode to make space for buttons */
           .tool-button.edit-mode span {
               margin-right: 60px; /* Approximate width of the 4 buttons + gap + padding */
@@ -369,6 +402,23 @@ const Router = ({ base = '', routes = [] } = {}) => ({
           .admin-action-buttons .export-json-btn:hover {
               background-color: #e0a800;
               box-shadow: 0 6px 12px rgba(255, 193, 7, 0.3);
+          }
+          
+          /* 拖拽样式 */
+          .admin-action-buttons button.dragging {
+              opacity: 0.7;
+              transform: scale(1.1);
+              z-index: 100;
+              position: relative;
+              box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+          }
+          
+          .admin-action-buttons button.drag-over-before {
+              border-left: 2px solid #3a7bd5;
+          }
+          
+          .admin-action-buttons button.drag-over-after {
+              border-right: 2px solid #3a7bd5;
           }
   
   
@@ -608,10 +658,18 @@ const Router = ({ base = '', routes = [] } = {}) => ({
               margin-top: 16px;
               /* 新增滚动基础配置 */
               overflow-y: auto; /* 垂直超出时显示滚动条 */
-              overflow-x: hidden; /* 禁止水平滚动 */
+              overflow-x: hidden; /* 要止水平滚动 */
               height: auto; /* 默认自适应高度 */
-              max-height: none; /* 电脑端默认无最大高度限制 */
+              max-height: 70vh; /* 限制最大高度为视窗高度的70% */
               padding-right: 4px; /* 给滚动条留空间，避免遮挡内容 */
+          }
+                    
+          /* 移动端移除高度限制 */
+          @media (max-width: 768px) {
+              .tool-buttons {
+                  max-height: none;
+                  overflow: visible;
+              }
           }
   
           .tool-button {
@@ -698,6 +756,7 @@ const Router = ({ base = '', routes = [] } = {}) => ({
               body {
                   padding: 10px;
                   background: #f5f5f7;
+                  -webkit-overflow-scrolling: touch; /* 启用惯性滚动 */
               }
               
               #main {
@@ -756,16 +815,22 @@ const Router = ({ base = '', routes = [] } = {}) => ({
   
               /* Admin Action Buttons (top section) */
               .admin-action-buttons {
-                  justify-content: center; /* Center buttons when wrapped */
-                  gap: 8px; /* Slightly smaller gap */
+                  justify-content: space-between; /* 平均分布按钮 */
+                  gap: 4px; /* 更小的间隙 */
                   margin-top: 12px; /* 调整手机端间距 */
-                  padding: 0 16px; /* Match card padding */
+                  padding: 0 8px; /* 减小内边距 */
+                  flex-wrap: nowrap; /* 不换行 */
               }
               .admin-action-buttons button {
-                  flex: 1 1 calc(50% - 8px); /* Two buttons per row, with gap */
-                  max-width: calc(50% - 8px);
-                  padding: 8px 12px; /* Smaller padding */
-                  font-size: 14px; /* Smaller font */
+                  flex: 1 1 20%; /* 平均分配宽度，一行5个按钮 */
+                  max-width: calc(20% - 4px); /* 限制最大宽度 */
+                  padding: 6px 4px; /* 更小的内边距 */
+                  font-size: 11px; /* 更小的字体 */
+                  border-radius: 6px; /* 更小的圆角 */
+                  min-width: 0; /* 允许压缩 */
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
               }
   
               /* Category Action Buttons */
@@ -785,7 +850,6 @@ const Router = ({ base = '', routes = [] } = {}) => ({
               .tool-buttons {
                   grid-template-columns: repeat(4, 1fr); /* Force 4 columns on all mobile */
                   gap: 6px; /* Consistent gap */
-                  max-height: calc(100vh - 180px); /* Keep max-height */
               }
   
               /* Bookmark Card (tool-button) */
@@ -823,6 +887,8 @@ const Router = ({ base = '', routes = [] } = {}) => ({
               .scroll-hint {
                   display: block; /* 手机端显示滚动提示 */
               }
+              
+
           }
   
           @media (max-width: 480px) {
@@ -833,9 +899,22 @@ const Router = ({ base = '', routes = [] } = {}) => ({
                   max-width: none;
               }
               /* Admin Action Buttons (top section) */
+              .admin-action-buttons {
+                  justify-content: space-between; /* 平均分布按钮 */
+                  gap: 4px; /* 更小的间隙 */
+                  padding: 0 6px; /* 减小内边距 */
+                  flex-wrap: nowrap; /* 不换行 */
+              }
               .admin-action-buttons button {
-                  flex: 1 1 100%; /* One button per row for very small screens */
-                  max-width: 100%;
+                  flex: 1 1 20%; /* 平均分配宽度，一行5个按钮 */
+                  max-width: calc(20% - 4px); /* 限制最大宽度 */
+                  padding: 5px 3px; /* 更小的内边距 */
+                  font-size: 10px; /* 更小的字体 */
+                  border-radius: 5px; /* 更小的圆角 */
+                  min-width: 0; /* 允许压缩 */
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
               }
   
               /* Category Action Buttons */
@@ -865,24 +944,66 @@ const Router = ({ base = '', routes = [] } = {}) => ({
               .search-container {
                   gap: 6px;
               }
-  
+              
               /* 极小屏幕搜索框调整 */
               .search-input {
                   padding: 5px 8px; /* 最小内边距 */
                   font-size: 12px; /* 最小字体 */
                   border-radius: 6px; /* 最小圆角 */
               }
-  
-              .menu-item {
-                  padding: 8px 10px;
-                  font-size: 12px;
-                  min-width: 80px;
+                            
+              /* 强制一行显示5个菜单项 */
+              .content-menu {
+                  flex-wrap: nowrap; /* 不换行 */
               }
-  
+                            
+              .menu-item {
+                  flex: 1 1 20%; /* 平均分配宽度 */
+                  min-width: 0; /* 允许压缩 */
+                  padding: 6px 2px; /* 减小内边距 */
+                  font-size: 11px; /* 减小字体 */
+                  text-align: center;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+              }
+                            
               /* 全部按钮小屏适配 */
               .menu-item.all-btn {
-                  min-width: 60px;
-                  padding: 8px 8px;
+                  min-width: 0;
+                  padding: 6px 2px;
+              }
+                            
+              /* 移动端按钮拖拽样式 */
+              .admin-action-buttons button.dragging {
+                  opacity: 0.7;
+                  transform: scale(1.05);
+                  z-index: 100;
+                  position: relative;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              }
+                            
+              .admin-action-buttons button.drag-over-before {
+                  border-left: 1px solid #3a7bd5;
+              }
+                            
+              .admin-action-buttons button.drag-over-after {
+                  border-right: 1px solid #3a7bd5;
+              }
+                            
+              /* 移动端书签触摸样式 */
+              .tool-button.touch-active {
+                  opacity: 0.8;
+                  transform: scale(0.98);
+                  transition: all 0.2s ease;
+              }
+                            
+              .tool-button.long-press-drag {
+                  opacity: 0.6;
+                  transform: scale(1.02);
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                  z-index: 100;
+                  position: relative;
               }
           }
   
@@ -923,6 +1044,7 @@ const Router = ({ base = '', routes = [] } = {}) => ({
               width: 100%;
               overflow-x: auto;
               padding-bottom: 8px;
+              -webkit-overflow-scrolling: touch; /* 启用惯性滚动 */
           }
   
           .menu-item {
@@ -1187,7 +1309,8 @@ const Router = ({ base = '', routes = [] } = {}) => ({
         try {
             await callApi('POST', '/api/data', { links: currentLinks, categories: currentCategories });
             showFlashMessage('数据保存成功！', 'success'); // Changed from alert to flash message
-            await fetchDataAndRender();
+            // 保存成功后不重新获取数据，保持当前菜单状态
+            // 只更新数据而不重新渲染整个页面
         } catch (error) {
             console.error('Failed to save data:', error);
             showFlashMessage('数据保存失败！ ' + error.message, 'error'); // Changed from alert to flash message
@@ -1250,17 +1373,16 @@ const Router = ({ base = '', routes = [] } = {}) => ({
         } else {
             linksToRender.forEach(link => {
                 if (isEditMode) {
-                    linksHtml += \`
-                        <a href="\${link.url}" target="_blank" class="tool-button edit-mode" data-bookmark-id="\${link.id}">
-                            <span>\${link.name}</span>
-                            <div class="edit-mode-bookmark-actions">
-                                <button data-action="edit-bookmark" data-id="\${link.id}" title="编辑书签"><i class="fas fa-edit"></i></button>
-                                <button data-action="delete-bookmark" data-id="\${link.id}" title="删除书签"><i class="fas fa-trash-alt"></i></button>
-                                <button class="sort-btn" data-action="move-bookmark-up" data-id="\${link.id}" title="上移书签"><i class="fas fa-arrow-up"></i></button>
-                                <button class="sort-btn" data-action="move-bookmark-down" data-id="\${link.id}" title="下移书签"><i class="fas fa-arrow-down"></i></button>
-                            </div>
-                        </a>
-                    \`;
+                    linksHtml += '<a href="' + link.url + '" target="_blank" class="tool-button edit-mode" data-bookmark-id="' + link.id + '" draggable="true" ontouchstart="handleBookmarkTouchStart(event);">' +
+                        '<span>' + link.name + '</span>' +
+                        '<div class="edit-mode-bookmark-actions">' +
+                        '<button data-action="edit-bookmark" data-id="' + link.id + '" title="编辑书签"><i class="fas fa-edit"></i></button>' +
+                        '<button data-action="delete-bookmark" data-id="' + link.id + '" title="删除书签"><i class="fas fa-trash-alt"></i></button>' +
+                        '<button class="sort-btn" data-action="move-bookmark-up" data-id="' + link.id + '" title="上移书签"><i class="fas fa-arrow-up"></i></button>' +
+                        '<button class="sort-btn" data-action="move-bookmark-down" data-id="' + link.id + '" title="下移书签"><i class="fas fa-arrow-down"></i></button>' +
+                        '</div>' +
+                        '</a>';
+
                 } else {
                     linksHtml += \`
                         <a href="\${link.url}" target="_blank" class="tool-button">
@@ -1641,7 +1763,8 @@ const Router = ({ base = '', routes = [] } = {}) => ({
             }
         }
         hideModal();
-        render(); // 重新渲染内容，但不立即保存到KV
+        // 只更新当前显示的书签，不重新渲染整个页面
+        updateFilteredLinksDisplay();
         showFlashMessage('更改已暂存，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
     }
 
@@ -1653,7 +1776,6 @@ const Router = ({ base = '', routes = [] } = {}) => ({
         }
         showModal('category');
     }
-
     function showEditCategoryModal(id) {
         const category = currentCategories.find(cat => cat.id === id);
         if (category) {
@@ -1665,7 +1787,8 @@ const Router = ({ base = '', routes = [] } = {}) => ({
         if (!confirm('确定要删除此分类吗？该分类下的所有书签也将被删除！')) return;
         currentCategories = currentCategories.filter(cat => cat.id !== id);
         currentLinks = currentLinks.filter(link => link.categoryId !== id); // 删除分类下的所有书签
-        render();
+        // 只更新当前显示的书签，不重新渲染整个页面
+        updateFilteredLinksDisplay();
         showFlashMessage('分类及其书签已删除，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
     }
 
@@ -1687,7 +1810,8 @@ const Router = ({ base = '', routes = [] } = {}) => ({
     function deleteBookmark(id) {
         if (!confirm('确定要删除此书签吗？')) return;
         currentLinks = currentLinks.filter(link => link.id !== id);
-        render();
+        // 只更新当前显示的书签，不重新渲染整个页面
+        updateFilteredLinksDisplay();
         showFlashMessage('书签已删除，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
     }
 
@@ -1709,9 +1833,32 @@ const Router = ({ base = '', routes = [] } = {}) => ({
         return newArr;
     }
 
+    // --- 拖拽排序功能 ---
+    function reorderBookmark(draggedId, targetId) {
+        const draggedIndex = currentLinks.findIndex(link => link.id === draggedId);
+        const targetIndex = currentLinks.findIndex(link => link.id === targetId);
+        
+        if (draggedIndex === -1 || targetIndex === -1) return;
+        
+        // 确保两个书签在同一分类中
+        if (currentLinks[draggedIndex].categoryId !== currentLinks[targetIndex].categoryId) return;
+        
+        const newArr = [...currentLinks];
+        const [draggedItem] = newArr.splice(draggedIndex, 1);
+        
+        // 插入到目标位置
+        newArr.splice(targetIndex, 0, draggedItem);
+        
+        currentLinks = newArr;
+        // 只更新当前显示的书签，不重新渲染整个页面
+        updateFilteredLinksDisplay();
+        showFlashMessage('书签顺序已调整，请点击“保存更改”同步到服务器。', 'info');
+    }
+
     function moveCategory(id, direction) {
         currentCategories = moveItemInArray(currentCategories, id, direction);
-        render();
+        // 只更新当前显示的书签，不重新渲染整个页面
+        updateFilteredLinksDisplay();
         showFlashMessage('分类顺序已调整，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
     }
 
@@ -1733,7 +1880,8 @@ const Router = ({ base = '', routes = [] } = {}) => ({
             newCurrentLinks.push(...linksForThisCategory);
         });
         currentLinks = newCurrentLinks;
-        render();
+        // 只更新当前显示的书签，不重新渲染整个页面
+        updateFilteredLinksDisplay();
         showFlashMessage('书签顺序已调整，请点击“保存更改”同步到服务器。', 'info'); // Added info flash message
     }
 
@@ -1805,10 +1953,17 @@ const Router = ({ base = '', routes = [] } = {}) => ({
                         // Add all non-duplicate new links
                         currentLinks.push(...newLinks);
 
-                        await saveData(); // Save to KV and re-render
-                        showFlashMessage('JSON 数据导入成功！', 'success');
-                    } catch (parseError) {
-                        // 修正：使用字符串拼接
+                        // 保存数据但不重新渲染页面，保持当前菜单状态
+                        try {
+                            await callApi('POST', '/api/data', { links: currentLinks, categories: currentCategories });
+                            showFlashMessage('JSON 数据导入成功并已保存！', 'success');
+                            // 只更新当前显示的书签，不重新渲染整个页面
+                            updateFilteredLinksDisplay();
+                        } catch (error) {
+                            console.error('Failed to save data:', error);
+                            showFlashMessage('数据保存失败！ ' + error.message, 'error');
+                        }
+                    } catch (parseError) {                        // 修正：使用字符串拼接
                         showFlashMessage('JSON 文件解析失败，请检查文件格式。 ' + parseError.message, 'error'); // Changed from alert to flash message
                         console.error('JSON parse error:', parseError);
                     }
@@ -1878,11 +2033,12 @@ const Router = ({ base = '', routes = [] } = {}) => ({
                 if (bookmarkCount > this.DESKTOP_MAX_COUNT) {
                     toolButtonsEl.style.maxHeight = this.DESKTOP_MAX_HEIGHT;
                 } else {
-                    toolButtonsEl.style.maxHeight = 'none';
+                    toolButtonsEl.style.maxHeight = '70vh'; // 限制最大高度为视窗高度的70%
                 }
             } else {
-                // 手机端：CSS已默认限制max-height，无需额外处理
-                toolButtonsEl.style.maxHeight = ''; // 清除可能由桌面端设置的maxHeight
+                // 手机端：移除高度限制，允许页面整体滚动
+                toolButtonsEl.style.maxHeight = 'none';
+                toolButtonsEl.style.overflow = 'visible';
             }
         },
 
@@ -2006,6 +2162,120 @@ const Router = ({ base = '', routes = [] } = {}) => ({
         document.getElementById('import-json-btn')?.addEventListener('click', app.importJsonData);
         document.getElementById('export-json-btn')?.addEventListener('click', app.exportJsonData);
         document.getElementById('save-changes-btn')?.addEventListener('click', app.saveData);
+        
+        // 添加对顶部5个按钮的长按拖拽支持
+        const adminButtons = document.querySelectorAll('.admin-action-buttons button');
+        let dragSrcElement = null;
+        
+        adminButtons.forEach(button => {
+            // 长按开始
+            let pressTimer;
+            const LONG_PRESS_THRESHOLD = 500; // 长按时间阈值
+            
+            button.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => {
+                    // 长按触发拖拽模式
+                    dragSrcElement = button;
+                    button.classList.add('dragging');
+                    e.preventDefault(); // 阻止默认的长按菜单
+                }, LONG_PRESS_THRESHOLD);
+            });
+            
+            button.addEventListener('touchend', () => {
+                clearTimeout(pressTimer);
+                // 清除拖拽样式
+                button.classList.remove('dragging');
+            });
+            
+            button.addEventListener('touchmove', (e) => {
+                clearTimeout(pressTimer);
+            });
+            
+            button.addEventListener('touchcancel', () => {
+                clearTimeout(pressTimer);
+                // 清除拖拽样式
+                button.classList.remove('dragging');
+            });
+        });
+        
+        // 拖拽放置目标
+        const adminContainer = document.querySelector('.admin-action-buttons');
+        if (adminContainer) {
+            adminContainer.addEventListener('touchmove', (e) => {
+                if (!dragSrcElement) return;
+                
+                e.preventDefault(); // 阻止滚动
+                
+                // 获取触摸点坐标
+                const touchX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+                
+                // 查找最近的按钮
+                const elements = document.elementsFromPoint(touchX, touchY);
+                const targetButton = elements.find(el => el.tagName === 'BUTTON' && el !== dragSrcElement && el.parentElement === adminContainer);
+                
+                if (targetButton) {
+                    // 获取按钮在容器中的位置
+                    const buttons = Array.from(adminContainer.querySelectorAll('button'));
+                    const srcIndex = buttons.indexOf(dragSrcElement);
+                    const targetIndex = buttons.indexOf(targetButton);
+                    
+                    // 可视化指示放置位置
+                    buttons.forEach(btn => btn.classList.remove('drag-over-before', 'drag-over-after'));
+                    
+                    if (srcIndex < targetIndex) {
+                        targetButton.classList.add('drag-over-after');
+                    } else {
+                        targetButton.classList.add('drag-over-before');
+                    }
+                }
+            });
+            
+            adminContainer.addEventListener('touchend', (e) => {
+                if (!dragSrcElement) return;
+                
+                // 获取触摸点坐标
+                const touchX = e.changedTouches[0].clientX;
+                const touchY = e.changedTouches[0].clientY;
+                
+                // 查找放置目标
+                const elements = document.elementsFromPoint(touchX, touchY);
+                const targetButton = elements.find(el => el.tagName === 'BUTTON' && el !== dragSrcElement && el.parentElement === adminContainer);
+                
+                if (targetButton) {
+                    // 重新排列按钮
+                    const buttons = Array.from(adminContainer.querySelectorAll('button'));
+                    const srcIndex = buttons.indexOf(dragSrcElement);
+                    const targetIndex = buttons.indexOf(targetButton);
+                    
+                    // 移除源按钮
+                    adminContainer.removeChild(dragSrcElement);
+                    
+                    // 插入到新位置
+                    if (srcIndex < targetIndex) {
+                        targetButton.parentNode.insertBefore(dragSrcElement, targetButton.nextSibling);
+                    } else {
+                        targetButton.parentNode.insertBefore(dragSrcElement, targetButton);
+                    }
+                }
+                
+                // 清除所有样式
+                document.querySelectorAll('.admin-action-buttons button').forEach(btn => {
+                    btn.classList.remove('dragging', 'drag-over-before', 'drag-over-after');
+                });
+                
+                dragSrcElement = null;
+            });
+            
+            adminContainer.addEventListener('touchcancel', () => {
+                // 清除所有样式
+                document.querySelectorAll('.admin-action-buttons button').forEach(btn => {
+                    btn.classList.remove('dragging', 'drag-over-before', 'drag-over-after');
+                });
+                
+                dragSrcElement = null;
+            });
+        }
 
         // Category actions (edit/delete/sort) - using event delegation for dynamically added buttons
         document.querySelectorAll('.edit-mode-category-title').forEach(container => {
@@ -2047,6 +2317,147 @@ const Router = ({ base = '', routes = [] } = {}) => ({
                 container.removeEventListener('click', oldListener);
             }
 
+            // 添加拖拽事件监听器
+            container.addEventListener('dragstart', (event) => {
+                const target = event.target.closest('.tool-button');
+                if (target && target.draggable) {
+                    event.dataTransfer.setData('text/plain', target.dataset.bookmarkId);
+                    target.classList.add('dragging');
+                }
+            });
+
+            container.addEventListener('dragover', (event) => {
+                event.preventDefault(); // 允许放置
+                const target = event.target.closest('.tool-button');
+                if (target && target !== document.querySelector('.dragging')) {
+                    // 可视化指示放置位置
+                    const rect = target.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    
+                    if (event.clientY < midpoint) {
+                        target.classList.add('drag-over-top');
+                        target.classList.remove('drag-over-bottom');
+                    } else {
+                        target.classList.add('drag-over-bottom');
+                        target.classList.remove('drag-over-top');
+                    }
+                }
+            });
+
+            container.addEventListener('dragleave', (event) => {
+                const target = event.target.closest('.tool-button');
+                if (target) {
+                    target.classList.remove('drag-over-top', 'drag-over-bottom');
+                }
+            });
+
+            container.addEventListener('drop', (event) => {
+                event.preventDefault();
+                const target = event.target.closest('.tool-button');
+                const draggedId = event.dataTransfer.getData('text/plain');
+                
+                if (target && draggedId && target.dataset.bookmarkId !== draggedId) {
+                    app.reorderBookmark(draggedId, target.dataset.bookmarkId);
+                }
+                
+                // 清除所有拖拽样式
+                document.querySelectorAll('.tool-button').forEach(btn => {
+                    btn.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+                });
+            });
+
+            container.addEventListener('dragend', (event) => {
+                // 清除所有拖拽样式
+                document.querySelectorAll('.tool-button').forEach(btn => {
+                    btn.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+                });
+            });
+
+            // 添加移动端触摸事件支持
+            let touchStartY = 0;
+            let touchStartX = 0;
+            let draggedElement = null;
+            
+            container.addEventListener('touchstart', (event) => {
+                const target = event.target.closest('.tool-button');
+                if (target && target.draggable) {
+                    // 阻止默认的长按菜单
+                    event.preventDefault();
+                    
+                    draggedElement = target;
+                    touchStartY = event.touches[0].clientY;
+                    touchStartX = event.touches[0].clientX;
+                    
+                    // 添加视觉反馈
+                    target.classList.add('dragging');
+                }
+            });
+            
+            container.addEventListener('touchmove', (event) => {
+                if (!draggedElement) return;
+                
+                event.preventDefault(); // 阻止滚动
+                
+                const touchY = event.touches[0].clientY;
+                const touchX = event.touches[0].clientX;
+                
+                // 查找最近的可放置目标
+                const elements = document.elementsFromPoint(touchX, touchY);
+                const target = elements.find(el => el.classList.contains('tool-button') && el !== draggedElement);
+                
+                if (target) {
+                    // 可视化指示放置位置
+                    const rect = target.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    
+                    if (touchY < midpoint) {
+                        target.classList.add('drag-over-top');
+                        target.classList.remove('drag-over-bottom');
+                    } else {
+                        target.classList.add('drag-over-bottom');
+                        target.classList.remove('drag-over-top');
+                    }
+                }
+                
+                // 清除其他元素的放置指示器
+                document.querySelectorAll('.tool-button').forEach(btn => {
+                    if (btn !== target) {
+                        btn.classList.remove('drag-over-top', 'drag-over-bottom');
+                    }
+                });
+            });
+            
+            container.addEventListener('touchend', (event) => {
+                if (!draggedElement) return;
+                
+                const touchY = event.changedTouches[0].clientY;
+                const touchX = event.changedTouches[0].clientX;
+                
+                // 查找放置目标
+                const elements = document.elementsFromPoint(touchX, touchY);
+                const target = elements.find(el => el.classList.contains('tool-button') && el !== draggedElement);
+                
+                if (target && target.dataset.bookmarkId) {
+                    app.reorderBookmark(draggedElement.dataset.bookmarkId, target.dataset.bookmarkId);
+                }
+                
+                // 清除所有样式
+                document.querySelectorAll('.tool-button').forEach(btn => {
+                    btn.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+                });
+                
+                draggedElement = null;
+            });
+            
+            container.addEventListener('touchcancel', (event) => {
+                // 清除所有样式
+                document.querySelectorAll('.tool-button').forEach(btn => {
+                    btn.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+                });
+                
+                draggedElement = null;
+            });
+
             const newListener = (event) => {
                 const targetBtn = event.target.closest('button[data-action]');
                 if (!targetBtn) return;
@@ -2073,6 +2484,82 @@ const Router = ({ base = '', routes = [] } = {}) => ({
     }
 
 
+    // 处理书签触摸开始事件，阻止默认的长按菜单
+    function handleBookmarkTouchStart(event) {
+        // 阻止默认的长按菜单
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // 获取目标元素
+        const target = event.currentTarget;
+        
+        // 添加视觉反馈
+        target.classList.add('touch-active');
+        
+        // 清除之前的定时器
+        if (target.pressTimer) {
+            clearTimeout(target.pressTimer);
+        }
+        
+        // 设置长按定时器
+        target.pressTimer = setTimeout(() => {
+            // 长按触发拖拽模式
+            target.classList.add('long-press-drag');
+            // 可以在这里添加更多的拖拽初始化逻辑
+        }, 500); // 500毫秒长按触发
+        
+        // 添加触摸结束事件监听器
+        const handleTouchEnd = () => {
+            // 清除定时器
+            if (target.pressTimer) {
+                clearTimeout(target.pressTimer);
+                target.pressTimer = null;
+            }
+            
+            // 清除样式
+            target.classList.remove('touch-active', 'long-press-drag');
+            
+            // 移除事件监听器
+            target.removeEventListener('touchend', handleTouchEnd);
+            target.removeEventListener('touchmove', handleTouchMove);
+            target.removeEventListener('touchcancel', handleTouchCancel);
+        };
+        
+        // 添加触摸移动事件监听器
+        const handleTouchMove = () => {
+            // 如果移动了，清除长按定时器
+            if (target.pressTimer) {
+                clearTimeout(target.pressTimer);
+                target.pressTimer = null;
+            }
+            
+            // 清除样式
+            target.classList.remove('touch-active', 'long-press-drag');
+        };
+        
+        // 添加触摸取消事件监听器
+        const handleTouchCancel = () => {
+            // 清除定时器
+            if (target.pressTimer) {
+                clearTimeout(target.pressTimer);
+                target.pressTimer = null;
+            }
+            
+            // 清除样式
+            target.classList.remove('touch-active', 'long-press-drag');
+            
+            // 移除事件监听器
+            target.removeEventListener('touchend', handleTouchEnd);
+            target.removeEventListener('touchmove', handleTouchMove);
+            target.removeEventListener('touchcancel', handleTouchCancel);
+        };
+        
+        // 添加事件监听器
+        target.addEventListener('touchend', handleTouchEnd);
+        target.addEventListener('touchmove', handleTouchMove);
+        target.addEventListener('touchcancel', handleTouchCancel);
+    }
+
     // 将需要外部调用的函数暴露到全局对象 app
     window.app = {
         saveData,
@@ -2089,7 +2576,9 @@ const Router = ({ base = '', routes = [] } = {}) => ({
         importJsonData,
         exportJsonData,
         moveCategory,
-        moveBookmark
+        moveBookmark,
+        reorderBookmark,
+        handleBookmarkTouchStart
     };
 
     init();
