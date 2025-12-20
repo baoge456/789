@@ -1,0 +1,424 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>nav -> modern 格式转换器</title>
+  <style>
+    /* 全局样式 */
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: #f0f4f8; /* 浅蓝色-灰色背景 */
+      color: #343a40;      /* 深灰色文本 */
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    /* 容器样式 */
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #ffffff; /* 纯白色容器背景 */
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08); /* 柔和的阴影 */
+    }
+
+    /* 标题样式 */
+    h1 {
+      margin-top: 0;
+      color: #212529; /* 更深的标题颜色 */
+      font-size: 28px;
+      border-bottom: 1px solid #e9ecef;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+    h2 {
+      color: #212529;
+      font-size: 22px;
+      margin-top: 25px;
+    }
+
+    /* 标签样式 */
+    label {
+      display:block;
+      margin:15px 0 8px;
+      font-size:15px;
+      color:#495057; /* 适中的深灰色 */
+      font-weight: 500;
+    }
+
+    /* 文件输入框 */
+    input[type=file] {
+      color: #495057;
+      padding: 8px 0;
+      display: block; /* 确保占据一行 */
+    }
+
+    /* 按钮样式 */
+    button {
+      background:#007bff; /* 蓝色主按钮 */
+      color:#fff;
+      border:0;
+      padding:10px 18px;
+      border-radius:8px;
+      cursor:pointer;
+      margin-right:10px;
+      transition: background-color 0.2s, box-shadow 0.2s;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    button:hover {
+      background:#0056b3; /* 鼠标悬停时更深的蓝色 */
+      box-shadow: 0 4px 10px rgba(0,123,255,0.2);
+    }
+    button:disabled {
+      background:#a0c7f7; /* 禁用时浅蓝色 */
+      cursor:not-allowed;
+      opacity: 0.7;
+      box-shadow: none;
+    }
+    button.secondary {
+      background: #6c757d; /* 灰色次按钮 */
+    }
+    button.secondary:hover {
+      background: #5a6268; /* 鼠标悬停时更深的灰色 */
+      box-shadow: 0 4px 10px rgba(108,117,125,0.2);
+    }
+    button.secondary:disabled {
+      background:#c6cbd0; /* 禁用时浅灰色 */
+    }
+
+    /* 预格式化文本（JSON输出） */
+    pre {
+      background: #e9ecef; /* 浅灰色背景 */
+      color: #343a40;      /* 深灰色文本 */
+      padding:15px;
+      border-radius:8px;
+      overflow:auto;
+      max-height:450px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border: 1px solid #dee2e6;
+      font-size: 14px;
+    }
+
+    /* 行布局 */
+    .row {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    /* 提示信息 */
+    .hint {
+      color:#6c757d; /* 柔和的提示文本颜色 */
+      font-size:13px;
+      margin-top:15px;
+      background: #e9f7fe;
+      border-left: 4px solid #007bff;
+      padding: 10px 15px;
+      border-radius: 4px;
+    }
+    .hint ul {
+      margin: 5px 0 0 20px;
+      padding: 0;
+    }
+    .hint li {
+      margin-bottom: 5px;
+    }
+
+    /* 小文本 */
+    .small {
+      font-size:14px;
+      color:#6c757d;
+      margin-bottom: 20px;
+    }
+
+    /* 控制按钮区域 */
+    .controls {
+      margin-top:25px;
+      padding-top: 15px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    /* 选项区域 */
+    .opt {
+      margin-top:15px;
+      display:flex;
+      gap:15px;
+      align-items:center;
+      flex-wrap:wrap;
+      padding: 10px 0;
+    }
+    .opt label {
+      margin:0; /* 重置opt内部label的margin */
+      font-weight: normal;
+    }
+
+    /* 文本输入框和选择框 */
+    input[type=text], select {
+      background:#ffffff; /* 白色背景 */
+      border:1px solid #ced4da; /* 浅灰色边框 */
+      color: #495057;      /* 深灰色文本 */
+      padding:8px 12px;
+      border-radius:6px;
+      font-size: 14px;
+      flex-grow: 1; /* 允许文本框填充可用空间 */
+      min-width: 200px; /* 最小宽度 */
+    }
+
+    /* 背景预览 */
+    .bg-preview {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid #ced4da;
+      margin-left: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      flex-shrink: 0; /* 防止被挤压 */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>nav -> modern 格式转换器</h1>
+    <div class="small">将你的 nav JSON 文件（数组）导入，转换为 modern 示例格式并导出。</div>
+
+    <label for="fileInput">选择 nav JSON 文件（数组）</label>
+    <input id="fileInput" type="file" accept=".json" />
+
+    <div class="opt">
+      <label for="bgSelect">选择预设背景：</label>
+      <select id="bgSelect">
+        <option value="radial-gradient(circle at 50% -20%, #e0f2f7, #c1e7f0, #a8d5e0)" data-color="#a8d5e0">浅蓝渐变 (默认)</option>
+        <option value="linear-gradient(to right, #fceabb, #f8b500)" data-color="#f8b500">暖黄渐变</option>
+        <option value="linear-gradient(to right, #a1c4fd, #c2e9fb)" data-color="#c2e9fb">蓝天渐变</option>
+        <option value="linear-gradient(to right, #d4fc79, #96e6a1)" data-color="#96e6a1">清新绿渐变</option>
+        <option value="linear-gradient(to right, #ffecd2, #fcb69f)" data-color="#fcb69f">日落橙渐变</option>
+        <option value="linear-gradient(to right, #e0c3fc, #8ec5fc)" data-color="#8ec5fc">紫蓝渐变</option>
+        <option value="linear-gradient(to right, #fddb92, #d1fdff)" data-color="#d1fdff">粉蓝渐变</option>
+        <option value="linear-gradient(to right, #a8edea, #fed6e3)" data-color="#fed6e3">薄荷渐变</option>
+        <option value="linear-gradient(to right, #e6e9f0, #e0e0e0)" data-color="#e0e0e0">灰色渐变</option>
+        <option value="none" data-color="#f0f4f8">无背景</option>
+        <option value="custom">自定义背景...</option>
+      </select>
+      <div class="bg-preview" id="bgPreview" style="background: radial-gradient(circle at 50% -20%, #e0f2f7, #c1e7f0, #a8d5e0);"></div>
+    </div>
+    <div class="opt" id="customBgInputGroup" style="display:none;">
+      <label for="bgInput">自定义背景（CSS值）：</label>
+      <input id="bgInput" type="text" value="radial-gradient(circle at 50% -20%, #e0f2f7, #c1e7f0, #a8d5e0)" />
+    </div>
+
+    <div class="controls">
+      <button id="convertBtn">转换并生成</button>
+      <button id="downloadBtn" class="secondary" disabled>下载转换结果</button>
+      <button id="copyBtn" class="secondary" disabled>复制到剪贴板</button>
+    </div>
+
+    <div class="hint">
+      <strong>说明：</strong>
+      <ul>
+        <li>`catelog` 字段按 "-" 分割，左侧为 category（例如 "发现"），右侧为 subCategory（例如 "新闻"）。若无 "-"，则放到同名 category/subCategory 下（如 "常用"）。</li>
+        <li>`icon` 字段将直接使用原始数据中的 `logo` 字段值。如果 `logo` 为空或 `null`，则使用 `"Globe"` 作为默认值。</li>
+        <li>`sort_order` 字段用于排序，但不会出现在最终的 `items` 中。</li>
+      </ul>
+    </div>
+
+    <h2>转换结果（JSON）：</h2>
+    <pre id="output">未生成</pre>
+  </div>
+
+  <script>
+    // 工具函数 (保持原样)
+    function safeStringId(x){ return String(x); }
+    function nowTimestampMs(){ return Date.now(); }
+
+    // 生成 modern 格式的 main 函数 (保持原样)
+    function convertNavArray(navArray, options = {}) {
+      // options: { background, prefs }
+      // 默认背景值改为更亮的样式
+      const defaultBackground = 'radial-gradient(circle at 50% -20%, #e0f2f7, #c1e7f0, #a8d5e0)';
+      const background = options.background || defaultBackground;
+      const prefs = options.prefs || { cardOpacity: 0.95, themeColor: '#007bff', themeMode: 'light' }; // 默认主题色也调整为蓝色
+
+      // map: categoryTitle -> subMap
+      // subMap: subTitle -> items[]
+      const catMap = new Map();
+
+      // Ensure input is array
+      if (!Array.isArray(navArray)) throw new Error('输入必须是数组');
+
+      // iterate in given order, but we'll sort within subcategories later by sort_order
+      navArray.forEach(item => {
+        const catelog = (item.catelog || '常用').trim();
+        let category = catelog;
+        let sub = catelog;
+        if (catelog.includes('-')) {
+          const parts = catelog.split('-');
+          category = parts[0].trim() || '发现';
+          sub = parts.slice(1).join('-').trim() || '常用';
+        }
+        // fallback if empty
+        if (!category) category = '常用';
+        if (!sub) sub = '常用';
+
+        if (!catMap.has(category)) catMap.set(category, new Map());
+        const subMap = catMap.get(category);
+        if (!subMap.has(sub)) subMap.set(sub, []);
+        const arr = subMap.get(sub);
+
+        // Determine icon: use the logo URL directly if available, otherwise fallback to 'Globe'
+        const icon = item.logo || 'Globe';
+
+        // push simplified item
+        arr.push({
+          id: safeStringId(item.id),
+          title: item.name || '',
+          url: item.url || '',
+          icon: icon,
+          sort_order: typeof item.sort_order === 'number' ? item.sort_order : 9999 // Default sort_order if missing
+        });
+      });
+
+      // build categories array in required format
+      const categories = [];
+      for (const [categoryTitle, subMap] of catMap.entries()) {
+        const subCategories = [];
+        for (const [subTitle, items] of subMap.entries()) {
+          // sort items by sort_order asc, stable
+          items.sort((a,b) => {
+            const sa = (typeof a.sort_order === 'number') ? a.sort_order : 9999;
+            const sb = (typeof b.sort_order === 'number') ? b.sort_order : 9999;
+            return sa - sb;
+          });
+          // remove sort_order from output items
+          const outItems = items.map(i => ({ id: i.id, title: i.title, url: i.url, icon: i.icon }));
+          subCategories.push({ id: subTitle, title: subTitle, items: outItems });
+        }
+        categories.push({ id: categoryTitle, title: categoryTitle, subCategories });
+      }
+
+      // assemble final object
+      const result = {
+        version: 1,
+        timestamp: nowTimestampMs(),
+        categories: categories,
+        background: background,
+        prefs: prefs
+      };
+      return result;
+    }
+
+    // UI wiring
+    const fileInput = document.getElementById('fileInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const outputPre = document.getElementById('output');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    // 新增的背景选择相关元素
+    const bgSelect = document.getElementById('bgSelect');
+    const bgInput = document.getElementById('bgInput'); // 保持原有ID
+    const customBgInputGroup = document.getElementById('customBgInputGroup');
+    const bgPreview = document.getElementById('bgPreview');
+
+    let convertedJson = null;
+
+    // --- 新增的背景选择器辅助函数 ---
+    function updateBgPreview(bgValue) {
+        if (bgValue === 'none') {
+            bgPreview.style.background = 'transparent';
+            bgPreview.style.backgroundColor = '#f0f4f8'; // 模拟无背景时的页面背景色
+        } else {
+            bgPreview.style.background = bgValue;
+            bgPreview.style.backgroundColor = ''; // 清除模拟背景色
+        }
+    }
+
+    function updateCustomBgInputVisibility() {
+        const selectedValue = bgSelect.value;
+        if (selectedValue === 'custom') {
+            customBgInputGroup.style.display = 'flex';
+            bgInput.focus();
+        } else {
+            customBgInputGroup.style.display = 'none';
+            // 将选中预设值同步到自定义输入框，这样在切换回自定义时，会显示上次选择的预设值
+            bgInput.value = selectedValue;
+        }
+        updateBgPreview(bgInput.value);
+    }
+
+    // --- 事件监听器 ---
+    bgSelect.addEventListener('change', () => {
+      updateCustomBgInputVisibility();
+    });
+
+    bgInput.addEventListener('input', () => {
+        updateBgPreview(bgInput.value);
+    });
+
+    convertBtn.addEventListener('click', () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        alert('请选择一个 JSON 文件。');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const navArray = JSON.parse(e.target.result);
+          const options = {
+            background: bgInput.value // 从 bgInput 获取当前背景值
+          };
+          convertedJson = convertNavArray(navArray, options);
+          outputPre.textContent = JSON.stringify(convertedJson, null, 2);
+          downloadBtn.disabled = false;
+          copyBtn.disabled = false;
+        } catch (error) {
+          alert('文件解析失败或转换出错：' + error.message);
+          console.error(error);
+          outputPre.textContent = '错误：' + error.message;
+          downloadBtn.disabled = true;
+          copyBtn.disabled = true;
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (convertedJson) {
+        const blob = new Blob([JSON.stringify(convertedJson, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'nav-modern.json'; // 将下载文件名改为 nav-modern.json
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      if (convertedJson) {
+        navigator.clipboard.writeText(JSON.stringify(convertedJson, null, 2))
+          .then(() => {
+            alert('转换结果已复制到剪贴板！');
+          })
+          .catch(err => {
+            alert('复制失败：' + err);
+            console.error('复制失败', err);
+          });
+      }
+    });
+
+    // --- 页面初始化 ---
+    updateCustomBgInputVisibility(); // 初始化自定义背景输入框的显示状态
+    updateBgPreview(bgInput.value); // 初始化背景预览
+  </script>
+</body>
+</html>
