@@ -1,0 +1,458 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>发现 -> modern 格式转换器</title>
+  <style>
+    /* 全局样式 */
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: #f0f4f8; /* 浅蓝色-灰色背景 */
+      color: #343a40;      /* 深灰色文本 */
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    /* 容器样式 */
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #ffffff; /* 纯白色容器背景 */
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08); /* 柔和的阴影 */
+    }
+
+    /* 标题样式 */
+    h1 {
+      margin-top: 0;
+      color: #212529; /* 更深的标题颜色 */
+      font-size: 28px;
+      border-bottom: 1px solid #e9ecef;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+    h2 {
+      color: #212529;
+      font-size: 22px;
+      margin-top: 25px;
+    }
+
+    /* 标签样式 */
+    label {
+      display:block;
+      margin:15px 0 8px;
+      font-size:15px;
+      color:#495057; /* 适中的深灰色 */
+      font-weight: 500;
+    }
+
+    /* 文件输入框 */
+    input[type=file] {
+      color: #495057;
+      padding: 8px 0;
+      display: block; /* 确保占据一行 */
+    }
+
+    /* 按钮样式 */
+    button {
+      background:#007bff; /* 蓝色主按钮 */
+      color:#fff;
+      border:0;
+      padding:10px 18px;
+      border-radius:8px;
+      cursor:pointer;
+      margin-right:10px;
+      transition: background-color 0.2s, box-shadow 0.2s;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    button:hover {
+      background:#0056b3; /* 鼠标悬停时更深的蓝色 */
+      box-shadow: 0 4px 10px rgba(0,123,255,0.2);
+    }
+    button:disabled {
+      background:#a0c7f7; /* 禁用时浅蓝色 */
+      cursor:not-allowed;
+      opacity: 0.7;
+      box-shadow: none;
+    }
+    button.secondary {
+      background: #6c757d; /* 灰色次按钮 */
+    }
+    button.secondary:hover {
+      background: #5a6268; /* 鼠标悬停时更深的灰色 */
+      box-shadow: 0 4px 10px rgba(108,117,125,0.2);
+    }
+    button.secondary:disabled {
+      background:#c6cbd0; /* 禁用时浅灰色 */
+    }
+
+    /* 预格式化文本（JSON输出） */
+    pre {
+      background: #e9ecef; /* 浅灰色背景 */
+      color: #343a40;      /* 深灰色文本 */
+      padding:15px;
+      border-radius:8px;
+      overflow:auto;
+      max-height:450px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border: 1px solid #dee2e6;
+      font-size: 14px;
+    }
+
+    /* 行布局 */
+    .row {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    /* 提示信息 */
+    .hint {
+      color:#6c757d; /* 柔和的提示文本颜色 */
+      font-size:13px;
+      margin-top:15px;
+      background: #e9f7fe;
+      border-left: 4px solid #007bff;
+      padding: 10px 15px;
+      border-radius: 4px;
+    }
+    .hint ul {
+      margin: 5px 0 0 20px;
+      padding: 0;
+    }
+    .hint li {
+      margin-bottom: 5px;
+    }
+
+    /* 小文本 */
+    .small {
+      font-size:14px;
+      color:#6c757d;
+      margin-bottom: 20px;
+    }
+
+    /* 控制按钮区域 */
+    .controls {
+      margin-top:25px;
+      padding-top: 15px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    /* 选项区域 */
+    .opt {
+      margin-top:15px;
+      display:flex;
+      gap:15px;
+      align-items:center;
+      flex-wrap:wrap;
+      padding: 10px 0;
+    }
+    .opt label {
+      margin:0; /* 重置opt内部label的margin */
+      font-weight: normal;
+    }
+
+    /* 文本输入框和选择框 */
+    input[type=text], select {
+      background:#ffffff; /* 白色背景 */
+      border:1px solid #ced4da; /* 浅灰色边框 */
+      color: #495057;      /* 深灰色文本 */
+      padding:8px 12px;
+      border-radius:6px;
+      font-size: 14px;
+      flex-grow: 1; /* 允许文本框填充可用空间 */
+      min-width: 200px; /* 最小宽度 */
+    }
+
+    /* 背景预览 */
+    .bg-preview {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid #ced4da;
+      margin-left: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      flex-shrink: 0; /* 防止被挤压 */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>发现 -> modern 格式转换器</h1>
+    <div class="small">将你的 发现nav JSON 文件（嵌套结构）导入，转换为 modern 示例格式并导出。</div>
+
+    <label for="fileInput">选择 nav.json 文件（嵌套结构）</label>
+    <input id="fileInput" type="file" accept=".json" />
+
+    <!-- 新增的背景选择器和自定义背景输入框 -->
+    <div class="opt">
+      <label for="bgSelect">选择预设背景：</label>
+      <select id="bgSelect" style="min-width: 250px;">
+        <option value="radial-gradient(circle at 50% -20%, #e0f2f7, #c1e7f0, #a8d5e0)" data-color="#a8d5e0">浅蓝渐变 (默认)</option>
+        <option value="linear-gradient(to right, #fceabb, #f8b500)" data-color="#f8b500">暖黄渐变</option>
+        <option value="linear-gradient(to right, #a1c4fd, #c2e9fb)" data-color="#c2e9fb">蓝天渐变</option>
+        <option value="linear-gradient(to right, #d4fc79, #96e6a1)" data-color="#96e6a1">清新绿渐变</option>
+        <option value="linear-gradient(to right, #ffecd2, #fcb69f)" data-color="#fcb69f">日落橙渐变</option>
+        <option value="linear-gradient(to right, #e0c3fc, #8ec5fc)" data-color="#8ec5fc">紫蓝渐变</option>
+        <option value="linear-gradient(to right, #fddb92, #d1fdff)" data-color="#d1fdff">粉蓝渐变</option>
+        <option value="linear-gradient(to right, #a8edea, #fed6e3)" data-color="#fed6e3">薄荷渐变</option>
+        <option value="linear-gradient(to right, #e6e9f0, #e0e0e0)" data-color="#e0e0e0">灰色渐变</option>
+        <option value="none" data-color="#f0f4f8">无背景</option>
+        <option value="custom">自定义背景...</option>
+      </select>
+      <div class="bg-preview" id="bgPreview" style="background: radial-gradient(circle at 50% -20%, #e0f2f7, #c1e7f0, #a8d5e0);"></div>
+    </div>
+
+    <!-- 原始的 bgInput 元素，现在根据选择器显示/隐藏 -->
+    <div class="opt" id="bgInputGroup">
+      <label for="bgInput">自定义背景（CSS值）：</label>
+      <input id="bgInput" type="text" value="radial-gradient(circle at 50% -20%, #e0f2f7, #c1e7f0, #a8d5e0)" style="width:420px" />
+    </div>
+
+    <div class="controls">
+      <button id="convertBtn">转换并生成</button>
+      <button id="downloadBtn" class="secondary" disabled>下载转换结果</button>
+      <button id="copyBtn" class="secondary" disabled>复制到剪贴板</button>
+    </div>
+
+    <div class="hint">
+      <strong>说明：</strong>
+      <ul>
+        <li>本转换器适用于您提供的嵌套 JSON 格式。</li>
+        <li>转换将基于每个书签项的 `breadcrumb` 字段来确定其所属的 **一级分类 (Category)** 和 **二级分类 (SubCategory)**。</li>
+        <li>`breadcrumb` 的第一个元素将作为 `Category` 的标题。</li>
+        <li>`breadcrumb` 的最后一个元素将作为 `SubCategory` 的标题。</li>
+        <li>链接项的 `icon` 字段将直接使用原始数据中的 `icon` 值。如果 `icon` 为空或 `null`，则使用 `"Globe"` 作为默认值。</li>
+        <li>链接项的 `sort_order` 字段将优先使用原始数据中的 `index` 字段（如果为数字），否则使用 `rate` 字段（如果为数字），否则默认为 `9999`。</li>
+      </ul>
+    </div>
+
+    <h2>转换结果（JSON）：</h2>
+    <pre id="output">未生成</pre>
+  </div>
+
+  <script>
+    // 工具函数 (保持原样)
+    function safeStringId(x){
+      // 确保ID是字符串，如果原始ID不是字符串或为空，则生成一个唯一ID
+      if (x === null || x === undefined || x === '') {
+        return 'generated-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+      }
+      return String(x);
+    }
+    function nowTimestampMs(){ return Date.now(); }
+
+    /**
+     * 将特定嵌套结构的 nav JSON 转换为 modern 格式
+     * @param {object} inputData 原始的 nav JSON 数据
+     * @param {object} options 转换选项，如 background
+     * @returns {object} 转换后的 modern 格式 JSON
+     */
+    function convertNavArray(inputData, options = {}) {
+      // 核心转换逻辑与您原始文件完全一致，未做任何修改
+      const defaultBackground = 'radial-gradient(circle at 50% -20%, #e0f2f7, #c1e7f0, #a8d5e0)';
+      const background = options.background || defaultBackground;
+      const prefs = options.prefs || { cardOpacity: 0.95, themeColor: '#007bff', themeMode: 'light' };
+
+      if (!inputData || !Array.isArray(inputData.db)) {
+        throw new Error('输入JSON格式不正确，缺少顶层"db"数组。');
+      }
+
+      const categoryStructureMap = new Map();
+
+      function collectItems(node) {
+        if (node.url) {
+          let modernCategoryTitle = '未命名主分类';
+          let modernSubCategoryTitle = '其他';
+
+          if (node.breadcrumb && Array.isArray(node.breadcrumb) && node.breadcrumb.length > 0) {
+            modernCategoryTitle = node.breadcrumb[0];
+            modernSubCategoryTitle = node.breadcrumb[node.breadcrumb.length - 1];
+          } else {
+            modernSubCategoryTitle = node.title || node.name || '其他';
+          }
+
+          if (!categoryStructureMap.has(modernCategoryTitle)) {
+            categoryStructureMap.set(modernCategoryTitle, {
+              id: safeStringId(modernCategoryTitle),
+              title: modernCategoryTitle,
+              subCategoriesMap: new Map()
+            });
+          }
+          const currentCategory = categoryStructureMap.get(modernCategoryTitle);
+
+          if (!currentCategory.subCategoriesMap.has(modernSubCategoryTitle)) {
+            currentCategory.subCategoriesMap.set(modernSubCategoryTitle, []);
+          }
+          currentCategory.subCategoriesMap.get(modernSubCategoryTitle).push(node);
+        }
+
+        if (node.nav && Array.isArray(node.nav)) {
+          node.nav.forEach(childNode => collectItems(childNode));
+        }
+      }
+
+      inputData.db.forEach(topLevelNode => collectItems(topLevelNode));
+
+      const modernCategories = [];
+      const sortedCategoryTitles = Array.from(categoryStructureMap.keys()).sort();
+
+      sortedCategoryTitles.forEach(catTitle => {
+        const catData = categoryStructureMap.get(catTitle);
+        const modernSubCategories = [];
+
+        const sortedSubCatTitles = Array.from(catData.subCategoriesMap.keys()).sort();
+
+        sortedSubCatTitles.forEach(subCatTitle => {
+          const items = catData.subCategoriesMap.get(subCatTitle);
+
+          items.sort((a, b) => {
+            const sa = (typeof a.index === 'number') ? a.index : (typeof a.rate === 'number' ? a.rate : 9999);
+            const sb = (typeof b.index === 'number') ? b.index : (typeof b.rate === 'number' ? b.rate : 9999);
+            return sa - sb;
+          });
+
+          const outputItems = items.map(item => ({
+            id: safeStringId(item.id),
+            title: item.name || item.title || '',
+            url: item.url || '',
+            icon: item.icon || 'Globe'
+          }));
+
+          modernSubCategories.push({
+            id: safeStringId(subCatTitle),
+            title: subCatTitle,
+            items: outputItems
+          });
+        });
+
+        modernCategories.push({
+          id: catData.id,
+          title: catData.title,
+          subCategories: modernSubCategories
+        });
+      });
+
+      const result = {
+        version: 1,
+        timestamp: nowTimestampMs(),
+        categories: modernCategories,
+        background: background,
+        prefs: prefs
+      };
+      return result;
+    }
+
+    // UI wiring
+    const fileInput = document.getElementById('fileInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const outputPre = document.getElementById('output');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const copyBtn = document.getElementById('copyBtn');
+
+    // 背景选择相关元素
+    const bgSelect = document.getElementById('bgSelect');
+    const bgInputGroup = document.getElementById('bgInputGroup'); // 原始 bgInput 所在的 div
+    const bgInput = document.getElementById('bgInput'); // 原始 bgInput 元素
+    const bgPreview = document.getElementById('bgPreview');
+
+    let convertedJson = null;
+
+    // --- 背景选择器辅助函数 ---
+    function updateBgPreview(bgValue) {
+        if (bgValue === 'none') {
+            bgPreview.style.background = 'transparent';
+            bgPreview.style.backgroundColor = '#f0f4f8'; // 模拟无背景时的页面背景色
+        } else {
+            bgPreview.style.background = bgValue;
+            bgPreview.style.backgroundColor = ''; // 清除模拟背景色
+        }
+    }
+
+    function handleBackgroundSelection() {
+        const selectedValue = bgSelect.value;
+        if (selectedValue === 'custom') {
+            bgInputGroup.style.display = 'flex'; // 显示自定义输入框
+            bgInput.focus();
+        } else {
+            bgInputGroup.style.display = 'none'; // 隐藏自定义输入框
+            bgInput.value = selectedValue; // 将选中的预设值赋给 bgInput
+        }
+        updateBgPreview(bgInput.value); // 更新预览，始终基于 bgInput 的当前值
+    }
+
+    // --- 事件监听器 ---
+    bgSelect.addEventListener('change', handleBackgroundSelection);
+    bgInput.addEventListener('input', () => {
+        updateBgPreview(bgInput.value);
+    });
+
+    convertBtn.addEventListener('click', () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        alert('请选择一个 JSON 文件。');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsedJson = JSON.parse(e.target.result); // 读取整个 JSON 对象
+          const options = {
+            background: bgInput.value // 从 bgInput 获取当前背景值
+          };
+          convertedJson = convertNavArray(parsedJson, options); // 将整个 JSON 对象传入
+          outputPre.textContent = JSON.stringify(convertedJson, null, 2);
+          downloadBtn.disabled = false;
+          copyBtn.disabled = false;
+        } catch (error) {
+          alert('文件解析失败或转换出错：' + error.message);
+          console.error(error);
+          outputPre.textContent = '错误：' + error.message;
+          downloadBtn.disabled = true;
+          copyBtn.disabled = true;
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (convertedJson) {
+        const blob = new Blob([JSON.stringify(convertedJson, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'modern_converted.json'; // 保持原样
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      if (convertedJson) {
+        navigator.clipboard.writeText(JSON.stringify(convertedJson, null, 2))
+          .then(() => {
+            alert('转换结果已复制到剪贴板！');
+          })
+          .catch(err => {
+            alert('复制失败：' + err);
+            console.error('复制失败', err);
+          });
+      }
+    });
+
+    // --- 页面初始化 ---
+    // 确保页面加载时，自定义背景输入框的显示状态和背景预览是正确的
+    handleBackgroundSelection();
+  </script>
+</body>
+</html>
