@@ -1373,7 +1373,7 @@ const Router = ({ base = '', routes = [] } = {}) => ({
         } else {
             linksToRender.forEach(link => {
                 if (isEditMode) {
-                    linksHtml += '<a href="' + link.url + '" target="_blank" class="tool-button edit-mode" data-bookmark-id="' + link.id + '" draggable="true" ontouchstart="handleBookmarkTouchStart(event);">' +
+                    linksHtml += '<a href="' + link.url + '" target="_blank" class="tool-button edit-mode" data-bookmark-id="' + link.id + '" draggable="true">' +
                         '<span>' + link.name + '</span>' +
                         '<div class="edit-mode-bookmark-actions">' +
                         '<button data-action="edit-bookmark" data-id="' + link.id + '" title="编辑书签"><i class="fas fa-edit"></i></button>' +
@@ -2377,14 +2377,24 @@ const Router = ({ base = '', routes = [] } = {}) => ({
             let touchStartY = 0;
             let touchStartX = 0;
             let draggedElement = null;
+            let isDragging = false;
             
             container.addEventListener('touchstart', (event) => {
                 const target = event.target.closest('.tool-button');
+                
+                // 检查是否点击的是按钮内部的操作按钮（编辑、删除等）
+                const actionButton = event.target.closest('button[data-action]');
+                if (actionButton) {
+                    // 如果点击的是操作按钮，不执行拖拽逻辑
+                    return;
+                }
+                
                 if (target && target.draggable) {
                     // 阻止默认的长按菜单
                     event.preventDefault();
                     
                     draggedElement = target;
+                    isDragging = false; // 重置拖拽状态
                     touchStartY = event.touches[0].clientY;
                     touchStartX = event.touches[0].clientX;
                     
@@ -2396,49 +2406,62 @@ const Router = ({ base = '', routes = [] } = {}) => ({
             container.addEventListener('touchmove', (event) => {
                 if (!draggedElement) return;
                 
-                event.preventDefault(); // 阻止滚动
-                
+                // 计算触摸移动距离
                 const touchY = event.touches[0].clientY;
                 const touchX = event.touches[0].clientX;
+                const deltaY = Math.abs(touchY - touchStartY);
+                const deltaX = Math.abs(touchX - touchStartX);
                 
-                // 查找最近的可放置目标
-                const elements = document.elementsFromPoint(touchX, touchY);
-                const target = elements.find(el => el.classList.contains('tool-button') && el !== draggedElement);
-                
-                if (target) {
-                    // 可视化指示放置位置
-                    const rect = target.getBoundingClientRect();
-                    const midpoint = rect.top + rect.height / 2;
-                    
-                    if (touchY < midpoint) {
-                        target.classList.add('drag-over-top');
-                        target.classList.remove('drag-over-bottom');
-                    } else {
-                        target.classList.add('drag-over-bottom');
-                        target.classList.remove('drag-over-top');
-                    }
+                // 如果移动距离超过阈值，开始拖拽
+                if (!isDragging && (deltaY > 10 || deltaX > 10)) {
+                    isDragging = true;
                 }
                 
-                // 清除其他元素的放置指示器
-                document.querySelectorAll('.tool-button').forEach(btn => {
-                    if (btn !== target) {
-                        btn.classList.remove('drag-over-top', 'drag-over-bottom');
+                if (isDragging) {
+                    event.preventDefault(); // 阻止滚动
+                    
+                    // 查找最近的可放置目标
+                    const elements = document.elementsFromPoint(touchX, touchY);
+                    const target = elements.find(el => el.classList.contains('tool-button') && el !== draggedElement);
+                    
+                    if (target) {
+                        // 可视化指示放置位置
+                        const rect = target.getBoundingClientRect();
+                        const midpoint = rect.top + rect.height / 2;
+                        
+                        if (touchY < midpoint) {
+                            target.classList.add('drag-over-top');
+                            target.classList.remove('drag-over-bottom');
+                        } else {
+                            target.classList.add('drag-over-bottom');
+                            target.classList.remove('drag-over-top');
+                        }
                     }
-                });
+                    
+                    // 清除其他元素的放置指示器
+                    document.querySelectorAll('.tool-button').forEach(btn => {
+                        if (btn !== target) {
+                            btn.classList.remove('drag-over-top', 'drag-over-bottom');
+                        }
+                    });
+                }
             });
             
             container.addEventListener('touchend', (event) => {
                 if (!draggedElement) return;
                 
-                const touchY = event.changedTouches[0].clientY;
-                const touchX = event.changedTouches[0].clientX;
-                
-                // 查找放置目标
-                const elements = document.elementsFromPoint(touchX, touchY);
-                const target = elements.find(el => el.classList.contains('tool-button') && el !== draggedElement);
-                
-                if (target && target.dataset.bookmarkId) {
-                    app.reorderBookmark(draggedElement.dataset.bookmarkId, target.dataset.bookmarkId);
+                // 只有在拖拽状态下才执行拖拽排序
+                if (isDragging) {
+                    const touchY = event.changedTouches[0].clientY;
+                    const touchX = event.changedTouches[0].clientX;
+                    
+                    // 查找放置目标
+                    const elements = document.elementsFromPoint(touchX, touchY);
+                    const target = elements.find(el => el.classList.contains('tool-button') && el !== draggedElement);
+                    
+                    if (target && target.dataset.bookmarkId) {
+                        app.reorderBookmark(draggedElement.dataset.bookmarkId, target.dataset.bookmarkId);
+                    }
                 }
                 
                 // 清除所有样式
@@ -2447,6 +2470,7 @@ const Router = ({ base = '', routes = [] } = {}) => ({
                 });
                 
                 draggedElement = null;
+                isDragging = false;
             });
             
             container.addEventListener('touchcancel', (event) => {
@@ -2456,6 +2480,7 @@ const Router = ({ base = '', routes = [] } = {}) => ({
                 });
                 
                 draggedElement = null;
+                isDragging = false;
             });
 
             const newListener = (event) => {
@@ -2484,81 +2509,6 @@ const Router = ({ base = '', routes = [] } = {}) => ({
     }
 
 
-    // 处理书签触摸开始事件，阻止默认的长按菜单
-    function handleBookmarkTouchStart(event) {
-        // 阻止默认的长按菜单
-        event.preventDefault();
-        event.stopPropagation();
-        
-        // 获取目标元素
-        const target = event.currentTarget;
-        
-        // 添加视觉反馈
-        target.classList.add('touch-active');
-        
-        // 清除之前的定时器
-        if (target.pressTimer) {
-            clearTimeout(target.pressTimer);
-        }
-        
-        // 设置长按定时器
-        target.pressTimer = setTimeout(() => {
-            // 长按触发拖拽模式
-            target.classList.add('long-press-drag');
-            // 可以在这里添加更多的拖拽初始化逻辑
-        }, 500); // 500毫秒长按触发
-        
-        // 添加触摸结束事件监听器
-        const handleTouchEnd = () => {
-            // 清除定时器
-            if (target.pressTimer) {
-                clearTimeout(target.pressTimer);
-                target.pressTimer = null;
-            }
-            
-            // 清除样式
-            target.classList.remove('touch-active', 'long-press-drag');
-            
-            // 移除事件监听器
-            target.removeEventListener('touchend', handleTouchEnd);
-            target.removeEventListener('touchmove', handleTouchMove);
-            target.removeEventListener('touchcancel', handleTouchCancel);
-        };
-        
-        // 添加触摸移动事件监听器
-        const handleTouchMove = () => {
-            // 如果移动了，清除长按定时器
-            if (target.pressTimer) {
-                clearTimeout(target.pressTimer);
-                target.pressTimer = null;
-            }
-            
-            // 清除样式
-            target.classList.remove('touch-active', 'long-press-drag');
-        };
-        
-        // 添加触摸取消事件监听器
-        const handleTouchCancel = () => {
-            // 清除定时器
-            if (target.pressTimer) {
-                clearTimeout(target.pressTimer);
-                target.pressTimer = null;
-            }
-            
-            // 清除样式
-            target.classList.remove('touch-active', 'long-press-drag');
-            
-            // 移除事件监听器
-            target.removeEventListener('touchend', handleTouchEnd);
-            target.removeEventListener('touchmove', handleTouchMove);
-            target.removeEventListener('touchcancel', handleTouchCancel);
-        };
-        
-        // 添加事件监听器
-        target.addEventListener('touchend', handleTouchEnd);
-        target.addEventListener('touchmove', handleTouchMove);
-        target.addEventListener('touchcancel', handleTouchCancel);
-    }
 
     // 将需要外部调用的函数暴露到全局对象 app
     window.app = {
@@ -2577,8 +2527,7 @@ const Router = ({ base = '', routes = [] } = {}) => ({
         exportJsonData,
         moveCategory,
         moveBookmark,
-        reorderBookmark,
-        handleBookmarkTouchStart
+        reorderBookmark
     };
 
     init();
