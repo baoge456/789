@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang=\"zh-CN\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>OpenVPN DNS分流优化教程</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            line-height: 1.6;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            font-size: 1.5em;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #2980b9;
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+        .step {
+            background-color: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .code-block {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+            line-height: 1.4;
+        }
+        .comment {
+            color: #95a5a6;
+            font-style: italic;
+        }
+        .copy-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .copy-btn:hover {
+            background-color: #2980b9;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 1px solid #c3e6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 1px solid #ffeaa7;
+        }
+        .tip {
+            background-color: #e7f3ff;
+            border-left: 4px solid #3498db;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .scenario {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class=\"container\">
+        <h1>OpenVPN DNS分流优化教程</h1>
+        
+        <div class=\"step\">
+            <h2>1. 系统要求与准备</h2>
+            <ul>
+                <li>Windows 10/11 系统</li>
+                <li>OpenVPN 客户端已安装</li>
+                <li>管理员权限（重要）</li>
+                <li>确保以下文件存在于 OpenVPN config 目录中：
+                    <ul>
+                        <li><span class=\"highlight\">overture-windows-amd64.exe</span> - DNS分流核心程序</li>
+                        <li><span class=\"highlight\">config.json</span> - DNS分流配置文件</li>
+                        <li><span class=\"highlight\">client.ovpn</span> - OpenVPN配置文件</li>
+                        <li><span class=\"highlight\">client_pre.bat</span> - 连接前执行脚本</li>
+                        <li><span class=\"highlight\">client_down.bat</span> - 断开后执行脚本</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        
+        <div class=\"step\">
+            <h2>2. 端口转发配置（仅需设置一次）</h2>
+            <p>在管理员权限的命令提示符或PowerShell中运行以下命令：</p>
+            <div class=\"code-block\">
+netsh interface portproxy add v4tov4 listenport=53 listenaddress=127.0.0.1 connectport=1054 connectaddress=127.0.0.1
+<span class=\"comment\"><!-- 
+命令解释：
+- netsh interface portproxy add v4tov4: 添加IPv4到IPv4的端口转发规则
+- listenport=53: 监听本地53端口（DNS端口）
+- listenaddress=127.0.0.1: 监听本地回环地址
+- connectport=1054: 转发到本地1054端口（overture监听端口）
+- connectaddress=127.0.0.1: 转发到本地回环地址
+--></span>
+            </div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('port-proxy-code')\">复制指令</button>
+            <p>验证端口转发是否配置成功：</p>
+            <div class=\"code-block\" id=\"verify-code\">
+netsh interface portproxy show all
+<span class=\"comment\"><!-- 
+命令解释：
+- 显示所有端口转发配置
+- 确认53端口转发到1054端口的规则存在
+--></span>
+            </div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('verify-code')\">复制指令</button>
+            <div class=\"warning\">
+                <strong>注意：</strong>如果重启计算机，需要重新配置端口转发（或创建开机启动脚本）
+            </div>
+        </div>
+        
+        <div class=\"step\">
+            <h2>3. 配置文件说明</h2>
+            <h3>client.ovpn 配置文件关键设置：</h3>
+            <div class=\"code-block\" id=\"ovpn-config\">
+script-security 2
+<span class=\"comment\"><!-- 允许执行脚本 --></span>
+up \"./client_pre.bat\"
+<span class=\"comment\"><!-- 连接成功后执行脚本 --></span>
+down \"./client_down.bat\"
+<span class=\"comment\"><!-- 断开连接后执行脚本 --></span>
+dhcp-option DNS 127.0.0.1
+<span class=\"comment\"><!-- 强制使用本地DNS --></span>
+redirect-gateway def1
+<span class=\"comment\"><!-- 重定向所有流量 --></span>
+            </div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('ovpn-config')\">复制配置</button>
+            
+            <h3>client_pre.bat 脚本内容（连接前执行）：</h3>
+            <div class=\"code-block\" id=\"pre-bat-code\">
+@echo off
+<span class=\"comment\"><!-- 关闭命令回显 --></span>
+start /min \"\" \"%~dp0overture-windows-amd64.exe\" -c \"%~dp0config.json\" >nul 2>&1
+<span class=\"comment\"><!-- 启动overture服务，最小化运行，重定向输出 --></span>
+exit 0
+<span class=\"comment\"><!-- 确保脚本正常退出 --></span>
+            </div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('pre-bat-code')\">复制脚本</button>
+            
+            <h3>client_down.bat 脚本内容（断开后执行）：</h3>
+            <div class=\"code-block\" id=\"down-bat-code\">
+@echo off
+<span class=\"comment\"><!-- 关闭命令回显 --></span>
+taskkill /f /im overture-windows-amd64.exe >nul 2>&1
+<span class=\"comment\"><!-- 强制终止overture进程，重定向输出 --></span>
+exit 0
+<span class=\"comment\"><!-- 确保脚本正常退出 --></span>
+            </div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('down-bat-code')\">复制脚本</button>
+        </div>
+        
+        <div class=\"step\">
+            <h2>4. 操作流程</h2>
+            <h3>常规连接流程（日常使用）：</h3>
+            <ol>
+                <li>以管理员身份启动OpenVPN GUI</li>
+                <li>连接 [client.ovpn](file:///c:/Program%20Files/OpenVPN/config/client.ovpn) 配置</li>
+                <li>系统自动执行 [client_pre.bat](file:///c:/Program%20Files/OpenVPN/config/client_pre.bat)，启动 [overture-windows-amd64.exe](file:///c:/Program%20Files/OpenVPN/config/overture-windows-amd64.exe)</li>
+                <li>验证连接成功（IP地址、网站访问）</li>
+            </ol>
+            
+            <h3>首次配置流程：</h3>
+            <ol>
+                <li>确保所有必要文件存在</li>
+                <li>以管理员权限配置端口转发（仅需一次）</li>
+                <li>验证配置文件正确</li>
+                <li>测试连接</li>
+            </ol>
+            
+            <h3>重启电脑后流程：</h3>
+            <ol>
+                <li>重新配置端口转发（如果未创建开机脚本）</li>
+                <li>以管理员身份启动OpenVPN GUI</li>
+                <li>连接 [client.ovpn](file:///c:/Program%20Files/OpenVPN/config/client.ovpn) 配置</li>
+            </ol>
+            
+            <h3>断开连接流程：</h3>
+            <ol>
+                <li>在OpenVPN GUI中断开连接</li>
+                <li>系统自动执行 [client_down.bat](file:///c:/Program%20Files/OpenVPN/config/client_down.bat)，停止 [overture-windows-amd64.exe](file:///c:/Program%20Files/OpenVPN/config/overture-windows-amd64.exe)</li>
+            </ol>
+        </div>
+        
+        <div class=\"step\">
+            <h2>5. 故障排除</h2>
+            <h3>连接失败：</h3>
+            <ul>
+                <li>确认以管理员权限运行OpenVPN</li>
+                <li>检查 [client_pre.bat](file:///c:/Program%20Files/OpenVPN/config/client_pre.bat) 和 [client_down.bat](file:///c:/Program%20Files/OpenVPN/config/client_down.bat) 脚本输出重定向是否正确</li>
+                <li>确保脚本最后有 <span class=\"highlight\">exit 0</span> 命令</li>
+            </ul>
+            
+            <h3>DNS分流无效：</h3>
+            <ul>
+                <li>确认端口转发配置正确</li>
+                <li>检查 [overture-windows-amd64.exe](file:///c:/Program%20Files/OpenVPN/config/overture-windows-amd64.exe) 是否在运行（端口1054监听）</li>
+                <li>清除DNS缓存：<span class=\"highlight\">ipconfig /flushdns</span></li>
+            </ul>
+            
+            <h3>无法启动overture：</h3>
+            <ul>
+                <li>检查 [config.json](file:///c:/Program%20Files/OpenVPN/config/config.json) 配置文件是否正确</li>
+                <li>确认端口1054未被占用</li>
+                <li>检查 [overture-windows-amd64.exe](file:///c:/Program%20Files/OpenVPN/config/overture-windows-amd64.exe) 文件是否存在</li>
+            </ul>
+        </div>
+        
+        <div class=\"step\">
+            <h2>6. 高级配置（可选）</h2>
+            <h3>创建开机自动配置端口转发脚本：</h3>
+            <p>创建 [startup_portproxy.bat](file:///c:/Program%20Files/OpenVPN/config/startup_portproxy.bat) 文件：</p>
+            <div class=\"code-block\">
+@echo off
+<span class=\"comment\"><!-- 关闭命令回显 --></span>
+netsh interface portproxy add v4tov4 listenport=53 listenaddress=127.0.0.1 connectport=1054 connectaddress=127.0.0.1
+<span class=\"comment\"><!-- 配置端口转发 --></span>
+echo 端口转发配置完成
+<span class=\"comment\"><!-- 显示完成信息 --></span>
+pause
+<span class=\"comment\"><!-- 暂停显示结果 --></span>
+            </div>
+            <p>将此脚本添加到Windows启动项中以实现开机自动配置</p>
+        </div>
+        
+        <div class=\"warning\">
+            <strong>注意事项：</strong>
+            <ul>
+                <li>所有操作需要管理员权限</li>
+                <li>端口转发配置后可能需要重启生效</li>
+                <li>确保 [config.json](file:///c:/Program%20Files/OpenVPN/config/config.json) 中的DNS服务器地址有效</li>
+                <li>如果修改配置文件，需要重新连接VPN才能生效</li>
+                <li>重启电脑后需要重新配置端口转发（除非创建开机脚本）</li>
+            </ul>
+        </div>
+        
+        <div class=\"success\">
+            <strong>成功标志：</strong>
+            <ul>
+                <li>VPN连接成功建立</li>
+                <li>IP地址显示为VPN服务器IP</li>
+                <li>国内外网站访问正常</li>
+                <li>[overture-windows-amd64.exe](file:///c:/Program%20Files/OpenVPN/config/overture-windows-amd64.exe) 服务在端口1054监听</li>
+                <li>显示 \"Overture is listening on :1054\"</li>
+            </ul>
+        </div>
+        
+        <div class=\"tip\">
+            <strong>小贴士：</strong>
+            <ul>
+                <li>[overture-windows-amd64.exe](file:///c:/Program%20Files/OpenVPN/config/overture-windows-amd64.exe) 会根据 [config.json](file:///c:/Program%20Files/OpenVPN/config/config.json) 配置自动分流国内外DNS查询</li>
+                <li>国内域名使用DNSPod（119.29.29.29）解析</li>
+                <li>国外域名使用OpenDNS（208.67.222.222）解析</li>
+                <li>连接时 [client_pre.bat](file:///c:/Program%20Files/OpenVPN/config/client_pre.bat) 自动启动服务，断开时 [client_down.bat](file:///c:/Program%20Files/OpenVPN/config/client_down.bat) 自动停止服务</li>
+            </ul>
+        </div>
+        
+        <div class=\"footer\">
+            <p>本教程基于OpenVPN DNS分流配置的实际经验编写</p>
+            <p>完成时间: 2026年1月2日</p>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent || element.innerText;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '已复制!';
+                setTimeout(function() {
+                    button.textContent = originalText;
+                }, 2000);
+            }).catch(function(err) {
+                console.error('复制失败: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
