@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang=\"zh-CN\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>OpenVPN DNS分流完整教程</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            line-height: 1.6;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            font-size: 1.5em;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #2980b9;
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+        .step {
+            background-color: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .code-block {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+            line-height: 1.4;
+        }
+        .copy-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .copy-btn:hover {
+            background-color: #2980b9;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 1px solid #c3e6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 1px solid #ffeaa7;
+        }
+        .tip {
+            background-color: #e7f3ff;
+            border-left: 4px solid #3498db;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class=\"container\">
+        <h1>OpenVPN DNS分流完整教程</h1>
+        
+        <div class=\"step\">
+            <h2>1. 清理无效文件</h2>
+            <p>清理配置过程中创建的临时文件（如果存在）：</p>
+            <div class=\"code-block\" id=\"cleanup-code\">del \"%USERPROFILE%\\\\setup_dns_redirect.ps1\"</div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('cleanup-code')\">复制指令</button>
+        </div>
+        
+        <div class=\"step\">
+            <h2>2. 系统要求与准备</h2>
+            <ul>
+                <li>Windows 10/11 系统</li>
+                <li>OpenVPN 客户端已安装</li>
+                <li>管理员权限（重要）</li>
+                <li>确保以下文件存在于 OpenVPN config 目录中：
+                    <ul>
+                        <li><span class=\"highlight\">overture-windows-amd64.exe</span> - DNS分流核心程序</li>
+                        <li><span class=\"highlight\">config.json</span> - DNS分流配置文件</li>
+                        <li><span class=\"highlight\">client.ovpn</span> - OpenVPN配置文件</li>
+                        <li><span class=\"highlight\">client_pre.bat</span> - 连接前执行脚本</li>
+                        <li><span class=\"highlight\">client_down.bat</span> - 断开后执行脚本</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        
+        <div class=\"step\">
+            <h2>3. 端口转发配置</h2>
+            <p>在管理员权限的命令提示符或PowerShell中运行以下命令：</p>
+            <div class=\"code-block\" id=\"port-proxy-code\">netsh interface portproxy add v4tov4 listenport=53 listenaddress=127.0.0.1 connectport=1054 connectaddress=127.0.0.1</div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('port-proxy-code')\">复制指令</button>
+            <p>验证端口转发是否配置成功：</p>
+            <div class=\"code-block\" id=\"verify-code\">netsh interface portproxy show all</div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('verify-code')\">复制指令</button>
+        </div>
+        
+        <div class=\"step\">
+            <h2>4. 配置文件说明</h2>
+            <h3>client.ovpn 配置文件关键设置：</h3>
+            <div class=\"code-block\" id=\"ovpn-config\">script-security 2
+up \"./client_pre.bat\"
+down \"./client_down.bat\"
+dhcp-option DNS 127.0.0.1
+redirect-gateway def1</div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('ovpn-config')\">复制配置</button>
+            
+            <h3>client_pre.bat 脚本内容：</h3>
+            <div class=\"code-block\" id=\"pre-bat-code\">@echo off
+start /min \"\" \"%~dp0overture-windows-amd64.exe\" -c \"%~dp0config.json\" >nul 2>&1
+exit 0</div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('pre-bat-code')\">复制脚本</button>
+            
+            <h3>client_down.bat 脚本内容：</h3>
+            <div class=\"code-block\" id=\"down-bat-code\">@echo off
+taskkill /f /im overture-windows-amd64.exe >nul 2>&1
+exit 0</div>
+            <button class=\"copy-btn\" onclick=\"copyToClipboard('down-bat-code')\">复制脚本</button>
+        </div>
+        
+        <div class=\"step\">
+            <h2>5. 连接步骤</h2>
+            <ol>
+                <li>确保端口转发已配置（第3步）</li>
+                <li>以管理员身份启动OpenVPN GUI</li>
+                <li>连接VPN配置文件</li>
+                <li>等待连接成功建立</li>
+                <li>确认overture服务已自动启动</li>
+            </ol>
+        </div>
+        
+        <div class=\"step\">
+            <h2>6. 验证DNS分流效果</h2>
+            <p>连接成功后，可以使用以下方法验证：</p>
+            <ul>
+                <li>访问国内外网站，检查访问速度和稳定性</li>
+                <li>使用在线IP检测网站验证IP地址是否为VPN服务器IP</li>
+                <li>查看overture控制台输出（如果可见），确认其处理不同域名的DNS查询</li>
+            </ul>
+        </div>
+        
+        <div class=\"step\">
+            <h2>7. 常见问题与解决方案</h2>
+            <h3>问题1: 连接失败</h3>
+            <p>解决方案：检查脚本输出重定向是否正确，确保脚本最后有 <span class=\"highlight\">exit 0</span> 命令</p>
+            
+            <h3>问题2: DNS分流无效</h3>
+            <p>解决方案：确认端口转发配置正确，overture服务正常运行，DNS缓存已清除</p>
+            
+            <h3>问题3: 无法启动overture</h3>
+            <p>解决方案：检查config.json配置文件是否正确，确保端口1054未被占用</p>
+        </div>
+        
+        <div class=\"warning\">
+            <strong>注意事项：</strong>
+            <ul>
+                <li>所有操作需要管理员权限</li>
+                <li>端口转发配置后需要重启生效（如果配置失败）</li>
+                <li>确保config.json中的DNS服务器地址有效</li>
+                <li>如果修改配置文件，需要重新连接VPN才能生效</li>
+            </ul>
+        </div>
+        
+        <div class=\"success\">
+            <strong>成功标志：</strong>
+            <ul>
+                <li>VPN连接成功建立</li>
+                <li>IP地址显示为VPN服务器IP</li>
+                <li>国内外网站访问正常</li>
+                <li>overture服务在端口1054监听</li>
+            </ul>
+        </div>
+        
+        <div class=\"footer\">
+            <p>本教程基于OpenVPN DNS分流配置的实际经验编写</p>
+            <p>完成时间: 2026年1月2日</p>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent || element.innerText;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '已复制!';
+                setTimeout(function() {
+                    button.textContent = originalText;
+                }, 2000);
+            }).catch(function(err) {
+                console.error('复制失败: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
