@@ -1,10 +1,3 @@
-<!DOCTYPE html>
-<html lang="zh">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>我的书签</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -195,6 +188,40 @@
         .edit-modal-buttons button.delete {
             background-color: #d9534f;
         }
+        
+        /* 新增分类导航栏样式 */
+        .category-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #e0f7e9;
+            border-radius: 8px;
+            justify-content: center;
+        }
+
+        .category-btn {
+            padding: 6px 12px;
+            margin: 2px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .category-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-1px);
+        }
+
+        .category-btn.active {
+            background-color: #2E7D32;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -310,6 +337,77 @@
             document.getElementById('showExampleJsonBtn').addEventListener('click', showExampleJson);
         };
 
+        // 添加分类导航栏功能
+        function generateCategoryNav() {
+            const categoryNav = document.createElement('div');
+            categoryNav.className = 'category-nav';
+            
+            // 添加"全部"按钮
+            const allBtn = document.createElement('button');
+            allBtn.className = 'category-btn';
+            allBtn.textContent = '全部';
+            allBtn.onclick = function() { switchCategory('全部'); };
+            categoryNav.appendChild(allBtn);
+            
+            // 为每个分类创建按钮
+            if (currentData && currentData.icons) {
+                currentData.icons.forEach((group, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'category-btn';
+                    btn.textContent = group.title;
+                    btn.onclick = function() { switchCategory(group.title); };
+                    categoryNav.appendChild(btn);
+                });
+            }
+            
+            return categoryNav;
+        }
+        
+        // 切换分类显示
+        function switchCategory(category) {
+            const allGroups = document.querySelectorAll('.group-section');
+            
+            if (category === '全部') {
+                allGroups.forEach(group => group.style.display = 'block');
+            } else {
+                allGroups.forEach(group => {
+                    const title = group.querySelector('.group-title');
+                    if (title && title.textContent.trim().includes(category)) {
+                        group.style.display = 'block';
+                    } else {
+                        group.style.display = 'none';
+                    }
+                });
+            }
+            
+            // 更新按钮状态
+            const buttons = document.querySelectorAll('.category-btn');
+            buttons.forEach(btn => {
+                if (btn.textContent === category) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // 记忆当前选择的分类
+            localStorage.setItem('lastSelectedCategory', category);
+        }
+        
+        // 更新分类按钮状态
+        function updateCategoryButtons() {
+            const buttons = document.querySelectorAll('.category-btn');
+            const lastCategory = localStorage.getItem('lastSelectedCategory') || '全部';
+            
+            buttons.forEach(btn => {
+                if (btn.textContent === lastCategory) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
         function importJson() {
             const jsonInput = document.getElementById('jsonInput').value;
             try {
@@ -345,18 +443,53 @@
                     };
                 }
 
+                // 导入后默认显示第一个分类
                 renderBookmarks();
+                
+                // 应用上次记忆的分类
+                const lastCategory = localStorage.getItem('lastSelectedCategory') || '全部';
+                setTimeout(() => {
+                    switchCategory(lastCategory);
+                }, 100);
             } catch (e) {
                 alert('无效的 JSON 数据');
                 console.error(e);
             }
         }
 
+        // 改进favicon获取逻辑，增加多层备选方案
         function getFaviconUrl(url) {
-            return 'https://favicon.zhusl.com/ico?url=' + url;
+            try {
+                // 提取域名部分
+                const domain = new URL(url).hostname;
+                return 'https://favicon.zhusl.com/ico?url=' + domain;
+            } catch (e) {
+                console.error('Invalid URL:', url);
+                return 'https://www.google.com/s2/favicons?domain=example.com';
+            }
+        }
+        
+        function getBackupFaviconUrl(url) {
+            try {
+                const domain = new URL(url).hostname;
+                return 'https://www.google.com/s2/favicons?domain=' + domain;
+            } catch (e) {
+                console.error('Invalid URL:', url);
+                return null;
+            }
+        }
+        
+        function getThirdBackupFaviconUrl(url) {
+            try {
+                const domain = new URL(url).hostname;
+                return 'https://api.faviconkit.com/' + domain + '/16';
+            } catch (e) {
+                console.error('Invalid URL:', url);
+                return null;
+            }
         }
 
-        function renderBookmarks() {
+        function renderBookmarks(category = '全部') {
             const bookmarkContainer = document.getElementById('bookmarkContainer');
             bookmarkContainer.innerHTML = '';
             bookmarkContainer.className = 'container';
@@ -364,6 +497,10 @@
             if (!currentData || !currentData.icons) {
                 return;
             }
+
+            // 添加分类导航栏
+            const categoryNav = generateCategoryNav();
+            bookmarkContainer.appendChild(categoryNav);
 
             currentData.icons.forEach((group, groupIndex) => {
                 const groupSection = document.createElement('div');
@@ -374,32 +511,64 @@
                 groupSection.appendChild(groupTitle);
 
                 // 添加左侧绿色竖条
-                groupTitle.innerHTML = `<span style="display: inline-block; width: 5px; height: 20px; "></span>${group.title}`;
+                groupTitle.innerHTML = '<span style="display: inline-block; width: 5px; height: 20px; "></span>' + group.title;
 
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'container';
 
+                // 为同一组设置相同的背景色
+                const groupBackgroundColor = defaultColors[groupIndex % defaultColors.length];
+                
                 group.children.forEach((item, itemIndex) => {
                     const card = document.createElement('div');
                     card.className = 'card';
-                    const backgroundColor = item.backgroundColor || defaultColors[groupIndex % defaultColors.length];
-                    card.style.backgroundColor = backgroundColor;
-                    const isDark = isColorDark(backgroundColor);
+                    // 使用组的背景色，确保同一分类下所有书签背景色一致
+                    card.style.backgroundColor = groupBackgroundColor;
+                    const isDark = isColorDark(groupBackgroundColor);
                     const textColor = isDark ? '#fff' : '#000';
                     card.style.setProperty('--text-color', textColor);
 
                     const thumbnail = document.createElement('img');
                     thumbnail.className = 'thumbnail';
 
-                    // 尝试获取 favicon
-                    const faviconUrl = getFaviconUrl(item.url);
-                    thumbnail.src = faviconUrl;
+                    // 优先使用自定义缩略图
+                    if (item.thumbnail) {
+                        thumbnail.src = item.thumbnail;
+                    } else {
+                        // 尝试获取 favicon，使用多层备选方案
+                        const faviconUrl = getFaviconUrl(item.url);
+                        thumbnail.src = faviconUrl;
 
-                    // 如果获取失败，使用缩略图组中的链接
-                    thumbnail.onerror = function () {
-                        thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
-                        thumbnailIndex++;
-                    };
+                        // 如果获取失败，尝试备用方案
+                        thumbnail.onerror = function () {
+                            const backupUrl = getBackupFaviconUrl(item.url);
+                            if (backupUrl) {
+                                thumbnail.src = backupUrl;
+                                thumbnail.onerror = function () {
+                                    const thirdBackupUrl = getThirdBackupFaviconUrl(item.url);
+                                    if (thirdBackupUrl) {
+                                        thumbnail.src = thirdBackupUrl;
+                                        thumbnail.onerror = function () {
+                                            // 如果所有favicon服务都失败，使用默认缩略图
+                                            thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                                            thumbnailIndex++;
+                                            thumbnail.onerror = null; // 防止无限循环
+                                        };
+                                    } else {
+                                        // 使用默认缩略图
+                                        thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                                        thumbnailIndex++;
+                                        thumbnail.onerror = null; // 防止无限循环
+                                    }
+                                };
+                            } else {
+                                // 使用默认缩略图
+                                thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                                thumbnailIndex++;
+                                thumbnail.onerror = null; // 防止无限循环
+                            }
+                        };
+                    }
 
                     card.appendChild(thumbnail);
 
@@ -445,6 +614,22 @@
                 groupSection.appendChild(cardContainer);
                 bookmarkContainer.appendChild(groupSection);
             });
+            
+            // 应用分类切换逻辑
+            if (category !== '全部') {
+                const allGroups = document.querySelectorAll('.group-section');
+                allGroups.forEach(group => {
+                    const title = group.querySelector('.group-title');
+                    if (title && title.textContent.trim().includes(category)) {
+                        group.style.display = 'block';
+                    } else {
+                        group.style.display = 'none';
+                    }
+                });
+            }
+            
+            // 更新分类按钮状态
+            updateCategoryButtons();
         }
 
         // 显示编辑模态框
@@ -452,6 +637,22 @@
             const modal = document.getElementById('editModal');
             modal.querySelector('#editName').value = data.title;
             modal.querySelector('#editUrl').value = data.url;
+            
+            // 添加缩略图修改选项
+            const thumbnailInput = document.createElement('input');
+            thumbnailInput.type = 'text';
+            thumbnailInput.id = 'editThumbnail';
+            thumbnailInput.value = data.thumbnail || '';
+            thumbnailInput.placeholder = '缩略图URL（可选）';
+            
+            // 检查是否存在缩略图输入框，避免重复添加
+            const existingThumbnailInput = modal.querySelector('#editThumbnail');
+            if (!existingThumbnailInput) {
+                const urlLabel = modal.querySelector('label[for="editUrl"]') || modal.querySelector('#editUrl').parentElement;
+                urlLabel.after(document.createElement('br'), thumbnailInput);
+            } else {
+                existingThumbnailInput.value = data.thumbnail || '';
+            }
 
             modal.style.display = 'block';
             currentGroupIndex = groupIndex;
@@ -463,10 +664,14 @@
             const modal = document.getElementById('editModal');
             const newTitle = modal.querySelector('#editName').value;
             const newUrl = modal.querySelector('#editUrl').value;
+            const newThumbnail = modal.querySelector('#editThumbnail') ? modal.querySelector('#editThumbnail').value : '';
 
             if (currentCard && currentItem) {
                 currentItem.title = newTitle;
                 currentItem.url = newUrl;
+                if (newThumbnail) {
+                    currentItem.thumbnail = newThumbnail;
+                }
 
                 currentCard.querySelector('a').textContent = newTitle;
                 currentCard.querySelector('a').href = newUrl;
@@ -532,110 +737,272 @@
             document.querySelector('.panel').style.backgroundColor = panelBackgroundColor;
         }
 
-        // 导出 HTML
+        // 导出 HTML - 使用安全的字符串拼接
         function exportHtml() {
-            const bookmarkContainer = document.getElementById('bookmarkContainer');
-            const content = `<!DOCTYPE html>
-        <html lang="zh">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width-device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <title>我的书签</title>
-            <style>
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-                    margin: 20px;
-                    background-color: ${pageBackgroundColor};
-                    box-sizing: border-box;
-                }
+            // 创建临时容器来渲染所有分类的内容
+            const tempContainer = document.createElement('div');
+            tempContainer.className = 'container';
+            
+            // 添加分类导航
+            const categoryNav = generateCategoryNav();
+            tempContainer.appendChild(categoryNav);
+            
+            // 添加所有分类内容
+            const allContentContainer = document.createElement('div');
+            allContentContainer.id = 'allBookmarksContainer';
+            
+            if (currentData && currentData.icons) {
+                currentData.icons.forEach((group, groupIndex) => {
+                    const groupSection = document.createElement('div');
+                    groupSection.className = 'group-section';
+                    const groupTitle = document.createElement('h2');
+                    groupTitle.className = 'group-title';
+                    groupTitle.textContent = group.title;
+                    groupSection.appendChild(groupTitle);
 
-                .panel {
-                    max-width: 90%;
-                    width: 800px;
-                    margin: 20px auto;
-                    padding: 20px;
-                    background-color: ${panelBackgroundColor};
-                    border-radius: 10px;
-                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-                    text-align: center;
-                }
+                    // 添加左侧绿色竖条
+                    groupTitle.innerHTML = '<span style="display: inline-block; width: 5px; height: 20px; "></span>' + group.title;
 
-                .container {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                    gap: 8px;
-                    padding: 8px;
-                    max-width: 100%;
-                    margin: 10px auto;
-                }
+                    const cardContainer = document.createElement('div');
+                    cardContainer.className = 'container';
 
-                .group-section {
-                    margin-bottom: 20px;
-                }
+                    // 为同一组设置相同的背景色
+                    const groupBackgroundColor = defaultColors[groupIndex % defaultColors.length];
 
-                .group-title {
-                    position: relative;
-                    padding-left: 15px;
-                    margin-bottom: 10px;
-                    text-align: left;
-                }
+                    group.children.forEach((item, itemIndex) => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        // 使用组的背景色，确保同一分类下所有书签背景色一致
+                        card.style.backgroundColor = groupBackgroundColor;
+                        const isDark = isColorDark(groupBackgroundColor);
+                        const textColor = isDark ? '#fff' : '#000';
+                        card.style.setProperty('--text-color', textColor);
 
-                .group-title::before {
-                    content: "";
-                    position: absolute;
-                    left: 0;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    width: 5px;
-                    height: 20px;
-                    background-color: #4CAF50;
-                }
+                        const thumbnail = document.createElement('img');
+                        thumbnail.className = 'thumbnail';
 
-                .card {
-                    border-radius: 20px;
-                    padding: 8px 12px;
-                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-                    transition: transform 0.2s;
-                    display: flex;
-                    align-items: center;
-                    position: relative;
-                    text-align: left;
-                    min-width: 0;
-                    box-sizing: border-box;
-                    width: 100%;
-                    margin-bottom: 5px;
-                }
+                        // 优先使用自定义缩略图
+                        if (item.thumbnail) {
+                            thumbnail.src = item.thumbnail;
+                        } else {
+                            // 尝试获取 favicon，使用多层备选方案
+                            const faviconUrl = getFaviconUrl(item.url);
+                            thumbnail.src = faviconUrl;
 
-                .card:hover {
-                    transform: translateY(-2px);
-                }
+                            // 如果获取失败，尝试备用方案
+                            thumbnail.onerror = function () {
+                                const backupUrl = getBackupFaviconUrl(item.url);
+                                if (backupUrl) {
+                                    thumbnail.src = backupUrl;
+                                    thumbnail.onerror = function () {
+                                        const thirdBackupUrl = getThirdBackupFaviconUrl(item.url);
+                                        if (thirdBackupUrl) {
+                                            thumbnail.src = thirdBackupUrl;
+                                            thumbnail.onerror = function () {
+                                                // 如果所有favicon服务都失败，使用默认缩略图
+                                                thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                                                thumbnailIndex++;
+                                                thumbnail.onerror = null; // 防止无限循环
+                                            };
+                                        } else {
+                                            // 使用默认缩略图
+                                            thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                                            thumbnailIndex++;
+                                            thumbnail.onerror = null; // 防止无限循环
+                                        }
+                                    };
+                                } else {
+                                    // 使用默认缩略图
+                                    thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                                    thumbnailIndex++;
+                                    thumbnail.onerror = null; // 防止无限循环
+                                }
+                            };
+                        }
 
-                .thumbnail {
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    object-fit: cover;
-                    margin-right: 8px;
-                }
+                        card.appendChild(thumbnail);
 
-                .card a {
-                    text-decoration: none;
-                    font-size: 0.85em;
-                    word-break: break-word;
-                    text-align: left;
-                    color: var(--text-color);
-                    box-sizing: border-box;
-                    flex-grow: 1;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="panel">
-                <h1>我的书签</h1>
-                <div id="bookmarkContainer">${bookmarkContainer.innerHTML}</div>
-            </div>
-        </body>
-        </html>`;
+                        const link = document.createElement('a');
+                        link.href = item.url;
+                        link.target = '_blank';
+                        link.textContent = item.title;
+                        link.style.color = textColor;
+                        card.appendChild(link);
+                        cardContainer.appendChild(card); // 将卡片添加到容器中
+                    });
+
+                    groupSection.appendChild(cardContainer);
+                    allContentContainer.appendChild(groupSection);
+                });
+            }
+            
+            tempContainer.appendChild(allContentContainer);
+            
+            // 构建完整的HTML内容 - 确保包含完整的文档结构
+            let content = "<!DOCTYPE html>\n";
+            content += "<html lang=\"zh\">\n";
+            content += "<head>\n";
+            content += "    <meta charset=\"UTF-8\">\n";
+            content += "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n";
+            content += "    <title>我的书签</title>\n";
+            content += "    <style>\n";
+            content += "        body {\n";
+            content += "            font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n";
+            content += "            margin: 20px;\n";
+            content += "            background-color: " + pageBackgroundColor + ";\n";
+            content += "            box-sizing: border-box;\n";
+            content += "        }\n\n";
+            content += "        .panel {\n";
+            content += "            max-width: 90%;\n";
+            content += "            width: 800px;\n";
+            content += "            margin: 20px auto;\n";
+            content += "            padding: 20px;\n";
+            content += "            background-color: " + panelBackgroundColor + ";\n";
+            content += "            border-radius: 10px;\n";
+            content += "            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);\n";
+            content += "            text-align: center;\n";
+            content += "        }\n\n";
+            content += "        .category-nav {\n";
+            content += "            display: flex;\n";
+            content += "            flex-wrap: wrap;\n";
+            content += "            gap: 5px;\n";
+            content += "            margin-bottom: 15px;\n";
+            content += "            padding: 10px;\n";
+            content += "            background-color: #e0f7e9;\n";
+            content += "            border-radius: 8px;\n";
+            content += "            justify-content: center;\n";
+            content += "        }\n\n";
+            content += "        .category-btn {\n";
+            content += "            padding: 6px 12px;\n";
+            content += "            margin: 2px;\n";
+            content += "            background-color: #4CAF50;\n";
+            content += "            color: white;\n";
+            content += "            border: none;\n";
+            content += "            border-radius: 15px;\n";
+            content += "            cursor: pointer;\n";
+            content += "            font-size: 0.9em;\n";
+            content += "            transition: all 0.3s ease;\n";
+            content += "        }\n\n";
+            content += "        .category-btn:hover {\n";
+            content += "            background-color: #45a049;\n";
+            content += "            transform: translateY(-1px);\n";
+            content += "        }\n\n";
+            content += "        .category-btn.active {\n";
+            content += "            background-color: #2E7D32;\n";
+            content += "            font-weight: bold;\n";
+            content += "        }\n\n";
+            content += "        .container {\n";
+            content += "            display: grid;\n";
+            content += "            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));\n";
+            content += "            gap: 8px;\n";
+            content += "            padding: 8px;\n";
+            content += "            max-width: 100%;\n";
+            content += "            margin: 10px auto;\n";
+            content += "        }\n\n";
+            content += "        .group-section {\n";
+            content += "            margin-bottom: 20px;\n";
+            content += "        }\n\n";
+            content += "        .group-title {\n";
+            content += "            position: relative;\n";
+            content += "            padding-left: 15px;\n";
+            content += "            margin-bottom: 10px;\n";
+            content += "            text-align: left;\n";
+            content += "        }\n\n";
+            content += "        .group-title::before {\n";
+            content += "            content: \"\";\n";
+            content += "            position: absolute;\n";
+            content += "            left: 0;\n";
+            content += "            top: 50%;\n";
+            content += "            transform: translateY(-50%);\n";
+            content += "            width: 5px;\n";
+            content += "            height: 20px;\n";
+            content += "            background-color: #4CAF50;\n";
+            content += "        }\n\n";
+            content += "        .card {\n";
+            content += "            border-radius: 20px;\n";
+            content += "            padding: 8px 12px;\n";
+            content += "            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);\n";
+            content += "            transition: transform 0.2s;\n";
+            content += "            display: flex;\n";
+            content += "            align-items: center;\n";
+            content += "            position: relative;\n";
+            content += "            text-align: left;\n";
+            content += "            min-width: 0;\n";
+            content += "            box-sizing: border-box;\n";
+            content += "            width: 100%;\n";
+            content += "            margin-bottom: 5px;\n";
+            content += "        }\n\n";
+            content += "        .card:hover {\n";
+            content += "            transform: translateY(-2px);\n";
+            content += "        }\n\n";
+            content += "        .thumbnail {\n";
+            content += "            width: 24px;\n";
+            content += "            height: 24px;\n";
+            content += "            border-radius: 50%;\n";
+            content += "            object-fit: cover;\n";
+            content += "            margin-right: 8px;\n";
+            content += "        }\n\n";
+            content += "        .card a {\n";
+            content += "            text-decoration: none;\n";
+            content += "            font-size: 0.85em;\n";
+            content += "            word-break: break-word;\n";
+            content += "            text-align: left;\n";
+            content += "            color: var(--text-color);\n";
+            content += "            box-sizing: border-box;\n";
+            content += "            flex-grow: 1;\n";
+            content += "        }\n";
+            content += "    </style>\n";
+            content += "    <script>\n";
+            content += "        // 添加分类切换功能到导出的页面\n";
+            content += "        function switchCategory(category) {\n";
+            content += "            const allGroups = document.querySelectorAll(\".group-section\");\n";
+            content += "            if (category === \"全部\") {\n";
+            content += "                allGroups.forEach(group => group.style.display = \"block\");\n";
+            content += "            } else {\n";
+            content += "                allGroups.forEach(group => {\n";
+            content += "                    const title = group.querySelector(\".group-title\");\n";
+            content += "                    if (title && title.textContent.trim().includes(category)) {\n";
+            content += "                        group.style.display = \"block\";\n";
+            content += "                    } else {\n";
+            content += "                        group.style.display = \"none\";\n";
+            content += "                    }\n";
+            content += "                });\n";
+            content += "            }\n";
+            content += "            // 更新按钮状态\n";
+            content += "            const buttons = document.querySelectorAll(\".category-btn\");\n";
+            content += "            buttons.forEach(btn => {\n";
+            content += "                if (btn.textContent === category) {\n";
+            content += "                    btn.classList.add(\"active\");\n";
+            content += "                } else {\n";
+            content += "                    btn.classList.remove(\"active\");\n";
+            content += "                }\n";
+            content += "            });\n";
+            content += "        }\n";
+            content += "        // 页面加载完成后，设置默认显示全部分类\n";
+            content += "        document.addEventListener(\"DOMContentLoaded\", function() {\n";
+            content += "            // 为所有分类按钮添加点击事件监听器\n";
+            content += "            const categoryButtons = document.querySelectorAll(\".category-btn\");\n";
+            content += "            categoryButtons.forEach(button => {\n";
+            content += "                button.addEventListener('click', function() {\n";
+            content += "                    switchCategory(this.textContent);\n";
+            content += "                });\n";
+            content += "            });\n";
+            content += "            // 默认激活\"全部\"按钮\n";
+            content += "            const allBtn = document.querySelector(\".category-btn\");\n";
+            content += "            if (allBtn) {\n";
+            content += "                allBtn.classList.add(\"active\");\n";
+            content += "            }\n";
+            content += "        });\n";
+            content += "    </" + "script>\n";
+            content += "</head>\n";
+            content += "<body>\n";
+            content += "    <div class=\"panel\">\n";
+            content += "        <h1>我的书签</h1>\n";
+            content += "        <div id=\"categoryNav\" class=\"category-nav\">" + categoryNav.outerHTML + "</div>\n";
+            content += "        <div id=\"bookmarkContainer\">" + allContentContainer.outerHTML + "</div>\n";
+            content += "    </div>\n";
+            content += "</body>\n";
+            content += "</html>";
 
             const blob = new Blob([content], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
@@ -646,6 +1013,16 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        }
+        
+        // HTML转义函数，防止特殊字符导致的语法错误
+        function escapeHtml(html) {
+            return html
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         // 生成 JSON 文件
