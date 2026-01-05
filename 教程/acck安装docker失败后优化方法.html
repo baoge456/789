@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>解决 Ubuntu/Debian APT 更新源错误及安装 jq 和运行 kejilion.sh 教程</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            color: #0056b3;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        h1 {
+            text-align: center;
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 20px;
+            color: #004085;
+        }
+        code {
+            background-color: #e9e9e9;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background-color: #333;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95em;
+            margin-bottom: 20px;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+            border-radius: 0;
+        }
+        .note {
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 6px solid #ffc107;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            color: #664d03;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left: 6px solid #28a745;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            color: #155724;
+        }
+        ol {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>解决 Ubuntu/Debian APT 更新源错误及后续操作教程</h1>
+
+        <p>本教程旨在帮助您解决 Ubuntu/Debian 系统中 APT 软件包管理器在更新时可能遇到的常见问题，例如 <code>File has unexpected size</code> 和 <code>E: Type '...' is not known</code> 错误。我们将通过配置清华大学（TUNA）镜像源来优化更新速度和稳定性，并最终完成 <code>jq</code> 的安装和 <code>kejilion.sh</code> 脚本的运行。</p>
+
+        <h2>问题分析</h2>
+        <p>您遇到的问题主要分为两类：</p>
+        <ol>
+            <li><strong><code>File has unexpected size</code> 错误：</strong> 这通常表示您当前使用的 APT 镜像源与官方源之间存在同步延迟，导致下载的索引文件大小与预期不符。</li>
+            <li><strong><code>E: Type 'https://mirrors.tuna.tsinghua.edu.cn/ubuntu/' is not known on line 4 in source list /etc/apt/sources.list</code> 错误：</strong> 这是由于 <code>/etc/apt/sources.list</code> 文件中的格式错误引起的。APT 期望每行以 <code>deb</code> 或 <code>deb-src</code> 开头，而您的文件中可能缺少了这些关键字，导致 APT 无法识别该行的类型。</li>
+        </ol>
+
+        <h2>教程步骤</h2>
+
+        <h3>步骤 1: 备份原始的 <code>sources.list</code> 文件</h3>
+        <p>在进行任何修改之前，始终建议备份重要的配置文件。这样，如果出现问题，您可以轻松恢复到原始状态。</p>
+        <pre><code>sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak</code></pre>
+
+        <h3>步骤 2: 编辑 <code>/etc/apt/sources.list</code> 文件</h3>
+        <p>我们将使用 <code>nano</code> 编辑器来修改 <code>sources.list</code> 文件，并配置清华大学的镜像源。请确保您精确地按照以下内容进行操作。</p>
+        <pre><code>sudo nano /etc/apt/sources.list</code></pre>
+        <p>进入 <code>nano</code> 编辑器后：</p>
+        <ol>
+            <li>使用 <code>Ctrl + K</code> (按住 Ctrl 键，然后按 K 键) 反复删除所有现有行，直到文件完全为空。</li>
+            <li>将以下内容粘贴到文件中。这些是针对 Ubuntu <code>jammy</code> (22.04 LTS) 版本的清华大学镜像源配置。</li>
+        </ol>
+        <pre><code># 清华大学镜像源
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-backports main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-security main restricted universe multiverse
+</code></pre>
+        <div class="note">
+            <strong>注意：</strong>
+            <ul>
+                <li>请确保每一行都以 <code>deb</code> 开头，这是解决 <code>E: Type '...' is not known</code> 错误的关键。</li>
+                <li>这里我们移除了 <code>deb-src</code> 行，因为它们通常用于下载源代码，如果您不需要，可以简化配置。</li>
+                <li><code>jammy</code> 是 Ubuntu 22.04 LTS 的代号。如果您的系统是其他版本，请将 <code>jammy</code> 替换为对应的代号（例如 <code>focal</code> for 20.04, <code>bionic</code> for 18.04）。</li>
+            </ul>
+        </div>
+        <p>粘贴完成后：</p>
+        <ol>
+            <li>按 <code>Ctrl + O</code> (保存)。</li>
+            <li>按 <code>Enter</code> 确认文件名 (<code>/etc/apt/sources.list</code>)。</li>
+            <li>按 <code>Ctrl + X</code> (退出)。</li>
+        </ol>
+
+        <h3>步骤 3: 清理 APT 缓存和旧的列表文件</h3>
+        <p>在修改了软件源配置后，必须清理 APT 的本地缓存和旧的软件包列表，以确保 APT 能够从新的源重新获取数据。</p>
+        <pre><code>sudo apt clean
+sudo rm -rf /var/lib/apt/lists/*</code></pre>
+
+        <h3>步骤 4: 更新软件包列表</h3>
+        <p>现在，运行 <code>apt update</code> 命令，APT 将会从您配置的清华大学镜像源下载最新的软件包列表。</p>
+        <pre><code>sudo apt update</code></pre>
+        <div class="success">
+            <strong>预期结果：</strong> 如果一切顺利，您应该会看到类似以下输出，显示 APT 正在从 <code>https://mirrors.tuna.tsinghua.edu.cn/ubuntu</code> 获取软件包信息，并且没有出现 <code>E: Type '...' is not known</code> 或 <code>File has unexpected size</code> 错误。
+            <pre><code>Get:1 https://mirrors.tuna.tsinghua.edu.cn/ubuntu jammy InRelease [270 kB]
+... (大量 Get: 行) ...
+Fetched 44.6 MB in 11s (4,114 kB/s)
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+74 packages can be upgraded. Run 'apt list --upgradable' to see them.</code></pre>
+        </div>
+
+        <h3>步骤 5: 安装 <code>jq</code></h3>
+        <p>既然 APT 更新已成功，您可以安装 <code>jq</code> 了。</p>
+        <pre><code>sudo apt install -y jq</code></pre>
+        <div class="success">
+            <strong>预期结果：</strong> <code>jq</code> 软件包将被成功下载并安装。
+        </div>
+
+        <h3>步骤 6: 运行 <code>kejilion.sh</code> 脚本</h3>
+        <p>最后，您可以运行您的 <code>kejilion.sh</code> 脚本。请注意，直接通过 <code>curl | bash</code> 运行脚本存在一定的安全风险，建议在运行前审查脚本内容。</p>
+        <pre><code>bash <(curl -sL kejilion.sh)</code></pre>
+        <div class="warning">
+            <strong>安全警告：</strong>
+            <p>通过 <code>curl -sL <URL> | bash</code> 方式直接执行来自互联网的脚本，存在潜在的安全风险。在执行任何此类脚本之前，强烈建议您：</p>
+            <ul>
+                <li><strong>审查脚本内容：</strong> 将脚本下载到本地（例如 <code>curl -sL kejilion.sh > kejilion.sh</code>），然后使用文本编辑器仔细阅读其内容，确保它不会执行恶意操作。</li>
+                <li><strong>了解脚本来源：</strong> 确保脚本来自您信任的来源。</li>
+            </ul>
+        </div>
+
+        <h2>故障排除</h2>
+        <ul>
+            <li><strong>仍然出现 <code>E: Type '...' is not known</code> 错误？</strong>
+                <p>请再次仔细检查 <code>/etc/apt/sources.list</code> 文件，确保每一行都以 <code>deb</code> 开头，并且没有多余的空格或字符。特别是第4行。</p>
+            </li>
+            <li><strong>仍然出现 <code>File has unexpected size</code> 错误？</strong>
+                <p>这可能是镜像源暂时性的同步问题。您可以等待一段时间后重试 <code>sudo apt update</code>，或者尝试更换为其他可靠的镜像源（例如阿里云、腾讯云等）。</p>
+            </li>
+            <li><strong>网络连接问题？</strong>
+                <p>确保您的服务器或虚拟机能够正常访问互联网。您可以尝试 <code>ping mirrors.tuna.tsinghua.edu.cn</code> 来测试网络连通性。</p>
+            </li>
+        </ul>
+
+        <p>希望这份教程能帮助您顺利解决问题！</p>
+    </div>
+</body>
+</html>
