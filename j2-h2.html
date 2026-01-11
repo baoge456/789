@@ -61,6 +61,15 @@
             max-width: 100%;
             margin: 10px auto;
         }
+        
+        /* 确保分类导航栏和书签内容上下分布 */
+        #bookmarkContainer {
+            display: block;
+        }
+        
+        .group-section {
+            margin-bottom: 20px;
+        }
 
         .group-section {
             margin-bottom: 20px;
@@ -232,6 +241,7 @@
             cursor: pointer;
             font-size: 0.9em;
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
 
         .category-btn:hover {
@@ -242,6 +252,89 @@
         .category-btn.active {
             background-color: #2E7D32;
             font-weight: bold;
+        }
+        
+        /* 编辑模式相关样式 */
+        .edit-controls {
+            display: none;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        
+        .edit-mode-on .edit-controls {
+            display: block;
+        }
+        
+        .edit-btn {
+            padding: 4px 8px;
+            margin: 2px;
+            background-color: #f0ad4e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        .edit-btn.delete {
+            background-color: #d9534f;
+        }
+        
+        .edit-btn.move {
+            background-color: #5bc0de;
+        }
+        
+        .drag-handle {
+            cursor: move;
+            margin-right: 5px;
+            color: #999;
+        }
+        
+        .edit-mode-on .card {
+            position: relative;
+        }
+        
+        .edit-mode-on .card .drag-handle {
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+        
+        /* 保持分类导航栏横向滚动样式 - 确保在所有模式下都保持横向滚动 */
+        .category-nav {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 5px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #e0f7e9;
+            border-radius: 8px;
+            justify-content: flex-start;
+            scrollbar-width: thin;
+            scrollbar-color: #4CAF50 #e0f7e9;
+        }
+        
+        .category-nav::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .category-nav::-webkit-scrollbar-track {
+            background: #e0f7e9;
+            border-radius: 3px;
+        }
+        
+        .category-nav::-webkit-scrollbar-thumb {
+            background: #4CAF50;
+            border-radius: 3px;
+        }
+        
+        .category-nav::-webkit-scrollbar-thumb:hover {
+            background: #45a049;
         }
     </style>
 </head>
@@ -276,6 +369,7 @@
             <input type="color" id="panelBackgroundColor" value="#c2f2d0" oninput="updateColors()">
         </div>
 
+        <button onclick="toggleEditMode()" id="editModeBtn">编辑模式</button>
         <button onclick="checkPasswordAndExport()">导出 HTML</button>
         <button onclick="checkPasswordAndGenerateJson()">导出新JSON</button>
 
@@ -303,6 +397,7 @@
                 <h3>添加书签</h3>
                 <label>名称：<input type="text" id="addName"></label>
                 <label>链接：<input type="url" id="addUrl"></label>
+                <label style="display: flex; align-items: center; margin-top: 5px;"><span style="min-width: 60px;">Logo链接：</span><input type="url" id="addThumbnail" placeholder="可选" style="flex: 1; margin-left: 5px;"></label>
                 <div class="edit-modal-buttons">
                     <button onclick="saveNewBookmark()">保存</button>
                 </div>
@@ -334,6 +429,7 @@
         let thumbnailIndex = 0;
         let pageBackgroundColor = '#f5f5f5';
         let panelBackgroundColor = '#c2f2d0';
+        let editMode = false; // 编辑模式状态
 
         function isColorDark(hexColor) {
             const r = parseInt(hexColor.slice(1, 3), 16);
@@ -522,17 +618,86 @@
             // 添加分类导航栏
             const categoryNav = generateCategoryNav();
             bookmarkContainer.appendChild(categoryNav);
+            
+
 
             currentData.icons.forEach((group, groupIndex) => {
                 const groupSection = document.createElement('div');
                 groupSection.className = 'group-section';
                 const groupTitle = document.createElement('h2');
                 groupTitle.className = 'group-title';
-                groupTitle.textContent = group.title;
-                groupSection.appendChild(groupTitle);
-
+                
+                // 在编辑模式下为分类标题添加编辑控件
+                if (editMode) {
+                    const titleContainer = document.createElement('div');
+                    titleContainer.style.display = 'flex';
+                    titleContainer.style.alignItems = 'center';
+                    titleContainer.style.justifyContent = 'space-between';
+                    
+                    const titleText = document.createElement('span');
+                    titleText.textContent = group.title;
+                    titleContainer.appendChild(titleText);
+                    
+                    const controls = document.createElement('div');
+                    controls.className = 'edit-controls';
+                    
+                    const moveUpBtn = document.createElement('button');
+                    moveUpBtn.textContent = '↑';
+                    moveUpBtn.className = 'edit-btn move';
+                    moveUpBtn.title = '上移';
+                    moveUpBtn.onclick = () => moveCategory(groupIndex, 'up');
+                    
+                    const moveDownBtn = document.createElement('button');
+                    moveDownBtn.textContent = '↓';
+                    moveDownBtn.className = 'edit-btn move';
+                    moveDownBtn.title = '下移';
+                    moveDownBtn.onclick = () => moveCategory(groupIndex, 'down');
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.textContent = '✏️';
+                    editBtn.className = 'edit-btn';
+                    editBtn.title = '编辑';
+                    editBtn.onclick = () => editCategory(groupIndex);
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '🗑️';
+                    deleteBtn.className = 'edit-btn delete';
+                    deleteBtn.title = '删除';
+                    deleteBtn.onclick = () => deleteCategory(groupIndex);
+                    
+                    const addCategoryAfterBtn = document.createElement('button');
+                    addCategoryAfterBtn.textContent = '+';
+                    addCategoryAfterBtn.className = 'edit-btn';
+                    addCategoryAfterBtn.title = '在此后添加分类';
+                    addCategoryAfterBtn.onclick = () => addCategoryAfter(groupIndex);
+                    
+                    controls.appendChild(moveUpBtn);
+                    controls.appendChild(moveDownBtn);
+                    controls.appendChild(editBtn);
+                    controls.appendChild(deleteBtn);
+                    controls.appendChild(addCategoryAfterBtn);
+                    
+                    titleContainer.appendChild(controls);
+                    groupTitle.appendChild(titleContainer);
+                }
+                
                 // 添加左侧绿色竖条
-                groupTitle.innerHTML = '<span style="display: inline-block; width: 5px; height: 20px; "></span>' + group.title;
+                const span = document.createElement('span');
+                span.style.display = 'inline-block';
+                span.style.width = '5px';
+                span.style.height = '20px';
+                
+                if (editMode) {
+                    // 在编辑模式下，如果已经有titleContainer，则在它前面插入绿色竖条
+                    groupTitle.insertBefore(span, groupTitle.firstChild);
+                } else {
+                    // 在非编辑模式下，清空内容后重新组织
+                    groupTitle.innerHTML = '';
+                    groupTitle.appendChild(span);
+                    groupTitle.appendChild(document.createTextNode(group.title));
+                }
+                
+                groupSection.appendChild(groupTitle);
 
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'container';
@@ -548,6 +713,14 @@
                     const isDark = isColorDark(groupBackgroundColor);
                     const textColor = isDark ? '#fff' : '#000';
                     card.style.setProperty('--text-color', textColor);
+
+                    // 在编辑模式下添加拖拽手柄
+                    if (editMode) {
+                        const dragHandle = document.createElement('span');
+                        dragHandle.className = 'drag-handle';
+                        dragHandle.innerHTML = '☰';
+                        card.appendChild(dragHandle);
+                    }
 
                     const thumbnail = document.createElement('img');
                     thumbnail.className = 'thumbnail';
@@ -599,6 +772,43 @@
                     link.textContent = item.title;
                     link.style.color = textColor;
                     card.appendChild(link);
+                    
+                    // 在编辑模式下为书签添加编辑控件
+                    if (editMode) {
+                        const controls = document.createElement('div');
+                        controls.className = 'edit-controls';
+                        
+                        const moveUpBtn = document.createElement('button');
+                        moveUpBtn.textContent = '↑';
+                        moveUpBtn.className = 'edit-btn move';
+                        moveUpBtn.title = '上移';
+                        moveUpBtn.onclick = () => moveBookmark(groupIndex, itemIndex, 'up');
+                        
+                        const moveDownBtn = document.createElement('button');
+                        moveDownBtn.textContent = '↓';
+                        moveDownBtn.className = 'edit-btn move';
+                        moveDownBtn.title = '下移';
+                        moveDownBtn.onclick = () => moveBookmark(groupIndex, itemIndex, 'down');
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = '🗑️';
+                        deleteBtn.className = 'edit-btn delete';
+                        deleteBtn.title = '删除';
+                        deleteBtn.onclick = () => deleteBookmarkFromCategory(groupIndex, itemIndex);
+                        
+                        const addBookmarkBtn = document.createElement('button');
+                        addBookmarkBtn.textContent = '+';
+                        addBookmarkBtn.className = 'edit-btn';
+                        addBookmarkBtn.title = '添加书签';
+                        addBookmarkBtn.onclick = () => addBookmarkToCategory(groupIndex);
+                        
+                        controls.appendChild(moveUpBtn);
+                        controls.appendChild(moveDownBtn);
+                        controls.appendChild(deleteBtn);
+                        controls.appendChild(addBookmarkBtn);
+                        
+                        card.appendChild(controls);
+                    }
 
                     // 添加长按事件监听器
                     card.addEventListener('touchstart', function (e) {
@@ -646,6 +856,12 @@
                     } else {
                         group.style.display = 'none';
                     }
+                });
+            } else {
+                // 显示所有分组
+                const allGroups = document.querySelectorAll('.group-section');
+                allGroups.forEach(group => {
+                    group.style.display = 'block';
                 });
             }
             
@@ -756,6 +972,153 @@
             panelBackgroundColor = document.getElementById('panelBackgroundColor').value;
             document.body.style.backgroundColor = pageBackgroundColor;
             document.querySelector('.panel').style.backgroundColor = panelBackgroundColor;
+        }
+        
+        // 切换编辑模式
+        function toggleEditMode() {
+            editMode = !editMode;
+            const panel = document.querySelector('.panel');
+            const editModeBtn = document.getElementById('editModeBtn');
+            
+            if (editMode) {
+                panel.classList.add('edit-mode-on');
+                editModeBtn.textContent = '完成编辑';
+                editModeBtn.style.backgroundColor = '#d9534f';
+                // 重新渲染以显示编辑控件
+                renderBookmarks();
+            } else {
+                panel.classList.remove('edit-mode-on');
+                editModeBtn.textContent = '编辑模式';
+                editModeBtn.style.backgroundColor = '#3498db';
+                // 重新渲染以隐藏编辑控件
+                renderBookmarks();
+            }
+        }
+        
+        // 添加新分类
+        function addCategory() {
+            const categoryName = prompt('请输入新分类名称：');
+            if (categoryName) {
+                if (!currentData) {
+                    currentData = { icons: [] };
+                }
+                currentData.icons.push({
+                    title: categoryName,
+                    children: []
+                });
+                renderBookmarks();
+            }
+        }
+        
+        // 在指定分类后添加新分类
+        function addCategoryAfter(groupIndex) {
+            const categoryName = prompt('请输入新分类名称：');
+            if (categoryName) {
+                if (!currentData) {
+                    currentData = { icons: [] };
+                }
+                currentData.icons.splice(groupIndex + 1, 0, {
+                    title: categoryName,
+                    children: []
+                });
+                renderBookmarks();
+            }
+        }
+        
+        // 编辑分类名称
+        function editCategory(groupIndex) {
+            const oldName = currentData.icons[groupIndex].title;
+            const newName = prompt('请输入新的分类名称：', oldName);
+            if (newName && newName !== oldName) {
+                currentData.icons[groupIndex].title = newName;
+                renderBookmarks();
+            }
+        }
+        
+        // 删除分类
+        function deleteCategory(groupIndex) {
+            if (confirm('确定要删除分类 "' + currentData.icons[groupIndex].title + '" 吗？\n该分类下的所有书签也将被删除。')) {
+                currentData.icons.splice(groupIndex, 1);
+                renderBookmarks();
+            }
+        }
+        
+        // 在分类中添加书签
+        function addBookmarkToCategory(groupIndex) {
+            const modal = document.getElementById('addModal');
+            modal.querySelector('#addName').value = '';
+            modal.querySelector('#addUrl').value = '';
+            
+            // 保存当前组索引以便在保存时使用
+            currentGroupIndex = groupIndex;
+            currentItemIndex = -1; // -1表示添加新书签
+            
+            modal.style.display = 'block';
+        }
+        
+        // 保存新书签
+        function saveNewBookmark() {
+            const addModal = document.getElementById('addModal');
+            const newTitle = addModal.querySelector('#addName').value;
+            const newUrl = addModal.querySelector('#addUrl').value;
+            const newThumbnail = addModal.querySelector('#addThumbnail').value;
+            
+            if (newTitle && newUrl) {
+                const newBookmark = {
+                    title: newTitle,
+                    url: newUrl
+                };
+                
+                // 如果提供了缩略图URL，则添加到书签对象
+                if (newThumbnail) {
+                    newBookmark.thumbnail = newThumbnail;
+                }
+                
+                // 将新书签添加到当前分类
+                currentData.icons[currentGroupIndex].children.push(newBookmark);
+                
+                addModal.style.display = 'none';
+                renderBookmarks();
+            } else {
+                alert('请输入书签名称和链接');
+            }
+        }
+        
+        // 删除书签
+        function deleteBookmarkFromCategory(groupIndex, itemIndex) {
+            if (confirm('确定要删除书签 "' + currentData.icons[groupIndex].children[itemIndex].title + '" 吗？')) {
+                currentData.icons[groupIndex].children.splice(itemIndex, 1);
+                renderBookmarks();
+            }
+        }
+        
+        // 移动书签位置
+        function moveBookmark(groupIndex, itemIndex, direction) {
+            const group = currentData.icons[groupIndex];
+            if (direction === 'up' && itemIndex > 0) {
+                // 向上移动
+                [group.children[itemIndex], group.children[itemIndex - 1]] = 
+                [group.children[itemIndex - 1], group.children[itemIndex]];
+            } else if (direction === 'down' && itemIndex < group.children.length - 1) {
+                // 向下移动
+                [group.children[itemIndex], group.children[itemIndex + 1]] = 
+                [group.children[itemIndex + 1], group.children[itemIndex]];
+            }
+            renderBookmarks();
+        }
+        
+        // 移动分类位置
+        function moveCategory(groupIndex, direction) {
+            if (direction === 'up' && groupIndex > 0) {
+                // 向上移动
+                [currentData.icons[groupIndex], currentData.icons[groupIndex - 1]] = 
+                [currentData.icons[groupIndex - 1], currentData.icons[groupIndex]];
+            } else if (direction === 'down' && groupIndex < currentData.icons.length - 1) {
+                // 向下移动
+                [currentData.icons[groupIndex], currentData.icons[groupIndex + 1]] = 
+                [currentData.icons[groupIndex + 1], currentData.icons[groupIndex]];
+            }
+            renderBookmarks();
         }
 
         // 导出 HTML - 使用安全的字符串拼接
