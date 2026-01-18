@@ -749,7 +749,7 @@
         
         <footer>
             <p>© 2025 收藏夹整理工具 | 所有操作均在浏览器中完成，您的数据不会上传到任何服务器</p>
-            <p>特别提示：⚡本工具主要设计在电脑端适用，导入收藏夹文件时，默认连续导入两次才会被成功导入⚡</p>
+            
         </footer>
     </div>
 
@@ -815,8 +815,16 @@
             tabIndicator.style.width = `${100 / tabBtns.length}%`;
             
             // 点击上传区域触发文件选择
-            uploadArea.addEventListener('click', () => fileInput.click());
-            selectFileBtn.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('click', (e) => {
+                // 防止事件冒泡导致重复触发
+                e.stopPropagation();
+                fileInput.click();
+            });
+            selectFileBtn.addEventListener('click', (e) => {
+                // 防止事件冒泡导致重复触发
+                e.stopPropagation();
+                fileInput.click();
+            });
             
             // 拖放功能
             uploadArea.addEventListener('dragover', (e) => {
@@ -843,10 +851,26 @@
             });
             
             // 文件选择处理
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length) {
-                    currentFile = e.target.files[0];
-                    handleFileUpload(currentFile);
+            let isProcessing = false; // 防止重复处理
+            fileInput.addEventListener('change', async (e) => {
+                if (e.target.files.length && !isProcessing) {
+                    // 创建一个新的File对象副本，避免原文件对象被清除
+                    const file = e.target.files[0];
+                    
+                    // 立即重置fileInput，确保下次选择相同文件时change事件仍能触发
+                    fileInput.value = '';
+                    
+                    currentFile = file;
+                    
+                    // 设置处理标志
+                    isProcessing = true;
+                    
+                    try {
+                        await handleFileUpload(file);
+                    } finally {
+                        // 重置处理标志
+                        isProcessing = false;
+                    }
                 }
             });
             
@@ -904,52 +928,55 @@
             
             // 处理文件上传
             function handleFileUpload(file) {
-                // 隐藏之前的错误信息
-                hideFileError();
-                
-                // 验证文件
-                if (!isValidFile(file)) {
-                    return;
-                }
-                
-                // 显示文件信息和进度条
-                fileName.textContent = file.name;
-                fileInfo.style.display = 'block';
-                fileProgress.style.width = '0%';
-                
-                // 重置状态，确保每次都是新的开始
-                resetState();
-                
-                // 模拟进度条
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    progress += 5;
-                    fileProgress.style.width = `${progress}%`;
-                    if (progress >= 100) {
-                        clearInterval(progressInterval);
-                    }
-                }, 100);
-                
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    clearInterval(progressInterval);
-                    fileProgress.style.width = '100%';
-                    setTimeout(() => {
-                        processHtmlContent(e.target.result);
-                        // 重置文件输入以允许再次选择相同文件
+                return new Promise((resolve, reject) => {
+                    // 隐藏之前的错误信息
+                    hideFileError();
+                    
+                    // 验证文件
+                    if (!isValidFile(file)) {
+                        // 即使验证失败也要重置文件输入框，以便用户可以重新选择
                         fileInput.value = '';
-                    }, 300);
-                };
-                
-                reader.onerror = function() {
-                    clearInterval(progressInterval);
-                    showFileError('读取文件时出错，请重试');
-                    // 重置文件输入以允许再次选择相同文件
-                    fileInput.value = '';
-                };
-                
-                reader.readAsText(file);
+                        resolve();
+                        return;
+                    }
+                    
+                    // 显示文件信息和进度条
+                    fileName.textContent = file.name;
+                    fileInfo.style.display = 'block';
+                    fileProgress.style.width = '0%';
+                    
+                    // 重置状态，确保每次都是新的开始
+                    resetState();
+                    
+                    // 模拟进度条
+                    let progress = 0;
+                    const progressInterval = setInterval(() => {
+                        progress += 5;
+                        fileProgress.style.width = `${progress}%`;
+                        if (progress >= 100) {
+                            clearInterval(progressInterval);
+                        }
+                    }, 100);
+                    
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        clearInterval(progressInterval);
+                        fileProgress.style.width = '100%';
+                        setTimeout(() => {
+                            processHtmlContent(e.target.result);
+                            resolve();
+                        }, 100);
+                    };
+                    
+                    reader.onerror = function() {
+                        clearInterval(progressInterval);
+                        showFileError('读取文件时出错，请重试');
+                        resolve(); // 即使出错也要解决Promise
+                    };
+                    
+                    reader.readAsText(file);
+                });
             }
             
             // 重置状态函数 - 解决首次导入失败问题
