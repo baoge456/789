@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R2存储桶管理面板 - 部署教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .step {
+            margin-bottom: 40px;
+            padding: 25px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #4facfe;
+        }
+        
+        .step h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        
+        .step ul {
+            padding-left: 20px;
+            margin: 15px 0;
+        }
+        
+        .step li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .code-block pre {
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .important {
+            background: #fee;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #dc3545;
+            margin: 20px 0;
+        }
+        
+        .important h4 {
+            color: #dc3545;
+            margin-bottom: 10px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .variable-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .variable-table th,
+        .variable-table td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        .variable-table th {
+            background: #e9ecef;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .step {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>☁️ R2存储桶管理面板</h1>
+            <p>Cloudflare Workers + R2 部署教程</p>
+        </div>
+        
+        <div class="content">
+            <div class="step">
+                <h3>📋 准备工作</h3>
+                <ul>
+                    <li>拥有 Cloudflare 账户</li>
+                    <li>激活 R2 存储服务</li>
+                    <li>准备管理密码（用于保护面板访问）</li>
+                </ul>
+            </div>
+            
+            <div class="step">
+                <h3>🔐 环境变量配置</h3>
+                <p>在部署前需要配置以下环境变量：</p>
+                
+                <table class="variable-table">
+                    <thead>
+                        <tr>
+                            <th>变量名</th>
+                            <th>类型</th>
+                            <th>说明</th>
+                            <th>示例值</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ADMIN_PASSWORD</td>
+                            <td>环境变量</td>
+                            <td>管理员登录密码</td>
+                            <td>mypassword123</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="highlight">
+                    <strong>注意：</strong> 只需要配置 ADMIN_PASSWORD 环境变量，不需要配置其他变量。
+                </div>
+            </div>
+            
+            <div class="step">
+                <h3>🔗 R2 存储桶绑定</h3>
+                <ul>
+                    <li>进入 Cloudflare Dashboard → Workers & Pages → Your Worker</li>
+                    <li>点击 "Settings" → "Environment Variables" → "R2 Bindings"</li>
+                    <li>添加 R2 绑定：
+                        <ul>
+                            <li><strong>Variable name:</strong> R2_BUCKET</li>
+                            <li><strong>R2 bucket name:</strong> 选择或创建你的 R2 存储桶</li>
+                        </ul>
+                    </li>
+                    <li>保存配置</li>
+                </ul>
+                
+                <div class="highlight">
+                    <strong>重要：</strong> R2_BUCKET 是绑定名称，不是环境变量。必须通过 R2 绑定功能关联到实际的 R2 存储桶。
+                </div>
+            </div>
+            
+            <div class="step">
+                <h3>📥 获取源代码</h3>
+                <p>点击下方链接获取最新版本的源代码：</p>
+                <a href="https://dfile.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/cunchutong.js" class="btn btn-primary" target="_blank">
+                    📋 复制源代码
+                </a>
+                
+                <div class="code-block">
+                    <pre>// 源代码地址
+https://dfile.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/cunchutong.js</pre>
+                </div>
+            </div>
+            
+            <div class="step">
+                <h3>🚀 部署方式：使用 Cloudflare Dashboard</h3>
+                <ul>
+                    <li>进入 Cloudflare Dashboard → Workers & Pages → Create application</li>
+                    <li>选择 "Create Worker"</li>
+                    <li>在代码编辑器中粘贴获取的源代码</li>
+                    <li>点击 "Save and Deploy"</li>
+                    <li>在 "Settings" → "Environment Variables" 中添加 ADMIN_PASSWORD</li>
+                    <li>完成 R2 绑定配置</li>
+                </ul>
+            </div>
+            
+            <div class="step">
+                <h3>⚙️ 功能特性</h3>
+                <ul>
+                    <li><strong>📁 文件夹管理：</strong> 创建多级文件夹，浏览文件结构</li>
+                    <li><strong>📤 文件上传：</strong> 支持文件上传到任意目录</li>
+                    <li><strong>📥 文件下载：</strong> 直接下载文件，文件名不包含路径</li>
+                    <li><strong>❌ 文件删除：</strong> 支持单个和批量删除</li>
+                    <li><strong>📊 统计信息：</strong> 显示文件夹数、文件数、存储大小</li>
+                    <li><strong>🔒 安全验证：</strong> 所有敏感操作需要密码验证</li>
+                    <li><strong>📱 响应式设计：</strong> 支持桌面端和移动端访问</li>
+                </ul>
+            </div>
+            
+            <div class="important">
+                <h4>⚠️ 重要注意事项</h4>
+                <ul>
+                    <li>确保 R2 存储桶已正确绑定，否则应用无法访问存储</li>
+                    <li>ADMIN_PASSWORD 必须设置强密码，确保安全性</li>
+                    <li>定期备份重要数据</li>
+                    <li>合理使用存储空间，注意 R2 的使用限制</li>
+                    <li>部署后记得测试各项功能是否正常</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center; margin-top: 40px;">
+                <a href="https://dfile.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/cunchutong.js" class="btn btn-success" target="_blank">
+                    📋 复制最新代码
+                </a>
+                <p style="margin-top: 20px; color: #666; font-size: 0.9em;">
+                    部署完成后，使用设置的密码访问管理面板
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
