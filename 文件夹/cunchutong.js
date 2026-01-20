@@ -216,7 +216,7 @@ async function handleApiRoutes(request, env, path, adminPassword, r2Bucket) {
           // 如果是文件（不以'/'结尾），添加到文件列表
           if (!relativeKey.endsWith('/')) {
             currentFiles.push({
-              name: relativeKey.split('/').pop(), // 只显示文件名
+              name: relativeKey.split('/').pop().replace(/^\d+[\-_.,:|#]?/, ''), // 只显示文件名，并去除开头数字串
               path: key, // 完整路径
               size: obj.size,
               lastModified: obj.uploaded,
@@ -232,7 +232,7 @@ async function handleApiRoutes(request, env, path, adminPassword, r2Bucket) {
             if (folderName) currentFolders.add(folderName);
           } else {
             currentFiles.push({
-              name: relativeKey,
+              name: relativeKey.replace(/^\d+[\-_.,:|#]?/, ''), // 去除开头数字串
               path: key, // 完整路径
               size: obj.size,
               lastModified: obj.uploaded,
@@ -362,35 +362,87 @@ async function handleApiRoutes(request, env, path, adminPassword, r2Bucket) {
       if (!downloadKey) return new Response(JSON.stringify({ success: false, msg: '下载路径为空' }), { status: 400 });
       
       try {
-        let object = await r2Bucket.get(downloadKey);
-        if (!object) {
-          // 如果原始路径不存在，尝试解码路径
-          try {
-            const decodedKey = decodeURIComponent(downloadKey);
-            object = await r2Bucket.get(decodedKey);
-            if (!object) {
+        // 检查是否是文件夹（以/结尾）
+        const isFolder = downloadKey.endsWith('/');
+        
+        if (isFolder) {
+          // 文件夹不存在或无法直接下载
+          return new Response('文件夹无法直接下载，请进入文件夹选择具体文件进行下载', { status: 400 });
+        } else {
+          // 检查URL参数中是否包含指定的文件名
+          const url = new URL(request.url);
+          const specifiedFilename = url.searchParams.get('filename');
+          
+          // 文件下载 - 尝试解码路径以处理URL编码的文件名
+          let object = await r2Bucket.get(downloadKey);
+          let actualKey = downloadKey;
+          
+          if (!object) {
+            // 如果原始路径不存在，尝试解码路径
+            try {
+              const decodedKey = decodeURIComponent(downloadKey);
+              object = await r2Bucket.get(decodedKey);
+              actualKey = decodedKey;
+              
+              if (!object) {
+                return new Response('文件不存在: ' + downloadKey, { status: 404 });
+              }
+            } catch (decodeErr) {
+              console.error('路径解码失败:', decodeErr);
               return new Response('文件不存在: ' + downloadKey, { status: 404 });
             }
-          } catch (decodeErr) {
-            console.error('路径解码失败:', decodeErr);
-            return new Response('文件不存在: ' + downloadKey, { status: 404 });
           }
-        }
 
-        const headers = new Headers();
-        object.writeHttpMetadata(headers);
-        // 提取真实的文件名（最后一部分），确保不包含上级路径
-        const pathParts = downloadKey.split('/');
-        const actualFilename = pathParts[pathParts.length - 1].split('?')[0];
-        // 确保文件名正确处理中文字符
-        headers.set('Content-Disposition', 'attachment; filename*=UTF-8\'' + actualFilename + '\'');
-        
-        return new Response(object.body, {
-          headers,
-        });
+          const headers = new Headers();
+          object.writeHttpMetadata(headers);
+          
+          // 使用前端指定的文件名，如果没有则从路径中提取并处理
+          let actualFilename = '';
+          if (specifiedFilename) {
+            actualFilename = decodeURIComponent(specifiedFilename);
+            // 如果前端传递的文件名仍包含数字串，也要处理
+            // 循环处理可能存在的多个数字-模式，确保完全清除
+            // 匹配以数字开头，后跟各种分隔符的模式
+            while (/^\d+[\-_.,:|#]/.test(actualFilename)) {
+              actualFilename = actualFilename.replace(/^\d+[\-_.,:|#]?/, '');
+            }
+          } else {
+            // 从实际路径中提取纯净的文件名，确保不包含路径和数字串
+            const pathParts = actualKey.split('/');
+            actualFilename = pathParts[pathParts.length - 1]; // 获取路径最后一部分
+            
+            // 移除URL参数（如果有）
+            if (actualFilename.includes('?')) {
+              actualFilename = actualFilename.split('?')[0];
+            }
+            
+            // 循环处理可能存在的多个数字-模式，确保完全清除
+            // 匹配以数字开头，后跟各种分隔符的模式
+            while (/^\d+[\-_.,:|#]/.test(actualFilename)) {
+              actualFilename = actualFilename.replace(/^\d+[\-_.,:|#]?/, '');
+            }
+          }
+          
+          // 确保文件名不包含任何路径分隔符
+          actualFilename = actualFilename.split('/').pop().split('\\').pop();
+          
+          // 确保文件名安全，移除潜在的危险字符
+          actualFilename = actualFilename.replace(/[<>:"/\\|?*]/g, '_');
+          
+          // 设置下载文件名，使用多种格式确保兼容性，特别注意中文字符处理
+          headers.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(actualFilename)}; filename="${actualFilename}"`);
+          
+          // 设置其他必要的头部
+          headers.set('Content-Type', object.httpMetadata?.contentType || 'application/octet-stream');
+          headers.set('Content-Length', object.size.toString());
+          
+          return new Response(object.body, {
+            headers,
+          });
+        }
       } catch (err) {
-        console.error('文件下载失败:', err);
-        return new Response(JSON.stringify({ success: false, msg: '文件下载失败: ' + err.message }), { status: 500 });
+        console.error('下载失败:', err);
+        return new Response(JSON.stringify({ success: false, msg: '下载失败: ' + err.message }), { status: 500 });
       }
     }
 
@@ -564,6 +616,7 @@ function adminPage() {
       <label for="fileUpload" class="btn primary-btn" id="uploadBtn">上传文件</label>
       <input type="file" id="fileUpload" style="display: none;">
       <button id="batchDeleteBtn" class="btn danger-btn" style="display:none;">批量删除</button>
+      <button id="batchDownloadBtn" class="btn success-btn" style="display:none;">批量下载</button>
       <button id="refreshBtn" class="btn info-btn">刷新</button>
       <span id="selectedCount" style="margin-left: 10px; color: #666;">已选择: 0</span>
     </div>
@@ -668,6 +721,7 @@ function adminPage() {
 
 
       batchDeleteBtn: document.getElementById('batchDeleteBtn'),
+      batchDownloadBtn: document.getElementById('batchDownloadBtn'),
       selectedCount: document.getElementById('selectedCount'),
       selectAllCheckbox: document.getElementById('selectAllCheckbox'),
       refreshBtn: document.getElementById('refreshBtn')
@@ -718,11 +772,13 @@ function adminPage() {
       // 更新选择计数
       DOM.selectedCount.textContent = '已选择: ' + checkedBoxes.length;
       
-      // 更新批量删除按钮状态
+      // 更新批量删除和批量下载按钮状态
       if (checkedBoxes.length > 0) {
         DOM.batchDeleteBtn.style.display = 'inline-block';
+        DOM.batchDownloadBtn.style.display = 'inline-block';
       } else {
         DOM.batchDeleteBtn.style.display = 'none';
+        DOM.batchDownloadBtn.style.display = 'none';
       }
       
       // 更新全选复选框状态
@@ -854,7 +910,11 @@ function adminPage() {
 
         let html = '';
         itemsToShow.forEach(item => {
-          const name = item.name || '未知名称';
+          // 处理文件名，去掉开头的数字串，如 '1764742286540-山地情歌.mp4' -> '山地情歌.mp4'
+          let originalName = item.name || '未知名称';
+          let name = originalName;
+          // 去除开头的数字串，如 '1762423848488-白狐.mp3' -> '白狐.mp3'
+          name = name.replace(/^\d+[\-_.,:|#]?/, '');
           const itemFullPath = item.path || '';
           const type = item.type || 'file';
           const size = type === 'folder' ? '-' : formatFileSize(item.size || 0);
@@ -866,9 +926,16 @@ function adminPage() {
           
           if (type === 'file') {
             // 为文件添加下载链接
-            // 提取文件名部分，避免路径信息
-            const fileName = itemFullPath.split('/').pop();
-            actionHtml += ' <a href="/api/download/' + encodeURIComponent(itemFullPath) + '" class="btn operation-btn download-btn" target="_blank" download="' + fileName + '" title="下载"><i class="icon">⬇️</i> 下载</a>';
+            // 提取文件名部分，避免路径信息，并去掉开头的数字串
+            const originalFileName = decodeURIComponent(itemFullPath.split('/').pop());
+            // 去除开头的数字串，如 '1762423848488-白狐.mp3' -> '白狐.mp3'
+            let cleanFileName = originalFileName;
+            // 循环处理可能存在的多个数字-模式，确保完全清除
+            // 匹配以数字开头，后跟各种分隔符的模式
+            while (/^\d+[\-_.,:|#]/.test(cleanFileName)) {
+              cleanFileName = cleanFileName.replace(/^\d+[\-_.,:|#]*/, '');
+            }
+            actionHtml += ' <a href="/api/download/' + encodeURIComponent(itemFullPath) + '?filename=' + encodeURIComponent(cleanFileName) + '" class="btn operation-btn download-btn" target="_blank" download="' + cleanFileName + '" title="下载"><i class="icon">⬇️</i> 下载</a>';
 
           } else {
 
@@ -1167,7 +1234,41 @@ function adminPage() {
       });
       
       // 批量操作事件
-
+      
+      // 批量下载按钮事件
+      DOM.batchDownloadBtn.addEventListener('click', async () => {
+        const selectedPaths = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => {
+          return { path: cb.dataset.path, type: cb.closest('tr').dataset.type };
+        });
+        
+        if (selectedPaths.length === 0) {
+          showToast('请先选择要下载的项目', 'warning');
+          return;
+        }
+        
+        // 批量下载选中的文件
+        showToast('正在批量下载 ' + selectedPaths.length + ' 个项目...', 'info');
+        
+        // 方法：找到对应的下载按钮并触发点击事件，确保使用完全相同的下载逻辑
+        for (let i = 0; i < selectedPaths.length; i++) {
+          const item = selectedPaths[i];
+          if (item.type === 'file') {
+            // 查找对应路径的下载按钮并触发点击
+            const rowElement = document.querySelector('tr[data-path="' + item.path + '"]');
+            if (rowElement) {
+              const downloadButton = rowElement.querySelector('.download-btn');
+              if (downloadButton) {
+                // 触发下载按钮的点击事件
+                downloadButton.click();
+              }
+            }
+          }
+          // 等待一段时间再处理下一个文件，避免浏览器阻塞
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        showToast('批量下载启动完成', 'success');
+      });
       
       // 表格行复选框事件
       document.addEventListener('change', (e) => {
@@ -1401,6 +1502,7 @@ function styleCss() {
   .delete-btn:hover {
     background: linear-gradient(to bottom, #c82333, #a71c2a);
   }
+
   .breadcrumbs {
     margin-bottom: 15px;
     font-size: 14px;
