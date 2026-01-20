@@ -189,10 +189,93 @@ async function handleApiRoutes(request, env, path, adminPassword, r2Bucket) {
       return new Response(JSON.stringify({ success: secret === adminPassword }), { headers: { 'Content-Type': 'application/json' } });
     }
 
-    // 5. 列表接口（简化版：可靠识别文件夹）
+    // 5. 搜索接口
+    if (action === 'search' && method === 'GET') {
+      // 使用 URL 对象来正确解析参数，支持中文字符
+      const url = new URL(request.url);
+      const searchTerm = url.searchParams.get('q') || '';
+      
+      if (!searchTerm) {
+        return new Response(JSON.stringify({ success: false, msg: '搜索关键词不能为空' }), { headers: { 'Content-Type': 'application/json' } });
+      }
+      
+      try {
+        // 全局搜索整个存储桶，不受当前目录限制
+        const allObjects = [];
+        let continuationToken = null;
+        do {
+          const listOptions = { 
+            limit: 1000 
+          };
+          if (continuationToken) {
+            listOptions.cursor = continuationToken;
+          }
+          const listResult = await r2Bucket.list(listOptions);
+          allObjects.push(...listResult.objects);
+          continuationToken = listResult.truncated ? listResult.cursor : null;
+        } while (continuationToken);
+        
+        // 过滤匹配搜索词的对象，使用正确的大小写不敏感比较
+        const searchTermLower = searchTerm.toLowerCase();
+        const filteredObjects = allObjects.filter(obj => {
+          const fileName = obj.key.split('/').pop();
+          return fileName.toLowerCase().includes(searchTermLower);
+        });
+        
+        // 构建搜索结果
+        const results = filteredObjects.map(obj => {
+          const isFolder = obj.key.endsWith('/');
+          let fileName = obj.key.split('/').pop() || '';
+          // 只去除长数字串（时间戳，长度大于6位），保留短数字作为有效文件名
+          if (/^\d{7,}[\-_.,:|#]/.test(fileName)) {
+            fileName = fileName.replace(/^\d+[\-_.,:|#]?/, '');
+          }
+          // 如果处理后文件名为空，且原始名称是数字加扩展名格式（如 '1.MP3'），则保留原始名称
+          if (!fileName && /^\d+\.[^.]*$/.test(obj.key.split('/').pop())) {
+            fileName = obj.key.split('/').pop() || '';
+          }
+          return {
+            name: fileName,
+            path: obj.key,
+            type: isFolder ? 'folder' : 'file',
+            size: obj.size,
+            lastModified: obj.uploaded
+          };
+        });
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          results: results,
+          count: results.length
+        }), { headers: { 'Content-Type': 'application/json' } });
+      } catch (err) {
+        console.error('搜索失败:', err);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          msg: '搜索失败: ' + err.message 
+        }), { headers: { 'Content-Type': 'application/json' } });
+      }
+    }
+    
+    // 6. 列表接口（简化版：可靠识别文件夹）
     if (action === 'list' && method === 'GET') {
-      const listResult = await r2Bucket.list({ prefix: folderPrefix, limit: 10000 });
-      const objects = listResult.objects;
+      // 分页获取对象，提高性能
+      const allObjects = [];
+      let continuationToken = null;
+      do {
+        const listOptions = { 
+          prefix: folderPrefix,
+          limit: 1000 
+        };
+        if (continuationToken) {
+          listOptions.cursor = continuationToken;
+        }
+        const listResult = await r2Bucket.list(listOptions);
+        allObjects.push(...listResult.objects);
+        continuationToken = listResult.truncated ? listResult.cursor : null;
+      } while (continuationToken);
+      
+      const objects = allObjects;
 
       const currentFolders = new Set(); // 当前目录下的一级子目录
       const currentFiles = []; // 当前目录下的文件
@@ -215,8 +298,17 @@ async function handleApiRoutes(request, env, path, adminPassword, r2Bucket) {
           
           // 如果是文件（不以'/'结尾），添加到文件列表
           if (!relativeKey.endsWith('/')) {
+            let fileName = relativeKey.split('/').pop();
+            // 只去除长数字串（时间戳，长度大于6位），保留短数字作为有效文件名
+            if (/^\d{7,}[\-_.,:|#]/.test(fileName)) {
+              fileName = fileName.replace(/^\d+[\-_.,:|#]?/, '');
+            }
+            // 如果处理后文件名为空，且原始名称是数字加扩展名格式（如 '1.MP3'），则保留原始名称
+            if (!fileName && /^\d+\.[^.]*$/.test(relativeKey.split('/').pop())) {
+              fileName = relativeKey.split('/').pop();
+            }
             currentFiles.push({
-              name: relativeKey.split('/').pop().replace(/^\d+[\-_.,:|#]?/, ''), // 只显示文件名，并去除开头数字串
+              name: fileName, // 只显示文件名，并去除开头数字串
               path: key, // 完整路径
               size: obj.size,
               lastModified: obj.uploaded,
@@ -231,8 +323,17 @@ async function handleApiRoutes(request, env, path, adminPassword, r2Bucket) {
             const folderName = relativeKey.slice(0, -1);
             if (folderName) currentFolders.add(folderName);
           } else {
+            let fileName = relativeKey;
+            // 只去除长数字串（时间戳，长度大于6位），保留短数字作为有效文件名
+            if (/^\d{7,}[\-_.,:|#]/.test(fileName)) {
+              fileName = fileName.replace(/^\d+[\-_.,:|#]?/, '');
+            }
+            // 如果处理后文件名为空，且原始名称是数字加扩展名格式（如 '1.MP3'），则保留原始名称
+            if (!fileName && /^\d+\.[^.]*$/.test(relativeKey)) {
+              fileName = relativeKey;
+            }
             currentFiles.push({
-              name: relativeKey.replace(/^\d+[\-_.,:|#]?/, ''), // 去除开头数字串
+              name: fileName, // 去除开头数字串
               path: key, // 完整路径
               size: obj.size,
               lastModified: obj.uploaded,
@@ -400,11 +501,13 @@ async function handleApiRoutes(request, env, path, adminPassword, r2Bucket) {
           let actualFilename = '';
           if (specifiedFilename) {
             actualFilename = decodeURIComponent(specifiedFilename);
-            // 如果前端传递的文件名仍包含数字串，也要处理
-            // 循环处理可能存在的多个数字-模式，确保完全清除
-            // 匹配以数字开头，后跟各种分隔符的模式
-            while (/^\d+[\-_.,:|#]/.test(actualFilename)) {
+            // 如果前端传递的是长数字串（时间戳，长度大于6位），则处理掉，否则保留
+            if (/^\d{7,}[\-_.,:|#]/.test(actualFilename)) {
               actualFilename = actualFilename.replace(/^\d+[\-_.,:|#]?/, '');
+            }
+            // 如果处理后文件名为空，且原始名称是数字加扩展名格式（如 '1.MP3'），则保留原始名称
+            if (!actualFilename && /^\d+\.[^.]*$/.test(decodeURIComponent(specifiedFilename))) {
+              actualFilename = decodeURIComponent(specifiedFilename);
             }
           } else {
             // 从实际路径中提取纯净的文件名，确保不包含路径和数字串
@@ -416,10 +519,13 @@ async function handleApiRoutes(request, env, path, adminPassword, r2Bucket) {
               actualFilename = actualFilename.split('?')[0];
             }
             
-            // 循环处理可能存在的多个数字-模式，确保完全清除
-            // 匹配以数字开头，后跟各种分隔符的模式
-            while (/^\d+[\-_.,:|#]/.test(actualFilename)) {
+            // 如果是长数字串（时间戳，长度大于6位），则处理掉，否则保留
+            if (/^\d{7,}[\-_.,:|#]/.test(actualFilename)) {
               actualFilename = actualFilename.replace(/^\d+[\-_.,:|#]?/, '');
+            }
+            // 如果处理后文件名为空，且原始名称是数字加扩展名格式（如 '1.MP3'），则保留原始名称
+            if (!actualFilename && /^\d+\.[^.]*$/.test(pathParts[pathParts.length - 1])) {
+              actualFilename = pathParts[pathParts.length - 1];
             }
           }
           
@@ -618,6 +724,11 @@ function adminPage() {
       <button id="batchDeleteBtn" class="btn danger-btn" style="display:none;">批量删除</button>
       <button id="batchDownloadBtn" class="btn success-btn" style="display:none;">批量下载</button>
       <button id="refreshBtn" class="btn info-btn">刷新</button>
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="搜索文件/文件夹..." class="search-input">
+        <button id="searchBtn" class="btn info-btn">搜索</button>
+        <button id="clearSearchBtn" class="btn secondary-btn">清空</button>
+      </div>
       <span id="selectedCount" style="margin-left: 10px; color: #666;">已选择: 0</span>
     </div>
 
@@ -724,7 +835,12 @@ function adminPage() {
       batchDownloadBtn: document.getElementById('batchDownloadBtn'),
       selectedCount: document.getElementById('selectedCount'),
       selectAllCheckbox: document.getElementById('selectAllCheckbox'),
-      refreshBtn: document.getElementById('refreshBtn')
+      refreshBtn: document.getElementById('refreshBtn'),
+      
+      // 搜索功能相关元素
+      searchInput: document.getElementById('searchInput'),
+      searchBtn: document.getElementById('searchBtn'),
+      clearSearchBtn: document.getElementById('clearSearchBtn')
     };
 
     // 工具函数
@@ -910,11 +1026,22 @@ function adminPage() {
 
         let html = '';
         itemsToShow.forEach(item => {
-          // 处理文件名，去掉开头的数字串，如 '1764742286540-山地情歌.mp4' -> '山地情歌.mp4'
+          // 处理文件名，只去除特定格式的数字串（如时间戳），避免误处理有效文件名
           let originalName = item.name || '未知名称';
           let name = originalName;
-          // 去除开头的数字串，如 '1762423848488-白狐.mp3' -> '白狐.mp3'
-          name = name.replace(/^\d+[\-_.,:|#]?/, '');
+          // 去除开头的长数字串（通常是时间戳，长度大于6位），如 '1762423848488-白狐.mp3' -> '白狐.mp3'
+          // 但保留较短的数字作为有效文件名的一部分，如 '1.MP3' 保持不变
+          if (/^\d{7,}[\-_.,:|#]/.test(name)) {
+            name = name.replace(/^\d+[\-_.,:|#]*/, '');
+          }
+          // 如果处理后文件名为空，且原始名称包含数字和扩展名，则保留原始名称
+          if (!name && /^\d+\.\w+$/.test(originalName)) {
+            name = originalName;
+          }
+          // 如果处理后文件名为空，且原始名称是数字加扩展名格式（如 '1.MP3'），则保留原始名称
+          if (!name && /^\d+\.[^.]*$/.test(originalName)) {
+            name = originalName;
+          }
           const itemFullPath = item.path || '';
           const type = item.type || 'file';
           const size = type === 'folder' ? '-' : formatFileSize(item.size || 0);
@@ -930,10 +1057,18 @@ function adminPage() {
             const originalFileName = decodeURIComponent(itemFullPath.split('/').pop());
             // 去除开头的数字串，如 '1762423848488-白狐.mp3' -> '白狐.mp3'
             let cleanFileName = originalFileName;
-            // 循环处理可能存在的多个数字-模式，确保完全清除
-            // 匹配以数字开头，后跟各种分隔符的模式
-            while (/^\d+[\-_.,:|#]/.test(cleanFileName)) {
+            // 只去除长数字串（时间戳），保留短数字作为有效文件名
+            // 匹配以长数字（7位以上）开头，后跟分隔符的模式
+            if (/^\d{7,}[\-_.,:|#]/.test(cleanFileName)) {
               cleanFileName = cleanFileName.replace(/^\d+[\-_.,:|#]*/, '');
+            }
+            // 如果处理后文件名为空，且原始名称包含数字和扩展名，则保留原始名称
+            if (!cleanFileName && /^\d+\.\w+$/.test(originalFileName)) {
+              cleanFileName = originalFileName;
+            }
+            // 如果处理后文件名为空，且原始名称是数字加扩展名格式（如 '1.MP3'），则保留原始名称
+            if (!cleanFileName && /^\d+\.[^.]*$/.test(originalFileName)) {
+              cleanFileName = originalFileName;
             }
             actionHtml += ' <a href="/api/download/' + encodeURIComponent(itemFullPath) + '?filename=' + encodeURIComponent(cleanFileName) + '" class="btn operation-btn download-btn" target="_blank" download="' + cleanFileName + '" title="下载"><i class="icon">⬇️</i> 下载</a>';
 
@@ -1344,6 +1479,208 @@ function adminPage() {
         loadDirectory(currentFolderPath);
         showToast('页面已刷新', 'info');
       });
+      
+      // 搜索功能
+      DOM.searchBtn.addEventListener('click', () => {
+        performSearch();
+      });
+      
+      DOM.searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          performSearch();
+        }
+      });
+      
+      DOM.clearSearchBtn.addEventListener('click', () => {
+        DOM.searchInput.value = '';
+        // 如果当前是在搜索结果页面，返回到正常浏览界面
+        if (currentFolderPath.startsWith('search:')) {
+          loadDirectory(''); // 返回到根目录
+        } else {
+          // 重新加载当前目录以显示所有内容
+          loadDirectory(currentFolderPath);
+        }
+      });
+    }
+    
+    // 搜索功能
+    async function performSearch() {
+      const searchTerm = DOM.searchInput.value.trim();
+      if (!searchTerm) {
+        showToast('请输入搜索关键词', 'warning');
+        return;
+      }
+      
+      try {
+        // 显示加载状态
+        DOM.listBody.innerHTML = '<tr><td colspan="6" class="loading">搜索中...</td></tr>';
+        
+        // 发起搜索请求
+        const res = await fetch('/api/search?q=' + encodeURIComponent(searchTerm), {
+          cache: 'no-cache'
+        });
+        
+        const data = await res.json();
+        
+        if (!data.success) {
+          DOM.listBody.innerHTML = '<tr><td colspan="6" class="error">搜索失败: ' + data.msg + '</td></tr>';
+          showToast(data.msg, 'error');
+          return;
+        }
+        
+        // 更新当前路径为搜索状态
+        currentFolderPath = 'search:' + searchTerm;
+        
+        // 清除面包屑并显示搜索状态
+        DOM.breadcrumbs.innerHTML = '<span>搜索 "' + searchTerm + '"</span>';
+        
+        // 渲染搜索结果
+        if (data.results && data.results.length > 0) {
+          let html = '';
+          data.results.forEach(item => {
+            // 处理文件名，只去除特定格式的数字串（如时间戳），避免误处理有效文件名
+            let originalName = item.name || '未知名称';
+            let name = originalName;
+            // 去除开头的长数字串（通常是时间戳，长度大于6位），如 '1762423848488-白狐.mp3' -> '白狐.mp3'
+            // 但保留较短的数字作为有效文件名的一部分，如 '1.MP3' 保持不变
+            if (/^\d{7,}[\-_.,:|#]/.test(name)) {
+              name = name.replace(/^\d+[\-_.,:|#]*/, '');
+            }
+            // 如果处理后文件名为空，且原始名称包含数字和扩展名，则保留原始名称
+            if (!name && /^\d+\.\w+$/.test(originalName)) {
+              name = originalName;
+            }
+            const itemFullPath = item.path || '';
+            const type = item.type || 'file';
+            const size = type === 'folder' ? '-' : formatFileSize(item.size || 0);
+            const time = type === 'folder' ? '-' : formatTime(item.lastModified);
+            const icon = type === 'folder' ? '📁' : '📄';
+            
+            // 添加文件操作选项
+            let actionHtml = '<button class="btn operation-btn delete-btn" data-path="' + encodeURIComponent(itemFullPath) + '" data-type="' + type + '" title="删除"><i class="icon">🗑️</i> 删除</button>';
+            
+            if (type === 'file') {
+              // 为文件添加下载链接
+              // 提取文件名部分，避免路径信息，并去掉开头的数字串
+              const originalFileName = decodeURIComponent(itemFullPath.split('/').pop());
+              // 去除开头的数字串，如 '1762423848488-白狐.mp3' -> '白狐.mp3'
+              let cleanFileName = originalFileName;
+              // 只去除长数字串（时间戳），保留短数字作为有效文件名
+              // 匹配以长数字（7位以上）开头，后跟分隔符的模式
+              if (/^\d{7,}[\-_.,:|#]/.test(cleanFileName)) {
+                cleanFileName = cleanFileName.replace(/^\d+[\-_.,:|#]*/, '');
+              }
+              // 如果处理后文件名为空，且原始名称包含数字和扩展名，则保留原始名称
+              if (!cleanFileName && /^\d+\.\w+$/.test(originalFileName)) {
+                cleanFileName = originalFileName;
+              }
+              // 如果处理后文件名为空，且原始名称是数字加扩展名格式（如 '1.MP3'），则保留原始名称
+              if (!cleanFileName && /^\d+\.[^.]*$/.test(originalFileName)) {
+                cleanFileName = originalFileName;
+              }
+              actionHtml += ' <a href="/api/download/' + encodeURIComponent(itemFullPath) + '?filename=' + encodeURIComponent(cleanFileName) + '" class="btn operation-btn download-btn" target="_blank" download="' + cleanFileName + '" title="下载"><i class="icon">⬇️</i> 下载</a>';
+            }
+            
+            // 对于搜索结果，显示完整路径信息
+            const pathInfo = itemFullPath.substring(0, itemFullPath.lastIndexOf('/')) || '根目录';
+            const nameHtml = type === 'folder' 
+              ? '<span class="folder-name" data-path="' + encodeURIComponent(itemFullPath) + '">' + icon + ' ' + name + '</span>'
+              : icon + ' ' + name;
+            
+            html += '<tr data-path="' + encodeURIComponent(itemFullPath) + '" data-type="' + type + '" data-search-result="true">' +
+              '<td><input type="checkbox" class="item-checkbox" data-path="' + encodeURIComponent(itemFullPath) + '"></td>' +
+              '<td>' + nameHtml + '<br><small style="color: #666; font-size: 12px;">路径: ' + pathInfo + '</small></td>' +
+              '<td>' + (type === 'folder' ? '目录' : '文件') + '</td>' +
+              '<td>' + size + '</td>' +
+              '<td>' + time + '</td>' +
+              '<td>' + actionHtml + '</td>' +
+            '</tr>';
+          });
+          DOM.listBody.innerHTML = html;
+          
+          // 更新统计信息
+          const fileCount = data.results.filter(item => item.type === 'file').length;
+          const folderCount = data.results.filter(item => item.type === 'folder').length;
+          DOM.folderLabel.textContent = '搜索到的文件夹';
+          DOM.fileLabel.textContent = '搜索到的文件';
+          DOM.sizeLabel.textContent = '总计';
+          DOM.folderCount.textContent = folderCount;
+          DOM.fileCount.textContent = fileCount;
+          
+          // 计算总大小
+          const totalSize = data.results.filter(item => item.type === 'file').reduce((sum, item) => sum + (item.size || 0), 0);
+          DOM.totalSize.textContent = formatFileSize(totalSize);
+          
+          // 重新绑定事件
+          bindSearchResultEvents();
+        } else {
+          DOM.listBody.innerHTML = '<tr><td colspan="6" class="empty">未找到匹配的结果</td></tr>';
+          DOM.folderCount.textContent = '0';
+          DOM.fileCount.textContent = '0';
+          DOM.totalSize.textContent = '0 B';
+        }
+        
+        showToast('搜索完成，找到 ' + (data.results ? data.results.length : 0) + ' 个结果', 'success');
+      } catch (err) {
+        DOM.listBody.innerHTML = '<tr><td colspan="6" class="error">搜索失败: ' + err.message + '</td></tr>';
+        showToast('搜索失败: ' + err.message, 'error');
+        console.error('搜索失败:', err);
+      }
+    }
+    
+    // 为搜索结果重新绑定事件
+    function bindSearchResultEvents() {
+      // 绑定目录点击事件（进入子目录）
+      document.querySelectorAll('.folder-name:not(.search-bound)').forEach(el => {
+        el.classList.add('search-bound');
+        el.addEventListener('click', () => {
+          const targetPath = decodeURIComponent(el.dataset.path);
+          loadDirectory(targetPath);
+        });
+      });
+
+      // 绑定删除按钮事件
+      document.querySelectorAll('.delete-btn:not(.search-bound)').forEach(el => {
+        el.classList.add('search-bound');
+        el.addEventListener('click', async () => {
+          const path = decodeURIComponent(el.dataset.path);
+          const type = el.dataset.type;
+          
+          // 请求输入密码进行验证
+          const password = prompt('请输入管理密码以确认删除操作：');
+          if (!password) return;
+          
+          try {
+            // 直接使用路径，避免双重编码
+            const res = await fetch('/api/delete/' + path, { 
+              method: 'DELETE', 
+              cache: 'no-cache',
+              headers: {
+                'Authorization': 'Bearer ' + password
+              }
+            });
+            const data = await res.json();
+            if (data.success) {
+              showToast((type === 'folder' ? '文件夹' : '文件') + '删除成功', 'success');
+              // 重新执行搜索以更新结果
+              performSearch();
+            } else {
+              showToast(data.msg, 'error');
+            }
+          } catch (err) {
+            showToast('删除失败: ' + err.message, 'error');
+            console.error('删除失败:', err);
+          }
+        });
+      });
+      
+      // 绑定下载按钮事件
+      document.querySelectorAll('.download-btn:not(.search-bound)').forEach(el => {
+        el.classList.add('search-bound');
+        el.addEventListener('click', (e) => {
+          // 让默认的链接行为生效
+        });
+      });
     }
 
     // 初始化
@@ -1449,6 +1786,29 @@ function styleCss() {
   }
   .info-btn:hover {
     background: linear-gradient(to bottom, #138496, #117a8b);
+  }
+  .search-container {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+  }
+  .search-input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+    font-size: 14px;
+    outline: none;
+    width: 200px;
+  }
+  .search-input:focus {
+    border-color: #165DFF;
+    box-shadow: 0 0 0 2px rgba(22, 93, 255, 0.2);
+  }
+  .search-btn {
+    border-radius: 0;
+  }
+  .clear-search-btn {
+    border-radius: 0 4px 4px 0;
   }
   .operation-btn {
     padding: 6px 8px;
