@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TVBox 万能合并转换器 (文件名自定义版)</title>
+    <style>
+        :root { --primary: #4f46e5; --bg: #f8fafc; --card: #ffffff; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1400px; }
+        @media (max-width: 950px) { .container { grid-template-columns: 1fr; } }
+        .card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        textarea { width: 100%; height: 500px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font-family: 'Consolas', monospace; font-size: 13px; box-sizing: border-box; resize: none; background: #fafafa; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; min-width: 100px; }
+        .btn-main { background: var(--primary); color: white; }
+        .btn-main:hover { filter: brightness(1.1); }
+        .btn-danger { background: #fee2e2; color: #ef4444; }
+        .count-tag { background: var(--primary); color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; }
+        .filename-box { display: flex; align-items: center; gap: 5px; margin-top: 10px; background: #f1f5f9; padding: 10px; border-radius: 8px; font-size: 13px; }
+        .filename-input { border: 1px solid #cbd5e1; padding: 5px 8px; border-radius: 4px; width: 120px; font-family: inherit; }
+    </style>
+</head>
+<body>
+
+    <h2 style="color:var(--primary); margin-bottom: 5px;">TVBox 万能合并转换面板</h2>
+    <p style="color:#64748b; font-size:14px; margin-bottom: 20px;">支持多段 JSON 自动识别、去重合并及自定义文件名导出</p>
+
+    <div class="container">
+        <div class="card">
+            <h3 style="margin-top:0;">📥 粘贴任意内容</h3>
+            <textarea id="rawInput" placeholder="在此粘贴 JSON 数组、对象或包含 JSON 的文本..."></textarea>
+            <div class="btn-group">
+                <button class="btn-main" onclick="handleMerge()">⚡ 智能识别并合并</button>
+                <button style="background:#e2e8f0;" onclick="document.getElementById('rawInput').value=''">清空输入</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0;">📦 已去重站点 <span id="siteCount" class="count-tag">0</span></h3>
+            <textarea id="finalOutput" readonly placeholder="转换后的标准 TVBox JSON..."></textarea>
+            
+            <div class="filename-box">
+                <span>导出文件名：</span>
+                <input type="text" id="fn_prefix" class="filename-input" value="tvboxconfig">
+                <span>-</span>
+                <input type="text" id="fn_suffix" class="filename-input" style="width:60px;" value="1">
+                <span>.json</span>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-main" style="background:#10b981" onclick="copyResult()">📋 复制配置</button>
+                <button style="background:#0ea5e9; color:white;" onclick="downloadJson()">💾 下载文件</button>
+                <button class="btn-danger" onclick="resetAll()">🔄 全量重置</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let masterMap = new Map();
+
+        function getFingerprint(url) {
+            if (!url) return "";
+            return url.toLowerCase().trim().replace(/^https?:\/\//, "").replace(/\/+$/, "").replace(/(\?|&)?ac=list$/, "");
+        }
+
+        function deepScan(node) {
+            let found = [];
+            if (!node || typeof node !== 'object') return found;
+            const keys = Object.keys(node);
+            const api = node.api  node.url  node.source;
+            const name = node.name  node.title  node.label;
+
+baoge666, [2026/3/25 1:06]
+if (api && name && typeof api === 'string') {
+                if (node.isEnabled !== false) {
+                    found.push({ name: name, api: api, ext: node.detail  node.detailUrl  node.ext  "", key: node.id  node.key || "" });
+                }
+            }
+            for (let k in node) {
+                if (typeof node[k] === 'object') found = found.concat(deepScan(node[k]));
+            }
+            return found;
+        }
+
+        function handleMerge() {
+            const rawText = document.getElementById('rawInput').value.trim();
+            if (!rawText) return;
+            const jsonBlocks = rawText.match(/(\{[\s\S]*?\}|\[[\s\S]*?\])/g);
+            if (!jsonBlocks) return alert("未找到合法的 JSON 结构");
+
+            jsonBlocks.forEach(block => {
+                try {
+                    const parsed = JSON.parse(block);
+                    const sites = deepScan(parsed);
+                    sites.forEach(s => {
+                        const finger = getFingerprint(s.api);
+                        if (!finger) return;
+                        masterMap.set(finger, {
+                            "key": s.key || key_${Math.random().toString(36).slice(2,7)},
+                            "name": s.name.replace(/🎬-?|🎬/g, ""),
+                            "type": 1,
+                            "api": s.api.includes('?') ? ${s.api}&ac=list : ${s.api}?ac=list,
+                            "searchable": 1,
+                            "quickSearch": 1,
+                            "filterable": 1,
+                            "ext": s.ext
+                        });
+                    });
+                } catch (e) {}
+            });
+            render();
+            document.getElementById('rawInput').value = "";
+        }
+
+        function render() {
+            const sites = Array.from(masterMap.values());
+            const config = {
+                "spider": "https://raw.githubusercontent.com/FongMi/CatVodSpider/main/jar/custom_spider.jar",
+                "sites": sites,
+                "parses": [{"name":"解析","type":0,"url":"https://jx.xmflv.com/?url="}],
+                "flags": ["youku","qq","iqiyi","letv","sohu","mgtv"]
+            };
+            document.getElementById('finalOutput').value = JSON.stringify(config, null, 4);
+            document.getElementById('siteCount').innerText = sites.length;
+        }
+
+        function copyResult() {
+            const area = document.getElementById('finalOutput');
+            area.select();
+            document.execCommand('copy');
+            alert("已成功复制！");
+        }
+
+        function downloadJson() {
+            const content = document.getElementById('finalOutput').value;
+            if(!content) return alert("没有可导出的内容");
+            
+            // 获取用户定义的文件名
+            const prefix = document.getElementById('fn_prefix').value || "tvboxconfig";
+            const suffix = document.getElementById('fn_suffix').value || "1";
+            const fullFileName = ${prefix}-${suffix}.json;
+
+            const blob = new Blob([content], {type:'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fullFileName;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function resetAll() {
+            if(confirm("确定要彻底清空吗？")) {
+                masterMap.clear();
+                render();
+            }
+        }
+    </script>
+</body>
+</html>
