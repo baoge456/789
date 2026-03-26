@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>礼簿转换器 | 公事记账 ↔ 电子账簿 JSON互转</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        .transition-all { transition: all 0.3s ease; }
+        textarea, pre { scrollbar-width: thin; }
+        .code-font { font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace; }
+        @keyframes gentlePulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.95; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pulse-card { animation: gentlePulse 0.35s ease; }
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .modal-container {
+            background: white;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: modalSlideIn 0.3s ease;
+        }
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .modal-buttons button {
+            flex: 1;
+            padding: 10px 16px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+        .btn-confirm {
+            background-color: #3B82F6;
+            color: white;
+            border: none;
+        }
+        .btn-confirm:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+        }
+        .btn-cancel {
+            background-color: #e5e7eb;
+            color: #374151;
+            border: none;
+        }
+        .btn-cancel:hover {
+            background-color: #d1d5db;
+        }
+        /* 转换按钮样式增强 - 确保清晰可见 */
+        .convert-btn-primary {
+            background-color: #3B82F6;
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+        }
+        .convert-btn-primary:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 20px -3px rgba(59, 130, 246, 0.4);
+        }
+        .convert-btn-secondary {
+            background-color: #10B981;
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+        .convert-btn-secondary:hover {
+            background-color: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 20px -3px rgba(16, 185, 129, 0.4);
+        }
+        .convert-btn-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-gray-100 min-h-screen antialiased">
+
+    <!-- 顶部导航栏 -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200/70 transition-all">
+        <div class="container mx-auto px-4 md:px-6 py-3 md:py-4 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-primary/10 p-2 rounded-xl">
+                    <i class="fa fa-exchange text-primary text-xl md:text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg md:text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">公事记账·电子礼簿转换器</h1>
+                    <p class="text-xs text-gray-500 hidden sm:block">收入/支出独立数组 · 双向精准互转</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200/70 transition text-gray-600" title="浅色/深色模式">
+                    <i class="fa fa-moon-o"></i>
+                </button>
+                <div class="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full hidden md:block">v2.2</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 md:px-6 py-6 md:py-10">
+        <!-- 说明卡片 -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 md:p-6 mb-8 transition-all hover:shadow-xl">
+            <div class="flex flex-wrap items-start gap-4">
+                <div class="bg-blue-50 p-3 rounded-xl">
+                    <i class="fa fa-exchange text-primary text-2xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">📄 JSON格式双向转换</h2>
+                    <p class="text-gray-600 mt-1 text-sm leading-relaxed">
+                        支持<strong class="text-primary">公事记账JSON</strong> (proxyGifts/proxyExpenses) 与 <strong class="text-emerald-600">电子账簿JSON</strong> (gifts/expenses) 无损互转。
+                        自动核算收支统计，支持拖拽文件、复制下载。
+                    </p>
+                    <div class="flex flex-wrap gap-3 mt-3 text-xs">
+                        <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full"><i class="fa fa-arrows-h mr-1"></i> 双向转换</span>
+                        <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full"><i class="fa fa-list-alt mr-1"></i> 保留备注/时间戳</span>
+                        <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full"><i class="fa fa-line-chart mr-1"></i> 实时统计</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 双栏转换区 + 切换按钮 -->
+        <div class="flex flex-col lg:flex-row gap-5 items-stretch relative">
+            <!-- 输入区 -->
+            <div class="flex-1 transition-all duration-300" id="inputCard">
+                <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 h-full flex flex-col">
+                    <div class="px-5 py-3 bg-gray-50/80 border-b border-gray-200 flex justify-between items-center">
+                        <div class="flex items-center gap-2 font-medium text-gray-700" id="input-title">
+                            <i class="fa fa-upload text-primary"></i>
+                            <span>公事记账 JSON 输入</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <label for="file-upload" class="p-1.5 rounded-md hover:bg-gray-200 cursor-pointer text-gray-500 transition" title="导入JSON文件">
+                                <i class="fa fa-folder-open-o"></i>
+                            </label>
+                            <input id="file-upload" type="file" accept=".json" class="hidden">
+                            <button id="clear-input" class="p-1.5 rounded-md hover:bg-gray-200 text-gray-500 transition" title="清空内容">
+                                <i class="fa fa-eraser"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative flex-1 min-h-[320px] md:min-h-[420px]" id="drop-zone">
+                        <textarea id="json-input" class="w-full h-full p-4 font-mono text-sm resize-none focus:outline-none bg-white code-font" placeholder='粘贴公事记账JSON 或拖放.json文件至此...&#10;例如: { "proxyBasicInfo": {...}, "proxyGifts": [...], "proxyExpenses": [...] }'></textarea>
+                        <div id="drag-mask" class="absolute inset-0 bg-blue-50/80 backdrop-blur-sm border-2 border-dashed border-primary rounded-xl flex items-center justify-center hidden transition-all">
+                            <div class="text-center"><i class="fa fa-cloud-upload text-4xl text-primary mb-2"></i><p class="text-gray-700 font-medium">释放文件以导入</p></div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-2 text-xs flex justify-between border-t border-gray-100 bg-gray-50">
+                        <div id="input-validation" class="text-red-500 hidden"></div>
+                        <div id="format-detection" class="text-blue-500 hidden"></div>
+                        <div class="text-gray-400 ml-auto">支持拖拽 / 粘贴</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中央切换大按钮 -->
+            <div class="flex justify-center lg:self-center my-2 lg:my-0">
+                <button id="swap-btn" class="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-white shadow-lg border border-gray-200 hover:shadow-xl transition-all flex items-center justify-center text-primary hover:bg-primary/5 group">
+                    <i class="fa fa-exchange text-xl group-hover:rotate-180 transition-transform duration-500"></i>
+                </button>
+            </div>
+
+            <!-- 输出区 -->
+            <div class="flex-1 transition-all duration-300" id="outputCard">
+                <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 h-full flex flex-col">
+                    <div class="px-5 py-3 bg-gray-50/80 border-b border-gray-200 flex justify-between items-center">
+                        <div class="flex items-center gap-2 font-medium text-gray-700" id="output-title">
+                            <i class="fa fa-download text-emerald-600"></i>
+                            <span>电子账簿 JSON 输出</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <button id="copy-output" class="p-1.5 rounded-md hover:bg-gray-200 text-gray-500 transition" title="复制结果">
+                                <i class="fa fa-clipboard"></i>
+                            </button>
+                            <button id="download-output" class="p-1.5 rounded-md hover:bg-gray-200 text-gray-500 transition" title="下载JSON">
+                                <i class="fa fa-save"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative flex-1 min-h-[320px] md:min-h-[420px] bg-gray-50">
+                        <pre id="json-output" class="w-full h-full p-4 font-mono text-sm overflow-auto m-0 code-font whitespace-pre-wrap break-words"></pre>
+                        <div id="output-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm pointer-events-none bg-gray-50/80">
+                            <div class="text-center"><i class="fa fa-code fa-2x mb-2 opacity-40"></i><br />转换结果将显示在这里</div>
+                        </div>
+                    </div>
+                    <div id="copy-notification" class="px-4 py-1 text-xs text-green-600 hidden bg-green-50 border-t border-green-100"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 转换主按钮 + 统计卡片 -->
+        <div class="mt-8 flex flex-col items-center gap-5">
+            <button id="convert-btn" class="font-semibold py-3 px-10 rounded-full shadow-lg transition-all flex items-center gap-2 text-lg">
+                <i class="fa fa-refresh"></i>
+                <span id="convert-btn-text">公事记账 → 电子账簿</span>
+            </button>
+
+            <!-- 统计卡片 -->
+            <div id="statistics-card" class="w-full max-w-3xl bg-white rounded-2xl shadow-lg p-5 hidden transition-all border border-gray-100">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4"><i class="fa fa-pie-chart text-primary"></i> 转换统计快报</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-blue-50 rounded-xl p-3 text-center"><div class="text-xs text-gray-500">💰 总收入</div><div id="total-income" class="text-2xl font-bold text-primary">0 元</div></div>
+                    <div class="bg-red-50 rounded-xl p-3 text-center"><div class="text-xs text-gray-500">📉 总支出</div><div id="total-expense" class="text-2xl font-bold text-red-500">0 元</div></div>
+                    <div class="bg-emerald-50 rounded-xl p-3 text-center"><div class="text-xs text-gray-500">⚖️ 净额 (收-支)</div><div id="net-amount" class="text-2xl font-bold text-emerald-600">0 元</div></div>
+                    <div class="bg-purple-50 rounded-xl p-3 text-center"><div class="text-xs text-gray-500">📋 总记录数</div><div id="total-records" class="text-2xl font-bold text-purple-600">0 条</div></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-12 py-6">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-xs md:text-sm">
+            <p>JSON格式互转工具 | 公事记账(proxyGifts/proxyExpenses) ↔ 电子账簿(gifts/expenses) | 数据本地处理</p>
+            <p class="mt-1 opacity-70">© 2025 智能礼簿转换器</p>
+        </div>
+    </footer>
+
+    <!-- 地点填写模态框 -->
+    <div id="location-modal" style="display: none;" class="modal-overlay">
+        <div class="modal-container">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fa fa-map-marker text-primary"></i> 
+                        填写举办地点
+                    </h3>
+                    <button id="close-modal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+                <p class="text-gray-600 text-sm mb-4">
+                    电子账簿JSON中缺少「举办地点」字段，请补充地点信息，将写入转换后的公事记账JSON的 
+                    <code class="bg-gray-100 px-1 rounded">location</code> 字段。
+                </p>
+                <input type="text" id="location-input" 
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-base" 
+                    placeholder="例如：某某礼堂 / 李氏宗祠 / 社区活动中心" 
+                    autocomplete="off">
+                <div class="modal-buttons">
+                    <button id="cancel-modal" class="btn-cancel">取消</button>
+                    <button id="confirm-location" class="btn-confirm">确认转换</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------- 全局状态 ----------
+        let isForward = true;   // true: 公事→电子, false: 电子→公事
+        let pendingConversionData = null;
+
+        // DOM 元素
+        const jsonInput = document.getElementById('json-input');
+        const jsonOutput = document.getElementById('json-output');
+        const outputPlaceholder = document.getElementById('output-placeholder');
+        const convertBtn = document.getElementById('convert-btn');
+        const convertBtnText = document.getElementById('convert-btn-text');
+        const clearInputBtn = document.getElementById('clear-input');
+        const fileUpload = document.getElementById('file-upload');
+        const dragMask = document.getElementById('drag-mask');
+        const dropZone = document.getElementById('drop-zone');
+        const copyOutputBtn = document.getElementById('copy-output');
+        const downloadOutputBtn = document.getElementById('download-output');
+        const inputValidation = document.getElementById('input-validation');
+        const formatDetection = document.getElementById('format-detection');
+        const copyNotification = document.getElementById('copy-notification');
+        const swapBtn = document.getElementById('swap-btn');
+        const inputTitle = document.getElementById('input-title');
+        const outputTitle = document.getElementById('output-title');
+        const statisticsCard = document.getElementById('statistics-card');
+        const themeToggle = document.getElementById('theme-toggle');
+        
+        const modal = document.getElementById('location-modal');
+        const locationInput = document.getElementById('location-input');
+        const confirmLocationBtn = document.getElementById('confirm-location');
+        const closeModalBtn = document.getElementById('close-modal');
+        const cancelModalBtn = document.getElementById('cancel-modal');
+
+        // 统计DOM
+        const totalIncomeSpan = document.getElementById('total-income');
+        const totalExpenseSpan = document.getElementById('total-expense');
+        const netAmountSpan = document.getElementById('net-amount');
+        const totalRecordsSpan = document.getElementById('total-records');
+
+        // 更新按钮样式函数
+        function updateButtonStyle() {
+            if (isForward) {
+                // 公事→电子：蓝色按钮
+                convertBtn.className = 'font-semibold py-3 px-10 rounded-full shadow-lg transition-all flex items-center gap-2 text-lg convert-btn-primary';
+                convertBtnText.innerText = '公事记账 → 电子账簿';
+            } else {
+                // 电子→公事：翠绿色按钮，确保清晰可见
+                convertBtn.className = 'font-semibold py-3 px-10 rounded-full shadow-lg transition-all flex items-center gap-2 text-lg convert-btn-secondary';
+                convertBtnText.innerText = '电子账簿 → 公事记账';
+            }
+        }
+
+        // 辅助: 更新统计卡片
+        function updateStatsUI(income, expense, net, records) {
+            totalIncomeSpan.innerText = `${income.toFixed(2)} 元`;
+            totalExpenseSpan.innerText = `${expense.toFixed(2)} 元`;
+            netAmountSpan.innerText = `${net.toFixed(2)} 元`;
+            totalRecordsSpan.innerText = `${records} 条`;
+            statisticsCard.classList.remove('hidden');
+        }
+
+        function resetStats() {
+            statisticsCard.classList.add('hidden');
+        }
+
+        function showModal() {
+            modal.style.display = 'flex';
+            locationInput.value = '';
+            locationInput.focus();
+        }
+
+        function hideModal() {
+            modal.style.display = 'none';
+            pendingConversionData = null;
+        }
+
+        // ---------- 核心转换逻辑 ----------
+        function convertGongshiToDianzi(data) {
+            if (!data.proxyBasicInfo) throw new Error('缺少 proxyBasicInfo 字段');
+            const basic = data.proxyBasicInfo;
+            const giftsRaw = Array.isArray(data.proxyGifts) ? data.proxyGifts : [];
+            const expensesRaw = Array.isArray(data.proxyExpenses) ? data.proxyExpenses : [];
+            
+            const eventObj = {
+                id: 13,
+                name: basic.organizer || '未命名礼事',
+                startDateTime: basic.accountingDate ? `${basic.accountingDate}T00:00` : new Date().toISOString().slice(0,10)+'T00:00',
+                endDateTime: basic.accountingDate ? `${basic.accountingDate}T23:59` : new Date().toISOString().slice(0,10)+'T23:59',
+                theme: "theme-solemn",
+                voiceName: "",
+                coverImage: null,
+                minSpeechAmount: 0
+            };
+            
+            const gifts = giftsRaw.map(g => ({
+                name: g.giver || '',
+                amount: Number(g.amount) || 0,
+                type: "现金",
+                remarks: g.note || '',
+                timestamp: data.exportDate || new Date().toISOString(),
+                history: []
+            }));
+            
+            const expenses = expensesRaw.map(e => ({
+                name: e.item || '未命名支出',
+                amount: Number(e.amount) || 0,
+                date: basic.accountingDate || new Date().toISOString().slice(0,10),
+                remarks: e.note || '',
+                timestamp: data.exportDate || new Date().toISOString()
+            }));
+            
+            const totalIncome = gifts.reduce((s, i) => s + i.amount, 0);
+            const totalExpense = expenses.reduce((s, i) => s + i.amount, 0);
+            const net = totalIncome - totalExpense;
+            const totalRec = gifts.length + expenses.length;
+            updateStatsUI(totalIncome, totalExpense, net, totalRec);
+            
+            return {
+                version: "1.1",
+                exportTime: data.exportDate || new Date().toISOString(),
+                event: eventObj,
+                gifts: gifts,
+                expenses: expenses
+            };
+        }
+        
+        function convertDianziToGongshi(data, locationValue = '') {
+            if (!data.event || !Array.isArray(data.gifts) || !Array.isArray(data.expenses)) {
+                throw new Error('无效的电子账簿格式，缺少 event/gifts/expenses');
+            }
+            const basicInfo = {
+                organizer: data.event.name || '',
+                publicAffairType: '白公事',
+                accountingDate: data.event.startDateTime ? data.event.startDateTime.split('T')[0] : new Date().toISOString().slice(0,10),
+                location: locationValue || '',
+                isSet: true
+            };
+            
+            const proxyGifts = data.gifts.map(g => ({
+                giver: g.name || '',
+                relationship: '',
+                amount: Number(g.amount) || 0,
+                note: g.remarks || '',
+                attended: "参加"
+            }));
+            
+            const proxyExpenses = data.expenses.map(e => ({
+                item: e.name || '',
+                amount: Number(e.amount) || 0,
+                note: e.remarks || ''
+            }));
+            
+            const totalIncome = proxyGifts.reduce((s, i) => s + i.amount, 0);
+            const totalExpense = proxyExpenses.reduce((s, i) => s + i.amount, 0);
+            const net = totalIncome - totalExpense;
+            const totalRec = proxyGifts.length + proxyExpenses.length;
+            updateStatsUI(totalIncome, totalExpense, net, totalRec);
+            
+            return {
+                proxyBasicInfo: basicInfo,
+                proxyGifts: proxyGifts,
+                proxyExpenses: proxyExpenses,
+                exportDate: data.exportTime || new Date().toISOString(),
+                totalIncome: totalIncome,
+                totalExpense: totalExpense,
+                netAmount: net,
+                totalRecords: totalRec
+            };
+        }
+        
+        function validateCurrentInput(rawText) {
+            if (!rawText.trim()) return { valid: false, message: `请输入${isForward ? '公事记账' : '电子账簿'} JSON数据`, data: null };
+            try {
+                const parsed = JSON.parse(rawText);
+                if (isForward) {
+                    const hasBasic = !!parsed.proxyBasicInfo;
+                    const hasGiftsOrExp = Array.isArray(parsed.proxyGifts) || Array.isArray(parsed.proxyExpenses);
+                    if (!hasBasic || !hasGiftsOrExp) {
+                        return { valid: false, message: '公事记账JSON需包含 proxyBasicInfo 及 proxyGifts/proxyExpenses 数组', data: null };
+                    }
+                    return { valid: true, message: '✓ 公事记账格式有效', data: parsed, format: '公事记账' };
+                } else {
+                    if (!parsed.event || !Array.isArray(parsed.gifts) || !Array.isArray(parsed.expenses)) {
+                        return { valid: false, message: '电子账簿JSON需包含 event, gifts(数组), expenses(数组)', data: null };
+                    }
+                    return { valid: true, message: '✓ 电子账簿格式有效(含收支独立数组)', data: parsed, format: '电子账簿' };
+                }
+            } catch (e) {
+                return { valid: false, message: `JSON解析错误: ${e.message}`, data: null };
+            }
+        }
+        
+        function attemptConversion() {
+            const inputVal = jsonInput.value;
+            const validation = validateCurrentInput(inputVal);
+            if (!validation.valid) {
+                inputValidation.innerText = validation.message;
+                inputValidation.classList.remove('hidden');
+                formatDetection.classList.add('hidden');
+                jsonOutput.innerText = '';
+                outputPlaceholder.classList.remove('hidden');
+                resetStats();
+                return;
+            }
+            inputValidation.classList.add('hidden');
+            formatDetection.innerText = `检测到: ${validation.format} 格式`;
+            formatDetection.classList.remove('hidden');
+            
+            if (isForward) {
+                try {
+                    const outputData = convertGongshiToDianzi(validation.data);
+                    const pretty = JSON.stringify(outputData, null, 2);
+                    jsonOutput.innerText = pretty;
+                    outputPlaceholder.classList.add('hidden');
+                } catch (err) {
+                    jsonOutput.innerText = `转换失败: ${err.message}`;
+                    outputPlaceholder.classList.add('hidden');
+                    resetStats();
+                }
+            } else {
+                pendingConversionData = validation.data;
+                showModal();
+            }
+        }
+        
+        function confirmReverseConversion() {
+            if (!pendingConversionData) {
+                hideModal();
+                return;
+            }
+            const locationText = locationInput.value.trim();
+            try {
+                const outputData = convertDianziToGongshi(pendingConversionData, locationText);
+                const pretty = JSON.stringify(outputData, null, 2);
+                jsonOutput.innerText = pretty;
+                outputPlaceholder.classList.add('hidden');
+                hideModal();
+            } catch (err) {
+                jsonOutput.innerText = `转换失败: ${err.message}`;
+                outputPlaceholder.classList.add('hidden');
+                resetStats();
+                hideModal();
+            }
+        }
+        
+        function updateDirectionUI() {
+            if (isForward) {
+                inputTitle.innerHTML = '<i class="fa fa-upload text-primary"></i><span>公事记账 JSON 输入</span>';
+                outputTitle.innerHTML = '<i class="fa fa-download text-emerald-600"></i><span>电子账簿 JSON 输出</span>';
+                jsonInput.placeholder = '粘贴公事记账JSON (proxyGifts + proxyExpenses) 或拖拽文件...';
+            } else {
+                inputTitle.innerHTML = '<i class="fa fa-upload text-emerald-600"></i><span>电子账簿 JSON 输入</span>';
+                outputTitle.innerHTML = '<i class="fa fa-download text-primary"></i><span>公事记账 JSON 输出</span>';
+                jsonInput.placeholder = '粘贴电子账簿JSON (含 event, gifts, expenses 数组)';
+            }
+            // 更新按钮样式
+            updateButtonStyle();
+            // 清空所有内容
+            jsonInput.value = '';
+            jsonOutput.innerText = '';
+            outputPlaceholder.classList.remove('hidden');
+            inputValidation.classList.add('hidden');
+            formatDetection.classList.add('hidden');
+            copyNotification.classList.add('hidden');
+            resetStats();
+            pendingConversionData = null;
+            hideModal();
+        }
+        
+        function handleFile(file) {
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                inputValidation.innerText = '仅支持 .json 文件';
+                inputValidation.classList.remove('hidden');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const content = ev.target.result;
+                    JSON.parse(content);
+                    jsonInput.value = content;
+                    const event = new Event('input', { bubbles: true });
+                    jsonInput.dispatchEvent(event);
+                    inputValidation.innerText = '文件已加载，点击转换按钮';
+                    inputValidation.classList.remove('hidden');
+                    inputValidation.style.color = '#10b981';
+                    setTimeout(() => {
+                        if (inputValidation.innerText === '文件已加载，点击转换按钮') inputValidation.classList.add('hidden');
+                    }, 2000);
+                } catch (err) {
+                    inputValidation.innerText = `文件解析失败: ${err.message}`;
+                    inputValidation.classList.remove('hidden');
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+        
+        // ----- 事件绑定 -----
+        jsonInput.addEventListener('input', () => {
+            const val = jsonInput.value;
+            if (!val.trim()) {
+                inputValidation.classList.add('hidden');
+                formatDetection.classList.add('hidden');
+                return;
+            }
+            const res = validateCurrentInput(val);
+            if (res.valid) {
+                inputValidation.innerText = res.message;
+                inputValidation.classList.remove('hidden');
+                inputValidation.style.color = '#10b981';
+                formatDetection.innerText = `检测到: ${res.format} 格式`;
+                formatDetection.classList.remove('hidden');
+            } else {
+                inputValidation.innerText = res.message;
+                inputValidation.classList.remove('hidden');
+                inputValidation.style.color = '#ef4444';
+                formatDetection.classList.add('hidden');
+            }
+        });
+        
+        convertBtn.addEventListener('click', () => {
+            attemptConversion();
+            convertBtn.classList.add('scale-105');
+            setTimeout(() => convertBtn.classList.remove('scale-105'), 200);
+        });
+        
+        clearInputBtn.addEventListener('click', () => {
+            jsonInput.value = '';
+            jsonOutput.innerText = '';
+            outputPlaceholder.classList.remove('hidden');
+            inputValidation.classList.add('hidden');
+            formatDetection.classList.add('hidden');
+            copyNotification.classList.add('hidden');
+            resetStats();
+            pendingConversionData = null;
+        });
+        
+        fileUpload.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+            fileUpload.value = '';
+        });
+        
+        dropZone.addEventListener('dragenter', (e) => { e.preventDefault(); dragMask.classList.remove('hidden'); });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dragMask.classList.remove('hidden'); });
+        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dragMask.classList.add('hidden'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragMask.classList.add('hidden');
+            const files = e.dataTransfer.files;
+            if (files.length) handleFile(files[0]);
+        });
+        
+        copyOutputBtn.addEventListener('click', async () => {
+            const outText = jsonOutput.innerText;
+            if (!outText || (outputPlaceholder && !outputPlaceholder.classList.contains('hidden'))) {
+                copyNotification.innerText = '暂无内容可复制';
+                copyNotification.classList.remove('hidden');
+                setTimeout(() => copyNotification.classList.add('hidden'), 1500);
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(outText);
+                copyNotification.innerText = '✓ 已复制 JSON 到剪贴板';
+                copyNotification.classList.remove('hidden');
+                setTimeout(() => copyNotification.classList.add('hidden'), 2000);
+            } catch (err) {
+                copyNotification.innerText = '复制失败: 手动选择复制';
+                copyNotification.classList.remove('hidden');
+            }
+        });
+        
+        downloadOutputBtn.addEventListener('click', () => {
+            const outText = jsonOutput.innerText;
+            if (!outText || (outputPlaceholder && !outputPlaceholder.classList.contains('hidden') && outText === '')) {
+                alert('没有转换结果可下载，请先转换数据');
+                return;
+            }
+            let defaultName = isForward ? '电子账簿_转换结果' : '公事记账_转换结果';
+            try {
+                const parsed = JSON.parse(outText);
+                if (isForward && parsed.event?.name) defaultName = `电子账簿_${parsed.event.name.replace(/[^\w\u4e00-\u9fa5]/g, '_')}`;
+                else if (!isForward && parsed.proxyBasicInfo?.organizer) defaultName = `公事记账_${parsed.proxyBasicInfo.organizer.replace(/[^\w\u4e00-\u9fa5]/g, '_')}`;
+            } catch(e) {}
+            const finalName = prompt('请输入文件名(保留.json后缀):', defaultName+'.json');
+            if (!finalName) return;
+            const fileName = finalName.endsWith('.json') ? finalName : finalName+'.json';
+            const blob = new Blob([outText], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        
+        swapBtn.addEventListener('click', () => {
+            isForward = !isForward;
+            updateDirectionUI();
+            const inCard = document.getElementById('inputCard');
+            const outCard = document.getElementById('outputCard');
+            inCard.classList.add('animate-pulse-card');
+            outCard.classList.add('animate-pulse-card');
+            setTimeout(() => {
+                inCard.classList.remove('animate-pulse-card');
+                outCard.classList.remove('animate-pulse-card');
+            }, 400);
+        });
+        
+        confirmLocationBtn.addEventListener('click', confirmReverseConversion);
+        closeModalBtn.addEventListener('click', hideModal);
+        cancelModalBtn.addEventListener('click', hideModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) hideModal();
+        });
+        locationInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmReverseConversion();
+            }
+        });
+        
+        // 深色模式
+        let dark = false;
+        themeToggle.addEventListener('click', () => {
+            dark = !dark;
+            const body = document.body;
+            if (dark) {
+                body.classList.add('bg-gray-900');
+                body.classList.remove('bg-gradient-to-br', 'from-slate-50', 'to-gray-100');
+                body.style.backgroundColor = '#111827';
+                document.querySelectorAll('.bg-white, .bg-gray-50, .bg-gray-100').forEach(el => {
+                    if (el.classList.contains('bg-white') && !el.closest('button')) el.classList.add('bg-gray-800', 'text-gray-200');
+                    else if (el.classList.contains('bg-gray-50') && !el.closest('button')) el.classList.add('bg-gray-800/80');
+                });
+                themeToggle.querySelector('i').classList.remove('fa-moon-o');
+                themeToggle.querySelector('i').classList.add('fa-sun-o');
+            } else {
+                body.classList.add('bg-gradient-to-br', 'from-slate-50', 'to-gray-100');
+                body.classList.remove('bg-gray-900');
+                document.querySelectorAll('.bg-gray-800, .bg-gray-800\\/80').forEach(el => {
+                    if (el.classList.contains('bg-gray-800')) el.classList.remove('bg-gray-800', 'text-gray-200');
+                    if (el.classList.contains('bg-gray-800/80')) el.classList.remove('bg-gray-800/80');
+                });
+                themeToggle.querySelector('i').classList.remove('fa-sun-o');
+                themeToggle.querySelector('i').classList.add('fa-moon-o');
+            }
+        });
+        
+        // 初始化
+        updateDirectionUI();
+        const setMinHeights = () => {
+            const inputArea = document.getElementById('json-input');
+            if(inputArea) inputArea.style.minHeight = `${Math.max(280, window.innerHeight * 0.35)}px`;
+        };
+        setMinHeights();
+        window.addEventListener('resize', setMinHeights);
+    </script>
+</body>
+</html>
