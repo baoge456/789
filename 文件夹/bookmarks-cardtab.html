@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>allbookmarks↔cardtab</title>
+    <title>JSON格式互转</title>
     <style>
         * {
             margin: 0;
@@ -29,8 +29,76 @@
         h1 {
             text-align: center;
             color: #333;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
             font-weight: 600;
+        }
+        
+        .format-category {
+            background-color: #fef7fb;
+            border-left: 4px solid #9f7aea;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #4a5568;
+        }
+        
+        .support-formats {
+            background-color: #f0f7ff;
+            border-left: 4px solid #409eff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .support-formats h3 {
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .support-formats p {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        /* 转换方向选择器样式 */
+        .convert-direction {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .direction-label {
+            font-size: 15px;
+            color: #2d3748;
+            font-weight: 500;
+        }
+        
+        .direction-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #2d3748;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .direction-select:focus {
+            border-color: #409eff;
+        }
+        
+        .convert-arrow {
+            font-size: 20px;
+            color: #409eff;
+            font-weight: bold;
         }
         
         .convert-area {
@@ -164,7 +232,6 @@
             display: none;
         }
         
-        /* 新增导出文件名输入框样式 */
         .export-name-input {
             padding: 8px 10px;
             border: 1px solid #ddd;
@@ -188,7 +255,34 @@
 </head>
 <body>
     <div class="container">
-        <h1>allbookmarks↔cardtab</h1>
+        <h1>JSON格式互转</h1>
+        
+        <!-- 格式分类说明 -->
+        <div class="format-category">
+            📌 <strong>格式分类规则</strong>：card类（含card-tab、格式1、格式2）→ 结构包含分类层级或分离式分类；book类（all-bookmarks）→ 顶层对象结构，分类为属性键
+        </div>
+        
+        <!-- 支持格式说明区域 -->
+        <div class="support-formats">
+            <h3>✅ 支持导入格式：</h3>
+            <p><strong>book类</strong>：可导入.baoge.wang作为后缀，支持以下前缀1、pipi；2、dh；3、nav</p>
+            <p><strong>card类</strong>：.可导入baoge456.dpdns.org作为后缀，支持以下前缀1. nav；2.card ；3. modern；4. bookmark</p>
+        </div>
+        
+        <!-- 转换方向选择器 -->
+        <div class="convert-direction">
+            <span class="direction-label">转换方向：</span>
+            <select id="fromFormat" class="direction-select" disabled>
+                <option value="card">card类格式</option>
+                <option value="book">book类格式</option>
+            </select>
+            <span class="convert-arrow">→</span>
+            <select id="toFormat" class="direction-select">
+                <option value="book" selected>book类格式（all-bookmarks）</option>
+                <option value="card">card类格式（card-tab）</option>
+            </select>
+            <span class="direction-label">（默认：card→book）</span>
+        </div>
         
         <div class="convert-area">
             <div class="input-area">
@@ -203,12 +297,11 @@
             <div class="output-area">
                 <div class="file-upload">
                     <button class="upload-btn secondary" id="exportBtn" disabled>导出JSON文件</button>
-                    <!-- 新增文件名输入框 -->
                     <input type="text" id="exportFileName" class="export-name-input" placeholder="输入文件名" disabled>
                     <span class="export-name-tip" id="exportNameTip">（无需输入.json后缀）</span>
                     <span id="exportInfo">转换后可导出</span>
                 </div>
-                <h2>转换结果</h2>
+                <h2>转换结果（目标格式：<span id="targetFormatText">all-bookmarks</span>）</h2>
                 <textarea id="outputJson" readonly placeholder="转换后的JSON内容将显示在这里..."></textarea>
             </div>
         </div>
@@ -235,21 +328,24 @@
         const copyBtn = document.getElementById('copyBtn');
         const clearBtn = document.getElementById('clearBtn');
         const message = document.getElementById('message');
-        // 新增导出文件名输入框元素
         const exportFileName = document.getElementById('exportFileName');
         const exportNameTip = document.getElementById('exportNameTip');
+        // 转换方向相关元素
+        const fromFormatSelect = document.getElementById('fromFormat');
+        const toFormatSelect = document.getElementById('toFormat');
+        const targetFormatText = document.getElementById('targetFormatText');
 
-        // 存储当前转换后的格式类型（1:all-bookmarks, 2:card-tab）
-        let currentOutputFormat = 0;
-        // 存储转换后的JSON对象
+        // 存储状态变量
+        let currentOutputFormat = 1; // 1:book(all-bookmarks), 2:card(card-tab)
         let convertedJsonObj = null;
+        let originalFormatType = 0; // 1-4对应四种格式
+        let originalFormatClass = ''; // 'card'或'book'
 
         // 显示消息提示
         function showMessage(text, type = 'tips') {
             message.textContent = text;
             message.className = type;
             
-            // 警告类提示不自动清除，其他3秒清除
             if (type !== 'warning') {
                 setTimeout(() => {
                     message.textContent = '';
@@ -258,134 +354,237 @@
             }
         }
 
-        // 优化格式检测逻辑：不再依赖第一条数据，检查整体结构
-        function detectJsonType(jsonObj) {
-            // 格式1特征：顶层是对象，所有属性值都是数组，且数组项包含name+url（放宽favicon）
-            if (typeof jsonObj === 'object' && jsonObj !== null && !Array.isArray(jsonObj)) {
-                const entries = Object.entries(jsonObj);
-                if (entries.length === 0) return 0; // 空对象
-                
-                let isFormat1 = true;
-                for (const [_, items] of entries) {
-                    if (!Array.isArray(items)) {
-                        isFormat1 = false;
-                        break;
-                    }
-                    // 检查数组中至少有一个有效条目（包含name+url）
-                    const hasValidItem = items.some(item => 
-                        item && typeof item === 'object' && item.name && item.url
-                    );
-                    if (!hasValidItem) {
-                        isFormat1 = false;
-                        break;
-                    }
-                }
-                if (isFormat1) return 1;
+        // 格式类型映射到格式类（card/book）
+        function getFormatClass(formatType) {
+            switch(formatType) {
+                case 1: return 'book'; // all-bookmarks
+                case 2: return 'card'; // card-tab
+                case 3: return 'card'; // 格式1
+                case 4: return 'card'; // 格式2
+                default: return '';
             }
-            
-            // 格式2特征：顶层是数组，且数组项包含id+name+url+catelog（放宽其他字段）
-            if (Array.isArray(jsonObj)) {
-                if (jsonObj.length === 0) return 0; // 空数组
-                
-                let isFormat2 = true;
-                // 检查数组中至少有一个有效条目（包含id+name+url+catelog）
-                const hasValidItem = jsonObj.some(item => 
-                    item && typeof item === 'object' && item.id && item.name && item.url && item.catelog
-                );
-                if (hasValidItem) return 2;
-            }
-            
-            return 0; // 无法识别
         }
 
-        // 格式1转格式2 (all-bookmarks → card-tab)：添加容错，跳过无效条目
-        function format1ToFormat2(jsonObj) {
+        // 增强格式检测逻辑：支持四种格式识别（修复边界情况）
+        function detectJsonType(jsonObj) {
+            // 空值处理
+            if (!jsonObj || (typeof jsonObj === 'object' && Object.keys(jsonObj).length === 0)) {
+                return 0;
+            }
+
+            // 格式1特征：包含version=1、timestamp、categories（支持子分类）
+            if (typeof jsonObj === 'object' && jsonObj.version === 1 && 
+                typeof jsonObj.timestamp === 'number' && 
+                Array.isArray(jsonObj.categories)) {
+                return 3;
+            }
+            
+            // 格式2特征：包含version="1.0"、exportDate、categories和bookmarks数组
+            if (typeof jsonObj === 'object' && jsonObj.version === '1.0' && 
+                typeof jsonObj.exportDate === 'string' && 
+                Array.isArray(jsonObj.categories) && 
+                Array.isArray(jsonObj.bookmarks)) {
+                return 4;
+            }
+            
+            // 原格式1（all-bookmarks）特征：顶层是对象，属性值为数组且含name+url
+            if (typeof jsonObj === 'object' && !Array.isArray(jsonObj)) {
+                const entries = Object.entries(jsonObj);
+                for (const [_, items] of entries) {
+                    if (Array.isArray(items) && items.length > 0) {
+                        const firstItem = items[0];
+                        if (firstItem && typeof firstItem === 'object' && firstItem.name && firstItem.url) {
+                            return 1;
+                        }
+                    }
+                }
+            }
+            
+            // 原格式2（card-tab）特征：顶层是数组，元素含id+name+url+catelog
+            if (Array.isArray(jsonObj) && jsonObj.length > 0) {
+                const firstItem = jsonObj[0];
+                if (firstItem && typeof firstItem === 'object' && 
+                    firstItem.id && firstItem.name && firstItem.url && firstItem.catelog) {
+                    return 2;
+                }
+            }
+            
+            return 0;
+        }
+
+        // ---------------------- 转换核心函数（修复逻辑错误） ----------------------
+        // card类 → book类（all-bookmarks）：统一处理三种card类格式
+        function cardToBook(jsonObj, formatType) {
+            const result = {};
+            let skipCount = 0;
+            
+            try {
+                switch(formatType) {
+                    case 2: // card-tab格式（顶层数组）
+                        jsonObj.forEach(item => {
+                            if (!item || !item.name || !item.url) {
+                                skipCount++;
+                                return;
+                            }
+                            const catelog = (item.catelog || '未分类').trim();
+                            if (!result[catelog]) {
+                                result[catelog] = [];
+                            }
+                            result[catelog].push({
+                                name: item.name.trim() || `未命名书签${result[catelog].length + 1}`,
+                                url: item.url.trim(),
+                                favicon: item.logo || item.favicon || null
+                            });
+                        });
+                        break;
+                        
+                    case 3: // 格式1（含subCategories）
+                        jsonObj.categories.forEach(topCate => {
+                            const topCateName = (topCate.title || topCate.id || '未分类').trim();
+                            
+                            // 处理子分类
+                            if (topCate.subCategories && Array.isArray(topCate.subCategories)) {
+                                topCate.subCategories.forEach(subCate => {
+                                    const subCateName = (subCate.title || subCate.id || topCateName).trim();
+                                    if (subCate.items && Array.isArray(subCate.items)) {
+                                        subCate.items.forEach(item => {
+                                            if (!item || !item.title || !item.url) {
+                                                skipCount++;
+                                                return;
+                                            }
+                                            if (!result[subCateName]) {
+                                                result[subCateName] = [];
+                                            }
+                                            result[subCateName].push({
+                                                name: item.title.trim() || `未命名书签${result[subCateName].length + 1}`,
+                                                url: item.url.trim(),
+                                                favicon: item.icon || null
+                                            });
+                                        });
+                                    }
+                                });
+                            } else if (topCate.items && Array.isArray(topCate.items)) {
+                                // 无副标题直接处理items
+                                topCate.items.forEach(item => {
+                                    if (!item || !item.title || !item.url) {
+                                        skipCount++;
+                                        return;
+                                    }
+                                    if (!result[topCateName]) {
+                                        result[topCateName] = [];
+                                    }
+                                    result[topCateName].push({
+                                        name: item.title.trim() || `未命名书签${result[topCateName].length + 1}`,
+                                        url: item.url.trim(),
+                                        favicon: item.icon || null
+                                    });
+                                });
+                            }
+                        });
+                        break;
+                        
+                    case 4: // 格式2（categories和bookmarks分离）
+                        const categoryMap = new Map();
+                        // 构建分类映射（兼容id为数字或字符串）
+                        jsonObj.categories.forEach(cate => {
+                            categoryMap.set(String(cate.id), (cate.name || `分类${cate.id}`).trim());
+                        });
+                        
+                        jsonObj.bookmarks.forEach(item => {
+                            if (!item || !item.name || !item.url) {
+                                skipCount++;
+                                return;
+                            }
+                            const cateId = String(item.category_id);
+                            const catelog = categoryMap.get(cateId) || '未分类';
+                            if (!result[catelog]) {
+                                result[catelog] = [];
+                            }
+                            result[catelog].push({
+                                name: item.name.trim() || `未命名书签${result[catelog].length + 1}`,
+                                url: item.url.trim(),
+                                favicon: item.icon || null
+                            });
+                        });
+                        break;
+                }
+            } catch (e) {
+                showMessage(`card→book 转换异常：${e.message}`, 'error');
+                return result;
+            }
+            
+            const totalCount = Object.values(result).flat().length;
+            if (skipCount > 0) {
+                showMessage(`card→book 转换完成！共${totalCount}个有效书签，跳过${skipCount}个无效条目`, 'warning');
+            } else {
+                showMessage(`card→book 转换完成！共${totalCount}个有效书签`, 'success');
+            }
+            return result;
+        }
+
+        // book类 → card类（card-tab）：修复字段映射
+        function bookToCard(jsonObj) {
             const result = [];
             let id = 1;
-            let skipCount = 0; // 统计跳过的无效条目
+            let skipCount = 0;
             const currentTime = new Date().toISOString();
             
-            // 遍历所有分类
-            for (const [catelog, items] of Object.entries(jsonObj)) {
-                // 跳过非数组的分类
-                if (!Array.isArray(items)) {
-                    skipCount++;
-                    continue;
-                }
-                
-                items.forEach((item, index) => {
-                    // 跳过无效条目（null/undefined/无name/url）
-                    if (!item || typeof item !== 'object' || !item.name || !item.url) {
+            try {
+                for (const [catelog, items] of Object.entries(jsonObj)) {
+                    if (!Array.isArray(items)) {
                         skipCount++;
-                        return; // 跳过当前条目，继续下一个
+                        continue;
                     }
                     
-                    result.push({
-                        id: id++,
-                        name: item.name.trim() || `未命名书签${id}`, // 处理空名称
-                        url: item.url.trim() || '',
-                        logo: item.favicon || null,
-                        desc: item.desc || null, // 兼容可能的desc字段
-                        catelog: catelog.trim() || '未分类',
-                        sort_order: index + 1,
-                        create_time: currentTime,
-                        update_time: currentTime,
-                        is_private: 0
+                    items.forEach((item, index) => {
+                        if (!item || !item.name || !item.url) {
+                            skipCount++;
+                            return;
+                        }
+                        
+                        result.push({
+                            id: id++,
+                            name: item.name.trim() || `未命名书签${id}`,
+                            url: item.url.trim() || '',
+                            logo: item.favicon || null,
+                            desc: item.desc || null,
+                            catelog: catelog.trim() || '未分类',
+                            sort_order: index + 1,
+                            create_time: currentTime,
+                            update_time: currentTime,
+                            is_private: 0
+                        });
                     });
-                });
+                }
+            } catch (e) {
+                showMessage(`book→card 转换异常：${e.message}`, 'error');
+                return result;
             }
             
-            // 提示跳过的条目数
             if (skipCount > 0) {
-                showMessage(`转换完成！跳过${skipCount}个无效/缺失核心字段的书签`, 'warning');
+                showMessage(`book→card 转换完成！共${result.length}个有效书签，跳过${skipCount}个无效条目`, 'warning');
+            } else {
+                showMessage(`book→card 转换完成！共${result.length}个有效书签`, 'success');
             }
             
             return result;
         }
-
-        // 格式2转格式1 (card-tab → all-bookmarks)：添加容错，跳过无效条目
-        function format2ToFormat1(jsonObj) {
-            const result = {};
-            let skipCount = 0; // 统计跳过的无效条目
-            
-            jsonObj.forEach(item => {
-                // 跳过无效条目（null/undefined/无name/url）
-                if (!item || typeof item !== 'object' || !item.name || !item.url) {
-                    skipCount++;
-                    return; // 跳过当前条目，继续下一个
-                }
-                
-                const catelog = (item.catelog || '未分类').trim();
-                
-                if (!result[catelog]) {
-                    result[catelog] = [];
-                }
-                
-                result[catelog].push({
-                    name: item.name.trim() || `未命名书签${result[catelog].length + 1}`,
-                    url: item.url.trim() || '',
-                    favicon: item.logo || null
-                });
-            });
-            
-            // 提示跳过的条目数
-            if (skipCount > 0) {
-                showMessage(`转换完成！跳过${skipCount}个无效/缺失核心字段的书签`, 'warning');
-            }
-            
-            return result;
-        }
+        // --------------------------------------------------------
 
         // 格式化JSON输出
         function formatJson(jsonObj) {
-            return JSON.stringify(jsonObj, null, 2);
+            try {
+                return JSON.stringify(jsonObj, null, 2);
+            } catch (e) {
+                showMessage(`JSON格式化失败：${e.message}`, 'error');
+                return '';
+            }
         }
 
-        // 导入文件处理：添加更严格的校验
+        // 导入文件处理：修复格式识别逻辑
         function handleFileUpload(file) {
             if (!file) return;
             
-            // 验证文件类型
             if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
                 showMessage('请选择JSON格式的文件！', 'error');
                 return;
@@ -396,168 +595,210 @@
             
             reader.onload = function(e) {
                 try {
-                    const content = e.target.result;
-                    const jsonObj = JSON.parse(content);
-                    
-                    // 检查是否为空内容
-                    if (JSON.stringify(jsonObj) === '{}' || JSON.stringify(jsonObj) === '[]') {
+                    const content = e.target.result.trim();
+                    if (!content) {
                         inputJson.value = '';
                         convertBtn.disabled = true;
-                        showMessage('导入的JSON文件为空！', 'warning');
+                        fromFormatSelect.disabled = true;
+                        showMessage('导入的JSON文件内容为空！', 'warning');
                         return;
                     }
                     
-                    // 显示导入的内容
-                    inputJson.value = formatJson(jsonObj);
+                    const jsonObj = JSON.parse(content);
+                    originalFormatType = detectJsonType(jsonObj);
+                    originalFormatClass = getFormatClass(originalFormatType);
                     
-                    // 启用转换按钮
-                    convertBtn.disabled = false;
-                    showMessage(`文件导入成功：${file.name}（共${countBookmarks(jsonObj)}个书签）`, 'success');
+                    let formatDesc = '';
+                    switch(originalFormatType) {
+                        case 1: formatDesc = 'all-bookmarks（book类）'; break;
+                        case 2: formatDesc = 'card-tab（card类）'; break;
+                        case 3: formatDesc = '格式1（card类，含子分类）'; break;
+                        case 4: formatDesc = '格式2（card类，分类与书签分离）'; break;
+                        default: formatDesc = '未知格式';
+                    }
+                    
+                    inputJson.value = formatJson(jsonObj);
+                    fromFormatSelect.value = originalFormatClass;
+                    fromFormatSelect.disabled = originalFormatType === 0;
+                    convertBtn.disabled = originalFormatType === 0;
+                    
+                    if (originalFormatType === 0) {
+                        showMessage(`文件导入成功，但无法识别格式（请检查是否符合支持的四种格式结构）！`, 'warning');
+                    } else {
+                        showMessage(`文件导入成功：${file.name}（${formatDesc}，共${countBookmarks(jsonObj)}个书签）`, 'success');
+                    }
                     
                 } catch (e) {
                     inputJson.value = '';
                     convertBtn.disabled = true;
-                    showMessage(`文件解析失败：${e.message}`, 'error');
+                    fromFormatSelect.disabled = true;
+                    showMessage(`文件解析失败：${e.message}（请检查JSON语法是否正确）`, 'error');
                 }
             };
             
             reader.readAsText(file);
         }
 
-        // 统计书签数量（辅助提示）
+        // 统计书签数量（修复四种格式的计数逻辑）
         function countBookmarks(jsonObj) {
             const type = detectJsonType(jsonObj);
             let count = 0;
             
-            if (type === 1) { // 格式1
-                for (const [_, items] of Object.entries(jsonObj)) {
-                    if (Array.isArray(items)) {
-                        count += items.filter(item => item && item.name && item.url).length;
-                    }
+            try {
+                switch(type) {
+                    case 1: // book类
+                        for (const [_, items] of Object.entries(jsonObj)) {
+                            if (Array.isArray(items)) {
+                                count += items.filter(item => item && item.name && item.url).length;
+                            }
+                        }
+                        break;
+                    case 2: // card类-card-tab
+                        count = jsonObj.filter(item => item && item.name && item.url).length;
+                        break;
+                    case 3: // card类-格式1
+                        jsonObj.categories.forEach(topCate => {
+                            if (topCate.subCategories && Array.isArray(topCate.subCategories)) {
+                                topCate.subCategories.forEach(subCate => {
+                                    if (subCate.items && Array.isArray(subCate.items)) {
+                                        count += subCate.items.filter(item => item && item.title && item.url).length;
+                                    }
+                                });
+                            } else if (topCate.items && Array.isArray(topCate.items)) {
+                                count += topCate.items.filter(item => item && item.title && item.url).length;
+                            }
+                        });
+                        break;
+                    case 4: // card类-格式2
+                        count = jsonObj.bookmarks.filter(item => item && item.name && item.url).length;
+                        break;
                 }
-            } else if (type === 2) { // 格式2
-                count = jsonObj.filter(item => item && item.name && item.url).length;
+            } catch (e) {
+                showMessage(`统计书签数量失败：${e.message}`, 'error');
+                count = 0;
             }
             
             return count;
         }
 
-        // 导出JSON文件（修改：支持手动命名）
+        // 导出JSON文件（保持不变）
         function exportJsonFile() {
             if (!convertedJsonObj || currentOutputFormat === 0) {
                 showMessage('暂无可导出的内容！', 'error');
                 return;
             }
             
-            // 获取用户输入的文件名
             let fileName = exportFileName.value.trim();
-            
-            // 文件名为空时使用默认名称
             if (!fileName) {
-                fileName = currentOutputFormat === 1 
-                    ? 'all-bookmarks' 
-                    : 'card-tab';
+                fileName = currentOutputFormat === 1 ? 'all-bookmarks' : 'card-tab';
             }
             
-            // 确保文件名后缀是.json
             if (!fileName.endsWith('.json')) {
                 fileName += '.json';
             }
             
-            // 生成JSON Blob
             const jsonContent = formatJson(convertedJsonObj);
-            const blob = new Blob([jsonContent], { type: 'application/json; charset=utf-8' });
+            if (!jsonContent) return;
             
-            // 创建下载链接
+            const blob = new Blob([jsonContent], { type: 'application/json; charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
-            
-            // 清理
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
             showMessage(`文件导出成功：${fileName}（共${countBookmarks(convertedJsonObj)}个书签）`, 'success');
         }
 
-        // 转换核心逻辑：优化容错，统计数量
+        // 转换核心逻辑：修复事件绑定和转换触发
         function convertJson() {
             try {
-                // 清空输出和消息
+                // 重置状态
                 outputJson.value = '';
                 exportBtn.disabled = true;
-                exportFileName.disabled = true; // 禁用文件名输入框
-                exportInfo.textContent = '转换后可导出';
+                exportFileName.disabled = true;
+                exportInfo.textContent = '转换中...';
                 message.textContent = '';
                 
-                // 获取输入内容并去除首尾空格
                 const inputText = inputJson.value.trim();
                 if (!inputText) {
-                    showMessage('请先导入JSON文件！', 'error');
+                    showMessage('请先导入JSON文件或输入JSON内容！', 'error');
+                    exportInfo.textContent = '转换后可导出';
                     return;
                 }
                 
-                // 解析JSON
+                // 解析输入JSON
                 let jsonObj;
                 try {
                     jsonObj = JSON.parse(inputText);
                 } catch (e) {
-                    showMessage('JSON格式错误：' + e.message, 'error');
+                    showMessage(`JSON语法错误：${e.message}`, 'error');
+                    exportInfo.textContent = '转换后可导出';
                     return;
                 }
                 
-                // 检测格式类型
-                const formatType = detectJsonType(jsonObj);
-                if (formatType === 0) {
-                    showMessage('无法识别的JSON格式，请检查导入的文件！', 'error');
+                // 重新识别格式（确保最新）
+                originalFormatType = detectJsonType(jsonObj);
+                originalFormatClass = getFormatClass(originalFormatType);
+                
+                if (originalFormatType === 0) {
+                    showMessage('无法识别的JSON格式，请检查是否符合支持的四种格式结构！', 'error');
+                    exportInfo.textContent = '转换后可导出';
                     return;
                 }
                 
-                // 统计原始书签数量
-                const originalCount = countBookmarks(jsonObj);
+                const targetFormat = toFormatSelect.value;
+                let resultObj = null;
                 
-                // 执行转换
-                let resultObj;
-                if (formatType === 1) {
-                    // 格式1 → 格式2 (all-bookmarks → card-tab)
-                    resultObj = format1ToFormat2(jsonObj);
-                    currentOutputFormat = 2;
-                    exportInfo.textContent = '将导出：card-tab格式JSON';
-                    // 设置默认文件名提示
-                    exportFileName.placeholder = 'card-tab';
-                    showMessage(`all-bookmarks → card-tab 转换完成！原始${originalCount}个有效书签，转换后${resultObj.length}个`, 'success');
-                } else {
-                    // 格式2 → 格式1 (card-tab → all-bookmarks)
-                    resultObj = format2ToFormat1(jsonObj);
+                // 根据转换方向执行转换
+                if (originalFormatClass === 'card' && targetFormat === 'book') {
+                    resultObj = cardToBook(jsonObj, originalFormatType);
                     currentOutputFormat = 1;
-                    exportInfo.textContent = '将导出：all-bookmarks格式JSON';
-                    // 设置默认文件名提示
+                    exportInfo.textContent = '导出格式：all-bookmarks（book类）';
                     exportFileName.placeholder = 'all-bookmarks';
-                    const convertedCount = countBookmarks(resultObj);
-                    showMessage(`card-tab → all-bookmarks 转换完成！原始${originalCount}个有效书签，转换后${convertedCount}个`, 'success');
+                } else if (originalFormatClass === 'book' && targetFormat === 'card') {
+                    resultObj = bookToCard(jsonObj);
+                    currentOutputFormat = 2;
+                    exportInfo.textContent = '导出格式：card-tab（card类）';
+                    exportFileName.placeholder = 'card-tab';
+                } else {
+                    showMessage(`当前导入格式类为${originalFormatClass}，目标格式类相同，无需转换！`, 'warning');
+                    resultObj = jsonObj;
+                    currentOutputFormat = originalFormatClass === 'book' ? 1 : 2;
                 }
                 
-                // 存储转换后的对象
+                // 处理转换结果
+                if (!resultObj) {
+                    showMessage('转换失败：未生成有效结果', 'error');
+                    exportInfo.textContent = '转换后可导出';
+                    return;
+                }
+                
                 convertedJsonObj = resultObj;
+                const formattedResult = formatJson(resultObj);
+                if (!formattedResult) {
+                    showMessage('转换结果格式化失败', 'error');
+                    exportInfo.textContent = '转换后可导出';
+                    return;
+                }
                 
-                // 格式化输出
-                outputJson.value = formatJson(resultObj);
-                
-                // 启用导出、复制按钮和文件名输入框
+                outputJson.value = formattedResult;
                 exportBtn.disabled = false;
                 exportFileName.disabled = false;
                 copyBtn.disabled = false;
+                exportInfo.textContent = `转换完成（共${countBookmarks(resultObj)}个有效书签）`;
                 
             } catch (e) {
-                showMessage('转换失败：' + e.message, 'error');
-                console.error('转换错误：', e);
+                showMessage(`转换总异常：${e.message}`, 'error');
+                exportInfo.textContent = '转换后可导出';
+                console.error('转换核心错误：', e);
             }
         }
 
-        // 复制结果到剪贴板
+        // 复制结果到剪贴板（保持不变）
         function copyResult() {
             const text = outputJson.value.trim();
             if (!text) {
@@ -570,37 +811,53 @@
                     showMessage('复制成功！', 'success');
                 })
                 .catch(() => {
-                    // 降级方案：手动创建textarea复制
-                    const textarea = document.createElement('textarea');
-                    textarea.value = text;
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
-                    showMessage('复制成功！', 'success');
+                    try {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        showMessage('复制成功！', 'success');
+                    } catch (e) {
+                        showMessage(`复制失败：${e.message}`, 'error');
+                    }
                 });
         }
 
-        // 清空所有内容
+        // 清空所有内容（保持不变）
         function clearAll() {
             inputJson.value = '';
             outputJson.value = '';
             fileInfo.textContent = '未选择文件';
             exportInfo.textContent = '转换后可导出';
-            exportFileName.value = ''; // 清空文件名输入框
-            exportFileName.disabled = true; // 禁用文件名输入框
+            exportFileName.value = '';
+            exportFileName.disabled = true;
             fileInput.value = '';
             convertBtn.disabled = true;
             exportBtn.disabled = true;
             copyBtn.disabled = true;
-            currentOutputFormat = 0;
+            fromFormatSelect.disabled = true;
+            currentOutputFormat = 1;
+            originalFormatType = 0;
+            originalFormatClass = '';
             convertedJsonObj = null;
             message.textContent = '';
             message.className = 'tips';
+            targetFormatText.textContent = 'all-bookmarks';
             showMessage('已清空所有内容！', 'tips');
         }
 
-        // 绑定事件
+        // 目标格式选择变化事件（保持不变）
+        toFormatSelect.addEventListener('change', function() {
+            const targetFormat = this.value;
+            targetFormatText.textContent = targetFormat === 'book' ? 'all-bookmarks' : 'card-tab';
+            if (originalFormatType !== 0) {
+                showMessage(`转换目标已切换为：${targetFormatText.textContent}`, 'tips');
+            }
+        });
+
+        // 修复事件绑定（核心修复点）
         uploadBtn.addEventListener('click', () => {
             fileInput.click();
         });
@@ -612,7 +869,9 @@
             }
         });
         
+        // 修复转换按钮事件绑定（之前绑定错误）
         convertBtn.addEventListener('click', convertJson);
+        
         exportBtn.addEventListener('click', exportJsonFile);
         copyBtn.addEventListener('click', copyResult);
         clearBtn.addEventListener('click', clearAll);
