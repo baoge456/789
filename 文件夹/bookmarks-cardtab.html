@@ -63,16 +63,18 @@
             line-height: 1.5;
         }
         
-        /* 转换方向选择器样式 */
+        /* 转换方向选择器样式 - 手机自适应优化 */
         .convert-direction {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 10px;
             margin-bottom: 20px;
-            padding: 10px;
+            padding: 12px 10px;
             background-color: #f8f9fa;
             border-radius: 6px;
+            flex-wrap: wrap;
+            text-align: center;
         }
         
         .direction-label {
@@ -89,6 +91,7 @@
             color: #2d3748;
             outline: none;
             transition: border-color 0.3s;
+            max-width: 140px;
         }
         
         .direction-select:focus {
@@ -169,6 +172,7 @@
             justify-content: center;
             gap: 15px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
         
         button {
@@ -251,6 +255,16 @@
             color: #999;
             margin-left: 5px;
         }
+
+        /* 手机端额外适配 */
+        @media (max-width: 768px) {
+            .input-area, .output-area {
+                min-width: 100%;
+            }
+            .container {
+                padding: 20px 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -258,9 +272,7 @@
         <h1>JSON格式互转</h1>
         
         <!-- 格式分类说明 -->
-        <div class="format-category">
-            📌 <strong>格式分类规则</strong>：card类（含card-tab、格式1、格式2）→ 结构包含分类层级或分离式分类；book类（all-bookmarks）→ 顶层对象结构，分类为属性键
-        </div>
+        
         
         <!-- 支持格式说明区域 -->
         <div class="support-formats">
@@ -269,19 +281,19 @@
             <p><strong>card类</strong>：.可导入baoge456.dpdns.org作为后缀，支持以下前缀1. nav；2.card ；3. modern；4. bookmark</p>
         </div>
         
-        <!-- 转换方向选择器 -->
+        <!-- 转换方向选择器 - 手机优化版 -->
         <div class="convert-direction">
-            <span class="direction-label">转换方向：</span>
+            <span class="direction-label">转换方向</span>
             <select id="fromFormat" class="direction-select" disabled>
-                <option value="card">card类格式</option>
-                <option value="book">book类格式</option>
+                <option value="card">card 格式</option>
+                <option value="book">book 格式</option>
             </select>
             <span class="convert-arrow">→</span>
             <select id="toFormat" class="direction-select">
-                <option value="book" selected>book类格式（all-bookmarks）</option>
-                <option value="card">card类格式（card-tab）</option>
+                <option value="book" selected>book 格式</option>
+                <option value="card">card 格式</option>
             </select>
-            <span class="direction-label">（默认：card→book）</span>
+            <span class="direction-label" style="color:#666; font-size:13px;">默认 card→book</span>
         </div>
         
         <div class="convert-area">
@@ -681,7 +693,7 @@
             return count;
         }
 
-        // 导出JSON文件（保持不变）
+        // 导出JSON文件
         function exportJsonFile() {
             if (!convertedJsonObj || currentOutputFormat === 0) {
                 showMessage('暂无可导出的内容！', 'error');
@@ -713,7 +725,7 @@
             showMessage(`文件导出成功：${fileName}（共${countBookmarks(convertedJsonObj)}个书签）`, 'success');
         }
 
-        // 转换核心逻辑：修复事件绑定和转换触发
+        // 转换核心逻辑
         function convertJson() {
             try {
                 // 重置状态
@@ -798,7 +810,7 @@
             }
         }
 
-        // 复制结果到剪贴板（保持不变）
+        // 复制结果到剪贴板
         function copyResult() {
             const text = outputJson.value.trim();
             if (!text) {
@@ -825,7 +837,7 @@
                 });
         }
 
-        // 清空所有内容（保持不变）
+        // 清空所有内容
         function clearAll() {
             inputJson.value = '';
             outputJson.value = '';
@@ -848,7 +860,7 @@
             showMessage('已清空所有内容！', 'tips');
         }
 
-        // 目标格式选择变化事件（保持不变）
+        // 目标格式选择变化事件
         toFormatSelect.addEventListener('change', function() {
             const targetFormat = this.value;
             targetFormatText.textContent = targetFormat === 'book' ? 'all-bookmarks' : 'card-tab';
@@ -857,7 +869,7 @@
             }
         });
 
-        // 修复事件绑定（核心修复点）
+        // 事件绑定
         uploadBtn.addEventListener('click', () => {
             fileInput.click();
         });
@@ -869,21 +881,18 @@
             }
         });
         
-        // 修复转换按钮事件绑定（之前绑定错误）
         convertBtn.addEventListener('click', convertJson);
-        
         exportBtn.addEventListener('click', exportJsonFile);
         copyBtn.addEventListener('click', copyResult);
         clearBtn.addEventListener('click', clearAll);
         
-        // 支持回车触发转换（输入框聚焦时）
+        // 快捷键支持
         inputJson.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'Enter' && !convertBtn.disabled) {
                 convertJson();
             }
         });
         
-        // 文件名输入框回车触发导出
         exportFileName.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !exportBtn.disabled) {
                 exportJsonFile();
