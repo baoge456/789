@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML书签 JSON提取工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+
+    body {
+      background: #f5f7fa;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .tool-panel {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .tool-title {
+      font-size: 22px;
+      color: #2c3e50;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .upload-box {
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: 0.3s;
+    }
+
+    .upload-box:hover {
+      border-color: #409eff;
+      background: #f0f7ff;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-extract {
+      background: #409eff;
+      color: white;
+    }
+
+    .btn-export {
+      background: #9c27b0;
+      color: white;
+    }
+
+    .btn-copy {
+      background: #67c23a;
+      color: white;
+    }
+
+    .btn-clear {
+      background: #f56c6c;
+      color: white;
+    }
+
+    button:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .result-box {
+      width: 100%;
+      height: 500px;
+      padding: 16px;
+      border: 1px solid #e1e4e8;
+      border-radius: 8px;
+      resize: none;
+      font-size: 13px;
+      line-height: 1.5;
+      background: #fafbfc;
+      font-family: Consolas, monospace;
+    }
+
+    .tip {
+      font-size: 12px;
+      color: #909399;
+      text-align: center;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="tool-panel">
+    <h2 class="tool-title">📝 HTML书签 → JSON 提取工具</h2>
+    
+    <div class="upload-box" id="uploadBox">
+      <p>点击或拖拽上传 HTML 书签文件</p>
+      <input type="file" id="fileInput" accept=".html,.htm">
+    </div>
+
+    <div class="btn-group">
+      <button class="btn-extract" id="extractBtn">开始提取JSON</button>
+      <button class="btn-export" id="exportBtn">导出JSON文件</button>
+      <button class="btn-copy" id="copyBtn">复制JSON结果</button>
+      <button class="btn-clear" id="clearBtn">清空内容</button>
+    </div>
+
+    <textarea class="result-box" id="resultArea" placeholder="提取后的 JSON 数据将显示在这里..."></textarea>
+    <p class="tip">支持你提供的所有书签HTML格式，自动识别分类、名称、链接、图标</p>
+  </div>
+
+  <script>
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const extractBtn = document.getElementById('extractBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const resultArea = document.getElementById('resultArea');
+
+    let currentHtml = '';
+
+    // 上传文件
+    uploadBox.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        currentHtml = ev.target.result;
+        uploadBox.innerHTML = `<p style="color:#409eff">✅ 已加载：${file.name}</p>`;
+      };
+      reader.readAsText(file);
+    });
+
+    // 拖拽上传
+    uploadBox.addEventListener('dragover', e => e.preventDefault());
+    uploadBox.addEventListener('drop', e => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        currentHtml = ev.target.result;
+        uploadBox.innerHTML = `<p style="color:#409eff">✅ 已加载：${file.name}</p>`;
+      };
+      reader.readAsText(file);
+    });
+
+    // 核心提取逻辑
+    function extractBookmarkToJson(html) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const result = {};
+
+      const groups = doc.querySelectorAll('.group-section');
+      groups.forEach(group => {
+        const titleEl = group.querySelector('.group-title');
+        if (!titleEl) return;
+        const category = titleEl.textContent.trim().replace(/[\n\t]/g, '');
+        
+        const items = [];
+        const cards = group.querySelectorAll('.card');
+        
+        cards.forEach(card => {
+          const a = card.querySelector('a');
+          const img = card.querySelector('.thumbnail');
+          if (!a) return;
+
+          const name = a.textContent.trim().replace(/\s+/g, ' ');
+          const url = a.href.trim();
+          const favicon = img ? img.src.trim() : '';
+
+          if (name && url) {
+            items.push({ name, url, favicon });
+          }
+        });
+
+        if (items.length > 0) {
+          result[category] = items;
+        }
+      });
+
+      return JSON.stringify(result, null, 2);
+    }
+
+    // 提取按钮
+    extractBtn.addEventListener('click', () => {
+      if (!currentHtml) {
+        alert('请先上传HTML书签文件！');
+        return;
+      }
+      const json = extractBookmarkToJson(currentHtml);
+      resultArea.value = json;
+    });
+
+    // ✅ 导出文件（手动命名）
+    exportBtn.addEventListener('click', () => {
+      const content = resultArea.value;
+      if (!content) {
+        alert('请先提取JSON数据！');
+        return;
+      }
+      // 手动输入文件名
+      const fileName = prompt('请输入导出的JSON文件名（无需输入.json）', '书签数据');
+      if (!fileName) return;
+
+      // 下载
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      alert('✅ 导出成功：' + fileName + '.json');
+    });
+
+    // 复制
+    copyBtn.addEventListener('click', async () => {
+      if (!resultArea.value) {
+        alert('暂无内容可复制');
+        return;
+      }
+      await navigator.clipboard.writeText(resultArea.value);
+      alert('✅ JSON 已复制到剪贴板');
+    });
+
+    // 清空
+    clearBtn.addEventListener('click', () => {
+      resultArea.value = '';
+      currentHtml = '';
+      uploadBox.innerHTML = '<p>点击或拖拽上传 HTML 书签文件</p>';
+      fileInput.value = '';
+    });
+  </script>
+</body>
+</html>
