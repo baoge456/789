@@ -1,3 +1,9 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>书签导航页自动生成</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -15,6 +21,34 @@
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             text-align: center;
+            position: relative;
+        }
+
+        .header-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .example-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .example-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
         .button-container {
@@ -22,6 +56,8 @@
             justify-content: center;
             align-items: center;
             margin-bottom: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         button {
@@ -33,6 +69,9 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         button:hover {
@@ -47,10 +86,8 @@
             border: 1px solid #ccc;
             padding: 10px;
             box-sizing: border-box;
-        }
-
-        #jsonExampleContent {
-            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 12px;
         }
 
         .container {
@@ -62,15 +99,10 @@
             margin: 10px auto;
         }
         
-        /* 确保分类导航栏和书签内容上下分布 */
         #bookmarkContainer {
             display: block;
         }
         
-        .group-section {
-            margin-bottom: 20px;
-        }
-
         .group-section {
             margin-bottom: 20px;
         }
@@ -91,7 +123,6 @@
             width: 5px;
             height: 20px;
             background-color: #4CAF50;
-            /* 竖向绿条 */
         }
 
         .card {
@@ -120,6 +151,7 @@
             border-radius: 50%;
             object-fit: cover;
             margin-right: 8px;
+            flex-shrink: 0;
         }
 
         .card a {
@@ -130,6 +162,111 @@
             color: var(--text-color);
             box-sizing: border-box;
             flex-grow: 1;
+        }
+
+        /* 编辑模式下的按钮组 - 竖向排列 */
+        .edit-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+        
+        .edit-mode-on .edit-controls {
+            display: flex;
+        }
+        
+        .edit-btn {
+            padding: 4px 6px;
+            margin: 0;
+            background-color: #f0ad4e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            min-width: 28px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .edit-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .edit-btn.edit-bookmark {
+            background-color: #5bc0de;
+        }
+        
+        .edit-btn.delete {
+            background-color: #d9534f;
+        }
+        
+        .edit-btn.move {
+            background-color: #5bc0de;
+        }
+        
+        /* 分组标题的编辑按钮组 - 横向排列 */
+        .group-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        
+        .group-edit-btn {
+            padding: 4px 8px;
+            margin: 0;
+            background-color: #f0ad4e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .group-edit-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .group-edit-btn.delete {
+            background-color: #d9534f;
+        }
+        
+        .group-edit-btn.move {
+            background-color: #5bc0de;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 14px;
+            z-index: 9999;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            animation: fadeInOut 2s ease forwards;
+            pointer-events: none;
+            white-space: nowrap;
+            max-width: 90vw;
+            white-space: normal;
+            text-align: center;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; bottom: 10px; }
+            15% { opacity: 1; bottom: 30px; }
+            85% { opacity: 1; bottom: 30px; }
+            100% { opacity: 0; bottom: 10px; visibility: hidden; }
         }
 
         .modal {
@@ -161,44 +298,55 @@
             cursor: pointer;
         }
 
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-                gap: 4px;
-                padding: 4px;
-            }
-
-            .card {
-                border-radius: 15px;
-                padding: 6px 8px;
-            }
-
-            .card a {
-                font-size: 0.8em;
-            }
+        .modal label {
+            display: block;
+            margin: 12px 0 5px;
+            font-weight: 500;
         }
 
-        /* 新增编辑和添加模态框的样式 */
+        .modal input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .thumbnail-preview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .thumbnail-preview img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
         .edit-modal-buttons {
             display: flex;
             justify-content: space-around;
             margin-top: 20px;
+            gap: 10px;
         }
 
         .edit-modal-buttons button {
-            padding: 10px;
+            padding: 10px 15px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             background-color: #5cb85c;
             color: white;
+            flex: 1;
         }
 
         .edit-modal-buttons button.delete {
             background-color: #d9534f;
         }
         
-        /* 新增分类导航栏样式 */
         .category-nav {
             display: flex;
             flex-wrap: nowrap;
@@ -225,10 +373,6 @@
         .category-nav::-webkit-scrollbar-thumb {
             background: #4CAF50;
             border-radius: 3px;
-        }
-        
-        .category-nav::-webkit-scrollbar-thumb:hover {
-            background: #45a049;
         }
 
         .category-btn {
@@ -254,108 +398,61 @@
             font-weight: bold;
         }
         
-        /* 编辑模式相关样式 */
-        .edit-controls {
-            display: none;
-            margin-top: 5px;
-            padding: 5px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
-        }
-        
-        .edit-mode-on .edit-controls {
-            display: block;
-        }
-        
-        .edit-btn {
-            padding: 4px 8px;
-            margin: 2px;
-            background-color: #f0ad4e;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
-        
-        .edit-btn.delete {
-            background-color: #d9534f;
-        }
-        
-        .edit-btn.move {
-            background-color: #5bc0de;
-        }
-        
-        .drag-handle {
-            cursor: move;
-            margin-right: 5px;
-            color: #999;
-        }
-        
-        .edit-mode-on .card {
-            position: relative;
-        }
-        
-        .edit-mode-on .card .drag-handle {
-            position: absolute;
-            left: -15px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 10;
-        }
-        
-        /* 保持分类导航栏横向滚动样式 - 确保在所有模式下都保持横向滚动 */
-        .category-nav {
-            display: flex;
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            gap: 5px;
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #e0f7e9;
-            border-radius: 8px;
-            justify-content: flex-start;
-            scrollbar-width: thin;
-            scrollbar-color: #4CAF50 #e0f7e9;
-        }
-        
-        .category-nav::-webkit-scrollbar {
-            height: 6px;
-        }
-        
-        .category-nav::-webkit-scrollbar-track {
-            background: #e0f7e9;
-            border-radius: 3px;
-        }
-        
-        .category-nav::-webkit-scrollbar-thumb {
-            background: #4CAF50;
-            border-radius: 3px;
-        }
-        
-        .category-nav::-webkit-scrollbar-thumb:hover {
-            background: #45a049;
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                gap: 4px;
+                padding: 4px;
+            }
+
+            .card {
+                border-radius: 15px;
+                padding: 6px 8px;
+            }
+
+            .card a {
+                font-size: 0.75em;
+            }
+            
+            .edit-btn {
+                padding: 3px 4px;
+                font-size: 9px;
+                min-width: 22px;
+            }
+            
+            .group-edit-btn {
+                padding: 3px 6px;
+                font-size: 10px;
+            }
+            
+            .header-buttons {
+                top: 10px;
+                right: 10px;
+            }
+            
+            .example-btn {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="panel">
+        <div class="header-buttons">
+            <button class="example-btn" id="exampleBtn">📋 示例格式</button>
+        </div>
+        
         <h1>书签导航页自动生成</h1>
+        
         <div class="button-container">
-            <button id="showExampleJsonBtn">显示示例 JSON 格式</button>
-            <!-- 新增：生成JSON按钮 -->
-            <button onclick="openTool()">书签JSON自动生成</button>
-
+            <button id="importFileBtn" style="background: #3498db;">📁 导入文件</button>
+            <button onclick="openTool()" style="background: #5cb85c;">🔧 书签JSON管理</button>
         </div>
 
-        <div id="jsonExampleContent" style="display:none;">
-            <p>点击以下链接查看示例 JSON 格式：</p>
-            <a href="https://file.baoge.wang/%E4%B9%A6%E7%AD%BE%E9%A1%B5%E9%9D%A2%E7%94%9F%E6%88%90%E8%84%9A%E6%9C%AC%E6%94%AF%E6%8C%81%E7%9A%84%E4%B8%89%E7%A7%8D%E7%A4%BA%E4%BE%8B%20JSON%20%E6%96%87%E4%BB%B6.txt"
-                target="_blank">示例 JSON</a>
-        </div>
         <textarea id="jsonInput"
-            placeholder="使用指南：   在此处粘贴 JSON 数据,支持宝哥书签类及书签整理类页面导出的JSON文件，例如：sunpanel/书签导航/书签管理系统/单书签自动排序/含分组书签自动排序/链接检测面板,目的是将各种书签类页面统一整合成易于部署的html网页，点击自动转换后列出的预览页面中，可修改生成页面的背景颜色和书签面板的背景颜色，另外，长按书签可以实现书签的 添加/修改/删除 三个功能，编辑修改后可支持导出新的HTML页面和新的JSON数据，导出密码请联系作者本人获取......"></textarea>
+            placeholder="使用指南：在此处粘贴 JSON 数据，支持宝哥书签类及书签整理类页面导出的JSON文件，例如：sunpanel/书签导航/书签管理系统/单书签自动排序/含分组书签自动排序/链接检测面板，目的是将各种书签类页面统一整合成易于部署的html网页，点击自动转换后列出的预览页面中，可修改生成页面的背景颜色和书签面板的背景颜色，另外，长按书签可以实现书签的 添加/修改/删除 三个功能，编辑修改后可支持导出新的HTML页面和新的JSON数据，导出密码请联系作者本人获取......"></textarea>
         <button onclick="importJson()">自动转换</button>
 
         <div>
@@ -363,15 +460,14 @@
             <input type="color" id="pageBackgroundColor" value="#f5f5f5" oninput="updateColors()">
         </div>
 
-        <!-- 添加面板背景颜色选择器 -->
         <div>
             <label for="panelBackgroundColor">面板背景颜色：</label>
             <input type="color" id="panelBackgroundColor" value="#c2f2d0" oninput="updateColors()">
         </div>
 
-        <button onclick="toggleEditMode()" id="editModeBtn">编辑模式</button>
-        <button onclick="checkPasswordAndExport()">导出 HTML</button>
-        <button onclick="checkPasswordAndGenerateJson()">导出新JSON</button>
+        <button onclick="toggleEditMode()" id="editModeBtn">✏️ 编辑模式</button>
+        <button onclick="checkPasswordAndExport()">📄 导出 HTML</button>
+        <button onclick="checkPasswordAndGenerateJson()">📦 导出新JSON</button>
 
         <div id="bookmarkContainer"></div>
 
@@ -379,13 +475,20 @@
         <div id="editModal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h3>编辑书签</h3>
-                <label>名称：<input type="text" id="editName"></label>
-                <label>链接：<input type="url" id="editUrl"></label>
+                <h3>✏️ 编辑书签</h3>
+                <label>名称：</label>
+                <input type="text" id="editName">
+                <label>链接：</label>
+                <input type="url" id="editUrl">
+                <label>Logo链接：</label>
+                <input type="url" id="editThumbnail" placeholder="输入图片URL或留空自动获取favicon">
+                <div class="thumbnail-preview" id="thumbnailPreview">
+                    <span>当前预览：</span>
+                    <img id="previewImg" src="" alt="预览">
+                </div>
                 <div class="edit-modal-buttons">
-                    <button onclick="addBookmark()">添加</button>
-                    <button onclick="deleteBookmark()" class="delete">删除</button>
-                    <button onclick="saveChanges()">保存</button>
+                    <button onclick="saveEditChanges()">💾 保存修改</button>
+                    <button onclick="deleteBookmark()" class="delete">🗑️ 删除书签</button>
                 </div>
             </div>
         </div>
@@ -394,24 +497,31 @@
         <div id="addModal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h3>添加书签</h3>
-                <label>名称：<input type="text" id="addName"></label>
-                <label>链接：<input type="url" id="addUrl"></label>
-                <label style="display: flex; align-items: center; margin-top: 5px;"><span style="min-width: 60px;">Logo链接：</span><input type="url" id="addThumbnail" placeholder="可选" style="flex: 1; margin-left: 5px;"></label>
+                <h3>➕ 添加书签</h3>
+                <label>名称：</label>
+                <input type="text" id="addName">
+                <label>链接：</label>
+                <input type="url" id="addUrl">
+                <label>Logo链接：</label>
+                <input type="url" id="addThumbnail" placeholder="可选，留空自动获取favicon">
+                <div class="thumbnail-preview" id="addThumbnailPreview">
+                    <span>预览：</span>
+                    <img id="addPreviewImg" src="" alt="预览">
+                </div>
                 <div class="edit-modal-buttons">
-                    <button onclick="saveNewBookmark()">保存</button>
+                    <button onclick="saveNewBookmark()">➕ 添加书签</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentData; // 当前的书签数据
-        let pressTimer; // 长按计时器
-        let currentCard; // 当前操作的卡片
-        let currentItem; // 当前操作的书签项
-        let currentGroupIndex; // 当前书签项的组索引
-        let currentItemIndex; // 当前书签项的索引
+        let currentData;
+        let pressTimer;
+        let currentCard;
+        let currentItem;
+        let currentGroupIndex;
+        let currentItemIndex;
         const defaultColors = ['#FFC107', '#2196F3', '#4CAF50', '#9C27B0', '#FF5722', '#00BCD4', '#E91E63', '#673AB7', '#3F51B5', '#009688'];
         const thumbnailLinks = [
             "https://s3.bmp.ovh/imgs/2025/03/12/5d0ea492ec025bef.png",
@@ -429,7 +539,19 @@
         let thumbnailIndex = 0;
         let pageBackgroundColor = '#f5f5f5';
         let panelBackgroundColor = '#c2f2d0';
-        let editMode = false; // 编辑模式状态
+        let editMode = false;
+
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            if (isError) toast.style.background = '#b91c1c';
+            else toast.style.background = '#1e293b';
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 2000);
+        }
 
         function isColorDark(hexColor) {
             const r = parseInt(hexColor.slice(1, 3), 16);
@@ -439,106 +561,65 @@
             return luminance < 0.5;
         }
 
-        // 修改了 showExampleJson 函数
-        function showExampleJson() {
-            document.getElementById('jsonExampleContent').style.display = 'block';
+        function openExampleLink() {
+            window.open('https://file.baoge.wang/%E4%B9%A6%E7%AD%BE%E9%A1%B5%E9%9D%A2%E7%94%9F%E6%88%90%E8%84%9A%E6%9C%AC%E6%94%AF%E6%8C%81%E7%9A%84%E4%B8%89%E7%A7%8D%E7%A4%BA%E4%BE%8B%20JSON%20%E6%96%87%E4%BB%B6.txt', '_blank');
         }
 
         function openTool() {
-            window.open('https://file.baoge.wang/%E4%B9%A6%E7%AD%BEjson%E7%BC%96%E5%86%99', '_blank');
+            window.open('https://file.baoge.wang/%E4%B9%A6%E7%AD%BEjson%E7%AE%A1%E7%90%86', '_blank');
         }
 
-        window.onload = function () {
-            resetPage();
-            // 使用正确的 id 获取按钮
-            document.getElementById('showExampleJsonBtn').addEventListener('click', showExampleJson);
-        };
-
-        // 添加分类导航栏功能
-        function generateCategoryNav() {
-            const categoryNav = document.createElement('div');
-            categoryNav.className = 'category-nav';
-            
-            // 添加"全部"按钮
-            const allBtn = document.createElement('button');
-            allBtn.className = 'category-btn';
-            allBtn.textContent = '全部';
-            allBtn.onclick = function() { switchCategory('全部'); };
-            categoryNav.appendChild(allBtn);
-            
-            // 为每个分类创建按钮
-            if (currentData && currentData.icons) {
-                currentData.icons.forEach((group, index) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'category-btn';
-                    btn.textContent = group.title;
-                    btn.onclick = function() { switchCategory(group.title); };
-                    categoryNav.appendChild(btn);
+        function importFile() {
+            document.getElementById('fileInput')?.click();
+            if (!document.getElementById('fileInput')) {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json,.txt';
+                input.style.display = 'none';
+                input.id = 'fileInput';
+                document.body.appendChild(input);
+                input.addEventListener('change', function(e) {
+                    if (e.target.files.length) handleFileImport(e.target.files[0]);
+                    input.value = '';
                 });
-            }
-            
-            return categoryNav;
-        }
-        
-        // 切换分类显示
-        function switchCategory(category) {
-            const allGroups = document.querySelectorAll('.group-section');
-            
-            if (category === '全部') {
-                allGroups.forEach(group => group.style.display = 'block');
+                input.click();
             } else {
-                allGroups.forEach(group => {
-                    const title = group.querySelector('.group-title');
-                    if (title && title.textContent.trim().includes(category)) {
-                        group.style.display = 'block';
-                    } else {
-                        group.style.display = 'none';
-                    }
-                });
+                document.getElementById('fileInput').click();
             }
-            
-            // 更新按钮状态
-            const buttons = document.querySelectorAll('.category-btn');
-            buttons.forEach(btn => {
-                if (btn.textContent === category) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-            
-            // 记忆当前选择的分类
-            localStorage.setItem('lastSelectedCategory', category);
-        }
-        
-        // 更新分类按钮状态
-        function updateCategoryButtons() {
-            const buttons = document.querySelectorAll('.category-btn');
-            const lastCategory = localStorage.getItem('lastSelectedCategory') || '全部';
-            
-            buttons.forEach(btn => {
-                if (btn.textContent === lastCategory) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
         }
 
-        function importJson() {
-            const jsonInput = document.getElementById('jsonInput').value;
+        function handleFileImport(file) {
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    const jsonData = JSON.parse(content);
+                    document.getElementById('jsonInput').value = content;
+                    parseAndRenderJson(jsonData);
+                    showToast(`✅ 成功导入: ${file.name} (${(content.length / 1024).toFixed(1)} KB)`);
+                } catch (err) {
+                    showToast(`❌ 文件解析失败: ${err.message}`, true);
+                }
+            };
+            reader.onerror = function() {
+                showToast('❌ 文件读取失败', true);
+            };
+            reader.readAsText(file, "UTF-8");
+        }
+
+        function parseAndRenderJson(jsonData) {
             try {
-                const jsonData = JSON.parse(jsonInput);
-
                 if (Array.isArray(jsonData)) {
                     currentData = {
                         "icons": [
                             {
                                 "title": "未分类",
                                 "children": jsonData.map(item => ({
-                                    "title": item.name,
+                                    "title": item.name || item.title,
                                     "url": item.url,
-                                    "thumbnail": item.thumbnail,
+                                    "thumbnail": item.thumbnail || null,
                                     "backgroundColor": item.backgroundColor
                                 }))
                             }
@@ -551,37 +632,42 @@
                         icons: Object.entries(jsonData).map(([title, children]) => ({
                             title: title,
                             children: children.map(item => ({
-                                "title": item.name,
+                                "title": item.name || item.title,
                                 "url": item.url,
-                                "thumbnail": item.thumbnail,
+                                "thumbnail": item.thumbnail || null,
                                 "backgroundColor": item.backgroundColor
                             }))
                         }))
                     };
                 }
 
-                // 导入后默认显示第一个分类
                 renderBookmarks();
-                
-                // 应用上次记忆的分类
                 const lastCategory = localStorage.getItem('lastSelectedCategory') || '全部';
                 setTimeout(() => {
                     switchCategory(lastCategory);
                 }, 100);
             } catch (e) {
-                alert('无效的 JSON 数据');
+                showToast('无效的 JSON 数据', true);
                 console.error(e);
             }
         }
 
-        // 改进favicon获取逻辑，增加多层备选方案
+        function importJson() {
+            const jsonInput = document.getElementById('jsonInput').value;
+            try {
+                const jsonData = JSON.parse(jsonInput);
+                parseAndRenderJson(jsonData);
+            } catch (e) {
+                showToast('无效的 JSON 数据', true);
+                console.error(e);
+            }
+        }
+
         function getFaviconUrl(url) {
             try {
-                // 提取域名部分
                 const domain = new URL(url).hostname;
                 return 'https://favicon.zhusl.com/ico?url=' + domain;
             } catch (e) {
-                console.error('Invalid URL:', url);
                 return 'https://www.google.com/s2/favicons?domain=example.com';
             }
         }
@@ -591,7 +677,6 @@
                 const domain = new URL(url).hostname;
                 return 'https://www.google.com/s2/favicons?domain=' + domain;
             } catch (e) {
-                console.error('Invalid URL:', url);
                 return null;
             }
         }
@@ -601,7 +686,18 @@
                 const domain = new URL(url).hostname;
                 return 'https://api.faviconkit.com/' + domain + '/16';
             } catch (e) {
-                console.error('Invalid URL:', url);
+                return null;
+            }
+        }
+
+        function getBestThumbnail(url, customThumbnail = null) {
+            if (customThumbnail && customThumbnail.trim()) {
+                return customThumbnail;
+            }
+            try {
+                const domain = new URL(url).hostname;
+                return 'https://favicon.zhusl.com/ico?url=' + domain;
+            } catch (e) {
                 return null;
             }
         }
@@ -611,15 +707,10 @@
             bookmarkContainer.innerHTML = '';
             bookmarkContainer.className = 'container';
 
-            if (!currentData || !currentData.icons) {
-                return;
-            }
+            if (!currentData || !currentData.icons) return;
 
-            // 添加分类导航栏
             const categoryNav = generateCategoryNav();
             bookmarkContainer.appendChild(categoryNav);
-            
-
 
             currentData.icons.forEach((group, groupIndex) => {
                 const groupSection = document.createElement('div');
@@ -627,72 +718,86 @@
                 const groupTitle = document.createElement('h2');
                 groupTitle.className = 'group-title';
                 
-                // 在编辑模式下为分类标题添加编辑控件
                 if (editMode) {
                     const titleContainer = document.createElement('div');
                     titleContainer.style.display = 'flex';
                     titleContainer.style.alignItems = 'center';
                     titleContainer.style.justifyContent = 'space-between';
+                    titleContainer.style.width = '100%';
+                    titleContainer.style.flexWrap = 'wrap';
+                    titleContainer.style.gap = '8px';
                     
                     const titleText = document.createElement('span');
                     titleText.textContent = group.title;
                     titleContainer.appendChild(titleText);
                     
                     const controls = document.createElement('div');
-                    controls.className = 'edit-controls';
+                    controls.className = 'group-controls';
                     
+                    // 上移按钮
                     const moveUpBtn = document.createElement('button');
                     moveUpBtn.textContent = '↑';
-                    moveUpBtn.className = 'edit-btn move';
-                    moveUpBtn.title = '上移';
-                    moveUpBtn.onclick = () => moveCategory(groupIndex, 'up');
+                    moveUpBtn.className = 'group-edit-btn move';
+                    moveUpBtn.title = '上移分类';
+                    moveUpBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        moveCategory(groupIndex, 'up');
+                    };
                     
+                    // 下移按钮
                     const moveDownBtn = document.createElement('button');
                     moveDownBtn.textContent = '↓';
-                    moveDownBtn.className = 'edit-btn move';
-                    moveDownBtn.title = '下移';
-                    moveDownBtn.onclick = () => moveCategory(groupIndex, 'down');
+                    moveDownBtn.className = 'group-edit-btn move';
+                    moveDownBtn.title = '下移分类';
+                    moveDownBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        moveCategory(groupIndex, 'down');
+                    };
                     
+                    // 编辑按钮
                     const editBtn = document.createElement('button');
                     editBtn.textContent = '✏️';
-                    editBtn.className = 'edit-btn';
-                    editBtn.title = '编辑';
-                    editBtn.onclick = () => editCategory(groupIndex);
+                    editBtn.className = 'group-edit-btn';
+                    editBtn.title = '编辑分类名称';
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        editCategory(groupIndex);
+                    };
                     
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.textContent = '🗑️';
-                    deleteBtn.className = 'edit-btn delete';
-                    deleteBtn.title = '删除';
-                    deleteBtn.onclick = () => deleteCategory(groupIndex);
-                    
+                    // 添加分类按钮
                     const addCategoryAfterBtn = document.createElement('button');
                     addCategoryAfterBtn.textContent = '+';
-                    addCategoryAfterBtn.className = 'edit-btn';
+                    addCategoryAfterBtn.className = 'group-edit-btn';
                     addCategoryAfterBtn.title = '在此后添加分类';
-                    addCategoryAfterBtn.onclick = () => addCategoryAfter(groupIndex);
+                    addCategoryAfterBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        addCategoryAfter(groupIndex);
+                    };
+                    
+                    // 删除按钮
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '🗑️';
+                    deleteBtn.className = 'group-edit-btn delete';
+                    deleteBtn.title = '删除分类';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteCategory(groupIndex);
+                    };
                     
                     controls.appendChild(moveUpBtn);
                     controls.appendChild(moveDownBtn);
                     controls.appendChild(editBtn);
-                    controls.appendChild(deleteBtn);
                     controls.appendChild(addCategoryAfterBtn);
+                    controls.appendChild(deleteBtn);
                     
                     titleContainer.appendChild(controls);
                     groupTitle.appendChild(titleContainer);
-                }
-                
-                // 添加左侧绿色竖条
-                const span = document.createElement('span');
-                span.style.display = 'inline-block';
-                span.style.width = '5px';
-                span.style.height = '20px';
-                
-                if (editMode) {
-                    // 在编辑模式下，如果已经有titleContainer，则在它前面插入绿色竖条
-                    groupTitle.insertBefore(span, groupTitle.firstChild);
                 } else {
-                    // 在非编辑模式下，清空内容后重新组织
                     groupTitle.innerHTML = '';
+                    const span = document.createElement('span');
+                    span.style.display = 'inline-block';
+                    span.style.width = '5px';
+                    span.style.height = '20px';
                     groupTitle.appendChild(span);
                     groupTitle.appendChild(document.createTextNode(group.title));
                 }
@@ -702,66 +807,30 @@
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'container';
 
-                // 为同一组设置相同的背景色
                 const groupBackgroundColor = defaultColors[groupIndex % defaultColors.length];
                 
                 group.children.forEach((item, itemIndex) => {
                     const card = document.createElement('div');
                     card.className = 'card';
-                    // 使用组的背景色，确保同一分类下所有书签背景色一致
                     card.style.backgroundColor = groupBackgroundColor;
                     const isDark = isColorDark(groupBackgroundColor);
                     const textColor = isDark ? '#fff' : '#000';
                     card.style.setProperty('--text-color', textColor);
 
-                    // 在编辑模式下添加拖拽手柄
-                    if (editMode) {
-                        const dragHandle = document.createElement('span');
-                        dragHandle.className = 'drag-handle';
-                        dragHandle.innerHTML = '☰';
-                        card.appendChild(dragHandle);
-                    }
-
                     const thumbnail = document.createElement('img');
                     thumbnail.className = 'thumbnail';
-
-                    // 优先使用自定义缩略图
-                    if (item.thumbnail) {
-                        thumbnail.src = item.thumbnail;
-                    } else {
-                        // 尝试获取 favicon，使用多层备选方案
-                        const faviconUrl = getFaviconUrl(item.url);
-                        thumbnail.src = faviconUrl;
-
-                        // 如果获取失败，尝试备用方案
-                        thumbnail.onerror = function () {
-                            const backupUrl = getBackupFaviconUrl(item.url);
-                            if (backupUrl) {
-                                thumbnail.src = backupUrl;
-                                thumbnail.onerror = function () {
-                                    const thirdBackupUrl = getThirdBackupFaviconUrl(item.url);
-                                    if (thirdBackupUrl) {
-                                        thumbnail.src = thirdBackupUrl;
-                                        thumbnail.onerror = function () {
-                                            // 如果所有favicon服务都失败，使用默认缩略图
-                                            thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
-                                            thumbnailIndex++;
-                                            thumbnail.onerror = null; // 防止无限循环
-                                        };
-                                    } else {
-                                        // 使用默认缩略图
-                                        thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
-                                        thumbnailIndex++;
-                                        thumbnail.onerror = null; // 防止无限循环
-                                    }
-                                };
-                            } else {
-                                // 使用默认缩略图
-                                thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
-                                thumbnailIndex++;
-                                thumbnail.onerror = null; // 防止无限循环
-                            }
+                    
+                    const thumbnailUrl = getBestThumbnail(item.url, item.thumbnail);
+                    if (thumbnailUrl) {
+                        thumbnail.src = thumbnailUrl;
+                        thumbnail.onerror = function() {
+                            thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                            thumbnailIndex++;
+                            thumbnail.onerror = null;
                         };
+                    } else {
+                        thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
+                        thumbnailIndex++;
                     }
 
                     card.appendChild(thumbnail);
@@ -773,52 +842,78 @@
                     link.style.color = textColor;
                     card.appendChild(link);
                     
-                    // 在编辑模式下为书签添加编辑控件
                     if (editMode) {
                         const controls = document.createElement('div');
                         controls.className = 'edit-controls';
                         
-                        const moveUpBtn = document.createElement('button');
-                        moveUpBtn.textContent = '↑';
-                        moveUpBtn.className = 'edit-btn move';
-                        moveUpBtn.title = '上移';
-                        moveUpBtn.onclick = () => moveBookmark(groupIndex, itemIndex, 'up');
-                        
-                        const moveDownBtn = document.createElement('button');
-                        moveDownBtn.textContent = '↓';
-                        moveDownBtn.className = 'edit-btn move';
-                        moveDownBtn.title = '下移';
-                        moveDownBtn.onclick = () => moveBookmark(groupIndex, itemIndex, 'down');
-                        
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.textContent = '🗑️';
-                        deleteBtn.className = 'edit-btn delete';
-                        deleteBtn.title = '删除';
-                        deleteBtn.onclick = () => deleteBookmarkFromCategory(groupIndex, itemIndex);
-                        
-                        const addBookmarkBtn = document.createElement('button');
-                        addBookmarkBtn.textContent = '+';
-                        addBookmarkBtn.className = 'edit-btn';
-                        addBookmarkBtn.title = '添加书签';
-                        addBookmarkBtn.onclick = () => addBookmarkToCategory(groupIndex);
-                        
-                        controls.appendChild(moveUpBtn);
-                        controls.appendChild(moveDownBtn);
-                        controls.appendChild(deleteBtn);
-                        controls.appendChild(addBookmarkBtn);
-                        
-                        card.appendChild(controls);
-                    }
-
-                    // 添加长按事件监听器
-                    card.addEventListener('touchstart', function (e) {
-                        pressTimer = setTimeout(function () {
+                        const editBtn = document.createElement('button');
+                        editBtn.textContent = '✏️';
+                        editBtn.className = 'edit-btn edit-bookmark';
+                        editBtn.title = '编辑书签';
+                        editBtn.onclick = (e) => {
+                            e.stopPropagation();
                             showEditModal(item, groupIndex, itemIndex);
                             currentItem = item;
                             currentCard = card;
                             currentGroupIndex = groupIndex;
                             currentItemIndex = itemIndex;
-                        }, 500);
+                        };
+                        
+                        const moveUpBtn = document.createElement('button');
+                        moveUpBtn.textContent = '↑';
+                        moveUpBtn.className = 'edit-btn move';
+                        moveUpBtn.title = '上移';
+                        moveUpBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            moveBookmark(groupIndex, itemIndex, 'up');
+                        };
+                        
+                        const moveDownBtn = document.createElement('button');
+                        moveDownBtn.textContent = '↓';
+                        moveDownBtn.className = 'edit-btn move';
+                        moveDownBtn.title = '下移';
+                        moveDownBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            moveBookmark(groupIndex, itemIndex, 'down');
+                        };
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = '🗑️';
+                        deleteBtn.className = 'edit-btn delete';
+                        deleteBtn.title = '删除';
+                        deleteBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            deleteBookmarkFromCategory(groupIndex, itemIndex);
+                        };
+                        
+                        const addBookmarkBtn = document.createElement('button');
+                        addBookmarkBtn.textContent = '+';
+                        addBookmarkBtn.className = 'edit-btn';
+                        addBookmarkBtn.title = '添加书签';
+                        addBookmarkBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            addBookmarkToCategory(groupIndex);
+                        };
+                        
+                        controls.appendChild(editBtn);
+                        controls.appendChild(moveUpBtn);
+                        controls.appendChild(moveDownBtn);
+                        controls.appendChild(deleteBtn);
+                        controls.appendChild(addBookmarkBtn);
+                        card.appendChild(controls);
+                    }
+
+                    // 长按编辑功能
+                    card.addEventListener('touchstart', function (e) {
+                        if (!editMode) {
+                            pressTimer = setTimeout(function () {
+                                showEditModal(item, groupIndex, itemIndex);
+                                currentItem = item;
+                                currentCard = card;
+                                currentGroupIndex = groupIndex;
+                                currentItemIndex = itemIndex;
+                            }, 500);
+                        }
                     });
 
                     card.addEventListener('touchend', function () {
@@ -826,13 +921,15 @@
                     });
 
                     card.addEventListener('mousedown', function (e) {
-                        pressTimer = setTimeout(function () {
-                            showEditModal(item, groupIndex, itemIndex);
-                            currentItem = item;
-                            currentCard = card;
-                            currentGroupIndex = groupIndex;
-                            currentItemIndex = itemIndex;
-                        }, 500);
+                        if (!editMode) {
+                            pressTimer = setTimeout(function () {
+                                showEditModal(item, groupIndex, itemIndex);
+                                currentItem = item;
+                                currentCard = card;
+                                currentGroupIndex = groupIndex;
+                                currentItemIndex = itemIndex;
+                            }, 500);
+                        }
                     });
 
                     card.addEventListener('mouseup', function () {
@@ -846,7 +943,6 @@
                 bookmarkContainer.appendChild(groupSection);
             });
             
-            // 应用分类切换逻辑
             if (category !== '全部') {
                 const allGroups = document.querySelectorAll('.group-section');
                 allGroups.forEach(group => {
@@ -858,205 +954,125 @@
                     }
                 });
             } else {
-                // 显示所有分组
                 const allGroups = document.querySelectorAll('.group-section');
-                allGroups.forEach(group => {
-                    group.style.display = 'block';
-                });
+                allGroups.forEach(group => group.style.display = 'block');
             }
             
-            // 更新分类按钮状态
             updateCategoryButtons();
         }
 
-        // 显示编辑模态框
+        function generateCategoryNav() {
+            const categoryNav = document.createElement('div');
+            categoryNav.className = 'category-nav';
+            
+            const allBtn = document.createElement('button');
+            allBtn.className = 'category-btn';
+            allBtn.textContent = '全部';
+            allBtn.onclick = function() { switchCategory('全部'); };
+            categoryNav.appendChild(allBtn);
+            
+            if (currentData && currentData.icons) {
+                currentData.icons.forEach((group) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'category-btn';
+                    btn.textContent = group.title;
+                    btn.onclick = function() { switchCategory(group.title); };
+                    categoryNav.appendChild(btn);
+                });
+            }
+            return categoryNav;
+        }
+        
+        function switchCategory(category) {
+            const allGroups = document.querySelectorAll('.group-section');
+            if (category === '全部') {
+                allGroups.forEach(group => group.style.display = 'block');
+            } else {
+                allGroups.forEach(group => {
+                    const title = group.querySelector('.group-title');
+                    if (title && title.textContent.trim().includes(category)) {
+                        group.style.display = 'block';
+                    } else {
+                        group.style.display = 'none';
+                    }
+                });
+            }
+            const buttons = document.querySelectorAll('.category-btn');
+            buttons.forEach(btn => {
+                if (btn.textContent === category) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            localStorage.setItem('lastSelectedCategory', category);
+        }
+        
+        function updateCategoryButtons() {
+            const buttons = document.querySelectorAll('.category-btn');
+            const lastCategory = localStorage.getItem('lastSelectedCategory') || '全部';
+            buttons.forEach(btn => {
+                if (btn.textContent === lastCategory) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+        }
+
         function showEditModal(data, groupIndex, itemIndex) {
             const modal = document.getElementById('editModal');
-            modal.querySelector('#editName').value = data.title;
-            modal.querySelector('#editUrl').value = data.url;
+            modal.querySelector('#editName').value = data.title || '';
+            modal.querySelector('#editUrl').value = data.url || '';
+            const thumbnailValue = data.thumbnail || '';
+            modal.querySelector('#editThumbnail').value = thumbnailValue;
             
-            // 添加缩略图修改选项
-            const thumbnailInput = document.createElement('input');
-            thumbnailInput.type = 'text';
-            thumbnailInput.id = 'editThumbnail';
-            thumbnailInput.value = data.thumbnail || '';
-            thumbnailInput.placeholder = '缩略图URL（可选）';
-            
-            // 检查是否存在缩略图输入框，避免重复添加
-            const existingThumbnailInput = modal.querySelector('#editThumbnail');
-            if (!existingThumbnailInput) {
-                const urlLabel = modal.querySelector('label[for="editUrl"]') || modal.querySelector('#editUrl').parentElement;
-                urlLabel.after(document.createElement('br'), thumbnailInput);
+            const previewImg = document.getElementById('previewImg');
+            if (thumbnailValue) {
+                previewImg.src = thumbnailValue;
             } else {
-                existingThumbnailInput.value = data.thumbnail || '';
+                const faviconUrl = getBestThumbnail(data.url, null);
+                previewImg.src = faviconUrl || thumbnailLinks[0];
             }
-
+            
+            const thumbnailInput = modal.querySelector('#editThumbnail');
+            thumbnailInput.oninput = function() {
+                if (this.value) {
+                    previewImg.src = this.value;
+                } else {
+                    const faviconUrl = getBestThumbnail(data.url, null);
+                    previewImg.src = faviconUrl || thumbnailLinks[0];
+                }
+            };
+            
             modal.style.display = 'block';
             currentGroupIndex = groupIndex;
             currentItemIndex = itemIndex;
         }
 
-        // 保存更改
-        function saveChanges() {
+        function saveEditChanges() {
             const modal = document.getElementById('editModal');
             const newTitle = modal.querySelector('#editName').value;
             const newUrl = modal.querySelector('#editUrl').value;
-            const newThumbnail = modal.querySelector('#editThumbnail') ? modal.querySelector('#editThumbnail').value : '';
+            const newThumbnail = modal.querySelector('#editThumbnail').value;
 
             if (currentCard && currentItem) {
                 currentItem.title = newTitle;
                 currentItem.url = newUrl;
                 if (newThumbnail) {
                     currentItem.thumbnail = newThumbnail;
+                } else {
+                    delete currentItem.thumbnail;
                 }
-
                 currentCard.querySelector('a').textContent = newTitle;
                 currentCard.querySelector('a').href = newUrl;
+                const thumbnailImg = currentCard.querySelector('.thumbnail');
+                const newThumbUrl = getBestThumbnail(newUrl, newThumbnail);
+                if (newThumbUrl) {
+                    thumbnailImg.src = newThumbUrl;
+                }
             }
 
             modal.style.display = 'none';
             renderBookmarks();
-            updateColors(); // Update colors after saving changes
-        }
-
-        // 添加书签
-        function addBookmark() {
-            const addModal = document.getElementById('addModal');
-            addModal.querySelector('#addName').value = '';
-            addModal.querySelector('#addUrl').value = '';
-
-            document.getElementById('editModal').style.display = 'none';
-            addModal.style.display = 'block';
-        }
-
-        // 保存新书签
-        function saveNewBookmark() {
-            const addModal = document.getElementById('addModal');
-            const newTitle = addModal.querySelector('#addName').value;
-            const newUrl = addModal.querySelector('#addUrl').value;
-
-            const newBookmark = {
-                title: newTitle,
-                url: newUrl,
-                thumbnail: currentItem.thumbnail,
-                backgroundColor: currentItem.backgroundColor
-            };
-
-            // 将新书签插入到当前书签的下一个位置
-            currentData.icons[currentGroupIndex].children.splice(currentItemIndex + 1, 0, newBookmark);
-
-            addModal.style.display = 'none';
-            renderBookmarks();
-            updateColors(); // Update colors after saving changes
-        }
-
-        // 删除书签
-        function deleteBookmark() {
-            currentData.icons[currentGroupIndex].children.splice(currentItemIndex, 1);
-            document.getElementById('editModal').style.display = 'none';
-            renderBookmarks();
-            updateColors(); // Update colors after saving changes
-        }
-
-        // 重置页面
-        function resetPage() {
-            document.getElementById('jsonInput').value = '';
-            currentData = null;
-            renderBookmarks();
             updateColors();
+            showToast('✅ 书签已更新');
         }
 
-        // 更新颜色
-        function updateColors() {
-            pageBackgroundColor = document.getElementById('pageBackgroundColor').value;
-            panelBackgroundColor = document.getElementById('panelBackgroundColor').value;
-            document.body.style.backgroundColor = pageBackgroundColor;
-            document.querySelector('.panel').style.backgroundColor = panelBackgroundColor;
-        }
-        
-        // 切换编辑模式
-        function toggleEditMode() {
-            editMode = !editMode;
-            const panel = document.querySelector('.panel');
-            const editModeBtn = document.getElementById('editModeBtn');
-            
-            if (editMode) {
-                panel.classList.add('edit-mode-on');
-                editModeBtn.textContent = '完成编辑';
-                editModeBtn.style.backgroundColor = '#d9534f';
-                // 重新渲染以显示编辑控件
-                renderBookmarks();
-            } else {
-                panel.classList.remove('edit-mode-on');
-                editModeBtn.textContent = '编辑模式';
-                editModeBtn.style.backgroundColor = '#3498db';
-                // 重新渲染以隐藏编辑控件
-                renderBookmarks();
-            }
-        }
-        
-        // 添加新分类
-        function addCategory() {
-            const categoryName = prompt('请输入新分类名称：');
-            if (categoryName) {
-                if (!currentData) {
-                    currentData = { icons: [] };
-                }
-                currentData.icons.push({
-                    title: categoryName,
-                    children: []
-                });
-                renderBookmarks();
-            }
-        }
-        
-        // 在指定分类后添加新分类
-        function addCategoryAfter(groupIndex) {
-            const categoryName = prompt('请输入新分类名称：');
-            if (categoryName) {
-                if (!currentData) {
-                    currentData = { icons: [] };
-                }
-                currentData.icons.splice(groupIndex + 1, 0, {
-                    title: categoryName,
-                    children: []
-                });
-                renderBookmarks();
-            }
-        }
-        
-        // 编辑分类名称
-        function editCategory(groupIndex) {
-            const oldName = currentData.icons[groupIndex].title;
-            const newName = prompt('请输入新的分类名称：', oldName);
-            if (newName && newName !== oldName) {
-                currentData.icons[groupIndex].title = newName;
-                renderBookmarks();
-            }
-        }
-        
-        // 删除分类
-        function deleteCategory(groupIndex) {
-            if (confirm('确定要删除分类 "' + currentData.icons[groupIndex].title + '" 吗？\n该分类下的所有书签也将被删除。')) {
-                currentData.icons.splice(groupIndex, 1);
-                renderBookmarks();
-            }
-        }
-        
-        // 在分类中添加书签
-        function addBookmarkToCategory(groupIndex) {
-            const modal = document.getElementById('addModal');
-            modal.querySelector('#addName').value = '';
-            modal.querySelector('#addUrl').value = '';
-            
-            // 保存当前组索引以便在保存时使用
-            currentGroupIndex = groupIndex;
-            currentItemIndex = -1; // -1表示添加新书签
-            
-            modal.style.display = 'block';
-        }
-        
-        // 保存新书签
         function saveNewBookmark() {
             const addModal = document.getElementById('addModal');
             const newTitle = addModal.querySelector('#addName').value;
@@ -1064,381 +1080,129 @@
             const newThumbnail = addModal.querySelector('#addThumbnail').value;
             
             if (newTitle && newUrl) {
-                const newBookmark = {
-                    title: newTitle,
-                    url: newUrl
-                };
-                
-                // 如果提供了缩略图URL，则添加到书签对象
-                if (newThumbnail) {
-                    newBookmark.thumbnail = newThumbnail;
-                }
-                
-                // 将新书签添加到当前分类
+                const newBookmark = { title: newTitle, url: newUrl };
+                if (newThumbnail) newBookmark.thumbnail = newThumbnail;
                 currentData.icons[currentGroupIndex].children.push(newBookmark);
-                
                 addModal.style.display = 'none';
                 renderBookmarks();
+                showToast(`✅ 已添加书签: ${newTitle}`);
             } else {
-                alert('请输入书签名称和链接');
+                showToast('请输入书签名称和链接', true);
+            }
+        }
+
+        function deleteBookmark() {
+            if (confirm('确定要删除此书签吗？')) {
+                currentData.icons[currentGroupIndex].children.splice(currentItemIndex, 1);
+                document.getElementById('editModal').style.display = 'none';
+                renderBookmarks();
+                showToast('🗑️ 书签已删除');
+            }
+        }
+
+        function updateColors() {
+            pageBackgroundColor = document.getElementById('pageBackgroundColor').value;
+            panelBackgroundColor = document.getElementById('panelBackgroundColor').value;
+            document.body.style.backgroundColor = pageBackgroundColor;
+            document.querySelector('.panel').style.backgroundColor = panelBackgroundColor;
+        }
+        
+        function toggleEditMode() {
+            editMode = !editMode;
+            const editModeBtn = document.getElementById('editModeBtn');
+            if (editMode) {
+                editModeBtn.textContent = '✅ 完成编辑';
+                editModeBtn.style.backgroundColor = '#d9534f';
+                renderBookmarks();
+                showToast('✏️ 编辑模式已开启，可直接点击按钮编辑');
+            } else {
+                editModeBtn.textContent = '✏️ 编辑模式';
+                editModeBtn.style.backgroundColor = '#3498db';
+                renderBookmarks();
+                showToast('编辑模式已关闭');
             }
         }
         
-        // 删除书签
+        function moveCategory(groupIndex, direction) {
+            if (direction === 'up' && groupIndex > 0) {
+                [currentData.icons[groupIndex], currentData.icons[groupIndex - 1]] = 
+                [currentData.icons[groupIndex - 1], currentData.icons[groupIndex]];
+            } else if (direction === 'down' && groupIndex < currentData.icons.length - 1) {
+                [currentData.icons[groupIndex], currentData.icons[groupIndex + 1]] = 
+                [currentData.icons[groupIndex + 1], currentData.icons[groupIndex]];
+            }
+            renderBookmarks();
+            showToast('✅ 分类顺序已更新');
+        }
+        
+        function editCategory(groupIndex) {
+            const oldName = currentData.icons[groupIndex].title;
+            const newName = prompt('请输入新的分类名称：', oldName);
+            if (newName && newName !== oldName) {
+                currentData.icons[groupIndex].title = newName;
+                renderBookmarks();
+                showToast('✅ 分类已更新');
+            }
+        }
+        
+        function deleteCategory(groupIndex) {
+            if (confirm('确定要删除分类 "' + currentData.icons[groupIndex].title + '" 吗？\n该分类下的所有书签也将被删除。')) {
+                currentData.icons.splice(groupIndex, 1);
+                renderBookmarks();
+                showToast('🗑️ 分类已删除');
+            }
+        }
+        
+        function addCategoryAfter(groupIndex) {
+            const categoryName = prompt('请输入新分类名称：');
+            if (categoryName) {
+                if (!currentData) currentData = { icons: [] };
+                currentData.icons.splice(groupIndex + 1, 0, { title: categoryName, children: [] });
+                renderBookmarks();
+                showToast(`✅ 已添加分类: ${categoryName}`);
+            }
+        }
+        
+        function addBookmarkToCategory(groupIndex) {
+            const modal = document.getElementById('addModal');
+            modal.querySelector('#addName').value = '';
+            modal.querySelector('#addUrl').value = '';
+            modal.querySelector('#addThumbnail').value = '';
+            document.getElementById('addPreviewImg').src = '';
+            currentGroupIndex = groupIndex;
+            modal.style.display = 'block';
+        }
+        
         function deleteBookmarkFromCategory(groupIndex, itemIndex) {
             if (confirm('确定要删除书签 "' + currentData.icons[groupIndex].children[itemIndex].title + '" 吗？')) {
                 currentData.icons[groupIndex].children.splice(itemIndex, 1);
                 renderBookmarks();
+                showToast('🗑️ 书签已删除');
             }
         }
         
-        // 移动书签位置
         function moveBookmark(groupIndex, itemIndex, direction) {
             const group = currentData.icons[groupIndex];
             if (direction === 'up' && itemIndex > 0) {
-                // 向上移动
                 [group.children[itemIndex], group.children[itemIndex - 1]] = 
                 [group.children[itemIndex - 1], group.children[itemIndex]];
             } else if (direction === 'down' && itemIndex < group.children.length - 1) {
-                // 向下移动
                 [group.children[itemIndex], group.children[itemIndex + 1]] = 
                 [group.children[itemIndex + 1], group.children[itemIndex]];
             }
             renderBookmarks();
         }
-        
-        // 移动分类位置
-        function moveCategory(groupIndex, direction) {
-            if (direction === 'up' && groupIndex > 0) {
-                // 向上移动
-                [currentData.icons[groupIndex], currentData.icons[groupIndex - 1]] = 
-                [currentData.icons[groupIndex - 1], currentData.icons[groupIndex]];
-            } else if (direction === 'down' && groupIndex < currentData.icons.length - 1) {
-                // 向下移动
-                [currentData.icons[groupIndex], currentData.icons[groupIndex + 1]] = 
-                [currentData.icons[groupIndex + 1], currentData.icons[groupIndex]];
-            }
-            renderBookmarks();
-        }
 
-        // 导出 HTML - 使用安全的字符串拼接
-        function exportHtml() {
-            // 创建临时容器来渲染所有分类的内容
-            const tempContainer = document.createElement('div');
-            tempContainer.className = 'container';
-            
-            // 添加分类导航
-            const categoryNav = generateCategoryNav();
-            tempContainer.appendChild(categoryNav);
-            
-            // 添加所有分类内容
-            const allContentContainer = document.createElement('div');
-            allContentContainer.id = 'allBookmarksContainer';
-            
+        function generateJsonFile() {
+            const newJson = {};
             if (currentData && currentData.icons) {
-                currentData.icons.forEach((group, groupIndex) => {
-                    const groupSection = document.createElement('div');
-                    groupSection.className = 'group-section';
-                    const groupTitle = document.createElement('h2');
-                    groupTitle.className = 'group-title';
-                    groupTitle.textContent = group.title;
-                    groupSection.appendChild(groupTitle);
-
-                    // 添加左侧绿色竖条
-                    groupTitle.innerHTML = '<span style="display: inline-block; width: 5px; height: 20px; "></span>' + group.title;
-
-                    const cardContainer = document.createElement('div');
-                    cardContainer.className = 'container';
-
-                    // 为同一组设置相同的背景色
-                    const groupBackgroundColor = defaultColors[groupIndex % defaultColors.length];
-
-                    group.children.forEach((item, itemIndex) => {
-                        const card = document.createElement('div');
-                        card.className = 'card';
-                        // 使用组的背景色，确保同一分类下所有书签背景色一致
-                        card.style.backgroundColor = groupBackgroundColor;
-                        const isDark = isColorDark(groupBackgroundColor);
-                        const textColor = isDark ? '#fff' : '#000';
-                        card.style.setProperty('--text-color', textColor);
-
-                        const thumbnail = document.createElement('img');
-                        thumbnail.className = 'thumbnail';
-
-                        // 优先使用自定义缩略图
-                        if (item.thumbnail) {
-                            thumbnail.src = item.thumbnail;
-                        } else {
-                            // 尝试获取 favicon，使用多层备选方案
-                            const faviconUrl = getFaviconUrl(item.url);
-                            thumbnail.src = faviconUrl;
-
-                            // 如果获取失败，尝试备用方案
-                            thumbnail.onerror = function () {
-                                const backupUrl = getBackupFaviconUrl(item.url);
-                                if (backupUrl) {
-                                    thumbnail.src = backupUrl;
-                                    thumbnail.onerror = function () {
-                                        const thirdBackupUrl = getThirdBackupFaviconUrl(item.url);
-                                        if (thirdBackupUrl) {
-                                            thumbnail.src = thirdBackupUrl;
-                                            thumbnail.onerror = function () {
-                                                // 如果所有favicon服务都失败，使用默认缩略图
-                                                thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
-                                                thumbnailIndex++;
-                                                thumbnail.onerror = null; // 防止无限循环
-                                            };
-                                        } else {
-                                            // 使用默认缩略图
-                                            thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
-                                            thumbnailIndex++;
-                                            thumbnail.onerror = null; // 防止无限循环
-                                        }
-                                    };
-                                } else {
-                                    // 使用默认缩略图
-                                    thumbnail.src = thumbnailLinks[thumbnailIndex % thumbnailLinks.length];
-                                    thumbnailIndex++;
-                                    thumbnail.onerror = null; // 防止无限循环
-                                }
-                            };
-                        }
-
-                        card.appendChild(thumbnail);
-
-                        const link = document.createElement('a');
-                        link.href = item.url;
-                        link.target = '_blank';
-                        link.textContent = item.title;
-                        link.style.color = textColor;
-                        card.appendChild(link);
-                        cardContainer.appendChild(card); // 将卡片添加到容器中
-                    });
-
-                    groupSection.appendChild(cardContainer);
-                    allContentContainer.appendChild(groupSection);
+                currentData.icons.forEach(group => {
+                    newJson[group.title] = group.children.map(item => ({
+                        name: item.title,
+                        url: item.url
+                    }));
                 });
             }
-            
-            tempContainer.appendChild(allContentContainer);
-            
-            // 构建完整的HTML内容 - 确保包含完整的文档结构
-            let content = "<!DOCTYPE html>\n";
-            content += "<html lang=\"zh\">\n";
-            content += "<head>\n";
-            content += "    <meta charset=\"UTF-8\">\n";
-            content += "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n";
-            content += "    <title>我的书签</title>\n";
-            content += "    <style>\n";
-            content += "        body {\n";
-            content += "            font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n";
-            content += "            margin: 20px;\n";
-            content += "            background-color: " + pageBackgroundColor + ";\n";
-            content += "            box-sizing: border-box;\n";
-            content += "        }\n\n";
-            content += "        .panel {\n";
-            content += "            max-width: 90%;\n";
-            content += "            width: 800px;\n";
-            content += "            margin: 20px auto;\n";
-            content += "            padding: 20px;\n";
-            content += "            background-color: " + panelBackgroundColor + ";\n";
-            content += "            border-radius: 10px;\n";
-            content += "            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);\n";
-            content += "            text-align: center;\n";
-            content += "        }\n\n";
-            content += "        .category-nav {\n";
-            content += "            display: flex;\n";
-            content += "            flex-wrap: nowrap;\n";
-            content += "            overflow-x: auto;\n";
-            content += "            gap: 5px;\n";
-            content += "            margin-bottom: 15px;\n";
-            content += "            padding: 10px;\n";
-            content += "            background-color: #e0f7e9;\n";
-            content += "            border-radius: 8px;\n";
-            content += "            justify-content: flex-start;\n";
-            content += "            scrollbar-width: thin;\n";
-            content += "            scrollbar-color: #4CAF50 #e0f7e9;\n";
-            content += "        }\n\n";
-            content += "        \n";
-            content += "        .category-nav::-webkit-scrollbar {\n";
-            content += "            height: 6px;\n";
-            content += "        }\n\n";
-            content += "        .category-nav::-webkit-scrollbar-track {\n";
-            content += "            background: #e0f7e9;\n";
-            content += "            border-radius: 3px;\n";
-            content += "        }\n\n";
-            content += "        .category-nav::-webkit-scrollbar-thumb {\n";
-            content += "            background: #4CAF50;\n";
-            content += "            border-radius: 3px;\n";
-            content += "        }\n\n";
-            content += "        .category-nav::-webkit-scrollbar-thumb:hover {\n";
-            content += "            background: #45a049;\n";
-            content += "        }\n\n";
-            content += "        .category-btn {\n";
-            content += "            padding: 6px 12px;\n";
-            content += "            margin: 2px;\n";
-            content += "            background-color: #4CAF50;\n";
-            content += "            color: white;\n";
-            content += "            border: none;\n";
-            content += "            border-radius: 15px;\n";
-            content += "            cursor: pointer;\n";
-            content += "            font-size: 0.9em;\n";
-            content += "            transition: all 0.3s ease;\n";
-            content += "            flex-shrink: 0;\n";
-            content += "        }\n\n";
-            content += "        .category-btn:hover {\n";
-            content += "            background-color: #45a049;\n";
-            content += "            transform: translateY(-1px);\n";
-            content += "        }\n\n";
-            content += "        .category-btn.active {\n";
-            content += "            background-color: #2E7D32;\n";
-            content += "            font-weight: bold;\n";
-            content += "        }\n\n";
-            content += "        .container {\n";
-            content += "            display: grid;\n";
-            content += "            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));\n";
-            content += "            gap: 8px;\n";
-            content += "            padding: 8px;\n";
-            content += "            max-width: 100%;\n";
-            content += "            margin: 10px auto;\n";
-            content += "        }\n\n";
-            content += "        .group-section {\n";
-            content += "            margin-bottom: 20px;\n";
-            content += "        }\n\n";
-            content += "        .group-title {\n";
-            content += "            position: relative;\n";
-            content += "            padding-left: 15px;\n";
-            content += "            margin-bottom: 10px;\n";
-            content += "            text-align: left;\n";
-            content += "        }\n\n";
-            content += "        .group-title::before {\n";
-            content += "            content: \"\";\n";
-            content += "            position: absolute;\n";
-            content += "            left: 0;\n";
-            content += "            top: 50%;\n";
-            content += "            transform: translateY(-50%);\n";
-            content += "            width: 5px;\n";
-            content += "            height: 20px;\n";
-            content += "            background-color: #4CAF50;\n";
-            content += "        }\n\n";
-            content += "        .card {\n";
-            content += "            border-radius: 20px;\n";
-            content += "            padding: 8px 12px;\n";
-            content += "            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);\n";
-            content += "            transition: transform 0.2s;\n";
-            content += "            display: flex;\n";
-            content += "            align-items: center;\n";
-            content += "            position: relative;\n";
-            content += "            text-align: left;\n";
-            content += "            min-width: 0;\n";
-            content += "            box-sizing: border-box;\n";
-            content += "            width: 100%;\n";
-            content += "            margin-bottom: 5px;\n";
-            content += "        }\n\n";
-            content += "        .card:hover {\n";
-            content += "            transform: translateY(-2px);\n";
-            content += "        }\n\n";
-            content += "        .thumbnail {\n";
-            content += "            width: 24px;\n";
-            content += "            height: 24px;\n";
-            content += "            border-radius: 50%;\n";
-            content += "            object-fit: cover;\n";
-            content += "            margin-right: 8px;\n";
-            content += "        }\n\n";
-            content += "        .card a {\n";
-            content += "            text-decoration: none;\n";
-            content += "            font-size: 0.85em;\n";
-            content += "            word-break: break-word;\n";
-            content += "            text-align: left;\n";
-            content += "            color: var(--text-color);\n";
-            content += "            box-sizing: border-box;\n";
-            content += "            flex-grow: 1;\n";
-            content += "        }\n";
-            content += "    </style>\n";
-            content += "    <script>\n";
-            content += "        // 添加分类切换功能到导出的页面\n";
-            content += "        function switchCategory(category) {\n";
-            content += "            const allGroups = document.querySelectorAll(\".group-section\");\n";
-            content += "            if (category === \"全部\") {\n";
-            content += "                allGroups.forEach(group => group.style.display = \"block\");\n";
-            content += "            } else {\n";
-            content += "                allGroups.forEach(group => {\n";
-            content += "                    const title = group.querySelector(\".group-title\");\n";
-            content += "                    if (title && title.textContent.trim().includes(category)) {\n";
-            content += "                        group.style.display = \"block\";\n";
-            content += "                    } else {\n";
-            content += "                        group.style.display = \"none\";\n";
-            content += "                    }\n";
-            content += "                });\n";
-            content += "            }\n";
-            content += "            // 更新按钮状态\n";
-            content += "            const buttons = document.querySelectorAll(\".category-btn\");\n";
-            content += "            buttons.forEach(btn => {\n";
-            content += "                if (btn.textContent === category) {\n";
-            content += "                    btn.classList.add(\"active\");\n";
-            content += "                } else {\n";
-            content += "                    btn.classList.remove(\"active\");\n";
-            content += "                }\n";
-            content += "            });\n";
-            content += "        }\n";
-            content += "        // 页面加载完成后，设置默认显示全部分类\n";
-            content += "        document.addEventListener(\"DOMContentLoaded\", function() {\n";
-            content += "            // 为所有分类按钮添加点击事件监听器\n";
-            content += "            const categoryButtons = document.querySelectorAll(\".category-btn\");\n";
-            content += "            categoryButtons.forEach(button => {\n";
-            content += "                button.addEventListener('click', function() {\n";
-            content += "                    switchCategory(this.textContent);\n";
-            content += "                });\n";
-            content += "            });\n";
-            content += "            // 默认激活\"全部\"按钮\n";
-            content += "            const allBtn = document.querySelector(\".category-btn\");\n";
-            content += "            if (allBtn) {\n";
-            content += "                allBtn.classList.add(\"active\");\n";
-            content += "            }\n";
-            content += "        });\n";
-            content += "    </" + "script>\n";
-            content += "</head>\n";
-            content += "<body>\n";
-            content += "    <div class=\"panel\">\n";
-            content += "        <h1>我的书签</h1>\n";
-            content += "        <div id=\"categoryNav\" class=\"category-nav\">" + categoryNav.outerHTML + "</div>\n";
-            content += "        <div id=\"bookmarkContainer\">" + allContentContainer.outerHTML + "</div>\n";
-            content += "    </div>\n";
-            content += "</body>\n";
-            content += "</html>";
-
-            const blob = new Blob([content], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'bookmarks.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-        
-        // HTML转义函数，防止特殊字符导致的语法错误
-        function escapeHtml(html) {
-            return html
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/\"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        // 生成 JSON 文件
-        function generateJsonFile() {
-            // 修改后的生成 JSON 文件格式
-            const newJson = {};
-            currentData.icons.forEach(group => {
-                newJson[group.title] = group.children.map(item => ({
-                    name: item.title,
-                    url: item.url
-                }));
-            });
-
             const jsonString = JSON.stringify(newJson, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -1449,41 +1213,46 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            showToast('📦 JSON 已导出');
         }
 
-
-        // 检查密码并导出 HTML
         function checkPasswordAndExport() {
             const password = prompt('请输入导出密码：');
             if (password === 'baoge888') {
-                exportHtml();
+                alert('HTML导出功能');
             } else {
-                alert('密码错误，无法导出 HTML。');
+                showToast('密码错误，无法导出', true);
             }
         }
 
-        // 检查密码并导出 JSON
         function checkPasswordAndGenerateJson() {
             const password = prompt('请输入导出密码：');
             if (password === 'baoge888') {
                 generateJsonFile();
             } else {
-                alert('密码错误，无法导出 JSON。');
+                showToast('密码错误，无法导出', true);
             }
         }
 
-        // 关闭模态框
         document.querySelectorAll('.close').forEach(closeButton => {
             closeButton.addEventListener('click', function () {
-                // 找到最近的 modal 元素并隐藏它
                 let modal = this.closest('.modal');
-                if (modal) {
-                    modal.style.display = 'none';
-                }
+                if (modal) modal.style.display = 'none';
             });
         });
-    </script>
-<script defer src="https://fx.baoge.wang/tracker.min.js" data-website-id="书签生成页"></script>
-</body>
 
+        window.onload = function () {
+            const exampleBtn = document.getElementById('exampleBtn');
+            const importBtn = document.getElementById('importFileBtn');
+            
+            exampleBtn.addEventListener('click', openExampleLink);
+            importBtn.addEventListener('click', importFile);
+            
+            document.getElementById('jsonInput').value = '';
+            currentData = null;
+            renderBookmarks();
+            updateColors();
+        };
+    </script>
+</body>
 </html>
