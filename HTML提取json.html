@@ -1,265 +1,635 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HTML书签 JSON提取工具</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "Segoe UI", system-ui, sans-serif;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>书签提取器 · 完美支持 Netscape 书签格式</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    body {
-      background: #f5f7fa;
-      padding: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(145deg, #e9eff7 0%, #d9e2ef 100%);
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
 
-    .tool-panel {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-      padding: 24px;
-      margin-bottom: 20px;
-    }
+        .glass-card {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(2px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
 
-    .tool-title {
-      font-size: 22px;
-      color: #2c3e50;
-      margin-bottom: 20px;
-      text-align: center;
-    }
+        .hero {
+            background: linear-gradient(120deg, #1f2b3c, #0f1a24);
+            padding: 1.8rem 2rem;
+            color: white;
+        }
 
-    .upload-box {
-      border: 2px dashed #cbd5e1;
-      border-radius: 8px;
-      padding: 30px;
-      text-align: center;
-      cursor: pointer;
-      margin-bottom: 20px;
-      transition: 0.3s;
-    }
+        .hero h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-    .upload-box:hover {
-      border-color: #409eff;
-      background: #f0f7ff;
-    }
+        .hero p {
+            opacity: 0.8;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
 
-    #fileInput {
-      display: none;
-    }
+        .two-columns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            padding: 28px 24px;
+        }
 
-    .btn-group {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
+        .col {
+            flex: 1;
+            min-width: 300px;
+            background: #ffffffcc;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
 
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
+        .col-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #3b82f6;
+            display: inline-block;
+            color: #1e293b;
+        }
 
-    .btn-extract {
-      background: #409eff;
-      color: white;
-    }
+        .upload-zone {
+            border: 2px dashed #94a3b8;
+            border-radius: 1.2rem;
+            background: #f8fafc;
+            padding: 1.6rem;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 20px;
+        }
 
-    .btn-export {
-      background: #9c27b0;
-      color: white;
-    }
+        .upload-zone:hover {
+            background: #eef2ff;
+            border-color: #3b82f6;
+        }
 
-    .btn-copy {
-      background: #67c23a;
-      color: white;
-    }
+        .file-info {
+            background: #eef2ff;
+            border-radius: 1rem;
+            padding: 12px;
+            margin: 12px 0;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
 
-    .btn-clear {
-      background: #f56c6c;
-      color: white;
-    }
+        textarea {
+            width: 100%;
+            height: 400px;
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            padding: 12px;
+            border-radius: 1rem;
+            border: 1px solid #cbd5e1;
+            background: #fefcf5;
+            resize: vertical;
+        }
 
-    button:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
-    }
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+        }
 
-    .result-box {
-      width: 100%;
-      height: 500px;
-      padding: 16px;
-      border: 1px solid #e1e4e8;
-      border-radius: 8px;
-      resize: none;
-      font-size: 13px;
-      line-height: 1.5;
-      background: #fafbfc;
-      font-family: Consolas, monospace;
-    }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 18px 0 12px;
+        }
 
-    .tip {
-      font-size: 12px;
-      color: #909399;
-      text-align: center;
-      margin-top: 8px;
-    }
-  </style>
+        .btn {
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 2px 6px rgba(59,130,246,0.3);
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+        }
+
+        .btn-outline:hover {
+            background: #f1f5f9;
+            border-color: #3b82f6;
+        }
+
+        .stats {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .stat-badge {
+            background: #e6f0ff;
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1e40af;
+        }
+
+        .json-preview {
+            background: #0f172a;
+            border-radius: 1rem;
+            padding: 12px;
+            height: 420px;
+            overflow: auto;
+            font-family: monospace;
+            font-size: 12px;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            z-index: 999;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            animation: fadeInOut 2.5s ease forwards;
+            pointer-events: none;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; bottom: 10px; }
+            15% { opacity: 1; bottom: 30px; }
+            85% { opacity: 1; bottom: 30px; }
+            100% { opacity: 0; bottom: 10px; visibility: hidden; }
+        }
+
+        .filename-input-area {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 12px;
+            background: #f1f5f9;
+            padding: 10px 14px;
+            border-radius: 60px;
+        }
+
+        .filename-input-area input {
+            flex: 1;
+            border: 1px solid #cbd5e1;
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            background: white;
+        }
+
+        .filename-input-area label {
+            font-weight: 500;
+            color: #0f172a;
+        }
+
+        hr {
+            margin: 12px 0;
+        }
+    </style>
 </head>
 <body>
-  <div class="tool-panel">
-    <h2 class="tool-title">📝 HTML书签 → JSON 提取工具</h2>
-    
-    <div class="upload-box" id="uploadBox">
-      <p>点击或拖拽上传 HTML 书签文件</p>
-      <input type="file" id="fileInput" accept=".html,.htm">
+<div class="glass-card">
+    <div class="hero">
+        <h1>📚 书签提取器 · 完美支持 Netscape 书签格式</h1>
+        <p>支持 Chrome/Firefox/Edge 导出的 bookmarks.html | 自动识别 H3 分组 | 导出时支持自定义文件名</p>
     </div>
+    <div class="two-columns">
+        <div class="col">
+            <div class="col-title">📂 1. 导入书签 HTML</div>
+            <div class="upload-zone" id="uploadZone">
+                <div>📁 点击或拖拽上传书签文件</div>
+                <div style="font-size: 12px; margin-top: 8px; color: #475569;">支持 Netscape 书签格式 (.html)</div>
+                <input type="file" id="fileInput" accept=".html,.htm" style="display: none;">
+            </div>
+            <div id="fileInfo" class="file-info" style="display: none;"></div>
+            <div class="btn-group">
+                <button id="parseBtn" class="btn btn-primary">🔍 解析并生成 JSON</button>
+                <button id="clearBtn" class="btn btn-outline">🗑️ 清空</button>
+            </div>
+            <textarea id="htmlPreview" placeholder="或者直接粘贴书签 HTML 源码，然后点击「解析」…"></textarea>
+            <div class="stats" id="statsArea" style="display: none;">
+                <span class="stat-badge" id="statGroups">📂 分类: 0</span>
+                <span class="stat-badge" id="statBookmarks">🔖 书签: 0</span>
+            </div>
+        </div>
 
-    <div class="btn-group">
-      <button class="btn-extract" id="extractBtn">开始提取JSON</button>
-      <button class="btn-export" id="exportBtn">导出JSON文件</button>
-      <button class="btn-copy" id="copyBtn">复制JSON结果</button>
-      <button class="btn-clear" id="clearBtn">清空内容</button>
+        <div class="col">
+            <div class="col-title">📦 2. JSON 结果 & 导出</div>
+            <div class="json-preview" id="jsonPreview">✨ 等待解析... 导入书签文件或粘贴源码后点击「解析」</div>
+            <div class="filename-input-area">
+                <label>📄 导出文件名:</label>
+                <input type="text" id="exportFileName" placeholder="bookmarks_export" value="bookmarks_data">
+                <span style="color:#475569;">.json</span>
+            </div>
+            <div class="btn-group" style="margin-top: 12px;">
+                <button id="exportJsonBtn" class="btn btn-success" disabled>💾 导出 JSON</button>
+                <button id="copyJsonBtn" class="btn btn-outline" disabled>📋 复制 JSON</button>
+            </div>
+            <div style="font-size: 12px; background: #f1f5f9; border-radius: 12px; padding: 10px; margin-top: 12px;">
+                💡 支持格式:<br>
+                • <strong>Netscape 书签格式</strong> (浏览器导出) - 自动识别 H3 分类<br>
+                • <strong>自定义导航面板</strong> (.group-section + .card)<br>
+                • 缩略图字段自动留空 (favicon: "")
+            </div>
+        </div>
     </div>
+</div>
 
-    <textarea class="result-box" id="resultArea" placeholder="提取后的 JSON 数据将显示在这里..."></textarea>
-    <p class="tip">支持你提供的所有书签HTML格式，自动识别分类、名称、链接、图标</p>
-  </div>
-
-  <script>
-    const uploadBox = document.getElementById('uploadBox');
-    const fileInput = document.getElementById('fileInput');
-    const extractBtn = document.getElementById('extractBtn');
-    const exportBtn = document.getElementById('exportBtn');
-    const copyBtn = document.getElementById('copyBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const resultArea = document.getElementById('resultArea');
-
-    let currentHtml = '';
-
-    // 上传文件
-    uploadBox.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = ev => {
-        currentHtml = ev.target.result;
-        uploadBox.innerHTML = `<p style="color:#409eff">✅ 已加载：${file.name}</p>`;
-      };
-      reader.readAsText(file);
-    });
-
-    // 拖拽上传
-    uploadBox.addEventListener('dragover', e => e.preventDefault());
-    uploadBox.addEventListener('drop', e => {
-      e.preventDefault();
-      const file = e.dataTransfer.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = ev => {
-        currentHtml = ev.target.result;
-        uploadBox.innerHTML = `<p style="color:#409eff">✅ 已加载：${file.name}</p>`;
-      };
-      reader.readAsText(file);
-    });
-
-    // 核心提取逻辑
-    function extractBookmarkToJson(html) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      const result = {};
-
-      const groups = doc.querySelectorAll('.group-section');
-      groups.forEach(group => {
-        const titleEl = group.querySelector('.group-title');
-        if (!titleEl) return;
-        const category = titleEl.textContent.trim().replace(/[\n\t]/g, '');
-        
-        const items = [];
-        const cards = group.querySelectorAll('.card');
-        
-        cards.forEach(card => {
-          const a = card.querySelector('a');
-          const img = card.querySelector('.thumbnail');
-          if (!a) return;
-
-          const name = a.textContent.trim().replace(/\s+/g, ' ');
-          const url = a.href.trim();
-          const favicon = img ? img.src.trim() : '';
-
-          if (name && url) {
-            items.push({ name, url, favicon });
-          }
-        });
-
-        if (items.length > 0) {
-          result[category] = items;
-        }
-      });
-
-      return JSON.stringify(result, null, 2);
+<script>
+    function showToast(msg, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = msg;
+        if (isError) toast.style.background = '#b91c1c';
+        else toast.style.background = '#0f172a';
+        document.body.appendChild(toast);
+        setTimeout(() => { if(toast.parentNode) toast.remove(); }, 2500);
     }
 
-    // 提取按钮
-    extractBtn.addEventListener('click', () => {
-      if (!currentHtml) {
-        alert('请先上传HTML书签文件！');
-        return;
-      }
-      const json = extractBookmarkToJson(currentHtml);
-      resultArea.value = json;
-    });
+    // 核心解析函数：支持 Netscape 书签格式
+    function parseBookmarks(htmlString) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlString, 'text/html');
+        
+        const result = {};
+        let currentCategory = '其他书签';
+        let missingIconCount = 0;
+        
+        // 递归遍历 DOM 树，正确处理嵌套的 DL 结构
+        function traverse(element, currentCat) {
+            const children = element.childNodes;
+            
+            for (let i = 0; i < children.length; i++) {
+                const node = children[i];
+                if (node.nodeType !== 1) continue; // 只处理元素节点
+                
+                const tagName = node.tagName.toUpperCase();
+                
+                // 遇到 H3 标签，更新当前分类
+                if (tagName === 'H3') {
+                    currentCat = node.textContent.trim();
+                    if (!result[currentCat]) {
+                        result[currentCat] = [];
+                    }
+                    // 继续遍历 H3 内部的子节点
+                    traverse(node, currentCat);
+                }
+                // 遇到 A 标签，添加书签
+                else if (tagName === 'A') {
+                    const url = node.getAttribute('HREF');
+                    const name = node.textContent.trim();
+                    if (url && name && url !== '#' && !url.startsWith('javascript:')) {
+                        // 确保当前分类存在
+                        if (!result[currentCat]) {
+                            result[currentCat] = [];
+                        }
+                        result[currentCat].push({
+                            name: name,
+                            url: url,
+                            favicon: ""  // 书签导出格式通常没有图标，留空
+                        });
+                    }
+                }
+                // 遇到 DL 或 DT 或 DD，继续递归遍历
+                else if (tagName === 'DL' || tagName === 'DT' || tagName === 'DD') {
+                    traverse(node, currentCat);
+                }
+            }
+        }
+        
+        // 从 body 或根元素开始遍历
+        const body = doc.body;
+        if (body) {
+            traverse(body, '其他书签');
+        }
+        
+        // 如果没有找到任何 H3 分类，尝试查找其他结构
+        if (Object.keys(result).length === 0) {
+            // 尝试 .group-section 结构
+            const groupSections = doc.querySelectorAll('.group-section');
+            if (groupSections.length > 0) {
+                for (let section of groupSections) {
+                    let category = '其他分组';
+                    const titleEl = section.querySelector('.group-title, h2, h3');
+                    if (titleEl) {
+                        category = titleEl.textContent.trim();
+                    }
+                    const cards = section.querySelectorAll('.card');
+                    for (let card of cards) {
+                        const link = card.querySelector('a');
+                        if (link) {
+                            const url = link.getAttribute('href');
+                            const name = link.textContent.trim();
+                            if (url && name) {
+                                if (!result[category]) result[category] = [];
+                                result[category].push({
+                                    name: name,
+                                    url: url,
+                                    favicon: ""
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 如果还是没有，提取所有链接放到"未分类"
+        if (Object.keys(result).length === 0) {
+            const allLinks = doc.querySelectorAll('a');
+            if (allLinks.length > 0) {
+                result['未分类'] = [];
+                for (let a of allLinks) {
+                    const url = a.getAttribute('href');
+                    const name = a.textContent.trim();
+                    if (url && name && url !== '#' && !url.startsWith('javascript:')) {
+                        result['未分类'].push({
+                            name: name,
+                            url: url,
+                            favicon: ""
+                        });
+                    }
+                }
+            }
+        }
+        
+        // 清理空分类
+        for (let cat in result) {
+            if (result[cat].length === 0) {
+                delete result[cat];
+            }
+        }
+        
+        return result;
+    }
 
-    // ✅ 导出文件（手动命名）
-    exportBtn.addEventListener('click', () => {
-      const content = resultArea.value;
-      if (!content) {
-        alert('请先提取JSON数据！');
-        return;
-      }
-      // 手动输入文件名
-      const fileName = prompt('请输入导出的JSON文件名（无需输入.json）', '书签数据');
-      if (!fileName) return;
+    let currentJson = null;
 
-      // 下载
-      const blob = new Blob([content], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      alert('✅ 导出成功：' + fileName + '.json');
-    });
+    function updateUI(jsonObj) {
+        currentJson = jsonObj;
+        const pretty = JSON.stringify(jsonObj, null, 2);
+        const previewDiv = document.getElementById('jsonPreview');
+        previewDiv.textContent = pretty;
+        
+        const groupCount = Object.keys(jsonObj).length;
+        let totalBookmarks = 0;
+        for (let key in jsonObj) {
+            totalBookmarks += jsonObj[key].length;
+        }
+        document.getElementById('statGroups').innerHTML = `📂 分类: ${groupCount}`;
+        document.getElementById('statBookmarks').innerHTML = `🔖 书签: ${totalBookmarks}`;
+        document.getElementById('statsArea').style.display = 'flex';
+        
+        document.getElementById('exportJsonBtn').disabled = false;
+        document.getElementById('copyJsonBtn').disabled = false;
+        
+        showToast(`✅ 解析成功！${groupCount} 个分类，共 ${totalBookmarks} 个书签`);
+    }
 
-    // 复制
-    copyBtn.addEventListener('click', async () => {
-      if (!resultArea.value) {
-        alert('暂无内容可复制');
-        return;
-      }
-      await navigator.clipboard.writeText(resultArea.value);
-      alert('✅ JSON 已复制到剪贴板');
-    });
+    function parseAndGenerate(htmlContent) {
+        if (!htmlContent || htmlContent.trim() === '') {
+            showToast('请先导入书签文件或粘贴源码', true);
+            return false;
+        }
+        try {
+            const result = parseBookmarks(htmlContent);
+            if (Object.keys(result).length === 0) {
+                throw new Error('未提取到任何书签，请检查文件格式');
+            }
+            updateUI(result);
+            return true;
+        } catch (err) {
+            console.error(err);
+            showToast('解析失败: ' + err.message, true);
+            document.getElementById('jsonPreview').textContent = '❌ 解析错误：' + err.message;
+            currentJson = null;
+            document.getElementById('exportJsonBtn').disabled = true;
+            document.getElementById('copyJsonBtn').disabled = true;
+            document.getElementById('statsArea').style.display = 'none';
+            return false;
+        }
+    }
 
-    // 清空
-    clearBtn.addEventListener('click', () => {
-      resultArea.value = '';
-      currentHtml = '';
-      uploadBox.innerHTML = '<p>点击或拖拽上传 HTML 书签文件</p>';
-      fileInput.value = '';
-    });
-  </script>
+    function exportJson() {
+        if (!currentJson) {
+            showToast('没有可导出的JSON，请先解析', true);
+            return;
+        }
+        let baseName = document.getElementById('exportFileName').value.trim();
+        if (baseName === '') baseName = 'bookmarks_data';
+        baseName = baseName.replace(/[\\/:*?"<>|]/g, '_');
+        const filename = `${baseName}.json`;
+        const jsonStr = JSON.stringify(currentJson, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`📁 已导出: ${filename}`);
+    }
+
+    function copyJson() {
+        if (!currentJson) {
+            showToast('暂无JSON数据', true);
+            return;
+        }
+        const jsonStr = JSON.stringify(currentJson, null, 2);
+        navigator.clipboard.writeText(jsonStr).then(() => {
+            showToast('📋 JSON 已复制到剪贴板');
+        }).catch(() => {
+            showToast('复制失败，请手动复制', true);
+        });
+    }
+
+    function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(file, 'UTF-8');
+        });
+    }
+
+    async function handleFile(file) {
+        if (!file) return;
+        if (!file.name.endsWith('.html') && !file.name.endsWith('.htm')) {
+            showToast('请上传 .html 或 .htm 格式的文件', true);
+            return;
+        }
+        try {
+            const content = await readFileAsText(file);
+            document.getElementById('htmlPreview').value = content;
+            const infoDiv = document.getElementById('fileInfo');
+            infoDiv.style.display = 'block';
+            infoDiv.innerHTML = `📄 已加载: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+            parseAndGenerate(content);
+        } catch (err) {
+            showToast('文件读取失败: ' + err.message, true);
+        }
+    }
+
+    function resetAll() {
+        document.getElementById('htmlPreview').value = '';
+        document.getElementById('jsonPreview').textContent = '✨ 等待解析... 导入书签文件或粘贴源码后点击「解析」';
+        document.getElementById('fileInfo').style.display = 'none';
+        document.getElementById('statsArea').style.display = 'none';
+        document.getElementById('exportFileName').value = 'bookmarks_data';
+        currentJson = null;
+        document.getElementById('exportJsonBtn').disabled = true;
+        document.getElementById('copyJsonBtn').disabled = true;
+        showToast('已清空所有内容');
+    }
+
+    // 示例 Netscape 书签数据
+    const exampleNetscapeBookmark = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DL><p>
+    <DT><H3 ADD_DATE="1774934065">常用推荐</H3>
+    <DL><p>
+        <DT><A HREF="https://github.com/Ouonnki/OuonnkiTV">OuonnkiTV</A>
+        <DT><A HREF="https://navwang.baoge.wang/">Nav-Item</A>
+        <DT><A HREF="https://card.baoge456.dpdns.org">宝哥个人导航页</A>
+    </DL><p>
+    <DT><H3 ADD_DATE="1774934065">新闻资讯</H3>
+    <DL><p>
+        <DT><A HREF="https://sina-news.vercel.app/">全球实时财经新闻</A>
+        <DT><A HREF="https://app.folo.is/">Folo</A>
+    </DL><p>
+    <DT><H3 ADD_DATE="1774934065">人工智能</H3>
+    <DL><p>
+        <DT><A HREF="https://chat.openai.com">ChatGPT</A>
+        <DT><A HREF="https://gemini.google.com">Gemini</A>
+    </DL><p>
+</DL><p>`;
+
+    function loadExample() {
+        document.getElementById('htmlPreview').value = exampleNetscapeBookmark;
+        showToast('示例已加载，点击「解析」查看效果');
+        document.getElementById('fileInfo').style.display = 'none';
+    }
+
+    function init() {
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const parseBtn = document.getElementById('parseBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const exportBtn = document.getElementById('exportJsonBtn');
+        const copyBtn = document.getElementById('copyJsonBtn');
+        const htmlTextarea = document.getElementById('htmlPreview');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+            fileInput.value = '';
+        });
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.style.background = '#e0e7ff';
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.style.background = '#f8fafc';
+        });
+        uploadZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            uploadZone.style.background = '#f8fafc';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) await handleFile(files[0]);
+        });
+
+        parseBtn.addEventListener('click', () => {
+            const content = htmlTextarea.value;
+            if (!content.trim()) {
+                showToast('请在文本框中粘贴书签HTML源码或先导入文件', true);
+                return;
+            }
+            parseAndGenerate(content);
+        });
+
+        clearBtn.addEventListener('click', resetAll);
+        exportBtn.addEventListener('click', exportJson);
+        copyBtn.addEventListener('click', copyJson);
+        
+        // 添加示例按钮
+        const tipDiv = document.createElement('div');
+        tipDiv.style.marginTop = '10px';
+        tipDiv.style.fontSize = '12px';
+        tipDiv.innerHTML = '<span style="cursor:pointer;color:#3b82f6;background:#eef2ff;padding:4px 12px;border-radius:20px;" id="fillExampleBtn">📋 填入示例 Netscape 书签</span>';
+        document.querySelector('.upload-zone').after(tipDiv);
+        document.getElementById('fillExampleBtn')?.addEventListener('click', loadExample);
+    }
+    
+    init();
+</script>
 </body>
 </html>
