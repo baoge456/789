@@ -2,293 +2,856 @@
 <html>
 <head>
     <title>JSON文件管理面板</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #f5f5f5;
-        }
-        .panel {
-            width: 80%;
-            margin: 20px auto;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            font-family: 'Microsoft YaHei', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
+
+        .panel {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 24px 30px;
+            color: white;
+        }
+
+        .header h2 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
         .toolbar {
-            margin-bottom: 10px;
-            text-align: center;
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
         }
-        button {
-            margin-right: 5px;
-            padding: 8px 15px;
-            background-color: #4CAF50;
-            color: #fff;
+
+        .btn {
+            padding: 10px 20px;
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        button:hover {
-            background-color: #3e8e41;
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
-        .entry-form {
-            margin-bottom: 15px;
-            display: none;
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
-        input {
-            width: 300px;
-            padding: 6px;
-            margin: 5px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
         }
-        #fileList {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-top: 15px;
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
         }
-        .file-item {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+        }
+
+        .file-list {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .file-list h3 {
+            margin-bottom: 16px;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-items {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .file-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
         }
-        #previewArea {
-            background: #f5f5f5;
-            padding: 10px;
-            border: 1px solid #ccc;
-            max-height: 500px; /* 设置最大高度 */
-            overflow-y: auto; /* 显示垂直滚动条 */
+
+        .file-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transform: translateX(4px);
         }
-        .form-label {
-            display: inline-block;
-            width: 80px;
-            text-align: right;
-            margin-right: 10px;
+
+        .file-info {
+            flex: 1;
         }
-        h2 {
+
+        .file-name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .file-meta {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .icon-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .icon-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .empty-state {
             text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+
+        .preview-section {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .preview-header h3 {
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #previewArea {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 12px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 700px;
+            margin: 50px auto;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #94a3b8;
+            transition: color 0.2s;
+        }
+
+        .close:hover {
+            color: #1e293b;
+        }
+
+        .modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .bookmark-item {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bookmark-info {
+            flex: 1;
+        }
+
+        .bookmark-name {
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        .bookmark-url {
+            font-size: 11px;
+            color: #64748b;
+            word-break: break-all;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .group-header {
+            background: #eef2ff;
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin: 15px 0 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 14px;
+            z-index: 9999;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            animation: fadeInOut 2s ease forwards;
+            pointer-events: none;
+            white-space: nowrap;
+            max-width: 90vw;
+            white-space: normal;
+            text-align: center;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; bottom: 10px; }
+            15% { opacity: 1; bottom: 30px; }
+            85% { opacity: 1; bottom: 30px; }
+            100% { opacity: 0; bottom: 10px; visibility: hidden; }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+            .file-card {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+            .file-actions {
+                justify-content: center;
+            }
+            .modal-content {
+                margin: 20px auto;
+                width: 95%;
+            }
         }
     </style>
 </head>
 <body>
     <div class="panel">
-        <h2>JSON文件管理面板</h2>
+        <div class="header">
+            <h2>
+                📁 JSON文件管理面板
+            </h2>
+            <p>创建、编辑和管理书签JSON文件，支持分组和书签的完整管理</p>
+        </div>
         
-        <!-- 操作工具栏 -->
-        <div class="toolbar">
-            <button onclick="toggleEntryForm('新建')">新建</button>
-            <input type="file" id="fileInput" style="display: none;" accept=".json">
-            <button onclick="importFile()">导入</button>
-        </div>
+        <div class="content">
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="openEditor()">
+                    ➕ 创建新文件
+                </button>
+                <input type="file" id="fileInput" style="display: none;" accept=".json">
+                <button class="btn btn-success" onclick="importFile()">
+                    📂 导入JSON文件
+                </button>
+            </div>
 
-        <!-- 新建/插入条目表单 -->
-        <div class="entry-form" id="entryForm">
-            <h4 id="mode"></h4>
-            <div>
-                <span class="form-label">文件名：</span>
-                <input type="text" id="fileName" autocomplete="section-bookmark filename">
+            <!-- 文件列表 -->
+            <div class="file-list">
+                <h3>📚 我的书签文件</h3>
+                <div id="fileItems" class="file-items"></div>
             </div>
-            <div>
-                <span class="form-label">分组名称：</span>
-                <input type="text" id="groupName" autocomplete="section-bookmark group">
-            </div>
-            <div>
-                <span class="form-label">书签名称：</span>
-                <input type="text" id="bookmarkName">
-            </div>
-            <div>
-                <span class="form-label">书签URL：</span>
-                <input type="url" id="bookmarkUrl">
-            </div>
-            <button onclick="saveBookmark()">保存条目</button>
-        </div>
 
-        <!-- 文件列表 -->
-        <div id="fileList">
-            <h4>已保存文件列表：</h4>
-            <div id="fileItems"></div>
+            <!-- 预览区域 -->
+            <div class="preview-section">
+                <div class="preview-header">
+                    <h3>🔍 JSON预览</h3>
+                    <button id="copyPreviewBtn" class="icon-btn" style="background: #10b981; color: white; display: none;" onclick="copyPreviewContent()">
+                        📋 复制内容
+                    </button>
+                </div>
+                <pre id="previewArea"></pre>
+            </div>
         </div>
-
-        <!-- 预览区域 -->
-        <pre id="previewArea"></pre>
-        <button id="copyButton" style="display: none;" onclick="copyPreview()">复制内容</button>
     </div>
 
-<script>
-let currentData = {};
-let files = JSON.parse(localStorage.getItem('jsonFiles')) || [];
-let currentFileIndex = null;
-
-// 从localStorage加载最后插入记录
-let lastInsertData = JSON.parse(localStorage.getItem('lastInsertData')) || {
-  fileName: files[0]?.name || '',
-  groupName: files[0] ? Object.keys(files[0].data)[0] || '' : ''
-};
-
-// 初始化文件列表
-function refreshFileList() {
-    const container = document.getElementById('fileItems');
-    container.innerHTML = files.map((file, index) => `
-        <div class="file-item">
-            <span>${file.name}</span>
-            <div>
-                <button onclick="loadFile(${index})">插入</button>
-                <button onclick="previewFile(${index})">预览</button>
-                <button onclick="deleteFile(${index})">删除</button>
-                <button onclick="exportFile(${index})">导出</button>
+    <!-- 编辑模态框 -->
+    <div id="editorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <span id="modalIcon">✏️</span>
+                    <span id="modalTitle">编辑JSON文件</span>
+                </h3>
+                <span class="close" onclick="closeEditor()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>📄 文件名 <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="editFileName" placeholder="例如：我的书签.json" autocomplete="off">
+                </div>
+                
+                <div id="groupsContainer"></div>
+                
+                <button class="btn btn-secondary" onclick="addGroup()" style="width: 100%; margin-top: 10px;">
+                    ➕ 添加分组
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditor()">取消</button>
+                <button class="btn btn-primary" onclick="saveFile()">保存文件</button>
             </div>
         </div>
-    `).join('');
-}
+    </div>
 
-// 新建/插入条目
-function toggleEntryForm(mode) {
-    const form = document.getElementById('entryForm');
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
-    document.getElementById('mode').textContent = mode;
-    if (mode === '新建') {
-        currentFileIndex = null;
-        document.getElementById('fileName').value = '';
-        document.getElementById('groupName').value = '';
-        document.getElementById('bookmarkName').value = '';
-        document.getElementById('bookmarkUrl').value = '';
-    }
-}
+    <script>
+        let files = JSON.parse(localStorage.getItem('jsonFiles')) || [];
+        let editingFileIndex = null; // null表示新建，否则表示编辑现有文件
+        let editingData = {};
 
-function saveBookmark() {
-    const fileName = document.getElementById('fileName').value.trim();
-    const group = document.getElementById('groupName').value.trim();
-    const name = document.getElementById('bookmarkName').value.trim();
-    const url = document.getElementById('bookmarkUrl').value.trim();
-
-    if (!group || !name || !url) {
-        alert('请填写所有字段');
-        return;
-    }
-
-    if (!currentData[group]) currentData[group] = [];
-    currentData[group].push({ name, url });
-
-    if (currentFileIndex !== null) {
-        files[currentFileIndex].data = currentData;
-        if (fileName) {
-            files[currentFileIndex].name = fileName;
+        // 显示自动消失的提示
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            if (isError) toast.style.background = '#b91c1c';
+            else toast.style.background = '#1e293b';
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 2000);
         }
-    } else {
-        if (fileName) {
-            files.push({
-                name: fileName,
-                data: currentData,
-                timestamp: new Date().toLocaleString()
-            });
-        } else {
-            alert('请输入文件名');
-            return;
+
+        // 刷新文件列表
+        function refreshFileList() {
+            const container = document.getElementById('fileItems');
+            if (files.length === 0) {
+                container.innerHTML = '<div class="empty-state">📭 暂无文件，点击"创建新文件"开始</div>';
+                return;
+            }
+            
+            container.innerHTML = files.map((file, index) => `
+                <div class="file-card">
+                    <div class="file-info">
+                        <div class="file-name">${escapeHtml(file.name)}</div>
+                        <div class="file-meta">📅 ${file.timestamp || '未知时间'} | 📚 ${Object.keys(file.data).length}个分组</div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="icon-btn" style="background: #3b82f6; color: white;" onclick="openEditor(${index})">
+                            ✏️ 编辑
+                        </button>
+                        <button class="icon-btn" style="background: #10b981; color: white;" onclick="copyFileContent(${index})">
+                            📋 复制JSON
+                        </button>
+                        <button class="icon-btn" style="background: #8b5cf6; color: white;" onclick="previewFile(${index})">
+                            👁️ 预览
+                        </button>
+                        <button class="icon-btn" style="background: #f59e0b; color: white;" onclick="exportFile(${index})">
+                            💾 导出
+                        </button>
+                        <button class="icon-btn" style="background: #ef4444; color: white;" onclick="deleteFile(${index})">
+                            🗑️ 删除
+                        </button>
+                    </div>
+                </div>
+            `).join('');
         }
-    }
 
-    localStorage.setItem('jsonFiles', JSON.stringify(files));
-    currentData = {};  // 重置当前数据
-    
-    // 更新最近插入记录
-    lastInsertData = {
-        fileName: fileName,
-        groupName: group
-    };
-    localStorage.setItem('lastInsertData', JSON.stringify(lastInsertData));
-    
-    refreshFileList();
-    document.getElementById('entryForm').style.display = 'none';
-}
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-// 文件操作函数
-function deleteFile(index) {
-    files.splice(index, 1);
-    localStorage.setItem('jsonFiles', JSON.stringify(files));
-    refreshFileList();
-}
+        // 打开编辑器
+        function openEditor(index = null) {
+            editingFileIndex = index;
+            const modal = document.getElementById('editorModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalIcon = document.getElementById('modalIcon');
+            
+            if (index !== null && files[index]) {
+                // 编辑现有文件
+                modalTitle.textContent = '编辑JSON文件';
+                modalIcon.textContent = '✏️';
+                document.getElementById('editFileName').value = files[index].name;
+                editingData = JSON.parse(JSON.stringify(files[index].data));
+            } else {
+                // 新建文件
+                modalTitle.textContent = '创建新文件';
+                modalIcon.textContent = '➕';
+                document.getElementById('editFileName').value = '';
+                editingData = {};
+            }
+            
+            renderEditorGroups();
+            modal.style.display = 'block';
+        }
 
-function loadFile(index) {
-    currentFileIndex = index;
-    currentData = files[index].data;
-    toggleEntryForm('插入');
-    
-    // 始终使用最后插入记录填充
-    document.getElementById('fileName').value = lastInsertData.fileName;
-    document.getElementById('groupName').value = lastInsertData.groupName;
-    document.getElementById('bookmarkName').value = '';
-    document.getElementById('bookmarkUrl').value = '';
-}
+        // 渲染编辑器中的分组
+        function renderEditorGroups() {
+            const container = document.getElementById('groupsContainer');
+            const groups = Object.keys(editingData);
+            
+            if (groups.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding: 20px;">暂无分组，点击下方按钮添加分组</div>';
+                return;
+            }
+            
+            container.innerHTML = groups.map((groupName, groupIndex) => `
+                <div class="group-header">
+                    <strong>📁 ${escapeHtml(groupName)}</strong>
+                    <div>
+                        <button class="icon-btn" style="background: #10b981; color: white; padding: 4px 8px;" onclick="addBookmark(${groupIndex})">
+                            ➕ 添加书签
+                        </button>
+                        <button class="icon-btn" style="background: #ef4444; color: white; padding: 4px 8px;" onclick="deleteGroup(${groupIndex})">
+                            🗑️ 删除分组
+                        </button>
+                    </div>
+                </div>
+                <div id="bookmarks-${groupIndex}">
+                    ${renderBookmarks(groupIndex, editingData[groupName])}
+                </div>
+            `).join('');
+        }
 
-function previewFile(index) {
-    const previewArea = document.getElementById('previewArea');
-    if (previewArea.textContent === '') {
-        previewArea.textContent = JSON.stringify(files[index].data, null, 2);
-        document.getElementById('copyButton').style.display = 'block';
-    } else {
-        previewArea.textContent = '';
-        document.getElementById('copyButton').style.display = 'none';
-    }
-}
+        // 渲染书签列表
+        function renderBookmarks(groupIndex, bookmarks) {
+            if (!bookmarks || bookmarks.length === 0) {
+                return '<div style="padding: 10px; color: #94a3b8; text-align: center;">暂无书签</div>';
+            }
+            
+            return bookmarks.map((bookmark, bookmarkIndex) => `
+                <div class="bookmark-item">
+                    <div class="bookmark-info">
+                        <div class="bookmark-name">🔖 ${escapeHtml(bookmark.name)}</div>
+                        <div class="bookmark-url">${escapeHtml(bookmark.url)}</div>
+                    </div>
+                    <div>
+                        <button class="icon-btn" style="background: #f59e0b; color: white; padding: 4px 8px;" onclick="editBookmark(${groupIndex}, ${bookmarkIndex})">
+                            ✏️
+                        </button>
+                        <button class="icon-btn" style="background: #ef4444; color: white; padding: 4px 8px;" onclick="deleteBookmark(${groupIndex}, ${bookmarkIndex})">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-function exportFile(index) {
-    const file = files[index];
-    const blob = new Blob([JSON.stringify(file.data)], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.name;
-    a.click();
-}
+        // 添加分组
+        function addGroup() {
+            const groupName = prompt('请输入分组名称：');
+            if (groupName && groupName.trim()) {
+                if (editingData[groupName]) {
+                    showToast('分组已存在', true);
+                    return;
+                }
+                editingData[groupName] = [];
+                renderEditorGroups();
+                showToast(`✅ 已添加分组: ${groupName}`);
+            }
+        }
 
-function importFile() {
-    const fileInput = document.getElementById('fileInput');
-    fileInput.click();
-}
+        // 删除分组
+        function deleteGroup(groupIndex) {
+            const groupName = Object.keys(editingData)[groupIndex];
+            if (confirm(`确定要删除分组 "${groupName}" 及其所有书签吗？`)) {
+                delete editingData[groupName];
+                renderEditorGroups();
+                showToast(`🗑️ 已删除分组: ${groupName}`);
+            }
+        }
 
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = function() {
-        try {
-            const jsonData = JSON.parse(this.result);
-            files.push({
-                name: file.name,
-                data: jsonData,
-                timestamp: new Date().toLocaleString()
+        // 添加书签
+        function addBookmark(groupIndex) {
+            const groupName = Object.keys(editingData)[groupIndex];
+            const bookmarkName = prompt('请输入书签名称：');
+            if (!bookmarkName) return;
+            const bookmarkUrl = prompt('请输入书签URL：');
+            if (!bookmarkUrl) return;
+            
+            editingData[groupName].push({
+                name: bookmarkName,
+                url: bookmarkUrl
             });
+            renderEditorGroups();
+            showToast(`✅ 已添加书签: ${bookmarkName}`);
+        }
+
+        // 编辑书签
+        function editBookmark(groupIndex, bookmarkIndex) {
+            const groupName = Object.keys(editingData)[groupIndex];
+            const bookmark = editingData[groupName][bookmarkIndex];
+            const newName = prompt('修改书签名称：', bookmark.name);
+            if (newName === null) return;
+            const newUrl = prompt('修改书签URL：', bookmark.url);
+            if (newUrl === null) return;
+            
+            bookmark.name = newName;
+            bookmark.url = newUrl;
+            renderEditorGroups();
+            showToast(`✅ 书签已更新`);
+        }
+
+        // 删除书签
+        function deleteBookmark(groupIndex, bookmarkIndex) {
+            const groupName = Object.keys(editingData)[groupIndex];
+            if (confirm('确定要删除此书签吗？')) {
+                editingData[groupName].splice(bookmarkIndex, 1);
+                renderEditorGroups();
+                showToast('🗑️ 书签已删除');
+            }
+        }
+
+        // 保存文件
+        function saveFile() {
+            const fileName = document.getElementById('editFileName').value.trim();
+            if (!fileName) {
+                showToast('请输入文件名', true);
+                return;
+            }
+            
+            if (Object.keys(editingData).length === 0) {
+                showToast('请至少添加一个分组', true);
+                return;
+            }
+            
+            const finalFileName = fileName.endsWith('.json') ? fileName : fileName + '.json';
+            
+            if (editingFileIndex !== null) {
+                // 更新现有文件
+                files[editingFileIndex] = {
+                    name: finalFileName,
+                    data: editingData,
+                    timestamp: new Date().toLocaleString()
+                };
+                showToast(`✅ 已更新文件: ${finalFileName}`);
+            } else {
+                // 检查是否重名
+                if (files.some(f => f.name === finalFileName)) {
+                    if (!confirm(`文件 "${finalFileName}" 已存在，是否覆盖？`)) {
+                        return;
+                    }
+                    const index = files.findIndex(f => f.name === finalFileName);
+                    files[index] = {
+                        name: finalFileName,
+                        data: editingData,
+                        timestamp: new Date().toLocaleString()
+                    };
+                } else {
+                    files.push({
+                        name: finalFileName,
+                        data: editingData,
+                        timestamp: new Date().toLocaleString()
+                    });
+                }
+                showToast(`✅ 已创建文件: ${finalFileName}`);
+            }
+            
             localStorage.setItem('jsonFiles', JSON.stringify(files));
             refreshFileList();
-        } catch (e) {
-            alert('无效的JSON数据');
+            closeEditor();
         }
-    };
-    reader.readAsText(file);
-});
 
-function copyPreview() {
-    navigator.clipboard.writeText(document.getElementById('previewArea').textContent);
-    alert('复制成功');
-    document.getElementById('copyButton').style.display = 'none';
-    document.getElementById('previewArea').textContent = '';
-}
+        // 关闭编辑器
+        function closeEditor() {
+            document.getElementById('editorModal').style.display = 'none';
+            editingFileIndex = null;
+            editingData = {};
+        }
 
-// 初始化加载文件列表
-window.onload = function() {
-    const savedData = localStorage.getItem('jsonFiles');
-    if (savedData) {
-        files = JSON.parse(savedData);
-        if (files.length > 0) {
-            lastInsertData = {
-                fileName: files[0].name,
-                groupName: Object.keys(files[0].data)[0] || ''
+        // 删除文件
+        function deleteFile(index) {
+            if (confirm(`确定要删除文件 "${files[index].name}" 吗？`)) {
+                files.splice(index, 1);
+                localStorage.setItem('jsonFiles', JSON.stringify(files));
+                refreshFileList();
+                if (currentPreviewIndex === index) {
+                    document.getElementById('previewArea').textContent = '';
+                    document.getElementById('copyPreviewBtn').style.display = 'none';
+                    currentPreviewIndex = null;
+                }
+                showToast(`🗑️ 已删除文件`);
+            }
+        }
+
+        // 复制文件JSON内容
+        function copyFileContent(index) {
+            try {
+                const file = files[index];
+                const jsonContent = JSON.stringify(file.data, null, 2);
+                navigator.clipboard.writeText(jsonContent).then(() => {
+                    showToast(`📋 已复制 "${file.name}" 的JSON内容到剪贴板`);
+                }).catch(() => {
+                    showToast('复制失败', true);
+                });
+            } catch (e) {
+                showToast('复制失败: ' + e.message, true);
+            }
+        }
+
+        let currentPreviewIndex = null;
+
+        // 预览文件
+        function previewFile(index) {
+            const previewArea = document.getElementById('previewArea');
+            const copyBtn = document.getElementById('copyPreviewBtn');
+            const file = files[index];
+            
+            if (currentPreviewIndex === index && previewArea.textContent !== '') {
+                previewArea.textContent = '';
+                copyBtn.style.display = 'none';
+                currentPreviewIndex = null;
+            } else {
+                previewArea.textContent = JSON.stringify(file.data, null, 2);
+                copyBtn.style.display = 'block';
+                currentPreviewIndex = index;
+            }
+        }
+
+        // 复制预览内容
+        function copyPreviewContent() {
+            const previewText = document.getElementById('previewArea').textContent;
+            if (!previewText || previewText.trim() === '') {
+                showToast('没有可复制的内容', true);
+                return;
+            }
+            
+            navigator.clipboard.writeText(previewText).then(() => {
+                showToast('📋 预览内容已复制到剪贴板');
+            }).catch(() => {
+                showToast('复制失败', true);
+            });
+        }
+
+        // 导出文件
+        function exportFile(index) {
+            const file = files[index];
+            const blob = new Blob([JSON.stringify(file.data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`💾 已导出: ${file.name}`);
+        }
+
+        // 导入文件
+        function importFile() {
+            document.getElementById('fileInput').click();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function() {
+                try {
+                    const jsonData = JSON.parse(this.result);
+                    const existingIndex = files.findIndex(f => f.name === file.name);
+                    if (existingIndex !== -1) {
+                        if (confirm(`文件 "${file.name}" 已存在，是否覆盖？`)) {
+                            files[existingIndex] = {
+                                name: file.name,
+                                data: jsonData,
+                                timestamp: new Date().toLocaleString()
+                            };
+                            showToast(`✅ 已覆盖文件: ${file.name}`);
+                        }
+                    } else {
+                        files.push({
+                            name: file.name,
+                            data: jsonData,
+                            timestamp: new Date().toLocaleString()
+                        });
+                        showToast(`✅ 成功导入: ${file.name}`);
+                    }
+                    localStorage.setItem('jsonFiles', JSON.stringify(files));
+                    refreshFileList();
+                } catch (e) {
+                    showToast('无效的JSON数据', true);
+                }
             };
-        }
-    }
-    refreshFileList();
-};
-</script>
+            reader.onerror = function() {
+                showToast('文件读取失败', true);
+            };
+            reader.readAsText(file);
+            fileInput.value = '';
+        });
+
+        // 初始化
+        window.onload = function() {
+            refreshFileList();
+        };
+    </script>
 </body>
 </html>
