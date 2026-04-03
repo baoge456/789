@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>书签导航</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0;background:#5a21b0;font-family:sans-serif}
+.page-wrapper{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+}
+.panel{
+  width:100%;max-width:1000px;background:#c2f2d0;border-radius:20px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,0.1)}
+h1{text-align:center;margin:0 0 16px 0}
+.category-nav{
+  display:flex;gap:8px;overflow-x:auto;padding:10px;background:#e9f7ef;border-radius:24px;margin-bottom:20px
+}
+.category-btn{
+  background:#4caf50;color:#fff;border:none;padding:8px 14px;border-radius:20px;white-space:nowrap;cursor:pointer
+}
+.category-btn.active{background:#1b5e20}
+.group-section{margin-bottom:24px}
+.group-title{font-size:16px;font-weight:bold;margin-bottom:10px;border-left:4px solid #4caf50;padding-left:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.card{
+  background:#ffd966;
+  border-radius:16px;
+  padding:10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.card img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#fff}
+.card a{text-decoration:none;color:#000;font-size:14px}
+</style>
+</head>
+<body>
+
+<script>
+    // --- Client-side Password Protection Script ---
+    const embeddedPasswordsData = [{"hash":"4a70942496896e04740dca9e5b98e17de2b324f8e7e6801c73e8bf0ca9760a9d","type":"remember","createdAt":1775210713118}];
+    let authAttempts = 0;
+    const maxAuthAttempts = 5;
+
+    async function _hashStringForAuth(str) {
+        const textEncoder = new TextEncoder();
+        const data = textEncoder.encode(str);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function _isPasswordExpiredForAuth(p) {
+        if(p.type!='temporary')return false;
+        return (Date.now()-p.createdAt)/(1000*60*60*24)>7;
+    }
+
+    function _isRememberedForAuth(){
+        try{return localStorage.getItem('auth_remembered')==='true'}catch(e){return false}
+    }
+
+    function _setRememberedForAuth(){
+        try{localStorage.setItem('auth_remembered','true')}catch(e){}
+    }
+
+    function _showAuthError(msg){
+        const e=document.getElementById('auth-error-message');
+        const s=document.getElementById('auth-success-message');
+        if(e){e.textContent=msg;e.style.display='block'}
+        if(s)s.style.display='none';
+    }
+
+    function _hideAuthError(){
+        const e=document.getElementById('auth-error-message');
+        if(e)e.style.display='none';
+    }
+
+    function _displayAuthSuccessMessage(t){
+        const s=document.getElementById('auth-success-message');
+        _hideAuthError();
+        if(s){
+            let m='✅ 验证成功！';
+            if(t==='remember')m+=' 此密码将在此浏览器中记住';
+            s.innerHTML=m;s.style.display='block';
+            setTimeout(_revealProtectedContent,1500);
+        }
+    }
+
+    async function handleAuthSubmit(e){
+        e.preventDefault();_hideAuthError();
+        const i=document.getElementById('auth-password').value.trim();
+        if(!i){_showAuthError('请输入密码！');return}
+        const h=await _hashStringForAuth(i);
+        const p=embeddedPasswordsData.find(x=>x.hash===h);
+        if(!p||_isPasswordExpiredForAuth(p)){
+            authAttempts++;_showAuthError(p?'临时密码已过期':'密码错误');
+            if(authAttempts>=maxAuthAttempts){
+                document.body.innerHTML='<div style="color:red;padding:50px;text-align:center">多次失败，页面已锁定</div>';
+                document.body.style.overflow='hidden';
+            }
+            return;
+        }
+        if(p.type==='remember')_setRememberedForAuth();
+        _displayAuthSuccessMessage(p.type);
+    }
+
+    function _revealProtectedContent(){
+        const a=document.getElementById('auth-overlay');
+        const p=document.getElementById('protected-content');
+        if(a)a.remove();
+        if(p)p.style.display='block';
+    }
+
+    // 先渲染验证界面！
+    document.addEventListener('DOMContentLoaded',()=>{
+        if(_isRememberedForAuth()){
+            document.getElementById('protected-content').style.display='block';
+            return;
+        }
+
+        document.body.insertAdjacentHTML('beforeend',`
+        <div id="auth-overlay" style="position:fixed;inset:0;z-index:9999;background:#f5f6fa;display:flex;align-items:center;justify-content:center;font-family:system-ui">
+          <div style="width:340px;background:white;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.1);padding:30px;text-align:center">
+            <h2 style="margin:0 0 20px">页面验证</h2>
+            <form id="auth-form">
+              <input type="password" id="auth-password" placeholder="请输入密码" style="width:100%;padding:10px;margin-bottom:15px;border:1px solid #ddd;border-radius:6px">
+              <div id="auth-error-message" style="color:red;font-size:14px;margin-bottom:10px;display:none"></div>
+              <div id="auth-success-message" style="color:green;font-size:14px;margin-bottom:10px;display:none"></div>
+              <button type="submit" style="width:100%;padding:10px;background:#1976d2;color:white;border:none;border-radius:6px;cursor:pointer">验证</button>
+            </form>
+          </div>
+        </div>
+        `);
+
+        document.getElementById('auth-form').addEventListener('submit',handleAuthSubmit);
+    });
+</script>
+
+<!-- 核心：必须把内容放在这里，并且默认隐藏 -->
+<div id="protected-content" style="display:none;">
+<div class="page-wrapper">
+<div class="panel">
+<h1>📖 书签导航</h1>
+<div class="category-nav" id="nav"></div>
+<div id="box"></div>
+</div>
+</div>
+<script>
+const data={"icons":[{"title":"常用","children":[{"title":"发布页","url":"https://fby.baoge456.dpdns.org/","thumbnail":"https://favicon.im/fby.baoge456.dpdns.org"},{"title":"宝哥个人导航页","url":"https://card.baoge456.dpdns.org","thumbnail":"https://favicon.im/card.baoge.wang"},{"title":"云航","url":"https://cloudnav.baoge456.dpdns.org","thumbnail":"https://favicon.im/cloudnav.baoge456.dpdns.org"},{"title":"书签管理","url":"https://bookmark.baoge456.dpdns.org","thumbnail":"https://favicon.cccyun.cc/bookmark.baoge456.netlib.re"},{"title":"猫猫导航","url":"https://mao.baoge456.dpdns.org/","thumbnail":"https://mao.baoge456.dpdns.org/favicon.ico"},{"title":"SunPanel","url":"https://sunpanel.baoge.wang/","thumbnail":"https://sunpanel.baoge.wang/favicon.ico"},{"title":"Nav-Item","url":"https://navwang.baoge.wang/","thumbnail":"https://favicon.im/navwang.baoge.wang"},{"title":"宝哥个人导航站","url":"https://card.baoge.wang/","thumbnail":"https://favicon.im/card.baoge.wang"},{"title":"宝哥导航站","url":"https://dhz.baoge.wang/","thumbnail":"https://favicon.im/dhz.baoge.wang"},{"title":"web-tool","url":"https://webtool.baoge456.dpdns.org","thumbnail":"https://favicon.im/webtool.baoge456.dpdns.org"},{"title":"书签导航","url":"https://sqdh.653827.xyz/","thumbnail":"https://favicon.cccyun.cc/bookmark.baoge456.netlib.re"},{"title":"网址导航","url":"https://dh.baoge.wang/","thumbnail":"https://favicon.cccyun.cc/bookmark.baoge456.netlib.re"}]},{"title":"新闻","children":[{"title":"即时热点 - 正在发生的事","url":"https://nowhots.com","thumbnail":"https://nowhots.com/images/favicon.png"},{"title":"NewsNow","url":"https://newsnow.amclubss.com","thumbnail":"https://newsnow.amclubss.com/icon.svg"},{"title":"每日早报 - Readhub","url":"https://readhub.cn/daily","thumbnail":"https://readhub.cn/favicon.ico"},{"title":"大江头条","url":"https://news.jxcn.cn/?from=jx33","thumbnail":"https://news.jxcn.cn/favicon.ico"},{"title":"ZAKER新闻","url":"https://www.myzaker.com","thumbnail":"https://www.myzaker.com/favicon.ico"},{"title":"划水摸鱼官网","url":"https://www.huashuimoyu.com","thumbnail":"https://www.huashuimoyu.com/image/favicon-32.png"},{"title":"今日热榜官网","url":"https://tophub.today","thumbnail":"https://tophub.today/favicon.ico"},{"title":"速热点-速看全网热点","url":"https://www.suredian.com","thumbnail":"https://www.suredian.com/favicon.ico"},{"title":"Folo","url":"https://app.folo.is/timeline/articles/all/pending","thumbnail":"https://favicon.im/app.folo.is"},{"title":"Feedly","url":"https://feedly.com/i/my/me","thumbnail":"https://feedly.com/favicon.ico"},{"title":"全球实时财经新闻","url":"https://sina-news.vercel.app/","thumbnail":"https://favicon.cccyun.cc/sina-news.vercel.app"}]},{"title":"天气","children":[{"title":"和风天气-泰安","url":"https://www.qweather.com/weather/tai'an-101120801.html","thumbnail":"https://www.qweather.com/apple-touch-icon.png?v="},{"title":"墨迹天气-岱岳区","url":"https://tianqi.moji.com/weather/china/shandong/daiyue-district","thumbnail":"https://h5tq.moji.com/f5/assets/icon/favicon.ico"},{"title":"腾讯天气-泰安","url":"https://tianqi.qq.com/index.htm","thumbnail":"https://favicon.cccyun.cc/tianqi.qq.com"},{"title":"天气君-泰安天气","url":"https://waptianqi.tianqijun.com/weather1d/101120801","thumbnail":"https://waptianqi.tianqijun.com/favicon.ico"},{"title":"泰安市天气卡片","url":"https://file.baoge.wang/%E6%96%87%E4%BB%B6%E5%A4%B9/%E6%B3%B0%E5%AE%89%E5%B8%82%E5%A4%A9%E6%B0%94","thumbnail":"https://favicon.im/file.baoge.wang"}]},{"title":"影视","children":[{"title":"Vodg","url":"https://vd.loc.cc","thumbnail":"https://s3.bmp.ovh/imgs/2025/07/14/0a21087b980fcc08.jpg"},{"title":"樱花动漫","url":"https://www.yinhuadm.vip","thumbnail":"https://www.yinhuadm.vip/favicon.ico"},{"title":"片吧影院","url":"https://www.pbkan.com","thumbnail":"https://s3.bmp.ovh/2026/03/21/mXLGWCO4.png"},{"title":"白羊影院","url":"https://www.edenzlove.com","thumbnail":"https://www.edenzlove.com/template/baiyangyingyuan/statics/images/favicon.png"},{"title":"金牌影院","url":"https://www.chuang999.com","thumbnail":"https://favicon.cccyun.cc/chuang999.com"},{"title":"电影先生","url":"https://dyxs39.com","thumbnail":"https://favicon.cccyun.cc/dyxs39.com"},{"title":"豌豆PRO","url":"https://www.wandou.la","thumbnail":"https://favicon.cccyun.cc/wandou.la"},{"title":"厂长资源","url":"https://www.czzy77.com","thumbnail":"https://favicon.yandex.net/favicon/czzy77.com"},{"title":"小鸭影音","url":"https://777tv.ai","thumbnail":"https://favicon.im/777tv.ai"},{"title":"可可影视","url":"https://www.keke1.app","thumbnail":"https://s3.bmp.ovh/2026/03/11/Dc35vWDk.png"},{"title":"看片狂人","url":"https://kunzejiaoyu.net","thumbnail":"https://kunzejiaoyu.net/favicon.ico"},{"title":"TV121影院","url":"https://www.815k.com","thumbnail":"https://www.815k.com/macplus/favicon.ico"},{"title":"凡客影视","url":"https://fktv.me","thumbnail":"https://fktv.me/assets/img/favicon.png?_v=2022"},{"title":"iQIYIs影院","url":"https://iqiyis.com","thumbnail":"https://favicon.cccyun.cc/iqiyis.com"},{"title":"独播库","url":"https://dubocool.com","thumbnail":"https://dubocool.com/static/favicon.ico"},{"title":"在线之家","url":"https://www.zhaodapan.com","thumbnail":"https://www.zhaodapan.com/favicon.ico"},{"title":"奈飞影视","url":"https://naifei.in","thumbnail":"https://naifei.in/favicon.ico"},{"title":"五五影院","url":"https://wcvod.com","thumbnail":"https://wcvod.com/favicon.ico"},{"title":"Vidhub视频库","url":"https://vidhub4.cc","thumbnail":"https://favicon.cccyun.cc/vidhub4.cc"},{"title":"555电影","url":"https://www.555zxdy.com","thumbnail":"https://www.555zxdy.com/upload/mxprocms/20230415-1/ab0e1bc60446d93f75dbbc2a6793722c.png"},{"title":"LibreTV - baoge","url":"https://ys.baoge.wang","thumbnail":"https://images.icon-icons.com/38/PNG/512/retrotv_5520.png"},{"title":"MoonTV","url":"https://moontv.653827.xyz/","thumbnail":"https://favicon.im/moontv.653827.xyz"}]},{"title":"导航站","children":[{"title":"6116工具箱","url":"https://tool.6116.site","thumbnail":"https://favicon.cccyun.cc/tool.6116.site"},{"title":"老王导航","url":"https://nav.eooce.com","thumbnail":"https://img.icons8.com/lollipop/100/navigation.png"},{"title":"在线工具箱_好用的在线工具都在这里!","url":"https://fly63.com/tool/home.html","thumbnail":"https://fly63.com/favicon.ico"},{"title":"WebStack.cc - 设计师网址导航","url":"https://webstack.cc/cn/index.html","thumbnail":"https://webstack.cc/assets/images/favicon.png"},{"title":"科技lion导航","url":"https://dh.kejilion.pro","thumbnail":"https://dh.kejilion.pro/wp-content/uploads/2023/12/4148a3a6-1a76-417e-9011-9b544cfb439d-副本.jpg"},{"title":"WebStack网址导航 Hugo主题","url":"https://iplaycode.github.io/nav","thumbnail":"https://webstack.cc/assets/images/favicon.png"},{"title":"一为导航","url":"https://nav.iowen.cn","thumbnail":"https://nav.iowen.cn/wp-content/uploads/2020/01/favicon.ico"},{"title":"Edui.fun | 网络工具收集","url":"https://edui.fun","thumbnail":"https://edui.fun/favicon.ico"},{"title":"落幕云书签 - TwoNav","url":"https://two.lm21.top","thumbnail":"https://two.lm21.top/favicon.ico"},{"title":"在线工具箱","url":"https://tool.lu","thumbnail":"https://tool.lu/favicon.ico"},{"title":"网址库","url":"https://www.wangzhiku.com","thumbnail":"https://www.wangzhiku.com/favicon.ico"},{"title":"办公资源网","url":"https://www.bangongziyuan.com","thumbnail":"https://www.bangongziyuan.com/web/foreground/images/favicon.ico"},{"title":"搜图导航","url":"https://www.91sotu.com","thumbnail":"https://icon.horse/icon/91sotu.com"},{"title":"优设导航官网","url":"https://hao.uisdc.com","thumbnail":"https://www.uisdc.com/favicon.ico"},{"title":"设计导航 - 精选最好的设计网站大全","url":"https://hao.shejidaren.com","thumbnail":"https://hao.shejidaren.com/images/favicon.ico"},{"title":"编程导航","url":"https://www.codefather.cn","thumbnail":"https://www.codefather.cn/favicon.ico"},{"title":"发现导航","url":"https://nav3.cn/#","thumbnail":"https://gcore.jsdelivr.net/gh/xjh22222228/nav-image@image/logo.svg"},{"title":"简约导航","url":"https://www.jianavi.com","thumbnail":"https://www.jianavi.com/favicon.ico"},{"title":"帮小忙，腾讯QQ浏览器在线工具箱平台","url":"https://tool.browser.qq.com","thumbnail":"https://tool.browser.qq.com/favicon.ico"},{"title":"小刀娱乐网","url":"https://www.x6d.com","thumbnail":"https://favicon.cccyun.cc/x6d.com"},{"title":"ITEM演示站","url":"https://www.item.ink/","thumbnail":"https://favicon.im/item.ink"},{"title":"LaoWang Nav演示站","url":"https://demo-nav.zeabur.app/","thumbnail":"https://favicon.im/demo-nav.zeabur.app"},{"title":"青云志网页导航","url":"https://daoyi.hidns.vip/","thumbnail":"https://favicon.im/daoyi.hidns.vip"},{"title":"刘明野的工具箱","url":"https://tool.liumingye.cn/","thumbnail":"https://favicon.im/tool.liumingye.cn"},{"title":"在线工具","url":"https://web.baoge456.dpdns.org","thumbnail":"https://favicon.cccyun.cc/web.baoge456.de5.net"}]}]};
+const colors=['#FFB74D','#81C784','#64B5F6','#BA68C8','#F06292','#4FC3F7','#A1887F','#E57373','#FFD54F','#7986CB'];
+function icon(u,c){if(c)return c;try{return'https://favicon.zhusl.com/ico?url='+new URL(u).hostname}catch(e){}}
+function render(){
+const nav=document.getElementById('nav');
+const box=document.getElementById('box');
+nav.innerHTML='';
+box.innerHTML='';
+const all=document.createElement('button');
+all.className='category-btn active';
+all.textContent='全部';
+all.onclick=()=>filter('全部');
+nav.appendChild(all);
+data.icons.forEach(g=>{
+const b=document.createElement('button');
+b.className='category-btn';
+b.textContent=g.title;
+b.onclick=()=>filter(g.title);
+nav.appendChild(b);
+});
+data.icons.forEach((g,gi)=>{
+const sec=document.createElement('div');
+sec.className='group-section';
+sec.dataset.cat=g.title;
+const t=document.createElement('div');
+t.className='group-title';
+t.textContent=g.title;
+sec.appendChild(t);
+const grid=document.createElement('div');
+grid.className='grid';
+const co=colors[gi%colors.length];
+g.children.forEach(it=>{
+const c=document.createElement('div');
+c.className='card';
+c.style.background=co;
+const i=document.createElement('img');
+i.src=icon(it.url,it.thumbnail);
+i.onerror=()=>i.src='https://favicon.zhusl.com/ico?url=baidu.com';
+const a=document.createElement('a');
+a.href=it.url;
+a.target='_blank';
+a.textContent=it.title;
+c.appendChild(i);
+c.appendChild(a);
+grid.appendChild(c);
+});
+sec.appendChild(grid);
+box.appendChild(sec);
+});
+function filter(c){
+document.querySelectorAll('.group-section').forEach(s=>{
+s.style.display=c==='全部'||s.dataset.cat===c?'block':'none'
+});
+document.querySelectorAll('.category-btn').forEach(b=>{
+b.classList.toggle('active',b.textContent===c)
+});
+}
+}
+window.onload=render;
+</script>
+</div>
+
+</body>
+</html>
