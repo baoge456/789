@@ -1,433 +1,112 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>书签导航</title>
-    <style>
-        *{box-sizing:border-box;}
-        html,body{
-            height:100%;
-            margin:0;
-            padding:0;
-            background:#f5f5f5;
-            font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        .page-wrapper{
-            min-height:100%;
-            display:flex;
-            align-items:flex-start;
-            justify-content:center;
-            padding:8px;
-        }
-        .panel{
-            width:100%;
-            max-width:1400px;
-            background:#c2f2d0;
-            border-radius:20px;
-            padding:16px;
-            box-shadow:0 8px 25px rgba(0,0,0,0.1);
-        }
-        h1{
-            text-align:center;
-            font-size:20px;
-            margin:0 0 16px 0;
-            color:#1f3b2c;
-        }
-        .category-nav{
-            display:flex;
-            gap:8px;
-            overflow-x:auto;
-            padding:10px 12px;
-            background:#e9f7ef;
-            border-radius:24px;
-            margin-bottom:20px;
-            -webkit-overflow-scrolling:touch;
-        }
-        .category-btn{
-            background:#4caf50;
-            color:white;
-            border:none;
-            padding:8px 16px;
-            border-radius:20px;
-            white-space:nowrap;
-            font-size:14px;
-            cursor:pointer;
-            flex-shrink:0;
-        }
-        .category-btn.active{
-            background:#1b5e20;
-            box-shadow:inset 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .group-section{
-            margin-bottom:24px;
-        }
-        .group-title{
-            font-size:17px;
-            font-weight:bold;
-            margin-bottom:12px;
-            border-left:4px solid #4caf50;
-            padding-left:10px;
-            color:#2d3748;
-        }
-        .container{
-            display:grid;
-            grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
-            gap:10px;
-        }
-        .card{
-            background:#ffd966;
-            border-radius:16px;
-            padding:10px;
-            display:flex;
-            align-items:center;
-            gap:8px;
-            box-shadow:0 2px 6px rgba(0,0,0,0.08);
-            transition:transform 0.2s;
-        }
-        .card:hover{
-            transform:translateY(-2px);
-        }
-        .thumbnail{
-            width:28px;
-            height:28px;
-            border-radius:50%;
-            object-fit:cover;
-            background:white;
-            flex-shrink:0;
-        }
-        .card a{
-            text-decoration:none;
-            color:#1a202c;
-            font-size:14px;
-            font-weight:500;
-            word-break:break-word;
-            flex:1;
-        }
-        @media (max-width:680px){
-            .container{
-                grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));
-            }
-            .card a{
-                font-size:13px;
-            }
-            .panel{
-                padding:14px;
-                border-radius:16px;
-            }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>书签导航</title>
+<style>
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0;background:#7428d2;font-family:sans-serif}
+.page-wrapper{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+}
+.panel{
+  width:100%;max-width:1000px;background:#c2f2d0;border-radius:20px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,0.1)}
+h1{text-align:center;margin:0 0 16px 0}
+.category-nav{
+  display:flex;gap:8px;overflow-x:auto;padding:10px;background:#e9f7ef;border-radius:24px;margin-bottom:20px
+}
+.category-btn{
+  background:#4caf50;color:#fff;border:none;padding:8px 14px;border-radius:20px;white-space:nowrap;cursor:pointer
+}
+.category-btn.active{background:#1b5e20}
+.group-section{margin-bottom:24px}
+.group-title{font-size:16px;font-weight:bold;margin-bottom:10px;border-left:4px solid #4caf50;padding-left:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.card{
+  background:#ffd966;
+  border-radius:16px;
+  padding:10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.card img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#fff}
+.card a{text-decoration:none;color:#000;font-size:14px}
+</style>
 </head>
 <body>
 <div class="page-wrapper">
-    <div class="panel">
-        <h1>📖 我的书签导航</h1>
-        <div class="category-nav" id="nav"></div>
-        <div id="container"></div>
-    </div>
+<div class="panel">
+<h1>📖 书签导航</h1>
+<div class="category-nav" id="nav"></div>
+<div id="box"></div>
+</div>
 </div>
 <script>
-    const data={
-  "icons": [
-    {
-      "title": "常用推荐",
-      "children": [
-        {
-          "title": "OuonnkiTV",
-          "url": "https://github.com/Ouonnki/OuonnkiTV"
-        },
-        {
-          "title": "Nav-Item",
-          "url": "https://navwang.baoge.wang/"
-        },
-        {
-          "title": "宝哥个人导航页",
-          "url": "https://card.baoge456.dpdns.org"
-        },
-        {
-          "title": "宝哥导航",
-          "url": "https://nav.baoge456.dpdns.org"
-        },
-        {
-          "title": "发布页",
-          "url": "https://fby.baoge456.dpdns.org/"
-        }
-      ]
-    },
-    {
-      "title": "新闻资讯",
-      "children": [
-        {
-          "title": "全球实时财经新闻",
-          "url": "https://sina-news.vercel.app/"
-        },
-        {
-          "title": "Folo",
-          "url": "https://app.folo.is/timeline/articles/all/pending"
-        },
-        {
-          "title": "Feedly",
-          "url": "https://feedly.com/i/my/me"
-        }
-      ]
-    },
-    {
-      "title": "开源工具",
-      "children": [
-        {
-          "title": "OuonnkiTV-Source",
-          "url": "https://github.com/ZhuBaiwan-oOZZXX/OuonnkiTV-Source?tab=readme-ov-file"
-        },
-        {
-          "title": "CodeFormer",
-          "url": "https://github.com/sczhou/CodeFormer"
-        },
-        {
-          "title": "VidBee",
-          "url": "https://github.com/nexmoe/VidBee"
-        },
-        {
-          "title": "subs-check",
-          "url": "https://github.com/beck-8/subs-check"
-        },
-        {
-          "title": "Iori-Nav",
-          "url": "https://github.com/jy02739244/iori-nav"
-        },
-        {
-          "title": "nav",
-          "url": "https://github.com/deerwan/nav"
-        },
-        {
-          "title": "CloudNav-",
-          "url": "https://github.com/sese972010/CloudNav-"
-        },
-        {
-          "title": "Shaarli",
-          "url": "https://github.com/shaarli/Shaarli"
-        },
-        {
-          "title": "web_tool",
-          "url": "https://github.com/geeeeeeeek/web_tool"
-        },
-        {
-          "title": "猫猫导航",
-          "url": "https://github.com/xtgm/lh-nav"
-        },
-        {
-          "title": "slink",
-          "url": "https://github.com/yutian81/slink"
-        },
-        {
-          "title": "Url-Shorten-Worke",
-          "url": "https://github.com/crazypeace/Url-Shorten-Worker"
-        },
-        {
-          "title": "ech-wk",
-          "url": "https://github.com/byJoey/ech-wk"
-        },
-        {
-          "title": "Singbox-nodejs",
-          "url": "https://github.com/eishare/Singbox-nodejs"
-        },
-        {
-          "title": "katabump虚拟主机",
-          "url": "https://dashboard.katabump.com/dashboard"
-        },
-        {
-          "title": "快点挪车二维码生成器",
-          "url": "https://github.com/muzihuaner/movecar"
-        },
-        {
-          "title": "EasyImage2.0 简单图床",
-          "url": "https://github.com/icret/EasyImages2.0"
-        },
-        {
-          "title": "bookmark",
-          "url": "https://github.com/deerwan/nav"
-        },
-        {
-          "title": "PakePlus",
-          "url": "https://github.com/Sjj1024/PakePlus"
-        },
-        {
-          "title": "教辅资源下载器",
-          "url": "https://pan.quark.cn/s/0a0e7e522952#/list/share"
-        },
-        {
-          "title": "ITEM",
-          "url": "https://github.com/fordes123/ITEM"
-        },
-        {
-          "title": "LaoWang Nav",
-          "url": "https://github.com/tony-wang1990/laowang-nav"
-        },
-        {
-          "title": "Card-Tab",
-          "url": "https://github.com/qilan28/Card-Tab"
-        },
-        {
-          "title": "Windows Memory Cleaner",
-          "url": "https://github.com/IgorMundstein/WinMemoryCleaner"
-        },
-        {
-          "title": "TrafficMonitor",
-          "url": "https://github.com/zhongyang219/TrafficMonitor"
-        },
-        {
-          "title": "MoneyPrinterTurbo",
-          "url": "https://github.com/harry0703/MoneyPrinterTurbo"
-        },
-        {
-          "title": "moneywallet",
-          "url": "https://github.com/AndreAle94/moneywallet"
-        },
-        {
-          "title": "Karing",
-          "url": "https://github.com/KaringX/karing"
-        },
-        {
-          "title": "SmartTube",
-          "url": "https://github.com/yuliskov/SmartTube"
-        },
-        {
-          "title": "LiteMonitor",
-          "url": "https://github.com/Diorser/LiteMonitor/releases/tag/v1.0.8"
-        },
-        {
-          "title": "React",
-          "url": "https://react.dev"
-        }
-      ]
-    },
-    {
-      "title": "设计资源",
-      "children": [
-        {
-          "title": "Tailwind CSS",
-          "url": "https://tailwindcss.com"
-        }
-      ]
-    },
-    {
-      "title": "阅读资讯",
-      "children": [
-        {
-          "title": "NodeSeek",
-          "url": "https://www.nodeseek.com"
-        },
-        {
-          "title": "ITEM演示站",
-          "url": "https://www.item.ink/"
-        },
-        {
-          "title": "LaoWang Nav演示站",
-          "url": "https://demo-nav.zeabur.app/"
-        },
-        {
-          "title": "青云志网页导航",
-          "url": "https://daoyi.hidns.vip/"
-        }
-      ]
-    },
-    {
-      "title": "人工智能",
-      "children": [
-        {
-          "title": "修复老照片",
-          "url": "https://www.freedidi.com/11907.html"
-        },
-        {
-          "title": "豆包",
-          "url": "https://www.doubao.com/chat/"
-        },
-        {
-          "title": "deepseek",
-          "url": "https://chat.deepseek.com/a/chat/s/3ccb70e9-6b2d-4c59-a0d2-346d3dff8813"
-        },
-        {
-          "title": "高效问答",
-          "url": "https://zaiwen.xueban.org.cn/chat/working-edition"
-        },
-        {
-          "title": "ChatGPT",
-          "url": "https://chat.openai.com"
-        },
-        {
-          "title": "Gemini",
-          "url": "https://gemini.google.com"
-        }
-      ]
-    }
-  ]
-};
-    const colorPalette=['#FFB74D','#81C784','#64B5F6','#BA68C8','#F06292','#4FC3F7','#A1887F','#E57373','#FFD54F','#7986CB'];
-    function getBestThumbnail(url,custom){
-        if(custom && custom.trim()) return custom.trim();
-        try{
-            return `https://favicon.zhusl.com/ico?url=${new URL(url).hostname}`;
-        }catch(e){
-            return "https://www.google.com/s2/favicons?domain=placeholder.com";
-        }
-    }
-    function render(){
-        const nav=document.getElementById('nav');
-        const box=document.getElementById('container');
-        nav.innerHTML='';
-        box.innerHTML='';
-        const allBtn=document.createElement('button');
-        allBtn.className='category-btn';
-        allBtn.textContent='全部';
-        allBtn.onclick=()=>filterCategory('全部');
-        nav.appendChild(allBtn);
-        data.icons.forEach((group)=>{
-            const btn=document.createElement('button');
-            btn.className='category-btn';
-            btn.textContent=group.title;
-            btn.onclick=()=>filterCategory(group.title);
-            nav.appendChild(btn);
-        });
-        data.icons.forEach((group,gi)=>{
-            const sec=document.createElement('div');
-            sec.className='group-section';
-            sec.dataset.name=group.title;
-            const titleDiv=document.createElement('div');
-            titleDiv.className='group-title';
-            titleDiv.textContent=group.title;
-            sec.appendChild(titleDiv);
-            const grid=document.createElement('div');
-            grid.className='container';
-            const bgColor=colorPalette[gi%colorPalette.length];
-            group.children.forEach((item)=>{
-                const card=document.createElement('div');
-                card.className='card';
-                card.style.backgroundColor=bgColor;
-                const img=document.createElement('img');
-                img.className='thumbnail';
-                img.src=getBestThumbnail(item.url, item.thumbnail);
-                img.onerror=function(){this.src="https://www.google.com/s2/favicons?domain=placeholder.com";};
-                card.appendChild(img);
-                const a=document.createElement('a');
-                a.href=item.url;
-                a.target='_blank';
-                a.textContent=item.title;
-                card.appendChild(a);
-                grid.appendChild(card);
-            });
-            sec.appendChild(grid);
-            box.appendChild(sec);
-        });
-        function filterCategory(cat){
-            document.querySelectorAll('.group-section').forEach(s=>{
-                s.style.display=(cat==='全部'||s.dataset.name===cat)?'block':'none';
-            });
-            document.querySelectorAll('.category-btn').forEach(b=>{
-                b.classList.toggle('active', b.textContent===cat);
-            });
-        }
-        filterCategory('全部');
-    }
-    window.addEventListener('DOMContentLoaded', render);
+const data={"icons":[{"title":"常用推荐","children":[{"title":"OuonnkiTV","url":"https://github.com/Ouonnki/OuonnkiTV","thumbnail":""},{"title":"Nav-Item","url":"https://navwang.baoge.wang/","thumbnail":""},{"title":"宝哥个人导航页","url":"https://card.baoge456.dpdns.org","thumbnail":""},{"title":"宝哥导航","url":"https://nav.baoge456.dpdns.org","thumbnail":""},{"title":"发布页","url":"https://fby.baoge456.dpdns.org/","thumbnail":""}]},{"title":"新闻资讯","children":[{"title":"全球实时财经新闻","url":"https://sina-news.vercel.app/","thumbnail":""},{"title":"Folo","url":"https://app.folo.is/timeline/articles/all/pending","thumbnail":""},{"title":"Feedly","url":"https://feedly.com/i/my/me","thumbnail":""}]},{"title":"开源工具","children":[{"title":"OuonnkiTV-Source","url":"https://github.com/ZhuBaiwan-oOZZXX/OuonnkiTV-Source?tab=readme-ov-file","thumbnail":""},{"title":"CodeFormer","url":"https://github.com/sczhou/CodeFormer","thumbnail":""},{"title":"VidBee","url":"https://github.com/nexmoe/VidBee","thumbnail":""},{"title":"subs-check","url":"https://github.com/beck-8/subs-check","thumbnail":""},{"title":"Iori-Nav","url":"https://github.com/jy02739244/iori-nav","thumbnail":""},{"title":"nav","url":"https://github.com/deerwan/nav","thumbnail":""},{"title":"CloudNav-","url":"https://github.com/sese972010/CloudNav-","thumbnail":""},{"title":"Shaarli","url":"https://github.com/shaarli/Shaarli","thumbnail":""},{"title":"web_tool","url":"https://github.com/geeeeeeeek/web_tool","thumbnail":""},{"title":"猫猫导航","url":"https://github.com/xtgm/lh-nav","thumbnail":""},{"title":"slink","url":"https://github.com/yutian81/slink","thumbnail":""},{"title":"Url-Shorten-Worke","url":"https://github.com/crazypeace/Url-Shorten-Worker","thumbnail":""},{"title":"ech-wk","url":"https://github.com/byJoey/ech-wk","thumbnail":""},{"title":"Singbox-nodejs","url":"https://github.com/eishare/Singbox-nodejs","thumbnail":""},{"title":"katabump虚拟主机","url":"https://dashboard.katabump.com/dashboard","thumbnail":""},{"title":"快点挪车二维码生成器","url":"https://github.com/muzihuaner/movecar","thumbnail":""},{"title":"EasyImage2.0 简单图床","url":"https://github.com/icret/EasyImages2.0","thumbnail":""},{"title":"bookmark","url":"https://github.com/deerwan/nav","thumbnail":""},{"title":"PakePlus","url":"https://github.com/Sjj1024/PakePlus","thumbnail":""},{"title":"教辅资源下载器","url":"https://pan.quark.cn/s/0a0e7e522952#/list/share","thumbnail":""},{"title":"ITEM","url":"https://github.com/fordes123/ITEM","thumbnail":""},{"title":"LaoWang Nav","url":"https://github.com/tony-wang1990/laowang-nav","thumbnail":""},{"title":"Card-Tab","url":"https://github.com/qilan28/Card-Tab","thumbnail":""},{"title":"Windows Memory Cleaner","url":"https://github.com/IgorMundstein/WinMemoryCleaner","thumbnail":""},{"title":"TrafficMonitor","url":"https://github.com/zhongyang219/TrafficMonitor","thumbnail":""},{"title":"MoneyPrinterTurbo","url":"https://github.com/harry0703/MoneyPrinterTurbo","thumbnail":""},{"title":"moneywallet","url":"https://github.com/AndreAle94/moneywallet","thumbnail":""},{"title":"Karing","url":"https://github.com/KaringX/karing","thumbnail":""},{"title":"SmartTube","url":"https://github.com/yuliskov/SmartTube","thumbnail":""},{"title":"LiteMonitor","url":"https://github.com/Diorser/LiteMonitor/releases/tag/v1.0.8","thumbnail":""},{"title":"React","url":"https://react.dev","thumbnail":""}]},{"title":"设计资源","children":[{"title":"Tailwind CSS","url":"https://tailwindcss.com","thumbnail":""}]},{"title":"阅读资讯","children":[{"title":"NodeSeek","url":"https://www.nodeseek.com","thumbnail":""},{"title":"ITEM演示站","url":"https://www.item.ink/","thumbnail":""},{"title":"LaoWang Nav演示站","url":"https://demo-nav.zeabur.app/","thumbnail":""},{"title":"青云志网页导航","url":"https://daoyi.hidns.vip/","thumbnail":""}]},{"title":"人工智能","children":[{"title":"修复老照片","url":"https://www.freedidi.com/11907.html","thumbnail":""},{"title":"豆包","url":"https://www.doubao.com/chat/","thumbnail":""},{"title":"deepseek","url":"https://chat.deepseek.com/a/chat/s/3ccb70e9-6b2d-4c59-a0d2-346d3dff8813","thumbnail":""},{"title":"高效问答","url":"https://zaiwen.xueban.org.cn/chat/working-edition","thumbnail":""},{"title":"ChatGPT","url":"https://chat.openai.com","thumbnail":""},{"title":"Gemini","url":"https://gemini.google.com","thumbnail":""}]}]};
+const colors=['#FFB74D','#81C784','#64B5F6','#BA68C8','#F06292','#4FC3F7','#A1887F','#E57373','#FFD54F','#7986CB'];
+function icon(u,c){if(c)return c;try{return'https://favicon.zhusl.com/ico?url='+new URL(u).hostname}catch(e){}}
+function render(){
+const nav=document.getElementById('nav');
+const box=document.getElementById('box');
+nav.innerHTML='';
+box.innerHTML='';
+const all=document.createElement('button');
+all.className='category-btn active';
+all.textContent='全部';
+all.onclick=()=>filter('全部');
+nav.appendChild(all);
+data.icons.forEach(g=>{
+const b=document.createElement('button');
+b.className='category-btn';
+b.textContent=g.title;
+b.onclick=()=>filter(g.title);
+nav.appendChild(b);
+});
+data.icons.forEach((g,gi)=>{
+const sec=document.createElement('div');
+sec.className='group-section';
+sec.dataset.cat=g.title;
+const t=document.createElement('div');
+t.className='group-title';
+t.textContent=g.title;
+sec.appendChild(t);
+const grid=document.createElement('div');
+grid.className='grid';
+const co=colors[gi%colors.length];
+g.children.forEach(it=>{
+const c=document.createElement('div');
+c.className='card';
+c.style.background=co;
+const i=document.createElement('img');
+i.src=icon(it.url,it.thumbnail);
+i.onerror=()=>i.src='https://favicon.zhusl.com/ico?url=baidu.com';
+const a=document.createElement('a');
+a.href=it.url;
+a.target='_blank';
+a.textContent=it.title;
+c.appendChild(i);
+c.appendChild(a);
+grid.appendChild(c);
+});
+sec.appendChild(grid);
+box.appendChild(sec);
+});
+function filter(c){
+document.querySelectorAll('.group-section').forEach(s=>{
+s.style.display=c==='全部'||s.dataset.cat===c?'block':'none'
+});
+document.querySelectorAll('.category-btn').forEach(b=>{
+b.classList.toggle('active',b.textContent===c)
+});
+}
+}
+window.onload=render;
 </script>
 </body>
 </html>
