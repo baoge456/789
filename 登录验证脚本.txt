@@ -1,38 +1,39 @@
 <style>
-  #login_overlay {
-    position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%;
+#login_overlay {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
 
-    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
-                url('https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN') center/cover fixed;
 
-   /*background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+  background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+              url('https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN') center/cover fixed;
+
+  /*background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
                 url('https://s3.bmp.ovh/imgs/2025/12/06/2eecac904df39972.png') center/cover fixed;*/
 
    /*background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
                 url('https://picsum.photos/1920/1080?random=1') center/cover fixed;*/
 
-
     /* 快加载渐变背景，启用时注释上面在用的行 */
     /* background: linear-gradient(135deg, #2c3e50, #4ca1af); */
 
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9999999;
-  }
-  #login_box {
-    background: #fff; padding: 30px; border-radius: 16px;
-    width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-  }
-  #login_box h3 { margin: 0 0 20px; font-size: 18px; }
-  #pwd_input {
-    width: 100%; padding: 12px; margin-bottom: 15px;
-    border: 1px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center;
-  }
-  #login_btn {
-    width: 100%; padding: 12px; background: #3b82f6; color: #fff;
-    border: none; border-radius: 8px; font-size: 16px; cursor: pointer;
-  }
-  #login_btn:hover { background: #2563eb; }
+
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999999;
+}
+#login_box {
+  background: #fff; padding: 30px; border-radius: 16px;
+  width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+#login_box h3 { margin: 0 0 20px; font-size: 18px; }
+#pwd_input {
+  width: 100%; padding: 12px; margin-bottom: 15px;
+  border: 1px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center;
+}
+#login_btn {
+  width: 100%; padding: 12px; background: #3b82f6; color: #fff;
+  border: none; border-radius: 8px; font-size: 16px; cursor:pointer;
+}
+#login_btn:hover { background: #2563eb; }
 </style>
 
 <div id="login_overlay">
@@ -44,40 +45,36 @@
 </div>
 
 <script>
-  // ================== 配置区 ==================
-  const MY_PASSWORD = "baoge888";
-  const REMEMBER_LOGIN = false;  // true=记住登录  false=每次都验证
-  const LOGIN_KEY = "is_login_success";
+const REMEMBER_LOGIN = false;  // true=记住登录  false=每次都验证
+const LOGIN_KEY = "is_login_success";
 
-  // 打开页面时判断是否已登录
-  if (REMEMBER_LOGIN && localStorage.getItem(LOGIN_KEY) === "true") {
+// ✅ 正确的  SHA256
+const CORRECT_HASH = "06a9e94ceb731a81b5ed9119cd359f1883ed808cd20baa6277018b9ca3dc3975";
+
+async function sha256(text) {
+  const enc = new TextEncoder();
+  const hash = await crypto.subtle.digest("SHA-256", enc.encode(text));
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+if (REMEMBER_LOGIN && localStorage.getItem(LOGIN_KEY) === "true") {
+  document.getElementById("login_overlay").remove();
+}
+
+async function check() {
+  const val = document.getElementById("pwd_input").value.trim();
+  const inputHash = await sha256(val);
+  
+  if (inputHash === CORRECT_HASH) {
+    if (REMEMBER_LOGIN) localStorage.setItem(LOGIN_KEY, "true");
     document.getElementById("login_overlay").remove();
+  } else {
+    alert("密码错误");
   }
+}
 
-  // 验证逻辑
-  function check() {
-    let val = document.getElementById("pwd_input").value.trim();
-    if (val === MY_PASSWORD) {
-      // 需要记住才存状态
-      if (REMEMBER_LOGIN) {
-        localStorage.setItem(LOGIN_KEY, "true");
-      }
-      document.getElementById("login_overlay").remove();
-    } else {
-      alert("密码错误，请重试");
-    }
-  }
-
-  // 点击登录
-  document.getElementById("login_btn").onclick = check;
-
-  // 回车登录
-  document.getElementById("pwd_input").onkeydown = function (e) {
-    if (e.key === "Enter") check();
-  };
-
-  // 自动聚焦
-  setTimeout(() => {
-    document.getElementById("pwd_input").focus();
-  }, 100);
+document.getElementById("login_btn").onclick = check;
+document.getElementById("pwd_input").onkeydown = e => { if(e.key==="Enter") check() };
+setTimeout(() => document.getElementById("pwd_input").focus(), 100);
 </script>
+
