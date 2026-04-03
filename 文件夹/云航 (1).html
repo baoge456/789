@@ -2,58 +2,129 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>书签导航</title>
     <style>
         *{box-sizing:border-box;}
-        html,body{height:100%;margin:0;padding:0;}
-        body{
-            font-family:system-ui, -apple-system, sans-serif;
+        html,body{
+            height:100%;
+            margin:0;
+            padding:0;
             background:#f5f5f5;
-            padding:12px;
+            font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .page-wrapper{
+            min-height:100%;
             display:flex;
-            align-items:center;
+            align-items:flex-start;
             justify-content:center;
+            padding:8px;
         }
         .panel{
-            max-width:1400px;width:100%;
+            width:100%;
+            max-width:1400px;
             background:#c2f2d0;
-            border-radius:24px;
-            padding:20px;
-            box-shadow:0 10px 30px rgba(0,0,0,0.1);
+            border-radius:20px;
+            padding:16px;
+            box-shadow:0 8px 25px rgba(0,0,0,0.1);
         }
-        h1{text-align:center;font-size:22px;margin-top:0;}
+        h1{
+            text-align:center;
+            font-size:20px;
+            margin:0 0 16px 0;
+            color:#1f3b2c;
+        }
         .category-nav{
-            display:flex;gap:8px;overflow-x:auto;
-            padding:10px;background:#e9f7ef;border-radius:24px;margin-bottom:20px;
+            display:flex;
+            gap:8px;
+            overflow-x:auto;
+            padding:10px 12px;
+            background:#e9f7ef;
+            border-radius:24px;
+            margin-bottom:20px;
+            -webkit-overflow-scrolling:touch;
         }
         .category-btn{
-            background:#4caf50;color:white;border:none;
-            padding:6px 14px;border-radius:20px;white-space:nowrap;cursor:pointer;
+            background:#4caf50;
+            color:white;
+            border:none;
+            padding:8px 16px;
+            border-radius:20px;
+            white-space:nowrap;
+            font-size:14px;
+            cursor:pointer;
+            flex-shrink:0;
         }
-        .category-btn.active{background:#1b5e20;}
-        .group-section{margin-bottom:24px;}
+        .category-btn.active{
+            background:#1b5e20;
+            box-shadow:inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .group-section{
+            margin-bottom:24px;
+        }
         .group-title{
-            font-size:18px;font-weight:bold;margin-bottom:10px;
-            border-left:4px solid #4caf50;padding-left:10px;
+            font-size:17px;
+            font-weight:bold;
+            margin-bottom:12px;
+            border-left:4px solid #4caf50;
+            padding-left:10px;
+            color:#2d3748;
         }
         .container{
-            display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+            display:grid;
+            grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
             gap:10px;
         }
         .card{
-            background:#ffd966;border-radius:16px;padding:8px 10px;
-            display:flex;align-items:center;gap:8px;
+            background:#ffd966;
+            border-radius:16px;
+            padding:10px;
+            display:flex;
+            align-items:center;
+            gap:8px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.08);
+            transition:transform 0.2s;
         }
-        .thumbnail{width:26px;height:26px;border-radius:50%;object-fit:cover;}
-        .card a{text-decoration:none;color:#000;font-size:14px;}
+        .card:hover{
+            transform:translateY(-2px);
+        }
+        .thumbnail{
+            width:28px;
+            height:28px;
+            border-radius:50%;
+            object-fit:cover;
+            background:white;
+            flex-shrink:0;
+        }
+        .card a{
+            text-decoration:none;
+            color:#1a202c;
+            font-size:14px;
+            font-weight:500;
+            word-break:break-word;
+            flex:1;
+        }
+        @media (max-width:680px){
+            .container{
+                grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));
+            }
+            .card a{
+                font-size:13px;
+            }
+            .panel{
+                padding:14px;
+                border-radius:16px;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="panel">
-    <h1>📖 我的书签</h1>
-    <div class="category-nav" id="nav"></div>
-    <div id="container"></div>
+<div class="page-wrapper">
+    <div class="panel">
+        <h1>📖 我的书签导航</h1>
+        <div class="category-nav" id="nav"></div>
+        <div id="container"></div>
+    </div>
 </div>
 <script>
     const data={
@@ -291,62 +362,72 @@
   ]
 };
     const colorPalette=['#FFB74D','#81C784','#64B5F6','#BA68C8','#F06292','#4FC3F7','#A1887F','#E57373','#FFD54F','#7986CB'];
-    function getIcon(u,c){if(c)return c;try{return `https://favicon.zhusl.com/ico?url=${new URL(u).hostname}`}catch(e){return""}}
+    function getBestThumbnail(url,custom){
+        if(custom && custom.trim()) return custom.trim();
+        try{
+            return `https://favicon.zhusl.com/ico?url=${new URL(url).hostname}`;
+        }catch(e){
+            return "https://www.google.com/s2/favicons?domain=placeholder.com";
+        }
+    }
     function render(){
         const nav=document.getElementById('nav');
         const box=document.getElementById('container');
         nav.innerHTML='';
         box.innerHTML='';
-        const all=document.createElement('button');
-        all.className='category-btn';all.textContent='全部';
-        all.onclick=()=>show('全部');
-        nav.appendChild(all);
-        data.icons.forEach((g,i)=>{
-            const b=document.createElement('button');
-            b.className='category-btn';b.textContent=g.title;
-            b.onclick=()=>show(g.title);
-            nav.appendChild(b);
+        const allBtn=document.createElement('button');
+        allBtn.className='category-btn';
+        allBtn.textContent='全部';
+        allBtn.onclick=()=>filterCategory('全部');
+        nav.appendChild(allBtn);
+        data.icons.forEach((group)=>{
+            const btn=document.createElement('button');
+            btn.className='category-btn';
+            btn.textContent=group.title;
+            btn.onclick=()=>filterCategory(group.title);
+            nav.appendChild(btn);
         });
-        data.icons.forEach((g,gi)=>{
+        data.icons.forEach((group,gi)=>{
             const sec=document.createElement('div');
             sec.className='group-section';
-            sec.dataset.name=g.title;
-            const t=document.createElement('div');
-            t.className='group-title';
-            t.textContent=g.title;
-            sec.appendChild(t);
+            sec.dataset.name=group.title;
+            const titleDiv=document.createElement('div');
+            titleDiv.className='group-title';
+            titleDiv.textContent=group.title;
+            sec.appendChild(titleDiv);
             const grid=document.createElement('div');
             grid.className='container';
-            const c=colorPalette[gi%colorPalette.length];
-            g.children.forEach(it=>{
+            const bgColor=colorPalette[gi%colorPalette.length];
+            group.children.forEach((item)=>{
                 const card=document.createElement('div');
                 card.className='card';
-                card.style.background=c;
+                card.style.backgroundColor=bgColor;
                 const img=document.createElement('img');
                 img.className='thumbnail';
-                img.src=getIcon(it.url,it.thumbnail);
+                img.src=getBestThumbnail(item.url, item.thumbnail);
+                img.onerror=function(){this.src="https://www.google.com/s2/favicons?domain=placeholder.com";};
                 card.appendChild(img);
                 const a=document.createElement('a');
-                a.href=it.url;
+                a.href=item.url;
                 a.target='_blank';
-                a.textContent=it.title;
+                a.textContent=item.title;
                 card.appendChild(a);
                 grid.appendChild(card);
             });
             sec.appendChild(grid);
             box.appendChild(sec);
         });
-        function show(n){
+        function filterCategory(cat){
             document.querySelectorAll('.group-section').forEach(s=>{
-                s.style.display=n==='全部'||s.dataset.name===n?'block':'none';
+                s.style.display=(cat==='全部'||s.dataset.name===cat)?'block':'none';
             });
             document.querySelectorAll('.category-btn').forEach(b=>{
-                b.classList.toggle('active',b.textContent===n);
+                b.classList.toggle('active', b.textContent===cat);
             });
         }
-        show('全部');
+        filterCategory('全部');
     }
-    window.addEventListener('DOMContentLoaded',render);
+    window.addEventListener('DOMContentLoaded', render);
 </script>
 </body>
 </html>
