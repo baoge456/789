@@ -1,0 +1,4093 @@
+
+
+
+// --- Workers 代码开始 ---
+
+/**
+ * 备用随机 SVG 图标 - 优化设计
+ */
+export const fallbackSVGIcons = [
+  `<svg width="80" height="80" viewBox="0 0 24 24" fill="url(#gradient_ID_PLACEHOLDER)" xmlns="http://www.w3.org/2000/svg">
+     <defs>
+       <linearGradient id="gradient_ID_PLACEHOLDER" x1="0%" y1="0%" x2="100%" y2="100%">
+         <stop offset="0%" stop-color="#7209b7" />
+         <stop offset="100%" stop-color="#4cc9f0" />
+       </linearGradient>
+     </defs>
+     <path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z"/>
+   </svg>`,
+  `<svg width="80" height="80" viewBox="0 0 24 24" fill="url(#gradient_ID_PLACEHOLDER)" xmlns="http://www.w3.org/2000/svg">
+     <defs>
+       <linearGradient id="gradient_ID_PLACEHOLDER" x1="0%" y1="0%" x2="100%" y2="100%">
+         <stop offset="0%" stop-color="#4361ee" />
+         <stop offset="100%" stop-color="#4cc9f0" />
+       </linearGradient>
+     </defs>
+     <circle cx="12" cy="12" r="10"/>
+     <path d="M12 7v5l3.5 3.5 1.42-1.42L14 11.58V7h-2z" fill="#fff"/>
+   </svg>`,
+  `<svg width="80" height="80" viewBox="0 0 24 24" fill="url(#gradient_ID_PLACEHOLDER)" xmlns="http://www.w3.org/2000/svg">
+     <defs>
+       <linearGradient id="gradient_ID_PLACEHOLDER" x1="0%" y1="0%" x2="100%" y2="100%">
+         <stop offset="0%" stop-color="#7209b7" />
+         <stop offset="100%" stop-color="#4361ee" />
+       </linearGradient>
+     </defs>
+     <path d="M12 .587l3.668 7.431L24 9.172l-6 5.843 1.416 8.252L12 19.771l-7.416 3.496L6 15.015 0 9.172l8.332-1.154z"/>
+   </svg>`,
+];
+
+// getRandomSVG for the public facing page (where only one SVG is rendered per card)
+function getRandomSVG() {
+  const randomIndex = Math.floor(Math.random() * fallbackSVGIcons.length);
+  const svgTemplate = fallbackSVGIcons[randomIndex];
+  // 生成一个唯一的后缀，确保每次调用生成的ID都不同
+  const uniqueId = `dynamic_gradient_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+  // 替换 SVG 模板中的所有占位符
+  return svgTemplate.replace(/gradient_ID_PLACEHOLDER/g, uniqueId);
+}
+
+/**
+ * 渲染单个网站卡片（优化版）
+ * 此函数不再直接使用，但保留以供参考，实际渲染在 handleRequest 中进行
+ */
+function renderSiteCard(site) {
+  const logoHTML = site.logo
+    ? `<img src="${site.logo}" alt="${site.name}"/>`
+    : getRandomSVG();
+
+  return `
+    <div class="channel-card" data-id="${site.id}">
+      <div class="channel-number">${site.id}</div>
+      <h3 class="channel-title">${site.name || '未命名'}</h3>
+      <span class="channel-tag">${site.catelog}</span>
+      <div class="logo-wrapper">${logoHTML}</div>
+      <p class="channel-desc">${site.desc || '暂无描述'}</p>
+      
+    </div>
+  `;
+}
+
+function escapeHTML(input) {
+  if (input === null || input === undefined) {
+    return '';
+  }
+  return String(input)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeUrl(url) {
+  if (!url) {
+    return '';
+  }
+  const trimmed = String(url).trim();
+  try {
+    const direct = new URL(trimmed);
+    if (direct.protocol === 'http:' || direct.protocol === 'https:') {
+      return direct.href;
+    }
+  } catch (error) {
+    try {
+      const fallback = new URL(`https://${trimmed}`);
+      if (fallback.protocol === 'http:' || fallback.protocol === 'https:') {
+        return fallback.href;
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+  return '';
+}
+
+function normalizeSortOrder(value) {
+  if (value === undefined || value === null || value === '') {
+    return 9999;
+  }
+  const parsed = Number(value);
+  if (Number.isFinite(parsed)) {
+    const clamped = Math.max(-2147483648, Math.min(2147483647, Math.round(parsed)));
+    return clamped;
+  }
+  return 9999;
+}
+
+function isSubmissionEnabled(env) {
+  const flag = env.ENABLE_PUBLIC_SUBMISSION;
+  if (flag === undefined || flag === null) {
+    return true;
+  }
+  const normalized = String(flag).trim().toLowerCase();
+  return normalized === 'true';
+}
+
+const SESSION_COOKIE_NAME = 'nav_admin_session';
+const SESSION_PREFIX = 'session:';
+const SESSION_TTL_SECONDS = 60 * 60 * 12; // 12小时会话
+
+function parseCookies(cookieHeader = '') {
+  return cookieHeader
+    .split(';')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .reduce((acc, pair) => {
+      const separatorIndex = pair.indexOf('=');
+      if (separatorIndex === -1) {
+        acc[pair] = '';
+      } else {
+        const key = pair.slice(0, separatorIndex).trim();
+        const value = pair.slice(separatorIndex + 1).trim();
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+}
+
+function buildSessionCookie(token, options = {}) {
+  const { maxAge = SESSION_TTL_SECONDS } = options;
+  const segments = [
+    `${SESSION_COOKIE_NAME}=${token}`,
+    'Path=/',
+    `Max-Age=${maxAge}`,
+    'HttpOnly',
+    'SameSite=Strict',
+    'Secure',
+  ];
+  return segments.join('; ');
+}
+
+async function createAdminSession(env) {
+  // 使用更兼容的方式生成唯一令牌
+  // 限制重试次数以避免无限循环
+  let attempts = 0;
+  const maxAttempts = 3; // 减少重试次数以降低写入压力
+  
+  while (attempts < maxAttempts) {
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+    const sessionKey = `${SESSION_PREFIX}${token}`;
+    
+    try {
+      // 使用 check-and-set 模式尝试创建会话
+      await env.NAV_AUTH.put(sessionKey, JSON.stringify({ createdAt: Date.now() }), {
+        expirationTtl: SESSION_TTL_SECONDS,
+        onlyIf: { equal: null } // 仅当键不存在时才写入
+      });
+      
+      return token;
+    } catch (error) {
+      if (error.message.includes('limit exceeded')) {
+        throw new Error('会话创建失败: KV 写入限制已达到，请稍后再试');
+      }
+      // 如果是键冲突，继续尝试下一个随机令牌
+      attempts++;
+      console.warn(`创建会话尝试 ${attempts} 失败，重试中...`, error);
+    }
+  }
+  
+  throw new Error('无法创建唯一会话令牌，请稍后再试');
+}
+
+async function refreshAdminSession(env, token, payload) {
+  try {
+    await env.NAV_AUTH.put(`${SESSION_PREFIX}${token}`, payload, { expirationTtl: SESSION_TTL_SECONDS });
+  } catch (error) {
+    console.warn('刷新会话TTL失败:', error);
+    // 不抛出错误，避免影响用户操作
+  }
+}
+
+async function destroyAdminSession(env, token) {
+  if (!token) return;
+  try {
+    await env.NAV_AUTH.delete(`${SESSION_PREFIX}${token}`);
+  } catch (error) {
+    console.warn('删除会话失败:', error);
+    // 不抛出错误，避免影响用户操作
+  }
+}
+
+async function validateAdminSession(request, env) {
+  const cookies = parseCookies(request.headers.get('Cookie') || '');
+  const token = cookies[SESSION_COOKIE_NAME];
+  if (!token) {
+    return { authenticated: false };
+  }
+  const sessionKey = `${SESSION_PREFIX}${token}`;
+  const payload = await env.NAV_AUTH.get(sessionKey);
+  if (!payload) {
+    return { authenticated: false };
+  }
+  
+  try {
+    const sessionData = JSON.parse(payload);
+    const now = Date.now();
+    const sessionAge = now - sessionData.createdAt;
+    
+    // 只有当会话使用超过一半时间时才刷新TTL，减少不必要的KV写入
+    if (sessionAge >= (SESSION_TTL_SECONDS * 1000) / 2) {
+      await env.NAV_AUTH.put(sessionKey, payload, { 
+        expirationTtl: SESSION_TTL_SECONDS 
+      });
+    }
+  } catch (error) {
+    console.warn('验证会话时刷新TTL失败:', error);
+    // 即使刷新失败，如果会话仍然有效，也允许继续
+    // 避免因KV写入问题影响用户正常使用
+  }
+  
+  return { authenticated: true, token };
+}
+
+async function isAdminAuthenticated(request, env) {
+  try {
+    const { authenticated } = await validateAdminSession(request, env);
+    return authenticated;
+  } catch (error) {
+    console.error('检查管理员认证状态失败:', error);
+    return false;
+  }
+}
+
+
+/**
+ * 处理 API 请求
+ */
+const api = {
+  async handleRequest(request, env, ctx) {
+      const url = new URL(request.url);
+      const path = url.pathname.replace('/api', ''); // 去掉 "/api" 前缀
+      const method = request.method;
+      const id = url.pathname.split('/').pop(); // 获取最后一个路径段，作为 id (例如 /api/config/1)
+      try {
+          if (path === '/config') {
+              switch (method) {
+                  case 'GET':
+                      return await this.getConfig(request, env, ctx, url);
+                  case 'POST':
+                      if (!(await isAdminAuthenticated(request, env))) {
+                          return this.errorResponse('Unauthorized', 401);
+                      }
+                      return await this.createConfig(request, env, ctx);
+                  default:
+                      return this.errorResponse('Method Not Allowed', 405)
+              }
+          }
+          if (path === '/config/submit' && method === 'POST') {
+            if (!isSubmissionEnabled(env)) {
+              return this.errorResponse('Public submission disabled', 403);
+            }
+            return await this.submitConfig(request, env, ctx);
+         }
+         if (path === '/categories' && method === 'GET') {
+            if (!(await isAdminAuthenticated(request, env))) {
+                return this.errorResponse('Unauthorized', 401);
+            }
+            return await this.getCategories(request, env, ctx);
+         }
+          if (path.startsWith('/categories/')) {
+              if (!(await isAdminAuthenticated(request, env))) {
+                  return this.errorResponse('Unauthorized', 401);
+              }
+              const categoryName = decodeURIComponent(path.replace('/categories/', ''));
+              switch (method) {
+                  case 'PUT':
+                      return await this.updateCategory(request, env, ctx, categoryName);
+                  default:
+                      return this.errorResponse('Method Not Allowed', 405);
+              }
+          }
+          if (path === `/config/${id}` && /^\d+$/.test(id)) {
+              switch (method) {
+                  case 'PUT':
+                      if (!(await isAdminAuthenticated(request, env))) {
+                          return this.errorResponse('Unauthorized', 401);
+                      }
+                      return await this.updateConfig(request, env, ctx, id);
+                  case 'DELETE':
+                      if (!(await isAdminAuthenticated(request, env))) {
+                          return this.errorResponse('Unauthorized', 401);
+                      }
+                      return await this.deleteConfig(request, env, ctx, id);
+                  default:
+                      return this.errorResponse('Method Not Allowed', 405)
+              }
+          }
+          // --- 新增批量删除和清空全部路由 ---
+          if (path === '/config/batch-delete' && method === 'DELETE') {
+              if (!(await isAdminAuthenticated(request, env))) {
+                  return this.errorResponse('Unauthorized', 401);
+              }
+              return await this.batchDeleteConfig(request, env, ctx);
+          }
+          if (path === '/config/clear-all' && method === 'DELETE') {
+              if (!(await isAdminAuthenticated(request, env))) {
+                  return this.errorResponse('Unauthorized', 401);
+              }
+              return await this.clearAllConfig(request, env, ctx);
+          }
+          // --- 新增路由结束 ---
+            if (path.startsWith('/pending/') && /^\d+$/.test(id)) {
+              switch (method) {
+                  case 'PUT':
+                      if (!(await isAdminAuthenticated(request, env))) {
+                          return this.errorResponse('Unauthorized', 401);
+                      }
+                      return await this.approvePendingConfig(request, env, ctx, id);
+                  case 'DELETE':
+                      if (!(await isAdminAuthenticated(request, env))) {
+                          return this.errorResponse('Unauthorized', 401);
+                      }
+                      return await this.rejectPendingConfig(request, env, ctx, id);
+                  default:
+                      return this.errorResponse('Method Not Allowed', 405)
+              }
+          }
+          if (path === '/config/import' && method === 'POST') {
+              if (!(await isAdminAuthenticated(request, env))) {
+                  return this.errorResponse('Unauthorized', 401);
+              }
+              return await this.importConfig(request, env, ctx);
+          }
+          if (path === '/config/export' && method === 'GET') {
+              if (!(await isAdminAuthenticated(request, env))) {
+                  return this.errorResponse('Unauthorized', 401);
+              }
+              return await this.exportConfig(request, env, ctx);
+          }
+          if (path === '/pending' && method === 'GET') {
+            if (!(await isAdminAuthenticated(request, env))) {
+                return this.errorResponse('Unauthorized', 401);
+            }
+            return await this.getPendingConfig(request, env, ctx, url);
+          }
+          // --- 新增：管理员在线状态 API 路由 ---
+          if (path === '/status/admin' && method === 'GET') {
+              return await this.getAdminStatus(request, env, ctx);
+          }
+          // --- 新增路由结束 ---
+          return this.errorResponse('Not Found', 404);
+      } catch (error) {
+          return this.errorResponse(`Internal Server Error: ${error.message}`, 500);
+      }
+  },
+    async getConfig(request, env, ctx, url) {
+            const catalog = url.searchParams.get('catalog');
+            const page = parseInt(url.searchParams.get('page') || '1', 10);
+            const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
+            const keyword = url.searchParams.get('keyword');
+            const offset = (page - 1) * pageSize;
+            try {
+                // 管理后台获取所有配置，包括私有配置
+                let query = `SELECT * FROM sites ORDER BY sort_order ASC, create_time DESC LIMIT ? OFFSET ?`;
+                let countQuery = `SELECT COUNT(*) as total FROM sites`;
+                let queryBindParams = [pageSize, offset];
+                let countQueryParams = [];
+
+                if (catalog) {
+                    query = `SELECT * FROM sites WHERE catelog = ? ORDER BY sort_order ASC, create_time DESC LIMIT ? OFFSET ?`;
+                    countQuery = `SELECT COUNT(*) as total FROM sites WHERE catelog = ?`
+                    queryBindParams = [catalog, pageSize, offset];
+                    countQueryParams = [catalog];
+                }
+
+                if (keyword) {
+                    const likeKeyword = `%${keyword}%`;
+                    query = `SELECT * FROM sites WHERE name LIKE ? OR url LIKE ? OR catelog LIKE ? ORDER BY sort_order ASC, create_time DESC LIMIT ? OFFSET ?`;
+                    countQuery = `SELECT COUNT(*) as total FROM sites WHERE name LIKE ? OR url LIKE ? OR catelog LIKE ?`;
+                    queryBindParams = [likeKeyword, likeKeyword, likeKeyword, pageSize, offset];
+                    countQueryParams = [likeKeyword, likeKeyword, likeKeyword];
+
+                    if (catalog) {
+                        query = `SELECT * FROM sites WHERE catelog = ? AND (name LIKE ? OR url LIKE ? OR catelog LIKE ?) ORDER BY sort_order ASC, create_time DESC LIMIT ? OFFSET ?`;
+                        countQuery = `SELECT COUNT(*) as total FROM sites WHERE catelog = ? AND (name LIKE ? OR url LIKE ? OR catelog LIKE ?)`;
+                        queryBindParams = [catalog, likeKeyword, likeKeyword, likeKeyword, pageSize, offset];
+                        countQueryParams = [catalog, likeKeyword, likeKeyword, likeKeyword];
+                    }
+                }
+
+                const { results } = await env.NAV_DB.prepare(query).bind(...queryBindParams).all();
+                const countResult = await env.NAV_DB.prepare(countQuery).bind(...countQueryParams).first();
+                const total = countResult ? countResult.total : 0;
+
+              return new Response(
+                JSON.stringify({
+                    code: 200,
+                    data: results,
+                    total,
+                    page,
+                    pageSize
+                }),
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+
+            } catch (e) {
+                return this.errorResponse(`Failed to fetch config data: ${e.message}`, 500)
+            }
+        },
+    async getPendingConfig(request, env, ctx, url) {
+          const page = parseInt(url.searchParams.get('page') || '1', 10);
+          const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
+          const offset = (page - 1) * pageSize;
+          try {
+              const { results } = await env.NAV_DB.prepare(`
+                      SELECT * FROM pending_sites ORDER BY create_time DESC LIMIT ? OFFSET ?
+                  `).bind(pageSize, offset).all();
+                const countResult = await env.NAV_DB.prepare(`
+                    SELECT COUNT(*) as total FROM pending_sites
+                    `).first();
+              const total = countResult ? countResult.total : 0;
+                return new Response(
+                    JSON.stringify({
+                      code: 200,
+                      data: results,
+                        total,
+                      page,
+                      pageSize
+                    }),
+                    {headers: {'Content-Type': 'application/json'}}
+                );
+          } catch (e) {
+              return this.errorResponse(`Failed to fetch pending config data: ${e.message}`, 500);
+          }
+      },
+      async approvePendingConfig(request, env, ctx, id) {
+          try {
+              const { results } = await env.NAV_DB.prepare('SELECT * FROM pending_sites WHERE id = ?').bind(id).all();
+              if(results.length === 0) {
+                  return this.errorResponse('Pending config not found', 404);
+              }
+               const config = results[0];
+               //- [优化] 批准时，插入的数据也包含了 sort_order 的默认值，is_private 明确设置为 0 (公开)
+              await env.NAV_DB.prepare(`
+                  INSERT INTO sites (name, url, logo, desc, catelog, sort_order, is_private)
+                  VALUES (?, ?, ?, ?, ?, 9999, 0)
+            `).bind(config.name, config.url, config.logo, config.desc, config.catelog).run();
+              await env.NAV_DB.prepare('DELETE FROM pending_sites WHERE id = ?').bind(id).run();
+
+               return new Response(JSON.stringify({
+                  code: 200,
+                  message: 'Pending config approved successfully'
+              }),{
+                  headers: {
+                      'Content-Type': 'application/json'
+                  }
+              })
+          }catch(e) {
+              return this.errorResponse(`Failed to approve pending config : ${e.message}`, 500);
+          }
+      },
+      async rejectPendingConfig(request, env, ctx, id) {
+          try{
+              await env.NAV_DB.prepare('DELETE FROM pending_sites WHERE id = ?').bind(id).run();
+              return new Response(JSON.stringify({
+                  code: 200,
+                  message: 'Pending config rejected successfully',
+              }), {headers: {'Content-Type': 'application/json'}});
+          } catch(e) {
+              return this.errorResponse(`Failed to reject pending config: ${e.message}`, 500);
+          }
+      },
+     async submitConfig(request, env, ctx) {
+        try{
+            if (!isSubmissionEnabled(env)) {
+                return this.errorResponse('Public submission disabled', 403);
+            }
+            const config = await request.json();
+            const { name, url, logo, desc, catelog } = config;
+            const sanitizedName = (name || '').trim();
+            const sanitizedUrl = (url || '').trim();
+            const sanitizedCatelog = (catelog || '').trim();
+            const sanitizedLogo = (logo || '').trim() || null;
+            const sanitizedDesc = (desc || '').trim() || null;
+
+            if (!sanitizedName || !sanitizedUrl || !sanitizedCatelog ) {
+                return this.errorResponse('Name, URL and Catelog are required', 400);
+            }
+            await env.NAV_DB.prepare(`
+                INSERT INTO pending_sites (name, url, logo, desc, catelog)
+                VALUES (?, ?, ?, ?, ?)
+          `).bind(sanitizedName, sanitizedUrl, sanitizedLogo, sanitizedDesc, sanitizedCatelog).run();
+
+          return new Response(JSON.stringify({
+            code: 201,
+            message: 'Config submitted successfully, waiting for admin approve',
+          }), {
+              status: 201,
+              headers: { 'Content-Type': 'application/json' },
+          })
+        } catch(e) {
+            return this.errorResponse(`Failed to submit config : ${e.message}`, 500);
+        }
+    },
+
+
+  async createConfig(request, env, ctx) {
+        try{
+            const config = await request.json();
+            //- [新增] 从请求体中获取 sort_order 和 is_private
+            const { name, url, logo, desc, catelog, sort_order, is_private } = config;
+            const sanitizedName = (name || '').trim();
+            const sanitizedUrl = (url || '').trim();
+            const sanitizedCatelog = (catelog || '').trim();
+            const sanitizedLogo = (logo || '').trim() || null;
+            const sanitizedDesc = (desc || '').trim() || null;
+            const sortOrderValue = normalizeSortOrder(sort_order);
+            const isPrivateValue = is_private ? 1 : 0; // 转换为 0 或 1
+
+            if (!sanitizedName || !sanitizedUrl || !sanitizedCatelog ) {
+                return this.errorResponse('Name, URL and Catelog are required', 400);
+            }
+            //- [优化] INSERT 语句增加了 sort_order 和 is_private 字段
+            const insert = await env.NAV_DB.prepare(`
+                  INSERT INTO sites (name, url, logo, desc, catelog, sort_order, is_private)
+                  VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).bind(sanitizedName, sanitizedUrl, sanitizedLogo, sanitizedDesc, sanitizedCatelog, sortOrderValue, isPrivateValue).run();
+
+          return new Response(JSON.stringify({
+            code: 201,
+            message: 'Config created successfully',
+            insert
+          }), {
+              status: 201,
+              headers: { 'Content-Type': 'application/json' },
+          })
+        } catch(e) {
+            return this.errorResponse(`Failed to create config : ${e.message}`, 500);
+        }
+    },
+
+
+  async updateConfig(request, env, ctx, id) {
+        try {
+            const config = await request.json();
+            //- [新增] 从请求体中获取 sort_order 和 is_private
+            const { name, url, logo, desc, catelog, sort_order, is_private } = config;
+            const sanitizedName = (name || '').trim();
+            const sanitizedUrl = (url || '').trim();
+            const sanitizedCatelog = (catelog || '').trim();
+            const sanitizedLogo = (logo || '').trim() || null;
+            const sanitizedDesc = (desc || '').trim() || null;
+            const sortOrderValue = normalizeSortOrder(sort_order);
+            const isPrivateValue = is_private ? 1 : 0; // 转换为 0 或 1
+
+          if (!sanitizedName || !sanitizedUrl || !sanitizedCatelog) {
+            return this.errorResponse('Name, URL and Catelog are required', 400);
+          }
+          //- [优化] UPDATE 语句增加了 sort_order 和 is_private 字段
+          const update = await env.NAV_DB.prepare(`
+              UPDATE sites
+              SET name = ?, url = ?, logo = ?, desc = ?, catelog = ?, sort_order = ?, is_private = ?, update_time = CURRENT_TIMESTAMP
+              WHERE id = ?
+          `).bind(sanitizedName, sanitizedUrl, sanitizedLogo, sanitizedDesc, sanitizedCatelog, sortOrderValue, isPrivateValue, id).run();
+          return new Response(JSON.stringify({
+              code: 200,
+              message: 'Config updated successfully',
+              update
+          }), { headers: { 'Content-Type': 'application/json' }});
+        } catch (e) {
+            return this.errorResponse(`Failed to update config: ${e.message}`, 500);
+        }
+    },
+
+    async deleteConfig(request, env, ctx, id) {
+        try{
+            const del = await env.NAV_DB.prepare('DELETE FROM sites WHERE id = ?').bind(id).run();
+            return new Response(JSON.stringify({
+                code: 200,
+                message: 'Config deleted successfully',
+                del
+            }), {headers: {'Content-Type': 'application/json'}});
+        } catch(e) {
+          return this.errorResponse(`Failed to delete config: ${e.message}`, 500);
+        }
+    },
+
+    // --- 新增批量删除方法 ---
+    async batchDeleteConfig(request, env, ctx) {
+        try {
+            const { ids } = await request.json();
+            if (!Array.isArray(ids) || ids.length === 0) {
+                return this.errorResponse('Invalid or empty ID list provided', 400);
+            }
+            const validIds = ids.filter(id => typeof id === 'number' && id > 0);
+            if (validIds.length === 0) {
+                return this.errorResponse('No valid IDs found for batch deletion', 400);
+            }
+
+            // 使用 D1 的 IN 子句进行批量删除
+            const placeholders = validIds.map(() => '?').join(',');
+            const stmt = env.NAV_DB.prepare(`DELETE FROM sites WHERE id IN (${placeholders})`);
+            const del = await stmt.bind(...validIds).run();
+
+            return new Response(JSON.stringify({
+                code: 200,
+                message: `Successfully deleted ${del.changes} items`,
+                changes: del.changes
+            }), { headers: { 'Content-Type': 'application/json' } });
+
+        } catch (e) {
+            return this.errorResponse(`Failed to batch delete config: ${e.message}`, 500);
+        }
+    },
+
+    // --- 新增清空全部方法 ---
+    async clearAllConfig(request, env, ctx) {
+        try {
+            const del = await env.NAV_DB.prepare('DELETE FROM sites').run();
+            return new Response(JSON.stringify({
+                code: 200,
+                message: `Successfully cleared all ${del.changes} items`,
+                changes: del.changes
+            }), { headers: { 'Content-Type': 'application/json' } });
+        } catch (e) {
+            return this.errorResponse(`Failed to clear all config: ${e.message}`, 500);
+        }
+    },
+
+    async importConfig(request, env, ctx) {
+      try {
+        const jsonData = await request.json();
+        let sitesToImport = [];
+
+        // [优化] 智能判断导入的JSON文件格式
+        // 1. 如果 jsonData 本身就是数组 (新的、正确的导出格式)
+        if (Array.isArray(jsonData)) {
+          sitesToImport = jsonData;
+        }
+        // 2. 如果 jsonData 是一个对象，且包含一个名为 'data' 的数组 (兼容旧的导出格式)
+        else if (jsonData && typeof jsonData === 'object' && Array.isArray(jsonData.data)) {
+          sitesToImport = jsonData.data;
+        }
+        // 3. 如果两种都不是，则格式无效
+        else {
+          return this.errorResponse('Invalid JSON data. Must be an array of site configurations, or an object with a "data" key containing the array.', 400);
+        }
+
+        if (sitesToImport.length === 0) {
+          return new Response(JSON.stringify({
+            code: 200,
+            message: 'Import successful, but no data was found in the file.'
+          }), { headers: {'Content-Type': 'application/json'} });
+        }
+
+        const insertStatements = sitesToImport.map(item => {
+              const sanitizedName = (item.name || '').trim() || null;
+              const sanitizedUrl = (item.url || '').trim() || null;
+              const sanitizedLogo = (item.logo || '').trim() || null;
+              const sanitizedDesc = (item.desc || '').trim() || null;
+              const sanitizedCatelog = (item.catelog || '').trim() || null;
+              const sortOrderValue = normalizeSortOrder(item.sort_order);
+              const isPrivateValue = item.is_private ? 1 : 0; // 导入时处理 is_private
+
+              return env.NAV_DB.prepare(`
+                      INSERT INTO sites (name, url, logo, desc, catelog, sort_order, is_private)
+                      VALUES (?, ?, ?, ?, ?, ?, ?)
+                `).bind(sanitizedName, sanitizedUrl, sanitizedLogo, sanitizedDesc, sanitizedCatelog, sortOrderValue, isPrivateValue);
+          })
+
+        // 使用 D1 的 batch 操作，效率更高
+        await env.NAV_DB.batch(insertStatements);
+
+        return new Response(JSON.stringify({
+            code: 201,
+            message: `Config imported successfully. ${sitesToImport.length} items added.`
+        }), {
+            status: 201,
+            headers: {'Content-Type': 'application/json'}
+        });
+      } catch (error) {
+        return this.errorResponse(`Failed to import config : ${error.message}`, 500);
+      }
+    },
+
+async exportConfig(request, env, ctx) {
+      try{
+        // [优化] 导出的数据将不再被包裹在 {code, data} 对象中
+        // 导出所有字段，包括 is_private
+        const { results } = await env.NAV_DB.prepare('SELECT * FROM sites ORDER BY sort_order ASC, create_time DESC').all();
+
+        // JSON.stringify 的第二和第三个参数用于“美化”输出的JSON，
+        // null 表示不替换任何值，2 表示使用2个空格进行缩进。
+        // 这使得导出的文件非常易于阅读和手动编辑。
+        const pureJsonData = JSON.stringify(results, null, 2);
+
+        return new Response(pureJsonData, {
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              // 确保浏览器将其作为文件下载
+              'Content-Disposition': 'attachment; filename="config.json"'
+            }
+        });
+      } catch(e) {
+        return this.errorResponse(`Failed to export config: ${e.message}`, 500)
+      }
+    },
+    async getCategories(request, env, ctx) {
+        try {
+            const categoryOrderMap = new Map();
+            try {
+                const { results: orderRows } = await env.NAV_DB.prepare('SELECT catelog, sort_order FROM category_orders').all();
+                orderRows.forEach(row => {
+                    categoryOrderMap.set(row.catelog, normalizeSortOrder(row.sort_order));
+                });
+            } catch (error) {
+                if (!/no such table/i.test(error.message || '')) {
+                    throw error;
+                }
+            }
+
+            // 获取分类时，只统计公开的站点数量 (如果需要，也可以统计所有站点)
+            // 这里为了保持和公共页面一致，只统计公开站点
+            let query = 'SELECT catelog, COUNT(*) AS site_count, MIN(sort_order) AS min_site_sort FROM sites';
+            try {
+              // 检查 is_private 列是否存在
+              await env.NAV_DB.prepare('SELECT is_private FROM sites LIMIT 1').run();
+              query += ' WHERE is_private = 0';
+            } catch (e) {
+              // 如果 is_private 列不存在，忽略此条件
+              if (!e.message.includes('no such column: is_private')) {
+                throw e; // 如果是其他错误，重新抛出
+              }
+            }
+            query += ' GROUP BY catelog';
+            
+            // 检查是否有分类隐私表，如果有则需要关联查询
+            let categoryPrivacyMap = new Map();
+            try {
+              // 检查是否存在 category_privacy 表
+              await env.NAV_DB.prepare('SELECT category, is_private FROM category_privacy LIMIT 1').run();
+              
+              // 获取所有分类的隐私设置
+              const { results: privacyResults } = await env.NAV_DB.prepare('SELECT category, is_private FROM category_privacy').all();
+              privacyResults.forEach(row => {
+                categoryPrivacyMap.set(row.category, row.is_private);
+              });
+            } catch (e) {
+              // 如果 category_privacy 表不存在，忽略此错误
+              if (!e.message.includes('no such table') && !e.message.includes('no such column')) {
+                console.warn('获取分类隐私设置时出错:', e.message);
+              }
+            }
+            
+            const { results } = await env.NAV_DB.prepare(query).all();
+
+            const data = results.map(row => ({
+                catelog: row.catelog,
+                site_count: row.site_count,
+                sort_order: categoryOrderMap.has(row.catelog)
+                  ? categoryOrderMap.get(row.catelog)
+                  : normalizeSortOrder(row.min_site_sort),
+                explicit: categoryOrderMap.has(row.catelog),
+                min_site_sort: row.min_site_sort === null ? 9999 : normalizeSortOrder(row.min_site_sort),
+                is_private: categoryPrivacyMap.has(row.catelog) ? categoryPrivacyMap.get(row.catelog) : 0  // 默认为公开
+            }));
+
+            data.sort((a, b) => {
+                if (a.sort_order !== b.sort_order) {
+                    return a.sort_order - b.sort_order;
+                }
+                if (a.min_site_sort !== b.min_site_sort) {
+                    return a.min_site_sort - b.min_site_sort;
+                }
+                return a.catelog.localeCompare(b.catelog, 'zh-Hans-CN', { sensitivity: 'base' });
+            });
+
+            return new Response(JSON.stringify({
+                code: 200,
+                data
+            }), { headers: { 'Content-Type': 'application/json' } });
+        } catch (e) {
+            return this.errorResponse(`Failed to fetch categories: ${e.message}`, 500);
+        }
+    },
+    async updateCategory(request, env, ctx, categoryName) {
+        try {
+            const body = await request.json();
+            if (!categoryName) {
+                return this.errorResponse('Category name is required', 400);
+            }
+
+            const normalizedCategory = categoryName.trim();
+            if (!normalizedCategory) {
+                return this.errorResponse('Category name is required', 400);
+            }
+
+            // 检查是否有新的分类名称，如果有则重命名分类
+            if (body && body.new_name) {
+                const newCategoryName = body.new_name.trim();
+                if (!newCategoryName) {
+                    return this.errorResponse('New category name is required', 400);
+                }
+                
+                // 检查新分类名称是否已存在
+                const existingSites = await env.NAV_DB.prepare('SELECT COUNT(*) as count FROM sites WHERE catelog = ?')
+                    .bind(newCategoryName)
+                    .first();
+                if (existingSites && existingSites.count > 0) {
+                    return this.errorResponse('Category with this name already exists', 400);
+                }
+                
+                // 更新sites表中的分类名称
+                await env.NAV_DB.prepare('UPDATE sites SET catelog = ? WHERE catelog = ?')
+                    .bind(newCategoryName, normalizedCategory)
+                    .run();
+                
+                // 更新category_orders表中的分类名称
+                await env.NAV_DB.prepare('UPDATE category_orders SET catelog = ? WHERE catelog = ?')
+                    .bind(newCategoryName, normalizedCategory)
+                    .run();
+                
+                return new Response(JSON.stringify({
+                    code: 200,
+                    message: 'Category renamed successfully'
+                }), { headers: { 'Content-Type': 'application/json' } });
+            }
+            
+            // 如果是重置操作
+            if (body && body.reset) {
+                await env.NAV_DB.prepare('DELETE FROM category_orders WHERE catelog = ?')
+                    .bind(normalizedCategory)
+                    .run();
+                return new Response(JSON.stringify({
+                    code: 200,
+                    message: 'Category order reset successfully'
+                }), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            // 如果是更新排序操作
+            const sortOrderValue = normalizeSortOrder(body ? body.sort_order : undefined);
+            await env.NAV_DB.prepare(`
+              INSERT INTO category_orders (catelog, sort_order)
+              VALUES (?, ?)
+              ON CONFLICT(catelog) DO UPDATE SET sort_order = excluded.sort_order
+            `).bind(normalizedCategory, sortOrderValue).run();
+            
+            // 如果是更新分类隐私设置
+            if (body && typeof body.is_private !== 'undefined') {
+                const isPrivateValue = body.is_private ? 1 : 0;
+                // 确保分类隐私表存在
+                try {
+                    await env.NAV_DB.prepare(`
+                        CREATE TABLE IF NOT EXISTS category_privacy (
+                            category TEXT PRIMARY KEY,
+                            is_private INTEGER DEFAULT 0
+                        )
+                    `).run();
+                    
+                    await env.NAV_DB.prepare(`
+                        INSERT INTO category_privacy (category, is_private)
+                        VALUES (?, ?)
+                        ON CONFLICT(category) DO UPDATE SET is_private = excluded.is_private
+                    `).bind(normalizedCategory, isPrivateValue).run();
+                } catch (e) {
+                    console.error('更新分类隐私设置失败:', e.message);
+                }
+            }
+            
+            return new Response(JSON.stringify({
+                code: 200,
+                message: 'Category updated successfully'
+            }), { headers: { 'Content-Type': 'application/json' } });
+        } catch (e) {
+            return this.errorResponse(`Failed to update category: ${e.message}`, 500);
+        }
+    },
+    // --- 新增：获取管理员在线状态方法 ---
+    async getAdminStatus(request, env, ctx) {
+        try {
+            const { authenticated } = await validateAdminSession(request, env);
+            return new Response(JSON.stringify({
+                code: 200,
+                data: { online: authenticated },
+                message: authenticated ? 'Admin is online' : 'Admin is offline'
+            }), {
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } catch (e) {
+            return this.errorResponse(`Failed to get admin status: ${e.message}`, 500);
+        }
+    },
+    // --- 新增方法结束 ---
+     errorResponse(message, status) {
+        return new Response(JSON.stringify({code: status, message: message}), {
+            status: status,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+  };
+
+
+/**
+ * 处理后台管理页面请求
+ */
+const admin = {
+async handleRequest(request, env, ctx) {
+  const url = new URL(request.url);
+
+  if (url.pathname === '/admin/logout') {
+    if (request.method !== 'POST') {
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+    try {
+      const { token } = await validateAdminSession(request, env);
+      if (token) {
+        await destroyAdminSession(env, token);
+      }
+    } catch (error) {
+      console.warn('登出处理出现错误:', error);
+      // 即使登出过程出错，也继续执行重定向
+    }
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: '/admin',
+        'Set-Cookie': buildSessionCookie('', { maxAge: 0 }),
+      },
+    });
+  }
+
+  if (url.pathname === '/admin') {
+    if (request.method === 'POST') {
+      const formData = await request.formData();
+      const name = (formData.get('name') || '').trim();
+      const password = (formData.get('password') || '').trim();
+
+      const storedUsername = await env.NAV_AUTH.get('admin_username');
+      const storedPassword = await env.NAV_AUTH.get('admin_password');
+
+      const isValid =
+        storedUsername &&
+        storedPassword &&
+        name === storedUsername &&
+        password === storedPassword;
+
+      if (isValid) {
+        // 检查用户是否已有会话，实现会话复用以减少KV写入
+        const cookies = parseCookies(request.headers.get('Cookie') || '');
+        const existingToken = cookies[SESSION_COOKIE_NAME];
+        let token;
+        
+        if (existingToken) {
+          // 检查现有会话是否仍然有效
+          const sessionKey = `${SESSION_PREFIX}${existingToken}`;
+          const existingPayload = await env.NAV_AUTH.get(sessionKey);
+          if (existingPayload) {
+            // 会话仍然有效，直接复用并刷新TTL
+            await env.NAV_AUTH.put(sessionKey, existingPayload, { 
+              expirationTtl: SESSION_TTL_SECONDS 
+            });
+            token = existingToken;
+          } else {
+            // 会话已过期，创建新会话
+            token = await createAdminSession(env);
+          }
+        } else {
+          // 没有现有会话，创建新会话
+          token = await createAdminSession(env);
+        }
+        
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: '/admin',
+            'Set-Cookie': buildSessionCookie(token),
+          },
+        });
+      }
+
+      return this.renderLoginPage('账号或密码错误，请重试。');
+    }
+
+    try {
+      const session = await validateAdminSession(request, env);
+      if (session.authenticated) {
+        return this.renderAdminPage();
+      }
+    } catch (error) {
+      console.error('验证管理员会话失败:', error);
+      // 如果会话验证失败，重定向到登录页面
+    }
+    
+    return this.renderLoginPage();
+  }
+
+  if (url.pathname.startsWith('/static')) {
+    return this.handleStatic(request, env, ctx);
+  }
+
+  return new Response('页面不存在', {status: 404});
+},
+   async handleStatic(request, env, ctx) {
+      const url = new URL(request.url);
+      const filePath = url.pathname.replace('/static/', '');
+
+      let contentType = 'text/plain';
+      if (filePath.endsWith('.css')) {
+         contentType = 'text/css';
+      } else if (filePath.endsWith('.js')) {
+         contentType = 'application/javascript';
+      }
+
+      try {
+          const fileContent = await this.getFileContent(filePath)
+          return new Response(fileContent, {
+            headers: { 'Content-Type': contentType }
+          });
+      } catch (e) {
+         return new Response('Not Found', {status: 404});
+      }
+
+    },
+  async getFileContent(filePath) {
+      const fileContents = {
+         'admin.html': `<!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>书签管理页面</title>
+      <link rel="stylesheet" href="/static/admin.css">
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    </head>
+    <body>
+      <div class="container">
+          <header class="admin-header">
+            <div>
+              <h1>书签管理</h1>
+              <p class="admin-subtitle">管理后台仅限受信任的管理员使用，请妥善保管账号</p>
+            </div>
+            <div class="admin-actions">
+              <a href="/" class="home-btn">返回首页</a>
+              <form method="post" action="/admin/logout">
+                <button type="submit" class="logout-btn">退出登录</button>
+              </form>
+            </div>
+          </header>
+
+          <div class="import-export">
+            <input type="file" id="importFile" accept=".json" style="display:none;">
+            <button id="importBtn">导入</button>
+            <button id="exportBtn">导出</button>
+          </div>
+
+          <!-- 新增：批量操作按钮区域 -->
+          <div class="batch-actions">
+            <button id="batchDeleteBtn" disabled>批量删除</button>
+            <button id="clearAllBtn" class="danger-btn">清空全部书签</button>
+          </div>
+          <!-- 新增区域结束 -->
+
+          <!-- [优化] 添加区域HTML结构，并新增排序输入框 -->
+          <div class="add-new">
+            <input type="text" id="addName" placeholder="Name" required>
+            <input type="text" id="addUrl" placeholder="URL" required>
+            <input type="text" id="addLogo" placeholder="Logo(optional)">
+            <input type="text" id="addDesc" placeholder="Description(optional)">
+            <select id="addCatelog" required>
+              <option value="" disabled selected>选择分类</option>
+              <option value="__new__">+ 新增分类</option>
+            </select>
+            <div id="addNewCatelogContainer" style="display: none; width: 100%;">
+              <input type="text" id="addNewCatelog" placeholder="输入新分类名称">
+            </div>
+            <input type="number" id="addSortOrder" placeholder="排序 (数字小靠前)">
+            <label class="checkbox-container">
+                <input type="checkbox" id="addIsPrivate">
+                <span class="checkbox-label">设为隐私书签</span>
+            </label>
+            <button id="addBtn">添加</button>
+          </div>
+          <div id="message" style="display: none;padding:1rem;border-radius: 0.5rem;margin-bottom: 1rem;"></div>
+         <div class="tab-wrapper">
+              <div class="tab-buttons">
+                 <button class="tab-button active" data-tab="config">书签列表</button>
+                 <button class="tab-button" data-tab="pending">待审核列表</button>
+                 <button class="tab-button" data-tab="categories">分类管理</button>
+              </div>
+               <div id="config" class="tab-content active">
+                    <div class="table-wrapper">
+                        <table id="configTable">
+                            <thead>
+                                <tr>
+                                  <th><input type="checkbox" id="selectAll"></th> <!-- 新增：全选复选框 -->
+                                  <th>ID</th>
+                                  <th>Name</th>
+                                  <th>URL</th>
+                                  <th>Logo</th>
+                                  <th>Description</th>
+                                  <th>Catelog</th>
+                                  <th>排序</th> <!-- [新增] 表格头增加排序 -->
+                                  <th>隐私</th> <!-- [新增] 隐私列 -->
+                                  <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="configTableBody">
+                              <!-- data render by js -->
+                            </tbody>
+                        </table>
+                        <div class="pagination">
+                              <button id="prevPage" disabled>上一页</button>
+                              <span id="currentPage">1</span>/<span id="totalPages">1</span>
+                              <button id="nextPage" disabled>下一页</button>
+                        </div>
+                   </div>
+                </div>
+               <div id="pending" class="tab-content">
+                 <div class="table-wrapper">
+                   <table id="pendingTable">
+                      <thead>
+                        <tr>
+                            <th>ID</th>
+                             <th>Name</th>
+                             <th>URL</th>
+                            <th>Logo</th>
+                            <th>Description</th>
+                            <th>Catelog</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="pendingTableBody">
+                       <!-- data render by js -->
+                        </tbody>
+                    </table>
+                     <div class="pagination">
+                      <button id="pendingPrevPage" disabled>上一页</button>
+                       <span id="pendingCurrentPage">1</span>/<span id="pendingTotalPages">1</span>
+                      <button id="pendingNextPage" disabled>下一页</button>
+                    </div>
+               </div>
+              </div>
+              <div id="categories" class="tab-content">
+                <div class="table-wrapper">
+                  <div class="category-toolbar">
+                    <p class="category-hint">设置分类排序值（数字越小越靠前），留空表示使用默认顺序。点击分类名称旁的“编辑”按钮可重命名分类。</p>
+                    <button id="refreshCategories" type="button">刷新</button>
+                  </div>
+                  <table id="categoryTable">
+                    <thead>
+                      <tr>
+                        <th>分类</th>
+                        <th>书签数量</th>
+                        <th>排序值</th>
+                        <th>隐私</th>
+                        <th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="categoryTableBody">
+                      <tr><td colspan="4">加载中...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+      </div>
+      <script src="/static/admin.js"></script>
+    </body>
+    </html>`,
+            'admin.css': `body {
+        font-family: 'Noto Sans SC', sans-serif;
+        margin: 0;
+        padding: 10px; /* [优化] 移动端边距 */
+        background-color: #f8f9fa;
+        color: #212529;
+    }
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5); /* 半透明背景 */
+    }
+    .modal-content {
+        background-color: #fff;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        width: 80%; /* [优化] 调整宽度以适应移动端 */
+        max-width: 600px;
+        border-radius: 8px;
+        position: relative;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .modal-close {
+        color: #6c757d;
+        position: absolute;
+        right: 10px;
+        top: 0;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    
+    .modal-close:hover,
+    .modal-close:focus {
+        color: #343a40; /* 悬停时颜色加深 */
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .modal-content form {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .modal-content form label {
+        margin-bottom: 5px;
+        font-weight: 500; /* 字重 */
+        color: #495057; /* 标签颜色 */
+    }
+    .modal-content form input {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #ced4da; /* 输入框边框 */
+        border-radius: 4px;
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .modal-content form input:focus {
+        border-color: #80bdff; /* 焦点边框颜色 */
+        box-shadow:0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .modal-content form input:focus {
+        border-color: #80bdff; /* 焦点边框颜色 */
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .modal-content button[type='submit'] {
+        margin-top: 10px;
+        background-color: #007bff; /* 提交按钮颜色 */
+        color: #fff;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s;
+    }
+    
+    .modal-content button[type='submit']:hover {
+        background-color: #0056b3; /* 悬停时颜色加深 */
+    }
+.container {
+        max-width: 1200px;
+        margin: 0 auto; /* [优化] 移动端居中 */
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .admin-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    @media (min-width: 768px) {
+        .admin-header {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+    }
+    h1 {
+        font-size: 1.75rem;
+        margin: 0;
+        color: #343a40;
+    }
+    .admin-subtitle {
+        margin: 4px 0 0;
+        color: #6c757d;
+        font-size: 0.95rem;
+    }
+    .admin-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .home-btn {
+        background-color: #e9ecef;
+        color: #495057;
+        border: 1px solid #ced4da;
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        text-decoration: none;
+        transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    .home-btn:hover {
+        background-color: #d8dbdf;
+        color: #212529;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+    .logout-btn {
+        background-color: #f8f9fa;
+        color: #495057;
+        border: 1px solid #ced4da;
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    .logout-btn:hover {
+        background-color: #e9ecef;
+        color: #212529;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+    .tab-wrapper {
+        margin-top: 20px;
+    }
+    .tab-buttons {
+        display: flex;
+        margin-bottom: 10px;
+        flex-wrap: wrap; /* [优化] 移动端换行 */
+    }
+    .tab-button {
+        background-color: #e9ecef;
+        border: 1px solid #dee2e6;
+        padding: 10px 15px;
+        border-radius: 4px 4px 0 0;
+        cursor: pointer;
+        color: #495057; /* tab按钮文字颜色 */
+        transition: background-color 0.2s, color 0.2s;
+    }
+    .tab-button.active {
+        background-color: #fff;
+        border-bottom: 1px solid #fff;
+        color: #212529; /* 选中tab颜色 */
+    }
+    .tab-button:hover {
+        background-color: #f0f0f0;
+    }
+    .tab-content {
+        display: none;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        border-top: none;
+    }
+    .tab-content.active {
+        display: block;
+    }
+    
+    .import-export {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        justify-content: flex-end;
+        flex-wrap: wrap; /* [优化] 移动端换行 */
+    }
+
+    /* 新增：批量操作按钮区域样式 */
+    .batch-actions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        justify-content: flex-end; /* 与导入导出按钮对齐 */
+        flex-wrap: wrap; /* 移动端换行 */
+    }
+
+    .danger-btn {
+        background-color: #dc3545; /* 红色表示危险操作 */
+    }
+    .danger-btn:hover {
+        background-color: #c82333;
+    }
+    
+ /* [优化] 添加区域适配移动端 */
+    .add-new {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap; /* 核心：允许换行 */
+        align-items: center; /* 垂直居中对齐 */
+    }
+    .add-new > input {
+        flex: 1 1 150px; /* 弹性布局，基础宽度150px，允许伸缩 */
+        min-width: 150px; /* 最小宽度 */
+    }
+    .add-new > button {
+        flex-basis: 100%; /* 在移动端，按钮占据一整行 */
+    }
+    input[type="text"] {
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 1rem;
+        outline: none;
+        margin-bottom: 5px;
+         transition: border-color 0.2s;
+    }
+	   @media (min-width: 768px) {
+        .add-new > button {
+            flex-basis: auto; /* 在桌面端，按钮恢复自动宽度 */
+        }
+    }
+    input[type="text"], input[type="number"] {
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 1rem;
+        outline: none;
+        margin-bottom: 5px;
+         transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, input[type="number"]:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    button {
+        background-color: #6c63ff; /* 主色调 */
+        color: #fff;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s;
+    }
+    button:hover {
+        background-color: #534dc4;
+    }
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    /* [优化] 保证表格在小屏幕上可以横向滚动 */
+    .table-wrapper {
+        overflow-x: auto;
+    }
+    table {
+        width: 100%;
+        min-width: 800px; /* 设置一个最小宽度，当屏幕小于此值时出现滚动条 */
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    th, td {
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        text-align: left;
+        color: #495057; /* 表格文字颜色 */
+    }
+    th:first-child, td:first-child { /* 针对第一个复选框列 */
+        text-align: center;
+        width: 40px; /* 适当宽度 */
+    }
+    th {
+        background-color: #f2f2f2;
+        font-weight: 600;
+    }
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    .category-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .category-hint {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    #refreshCategories {
+        background-color: #f8f9fa;
+        color: #495057;
+        border: 1px solid #ced4da;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background-color 0.2s;
+    }
+    #refreshCategories:hover {
+        background-color: #e9ecef;
+    }
+    .category-sort-input {
+        width: 80px;
+        padding: 6px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+    }
+    .category-sort-input:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        outline: none;
+    }
+    .category-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .category-actions button {
+        padding: 5px 10px;
+        font-size: 0.85rem;
+    }
+    .category-actions button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .actions {
+        display: flex;
+        gap: 5px;
+    }
+    .actions button {
+        padding: 5px 8px;
+        font-size: 0.8rem;
+    }
+    .edit-btn {
+        background-color: #17a2b8; /* 编辑按钮颜色 */
+    }
+    
+    .del-btn {
+        background-color: #dc3545; /* 删除按钮颜色 */
+    }
+    .pagination {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .pagination button {
+        margin: 0 5px;
+        background-color: #e9ecef; /* 分页按钮颜色 */
+        color: #495057;
+        border: 1px solid #ced4da;
+    }
+    .pagination button:hover {
+        background-color: #dee2e6;
+    }
+    
+    .success {
+        background-color: #28a745;
+        color: #fff;
+    }
+    .error {
+        background-color: #dc3545;
+        color: #fff;
+    }
+
+    /* 新增：复选框样式 */
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        margin-right: 10px; /* 与其他输入框保持间距 */
+        flex-basis: 150px; /* 适当宽度 */
+    }
+
+    .checkbox-container input[type="checkbox"] {
+        margin-right: 8px;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    .checkbox-label {
+        font-size: 1rem;
+        color: #495057;
+    }
+
+    /* 开关样式 */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+    
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+    }
+    
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+        background-color: #2196F3;
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+    
+    /* 响应式调整 */
+    @media (max-width: 767px) {
+        .add-new .checkbox-container {
+            flex-basis: 100%; /* 移动端占据整行 */
+            margin-bottom: 5px;
+        }
+    }
+      `,
+          'admin.js': `
+          // --- 复制 fallbackSVGIcons 和 getRandomSVG 到 admin.js 作用域 ---
+          // 注意：为了避免 SVG 内部 gradient ID 冲突，这里使用通用的占位符，并在 getRandomSVG 中动态替换
+          const fallbackSVGIcons = [
+            \`<svg width="80" height="80" viewBox="0 0 24 24" fill="url(#gradient_ID_PLACEHOLDER)" xmlns="http://www.w3.org/2000/svg">
+               <defs>
+                 <linearGradient id="gradient_ID_PLACEHOLDER" x1="0%" y1="0%" x2="100%" y2="100%">
+                   <stop offset="0%" stop-color="#7209b7" />
+                   <stop offset="100%" stop-color="#4cc9f0" />
+                 </linearGradient>
+               </defs>
+               <path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z"/>
+             </svg>\`,
+            \`<svg width="80" height="80" viewBox="0 0 24 24" fill="url(#gradient_ID_PLACEHOLDER)" xmlns="http://www.w3.org/2000/svg">
+               <defs>
+                 <linearGradient id="gradient_ID_PLACEHOLDER" x1="0%" y1="0%" x2="100%" y2="100%">
+                   <stop offset="0%" stop-color="#4361ee" />
+                   <stop offset="100%" stop-color="#4cc9f0" />
+                 </linearGradient>
+               </defs>
+               <circle cx="12" cy="12" r="10"/>
+               <path d="M12 7v5l3.5 3.5 1.42-1.42L14 11.58V7h-2z" fill="#fff"/>
+             </svg>\`,
+            \`<svg width="80" height="80" viewBox="0 0 24 24" fill="url(#gradient_ID_PLACEHOLDER)" xmlns="http://www.w3.org/2000/svg">
+               <defs>
+                 <linearGradient id="gradient_ID_PLACEHOLDER" x1="0%" y1="0%" x2="100%" y2="100%">
+                   <stop offset="0%" stop-color="#7209b7" />
+                   <stop offset="100%" stop-color="#4361ee" />
+                 </linearGradient>
+               </defs>
+               <path d="M12 .587l3.668 7.431L24 9.172l-6 5.843 1.416 8.252L12 19.771l-7.416 3.496L6 15.015 0 9.172l8.332-1.154z"/>
+             </svg>\`,
+          ];
+          function getRandomSVG() {
+            const randomIndex = Math.floor(Math.random() * fallbackSVGIcons.length);
+            const svgTemplate = fallbackSVGIcons[randomIndex];
+            // 生成一个唯一的后缀，确保每次调用生成的ID都不同
+            const uniqueId = \`dynamic_gradient_\${Date.now()}_\${Math.random().toString(36).substr(2, 5)}\`;
+            // 替换 SVG 模板中的所有占位符
+            return svgTemplate.replace(/gradient_ID_PLACEHOLDER/g, uniqueId);
+          }
+          // --- 复制结束 ---
+
+          const configTableBody = document.getElementById('configTableBody');
+          const prevPageBtn = document.getElementById('prevPage');
+          const nextPageBtn = document.getElementById('nextPage');
+          const currentPageSpan = document.getElementById('currentPage');
+          const totalPagesSpan = document.getElementById('totalPages');
+          
+          const pendingTableBody = document.getElementById('pendingTableBody');
+            const pendingPrevPageBtn = document.getElementById('pendingPrevPage');
+            const pendingNextPageBtn = document.getElementById('pendingNextPage');
+            const pendingCurrentPageSpan = document.getElementById('pendingCurrentPage');
+            const pendingTotalPagesSpan = document.getElementById('pendingTotalPages');
+          
+          const messageDiv = document.getElementById('message');
+          const categoryTableBody = document.getElementById('categoryTableBody');
+          const refreshCategoriesBtn = document.getElementById('refreshCategories');
+          
+          // --- 新增：批量删除和清空全部相关元素 ---
+          const selectAllCheckbox = document.getElementById('selectAll');
+          const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+          const clearAllBtn = document.getElementById('clearAllBtn');
+          // --- 新增结束 ---
+
+          var escapeHTML = function(value) {
+            var result = '';
+            if (value !== null && value !== undefined) {
+              result = String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+            }
+            return result;
+          };
+          
+          var normalizeUrl = function(value) {
+            var trimmed = String(value || '').trim();
+            var normalized = '';
+            if (/^https?:\\/\\//i.test(trimmed)) {
+              normalized = trimmed;
+            } else if (/^[\\w.-]+\\.[\\w.-]+/.test(trimmed)) {
+              normalized = 'https://' + trimmed;
+            }
+            return normalized;
+          };
+          
+          const addBtn = document.getElementById('addBtn');
+          const addName = document.getElementById('addName');
+          const addUrl = document.getElementById('addUrl');
+          const addLogo = document.getElementById('addLogo');
+          const addDesc = document.getElementById('addDesc');
+          const addCatelog = document.getElementById('addCatelog');
+          const addNewCatelog = document.getElementById('addNewCatelog');
+          const addNewCatelogContainer = document.getElementById('addNewCatelogContainer');
+		  const addSortOrder = document.getElementById('addSortOrder'); // [新增] 获取排序输入框
+          const addIsPrivate = document.getElementById('addIsPrivate'); // [新增] 获取隐私复选框
+          
+          const importBtn = document.getElementById('importBtn');
+          const importFile = document.getElementById('importFile');
+          const exportBtn = document.getElementById('exportBtn');
+          
+           const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+          
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                const tab = button.dataset.tab;
+                tabButtons.forEach(b => b.classList.remove('active'));
+                 button.classList.add('active');
+                tabContents.forEach(content => {
+                   content.classList.remove('active');
+                    if(content.id === tab) {
+                       content.classList.add('active');
+                     }
+                  })
+                if (tab === 'categories') {
+                  fetchCategories();
+                }
+            });
+          });
+
+          if (refreshCategoriesBtn) {
+            refreshCategoriesBtn.addEventListener('click', () => {
+              fetchCategories();
+            });
+          }
+
+          
+          // 添加搜索框
+          const searchInput = document.createElement('input');
+          searchInput.type = 'text';
+          searchInput.placeholder = '搜索书签(名称，URL，分类)';
+          searchInput.id = 'searchInput';
+          searchInput.style.marginBottom = '10px';
+          document.querySelector('.add-new').parentNode.insertBefore(searchInput, document.querySelector('.add-new'));
+          
+          
+          let currentPage = 1;
+          let pageSize = 10;
+          let totalItems = 0;
+          let allConfigs = []; // 保存所有配置数据
+          let currentSearchKeyword = ''; // 保存当前搜索关键词
+          
+          let pendingCurrentPage = 1;
+            let pendingPageSize = 10;
+            let pendingTotalItems = 0;
+            let allPendingConfigs = []; // 保存所有待审核配置数据
+          let categoriesData = []; // 保存分类排序数据
+          
+          // 创建编辑模态框
+          const editModal = document.createElement('div');
+          editModal.className = 'modal';
+          editModal.style.display = 'none';
+          editModal.innerHTML = \`
+            <div class="modal-content">
+              <span class="modal-close">×</span>
+              <h2>编辑站点</h2>
+              <form id="editForm">
+                <input type="hidden" id="editId">
+                <label for="editName">名称:</label>
+                <input type="text" id="editName" required><br>
+                <label for="editUrl">URL:</label>
+                <input type="text" id="editUrl" required><br>
+                <label for="editLogo">Logo(可选):</label>
+                <input type="text" id="editLogo"><br>
+                <label for="editDesc">描述(可选):</label>
+                <input type="text" id="editDesc"><br>
+                <label for="editCatelog">分类:</label>
+                <select id="editCatelog" required>
+                  <option value="" disabled>选择分类</option>
+                  <option value="__new__">+ 新增分类</option>
+                </select><br>
+                <div id="editNewCatelogContainer" style="display: none; width: 100%;">
+                  <input type="text" id="editNewCatelog" placeholder="输入新分类名称">
+                </div><br>
+			    <label for="editSortOrder">排序:</label> <!-- [新增] -->
+                <input type="number" id="editSortOrder"><br> <!-- [新增] -->
+                <label class="checkbox-container">
+                    <input type="checkbox" id="editIsPrivate">
+                    <span class="checkbox-label">设为隐私书签</span>
+                </label><br>
+                <button type="submit">保存</button>
+              </form>
+            </div>
+          \`;
+          document.body.appendChild(editModal);
+          
+          const modalClose = editModal.querySelector('.modal-close');
+          modalClose.addEventListener('click', () => {
+            editModal.style.display = 'none';
+          });
+          
+          const editForm = document.getElementById('editForm');
+          const editCatelog = document.getElementById('editCatelog');
+          const editNewCatelog = document.getElementById('editNewCatelog');
+          const editNewCatelogContainer = document.getElementById('editNewCatelogContainer');
+          
+          editForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const id = document.getElementById('editId').value;
+            const name = document.getElementById('editName').value;
+            const url = document.getElementById('editUrl').value;
+            const logo = document.getElementById('editLogo').value;
+            const desc = document.getElementById('editDesc').value;
+            let catelog = document.getElementById('editCatelog').value;
+            const sort_order = document.getElementById('editSortOrder').value; // [新增]
+            const is_private = document.getElementById('editIsPrivate').checked; // [新增]
+            
+            // 如果选择了新增分类，则使用新分类的值
+            if (catelog === '__new__') {
+              const newCatelogValue = editNewCatelog.value.trim();
+              if (!newCatelogValue) {
+                showMessage('请输入新分类名称', 'error');
+                return;
+              }
+              catelog = newCatelogValue;
+            }
+            
+            const payload = {
+                name: name.trim(),
+                url: url.trim(),
+                logo: logo.trim(),
+                desc: desc.trim(),
+                catelog: catelog.trim(),
+                is_private: is_private // [新增]
+            };
+            if (sort_order !== '') {
+                payload.sort_order = Number(sort_order);
+            }
+            fetch(\`/api/config/\${id}\`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            }).then(res => res.json())
+              .then(data => {
+                if (data.code === 200) {
+                  showMessage('修改成功', 'success');
+                  fetchConfigs();
+                  editModal.style.display = 'none'; // 关闭弹窗
+                  // 重新加载分类选项
+                  loadCategoriesToSelect();
+                } else {
+                  showMessage(data.message, 'error');
+                }
+              }).catch(err => {
+                showMessage('网络错误', 'error');
+              })
+          });
+          
+          
+          function fetchConfigs(page = currentPage, keyword = currentSearchKeyword) {
+              let url = \`/api/config?page=\${page}&pageSize=\${pageSize}\`;
+              if(keyword) {
+                  url = \`/api/config?page=\${page}&pageSize=\${pageSize}&keyword=\${keyword}\`
+              }
+              fetch(url)
+                  .then(res => res.json())
+                  .then(data => {
+                      if (data.code === 200) {
+                          totalItems = data.total;
+                          currentPage = data.page;
+                          totalPagesSpan.innerText = Math.ceil(totalItems / pageSize);
+                          currentPageSpan.innerText = currentPage;
+                          allConfigs = data.data; // 保存所有数据
+                          renderConfig(allConfigs);
+                          updatePaginationButtons();
+                          // updateBatchDeleteButtonState(); // 在 bindCheckboxEvents 中调用
+                      } else {
+                          showMessage(data.message, 'error');
+                      }
+                  }).catch(err => {
+                  showMessage('网络错误', 'error');
+              })
+          }
+          function renderConfig(configs) {
+          configTableBody.innerHTML = '';
+           if (configs.length === 0) {
+                configTableBody.innerHTML = '<tr><td colspan="10">没有配置数据</td></tr>'; // 调整 colspan
+                return
+            }
+          configs.forEach(config => {
+              const row = document.createElement('tr');
+              const safeName = escapeHTML(config.name || '');
+              const normalizedUrl = normalizeUrl(config.url);
+              const displayUrl = config.url ? escapeHTML(config.url) : '未提供';
+              const urlCell = normalizedUrl
+                ? \`<a href="\${escapeHTML(normalizedUrl)}" target="_blank" rel="noopener noreferrer">\${escapeHTML(normalizedUrl)}</a>\`
+                : displayUrl;
+              const normalizedLogo = normalizeUrl(config.logo);
+              const logoCell = normalizedLogo
+                ? \`<img src="\${escapeHTML(normalizedLogo)}" alt="\${safeName}" style="width:30px;" />\`
+                : getRandomSVG(); // 使用getRandomSVG
+              const descCell = config.desc ? escapeHTML(config.desc) : 'N/A';
+              const catelogCell = escapeHTML(config.catelog || '');
+              const sortValue = config.sort_order === 9999 || config.sort_order === null || config.sort_order === undefined
+                ? '默认'
+                : escapeHTML(config.sort_order);
+              const isPrivateText = config.is_private === 1 ? '是' : '否'; // [新增] 隐私状态显示
+               row.innerHTML = \`
+                 <td><input type="checkbox" class="select-item" data-id="\${config.id}"></td> <!-- 新增：单选复选框 -->
+                 <td>\${config.id}</td>
+                  <td>\${safeName}</td>
+                  <td>\${urlCell}</td>
+                  <td>\${logoCell}</td>
+                  <td>\${descCell}</td>
+                  <td>\${catelogCell}</td>
+				 <td>\${sortValue}</td>
+                 <td>\${isPrivateText}</td> <!-- [新增] 隐私列显示 -->
+                  <td class="actions">
+                    <button class="edit-btn" data-id="\${config.id}">编辑</button>
+                    <button class="del-btn" data-id="\${config.id}">删除</button>
+                  </td>
+               \`;
+              configTableBody.appendChild(row);
+          });
+            bindActionEvents();
+            bindCheckboxEvents(); // 新增：绑定复选框事件
+          }
+          
+          function bindActionEvents() {
+           document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    handleEdit(id);
+                })
+           });
+          
+          document.querySelectorAll('.del-btn').forEach(btn => {
+               btn.addEventListener('click', function() {
+                  const id = this.dataset.id;
+                   handleDelete(id)
+               })
+          })
+         }
+
+          // --- 新增：复选框事件绑定和状态更新 ---
+          function bindCheckboxEvents() {
+              const itemCheckboxes = document.querySelectorAll('.select-item');
+
+              // 移除旧的事件监听器以避免重复绑定
+              itemCheckboxes.forEach(checkbox => {
+                  checkbox.removeEventListener('change', handleItemCheckboxChange);
+                  checkbox.addEventListener('change', handleItemCheckboxChange);
+              });
+
+              if (selectAllCheckbox) {
+                  selectAllCheckbox.removeEventListener('change', handleSelectAllChange);
+                  selectAllCheckbox.addEventListener('change', handleSelectAllChange);
+                  // 每次重新渲染时，重置全选框状态
+                  selectAllCheckbox.checked = false;
+              }
+              updateBatchDeleteButtonState(); // 初始化批量删除按钮状态
+          }
+
+          function handleItemCheckboxChange() {
+              const itemCheckboxes = document.querySelectorAll('.select-item');
+              const allChecked = Array.from(itemCheckboxes).every(cb => cb.checked);
+              if (selectAllCheckbox) {
+                  selectAllCheckbox.checked = allChecked;
+              }
+              updateBatchDeleteButtonState();
+          }
+
+          function handleSelectAllChange() {
+              const itemCheckboxes = document.querySelectorAll('.select-item');
+              itemCheckboxes.forEach(checkbox => {
+                  checkbox.checked = selectAllCheckbox.checked;
+              });
+              updateBatchDeleteButtonState();
+          }
+
+          function updateBatchDeleteButtonState() {
+              const checkedItems = document.querySelectorAll('.select-item:checked');
+              if (batchDeleteBtn) {
+                  batchDeleteBtn.disabled = checkedItems.length === 0;
+              }
+          }
+          // --- 新增结束 ---
+
+          function fetchCategories() {
+            if (!categoryTableBody) {
+              return;
+            }
+            categoryTableBody.innerHTML = '<tr><td colspan="4">加载中...</td></tr>';
+            fetch('/api/categories')
+              .then(res => res.json())
+              .then(data => {
+                if (data.code === 200) {
+                  categoriesData = data.data || [];
+                  renderCategories(categoriesData);
+                } else {
+                  showMessage(data.message || '加载分类失败', 'error');
+                  categoryTableBody.innerHTML = '<tr><td colspan="4">加载失败</td></tr>';
+                }
+              }).catch(() => {
+                showMessage('网络错误', 'error');
+                categoryTableBody.innerHTML = '<tr><td colspan="4">加载失败</td></tr>';
+              });
+          }
+
+          function renderCategories(categories) {
+            if (!categoryTableBody) {
+              return;
+            }
+            categoryTableBody.innerHTML = '';
+            if (!categories || categories.length === 0) {
+              categoryTableBody.innerHTML = '<tr><td colspan="5">暂无分类数据</td></tr>';
+              return;
+            }
+
+            categories.forEach(item => {
+              const row = document.createElement('tr');
+
+              // 分类名称单元格
+              const nameCell = document.createElement('td');
+              const nameSpan = document.createElement('span');
+              nameSpan.className = 'category-name-display';
+              nameSpan.textContent = item.catelog;
+              nameCell.appendChild(nameSpan);
+              
+              const nameInput = document.createElement('input');
+              nameInput.type = 'text';
+              nameInput.className = 'category-name-input';
+              nameInput.style.display = 'none';
+              nameInput.value = item.catelog;
+              nameInput.setAttribute('data-original', item.catelog);
+              // 添加自动保存功能
+              nameInput.addEventListener('blur', function() {
+                const category = this.getAttribute('data-original');
+                const newName = this.value.trim();
+                const row = this.closest('tr');
+                const nameDisplay = row.querySelector('.category-name-display');
+                const editBtn = row.querySelector('.category-edit-name-btn');
+                
+                if (!newName) {
+                  showMessage('分类名称不能为空', 'error');
+                  // 恢复原始值
+                  this.value = category;
+                  // 切换回显示状态
+                  nameDisplay.style.display = 'inline';
+                  this.style.display = 'none';
+                  editBtn.style.display = 'inline-block';
+                  return;
+                }
+                
+                if (newName === category) {
+                  // 如果名称没有变化，切换回显示状态
+                  nameDisplay.style.display = 'inline';
+                  this.style.display = 'none';
+                  editBtn.style.display = 'inline-block';
+                  return;
+                }
+                
+                if (!confirm('确定将分类 "' + category + '" 重命名为 "' + newName + '" 吗？')) {
+                  // 如果用户取消，恢复原始值
+                  this.value = category;
+                  // 切换回显示状态
+                  nameDisplay.style.display = 'inline';
+                  this.style.display = 'none';
+                  editBtn.style.display = 'inline-block';
+                  return;
+                }
+                
+                // 发送重命名请求
+                fetch('/api/categories/' + encodeURIComponent(category), {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ new_name: newName })
+                }).then(res => res.json())
+                  .then(data => {
+                    if (data.code === 200) {
+                      showMessage('分类名称已更新', 'success');
+                      // 更新显示文本
+                      nameDisplay.textContent = newName;
+                      // 切换回显示状态
+                      nameDisplay.style.display = 'inline';
+                      this.style.display = 'none';
+                      editBtn.style.display = 'inline-block';
+                      // 更新原始值
+                      this.setAttribute('data-original', newName);
+                      fetchCategories();
+                    } else {
+                      showMessage(data.message || '更新失败', 'error');
+                      // 恢复原始值
+                      this.value = category;
+                      // 切换回显示状态
+                      nameDisplay.style.display = 'inline';
+                      this.style.display = 'none';
+                      editBtn.style.display = 'inline-block';
+                    }
+                  }).catch(() => {
+                    showMessage('网络错误', 'error');
+                    // 恢复原始值
+                    this.value = category;
+                    // 切换回显示状态
+                    nameDisplay.style.display = 'inline';
+                    this.style.display = 'none';
+                    editBtn.style.display = 'inline-block';
+                  });
+              });
+              nameCell.appendChild(nameInput);
+              
+              row.appendChild(nameCell);
+
+              const countCell = document.createElement('td');
+              countCell.textContent = item.site_count;
+              row.appendChild(countCell);
+
+              const sortCell = document.createElement('td');
+              const input = document.createElement('input');
+              input.type = 'number';
+              input.className = 'category-sort-input';
+              if (item.explicit) {
+                input.value = item.sort_order;
+              } else {
+                input.placeholder = item.sort_order;
+              }
+              input.setAttribute('data-category', item.catelog);
+              // 添加自动保存功能
+              input.addEventListener('blur', function() {
+                // 当输入框失去焦点时，自动保存排序值
+                const category = this.getAttribute('data-category');
+                const sortValue = this.value.trim();
+                
+                if (sortValue === '') {
+                  // 如果为空，不执行任何操作
+                  return;
+                }
+                
+                const numValue = Number(sortValue);
+                if (!Number.isFinite(numValue)) {
+                  showMessage('排序值必须为数字', 'error');
+                  return;
+                }
+                
+                // 发送排序值更新请求
+                fetch('/api/categories/' + encodeURIComponent(category), {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ sort_order: numValue })
+                }).then(res => res.json())
+                  .then(data => {
+                    if (data.code === 200) {
+                      showMessage('分类排序已更新', 'success');
+                      fetchCategories();
+                    } else {
+                      showMessage(data.message || '更新失败', 'error');
+                    }
+                  }).catch(() => {
+                    showMessage('网络错误', 'error');
+                  });
+              });
+              sortCell.appendChild(input);
+
+              const hint = document.createElement('small');
+              hint.textContent = '当前默认值：' + item.sort_order;
+              hint.style.display = 'block';
+              hint.style.marginTop = '4px';
+              hint.style.fontSize = '0.75rem';
+              hint.style.color = '#6c757d';
+              sortCell.appendChild(hint);
+              row.appendChild(sortCell);
+
+              // 隐私设置单元格
+              const privacyCell = document.createElement('td');
+              
+              // 创建隐私开关
+              const privacyToggle = document.createElement('label');
+              privacyToggle.className = 'switch';
+              
+              const checkboxInput = document.createElement('input');
+              checkboxInput.type = 'checkbox';
+              checkboxInput.className = 'category-privacy-toggle';
+              checkboxInput.setAttribute('data-category', item.catelog);
+              if (item.is_private) {
+                checkboxInput.checked = true;
+              }
+              
+              const sliderSpan = document.createElement('span');
+              sliderSpan.className = 'slider';
+              
+              privacyToggle.appendChild(checkboxInput);
+              privacyToggle.appendChild(sliderSpan);
+              
+              // 添加隐私切换事件
+              const toggleInput = privacyToggle.querySelector('input');
+              toggleInput.addEventListener('change', function() {
+                const category = this.getAttribute('data-category');
+                const isPrivate = this.checked;
+                
+                // 发送隐私设置更新请求
+                fetch('/api/categories/' + encodeURIComponent(category), {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ is_private: isPrivate })
+                }).then(res => res.json())
+                  .then(data => {
+                    if (data.code === 200) {
+                      showMessage('分类隐私设置已更新', 'success');
+                    } else {
+                      showMessage(data.message || '更新失败', 'error');
+                      // 恢复原来的值
+                      this.checked = !isPrivate;
+                    }
+                  }).catch(() => {
+                    showMessage('网络错误', 'error');
+                    // 恢复原来的值
+                    this.checked = !isPrivate;
+                  });
+              });
+              
+              privacyCell.appendChild(privacyToggle);
+              row.appendChild(privacyCell);
+              
+              const actionCell = document.createElement('td');
+              actionCell.className = 'category-actions';
+
+              const editNameBtn = document.createElement('button');
+              editNameBtn.className = 'category-edit-name-btn';
+              editNameBtn.textContent = '重命名';
+              editNameBtn.setAttribute('data-category', item.catelog);
+              actionCell.appendChild(editNameBtn);
+
+              row.appendChild(actionCell);
+              categoryTableBody.appendChild(row);
+            });
+
+            bindCategoryEvents();
+          }
+
+          function bindCategoryEvents() {
+            if (!categoryTableBody) {
+              return;
+            }
+            // 绑定分类名称重命名按钮事件
+            categoryTableBody.querySelectorAll('.category-edit-name-btn').forEach(btn => {
+              btn.addEventListener('click', function() {
+                const category = this.getAttribute('data-category');
+                const row = this.closest('tr');
+                const nameDisplay = row.querySelector('.category-name-display');
+                const nameInput = row.querySelector('.category-name-input');
+                const editBtn = row.querySelector('.category-edit-name-btn');
+                            
+                // 切换显示
+                nameDisplay.style.display = 'none';
+                nameInput.style.display = 'inline-block';
+                editBtn.style.display = 'none';
+                            
+                // 聚焦到输入框
+                nameInput.focus();
+                            
+                // 选择所有文本，方便编辑
+                nameInput.select();
+              });
+            });
+                      
+            
+                      
+
+          
+
+          }
+
+    // [优化] 点击编辑时，获取并填充排序字段和隐私状态
+          function handleEdit(id) {
+            // 从当前allConfigs中查找，避免再次请求
+            const configToEdit = allConfigs.find(c => c.id == id);
+            if (!configToEdit) {
+                showMessage('找不到要编辑的数据', 'error');
+                return;
+            }
+            document.getElementById('editId').value = configToEdit.id;
+            document.getElementById('editName').value = configToEdit.name;
+            document.getElementById('editUrl').value = configToEdit.url;
+            document.getElementById('editLogo').value = configToEdit.logo || '';
+            document.getElementById('editDesc').value = configToEdit.desc || '';
+            
+            // 设置分类值，如果下拉框中不存在该分类，则临时添加
+            const editCatelogSelect = document.getElementById('editCatelog');
+            const catelogValue = configToEdit.catelog;
+            
+            // 检查下拉框中是否已存在该分类
+            let optionExists = false;
+            for (let i = 0; i < editCatelogSelect.options.length; i++) {
+              if (editCatelogSelect.options[i].value === catelogValue) {
+                optionExists = true;
+                break;
+              }
+            }
+            
+            // 如果不存在，则临时添加该分类选项
+            if (!optionExists && catelogValue !== '' && catelogValue !== '__new__') {
+              const option = document.createElement('option');
+              option.value = escapeHTML(catelogValue);
+              option.textContent = escapeHTML(catelogValue);
+              editCatelogSelect.appendChild(option);
+            }
+            
+            // 设置下拉框的值
+            editCatelogSelect.value = catelogValue;
+            
+            document.getElementById('editSortOrder').value = configToEdit.sort_order === 9999 ? '' : configToEdit.sort_order;
+            document.getElementById('editIsPrivate').checked = configToEdit.is_private === 1; // [新增]
+            
+            // 隐藏新增分类输入框，因为编辑时是选择现有分类
+            editNewCatelogContainer.style.display = 'none';
+            
+            editModal.style.display = 'block';
+          }
+
+          function handleDelete(id) {
+            if(!confirm('确认删除？')) return;
+             fetch(\`/api/config/\${id}\`, {
+                  method: 'DELETE'
+              }).then(res => res.json())
+                 .then(data => {
+                     if (data.code === 200) {
+                         showMessage('删除成功', 'success');
+                         fetchConfigs();
+                     } else {
+                         showMessage(data.message, 'error');
+                     }
+                 }).catch(err => {
+                      showMessage('网络错误', 'error');
+                 })
+          }
+
+          // --- 新增：批量删除和清空全部逻辑 ---
+          if (batchDeleteBtn) {
+              batchDeleteBtn.addEventListener('click', () => {
+                  const checkedItems = document.querySelectorAll('.select-item:checked');
+                  const idsToDelete = Array.from(checkedItems).map(cb => parseInt(cb.dataset.id));
+
+                  if (idsToDelete.length === 0) {
+                      showMessage('请选择要删除的书签', 'error');
+                      return;
+                  }
+
+                  if (!confirm(\`确定删除选中的 \${idsToDelete.length} 个书签吗？\`)) {
+                      return;
+                  }
+
+                  fetch('/api/config/batch-delete', {
+                      method: 'DELETE',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ ids: idsToDelete })
+                  }).then(res => res.json())
+                    .then(data => {
+                        if (data.code === 200) {
+                            showMessage(\`成功删除 \${data.changes} 个书签\`, 'success');
+                            fetchConfigs();
+                            if (selectAllCheckbox) selectAllCheckbox.checked = false; // 取消全选
+                        } else {
+                            showMessage(data.message, 'error');
+                        }
+                    }).catch(err => {
+                        showMessage('网络错误', 'error');
+                    });
+              });
+          }
+
+          if (clearAllBtn) {
+              clearAllBtn.addEventListener('click', () => {
+                  if (!confirm('!!! 警告 !!!\\n\\n您确定要清空全部书签吗？此操作不可逆，所有书签都将被永久删除！\\n\\n请再次确认！')) {
+                      return;
+                  }
+
+                  fetch('/api/config/clear-all', {
+                      method: 'DELETE'
+                  }).then(res => res.json())
+                    .then(data => {
+                        if (data.code === 200) {
+                            showMessage(\`成功清空全部 \${data.changes} 个书签\`, 'success');
+                            fetchConfigs();
+                            if (selectAllCheckbox) selectAllCheckbox.checked = false; // 取消全选
+                        } else {
+                            showMessage(data.message, 'error');
+                        }
+                    }).catch(err => {
+                        showMessage('网络错误', 'error');
+                    });
+              });
+          }
+          // --- 新增结束 ---
+
+          function showMessage(message, type) {
+            messageDiv.innerText = message;
+            messageDiv.className = type;
+            messageDiv.style.display = 'block';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+          }
+          
+          function updatePaginationButtons() {
+            prevPageBtn.disabled = currentPage === 1;
+             nextPageBtn.disabled = currentPage >= Math.ceil(totalItems/pageSize)
+          }
+          
+          prevPageBtn.addEventListener('click', () => {
+          if(currentPage > 1) {
+              fetchConfigs(currentPage -1);
+          }
+          });
+          nextPageBtn.addEventListener('click', () => {
+            if (currentPage < Math.ceil(totalItems/pageSize)) {
+              fetchConfigs(currentPage + 1);
+            }
+          });
+          
+          addBtn.addEventListener('click', () => {
+            const name = addName.value;
+            const url = addUrl.value;
+            const logo = addLogo.value;
+            const desc = addDesc.value;
+            let catelog = addCatelog.value;
+            const sort_order = addSortOrder.value;
+            const is_private = addIsPrivate.checked; // [新增]
+            
+            // 如果选择了新增分类，则使用新分类的值
+            if (catelog === '__new__') {
+              const newCatelogValue = addNewCatelog.value.trim();
+              if (!newCatelogValue) {
+                showMessage('请输入新分类名称', 'error');
+                return;
+              }
+              catelog = newCatelogValue;
+            }
+            
+            if(!name || !url || !catelog) {
+              showMessage('名称,URL,分类 必填', 'error');
+              return;
+          }
+          const payload = {
+             name: name.trim(),
+             url: url.trim(),
+             logo: logo.trim(),
+             desc: desc.trim(),
+             catelog: catelog.trim(),
+             is_private: is_private // [新增]
+          };
+          if (sort_order !== '') {
+             payload.sort_order = Number(sort_order);
+          }
+          fetch('/api/config', {        method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+          }).then(res => res.json())
+          .then(data => {
+             if(data.code === 201) {
+                 showMessage('添加成功', 'success');
+                addName.value = '';
+                addUrl.value = '';
+                addLogo.value = '';
+                addDesc.value = '';
+                addCatelog.value = '';
+                addNewCatelog.value = '';
+                addNewCatelogContainer.style.display = 'none';
+                addSortOrder.value = '';
+                addIsPrivate.checked = false; // [新增] 重置复选框
+                 fetchConfigs();
+                 // 重新加载分类选项
+                 loadCategoriesToSelect();
+             }else {
+                showMessage(data.message, 'error');
+             }
+          }).catch(err => {
+            showMessage('网络错误', 'error');
+          })
+          });
+          
+          importBtn.addEventListener('click', () => {
+          importFile.click();
+          });
+          importFile.addEventListener('change', function(e) {
+          const file = e.target.files[0];
+          if (file) {
+           const reader = new FileReader();
+          reader.onload = function(event) {
+             try {
+                 const jsonData = JSON.parse(event.target.result);
+                   fetch('/api/config/import', {
+                       method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json'
+                        },
+                       body: JSON.stringify(jsonData)
+                  }).then(res => res.json())
+                     .then(data => {
+                          if(data.code === 201) {
+                             showMessage('导入成功', 'success');
+                              fetchConfigs();
+                          } else {
+                             showMessage(data.message, 'error');
+                          }
+                     }).catch(err => {
+                           showMessage('网络错误', 'error');
+                  })
+          
+             } catch (error) {
+                   showMessage('JSON格式不正确', 'error');
+             }
+          }
+           reader.readAsText(file);
+          }
+          })
+          exportBtn.addEventListener('click', () => {
+          fetch('/api/config/export')
+          .then(res => res.blob())
+          .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'config.json';
+          document.body.appendChild(a);
+          a.click();
+           window.URL.revokeObjectURL(url);
+           document.body.removeChild(a);
+          }).catch(err => {
+          showMessage('网络错误', 'error');
+          })
+          })
+          
+          // 搜索功能
+          searchInput.addEventListener('input', () => {
+              currentSearchKeyword = searchInput.value.trim();
+              currentPage = 1; // 搜索时重置为第一页
+              fetchConfigs(currentPage,currentSearchKeyword);
+          });
+          
+          
+          function fetchPendingConfigs(page = pendingCurrentPage) {
+                  fetch(\`/api/pending?page=\${page}&pageSize=\${pendingPageSize}\`)
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.code === 200) {
+                               pendingTotalItems = data.total;
+                               pendingCurrentPage = data.page;
+                               pendingTotalPagesSpan.innerText = Math.ceil(pendingTotalItems/ pendingPageSize);
+                                pendingCurrentPageSpan.innerText = pendingCurrentPage;
+                               allPendingConfigs = data.data;
+                                 renderPendingConfig(allPendingConfigs);
+                                updatePendingPaginationButtons();
+                        } else {
+                            showMessage(data.message, 'error');
+                        }
+                      }).catch(err => {
+                      showMessage('网络错误', 'error');
+                   })
+          }
+          
+            function renderPendingConfig(configs) {
+                  pendingTableBody.innerHTML = '';
+                  if(configs.length === 0) {
+                      pendingTableBody.innerHTML = '<tr><td colspan="7">没有待审核数据</td></tr>';
+                      return
+                  }
+                configs.forEach(config => {
+                    const row = document.createElement('tr');
+                    const safeName = escapeHTML(config.name || '');
+                    const normalizedUrl = normalizeUrl(config.url);
+                    const urlCell = normalizedUrl
+                      ? \`<a href="\${escapeHTML(normalizedUrl)}" target="_blank" rel="noopener noreferrer">\${escapeHTML(normalizedUrl)}</a>\`
+                      : (config.url ? escapeHTML(config.url) : '未提供');
+                    const normalizedLogo = normalizeUrl(config.logo);
+                    const logoCell = normalizedLogo
+                      ? \`<img src="\${escapeHTML(normalizedLogo)}" alt="\${safeName}" style="width:30px;" />\`
+                      : 'N/A';
+                    const descCell = config.desc ? escapeHTML(config.desc) : 'N/A';
+                    const catelogCell = escapeHTML(config.catelog || '');
+                    row.innerHTML = \`
+                      <td>\${config.id}</td>
+                       <td>\${safeName}</td>
+                       <td>\${urlCell}</td>
+                       <td>\${logoCell}</td>
+                       <td>\${descCell}</td>
+                       <td>\${catelogCell}</td>
+                        <td class="actions">
+                            <button class="approve-btn" data-id="\${config.id}">批准</button>
+                          <button class="reject-btn" data-id="\${config.id}">拒绝</button>
+                        </td>
+                      \`;
+                    pendingTableBody.appendChild(row);
+                });
+                bindPendingActionEvents();
+            }
+           function bindPendingActionEvents() {
+               document.querySelectorAll('.approve-btn').forEach(btn => {
+                   btn.addEventListener('click', function() {
+                       const id = this.dataset.id;
+                       handleApprove(id);
+                   })
+               });
+              document.querySelectorAll('.reject-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                         const id = this.dataset.id;
+                         handleReject(id);
+                     })
+              })
+           }
+          
+          function handleApprove(id) {
+             if (!confirm('确定批准吗？')) return;
+             fetch(\`/api/pending/\${id}\`, {
+                   method: 'PUT',
+                 }).then(res => res.json())
+               .then(data => {
+                    if (data.code === 200) {
+                        showMessage('批准成功', 'success');
+                        fetchPendingConfigs();
+                         fetchConfigs();
+                    } else {
+                         showMessage(data.message, 'error')
+                     }
+                }).catch(err => {
+                      showMessage('网络错误', 'error');
+                  })
+          }
+           function handleReject(id) {
+               if (!confirm('确定拒绝吗？')) return;
+              fetch(\`/api/pending/\${id}\`, {
+                     method: 'DELETE'
+                }).then(res => res.json())
+                   .then(data => {
+                     if(data.code === 200) {
+                         showMessage('拒绝成功', 'success');
+                        fetchPendingConfigs();
+                    } else {
+                       showMessage(data.message, 'error');
+                   }
+                  }).catch(err => {
+                        showMessage('网络错误', 'error');
+                })
+           }
+          function updatePendingPaginationButtons() {
+              pendingPrevPageBtn.disabled = pendingCurrentPage === 1;
+               pendingNextPageBtn.disabled = pendingCurrentPage >= Math.ceil(pendingTotalItems/pendingPageSize)
+           }
+          
+           pendingPrevPageBtn.addEventListener('click', () => {
+               if (pendingCurrentPage > 1) {
+                   fetchPendingConfigs(pendingCurrentPage - 1);
+               }
+           });
+            pendingNextPageBtn.addEventListener('click', () => {
+               if (pendingCurrentPage < Math.ceil(pendingTotalItems/pendingPageSize)) {
+                   fetchPendingConfigs(pendingCurrentPage + 1)
+               }
+            });
+          
+          // 检查管理员状态
+          async function checkAdminStatus() {
+            try {
+              const response = await fetch('/api/status/admin');
+              const data = await response.json();
+              if (data.code === 200 && data.data) {
+                const online = data.data.online;
+                console.log('管理员状态:', online ? '在线' : '离线');
+              }
+            } catch (error) {
+              console.error('获取管理员状态失败:', error);
+            }
+          }
+          
+          // 页面加载时检查一次
+          checkAdminStatus();
+          // 每30秒检查一次
+          setInterval(checkAdminStatus, 30000);
+          
+          // 动态加载分类到下拉框
+          function loadCategoriesToSelect() {
+            fetch('/api/categories')
+            .then(res => res.json())
+            .then(data => {
+              if (data.code === 200) {
+                // 清空现有选项（除了前两个）
+                while (addCatelog.children.length > 2) {
+                  addCatelog.removeChild(addCatelog.lastChild);
+                }
+                
+                // 清空编辑框的现有选项（除了前两个）
+                while (editCatelog.children.length > 2) {
+                  editCatelog.removeChild(editCatelog.lastChild);
+                }
+                
+                // 添加现有分类
+                data.data.forEach(category => {
+                  const option = document.createElement('option');
+                  option.value = escapeHTML(category.catelog);
+                  option.textContent = escapeHTML(category.catelog);
+                  addCatelog.appendChild(option);
+                  
+                  // 为编辑模态框也添加选项
+                  const editOption = document.createElement('option');
+                  editOption.value = escapeHTML(category.catelog);
+                  editOption.textContent = escapeHTML(category.catelog);
+                  editCatelog.appendChild(editOption);
+                });
+              }
+            }).catch(err => {
+              console.error('加载分类失败:', err);
+            });
+          }
+          
+          // 初始化时加载分类
+          loadCategoriesToSelect();
+          
+          // 监听分类选择变化 - 添加书签
+          addCatelog.addEventListener('change', function() {
+            if (this.value === '__new__') {
+              addNewCatelogContainer.style.display = 'block';
+              addNewCatelog.focus();
+            } else {
+              addNewCatelogContainer.style.display = 'none';
+            }
+          });
+          
+          // 监听分类选择变化 - 编辑书签
+          editCatelog.addEventListener('change', function() {
+            if (this.value === '__new__') {
+              editNewCatelogContainer.style.display = 'block';
+              editNewCatelog.focus();
+            } else {
+              editNewCatelogContainer.style.display = 'none';
+            }
+          });
+          
+          fetchConfigs();
+          fetchPendingConfigs();
+          if (categoryTableBody) {
+            fetchCategories();
+          }
+          `
+    }
+    return fileContents[filePath]
+    },
+  
+    async renderAdminPage() {
+    try {
+      const html = await this.getFileContent('admin.html');
+      return new Response(html, {
+          headers: {'Content-Type': 'text/html; charset=utf-8'}
+      });
+    } catch (error) {
+      console.error('渲染管理页面失败:', error);
+      return new Response('Internal Server Error: 渲染管理页面失败', {
+        status: 500,
+        headers: {'Content-Type': 'text/plain; charset=utf-8'}
+      });
+    }
+    },
+  
+    async renderLoginPage(message = '') {
+      try {
+        const hasError = Boolean(message);
+        const safeMessage = hasError ? escapeHTML(message) : '';
+        const html = `<!DOCTYPE html>
+        <html lang="zh-CN">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>管理员登录</title>
+          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+          <style>
+            /* [优化] 全局重置与现代CSS最佳实践 */
+            *, *::before, *::after {
+              box-sizing: border-box;
+            }
+            
+            html, body {
+              height: 100%; /* 确保flex容器能撑满整个屏幕 */
+              margin: 0;
+              padding: 0;
+              font-family: 'Noto Sans SC', sans-serif;
+              -webkit-font-smoothing: antialiased;
+              -moz-osx-font-smoothing: grayscale;
+            }
+
+            /* [优化] 主体布局，确保在任何设备上都完美居中 */
+            body {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              background-color: #f8f9fa;
+              padding: 1rem; /* 为小屏幕提供安全边距 */
+            }
+
+            /* [优化] 登录容器样式 */
+            .login-container {
+              background-color: white;
+              padding: 2rem;
+              border-radius: 8px;
+              box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.05);
+              width: 100%;
+              max-width: 380px;
+              animation: fadeIn 0.5s ease-out;
+            }
+            
+            @keyframes fadeIn {
+              from {
+                opacity: 0;
+                transform: translateY(-10px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+
+            .login-title {
+              font-size: 1.75rem; /* 稍大一点更醒目 */
+              font-weight: 700;
+              text-align: center;
+              margin: 0 0 1.5rem 0;
+              color: #333;
+            }
+
+            .form-group {
+              margin-bottom: 1.25rem;
+            }
+
+            label {
+              display: block;
+              margin-bottom: 0.5rem;
+              font-weight: 500;
+              color: #555;
+            }
+
+            input[type="text"], input[type="password"] {
+              width: 100%;
+              padding: 0.875rem 1rem; /* 调整内边距，手感更好 */
+              border: 1px solid #ddd;
+              border-radius: 6px; /* 稍大的圆角 */
+              font-size: 1rem;
+              transition: border-color 0.2s, box-shadow 0.2s;
+            }
+
+            input:focus {
+              border-color: #7209b7;
+              outline: none;
+              box-shadow: 0 0 0 3px rgba(114, 9, 183, 0.15);
+            }
+
+            button {
+              width: 100%;
+              padding: 0.875rem;
+              background-color: #7209b7;
+              color: white;
+              border: none;
+              border-radius: 6px;
+              font-size: 1rem;
+              font-weight: 500;
+              cursor: pointer;
+              transition: background-color 0.2s, transform 0.1s;
+            }
+
+            button:hover {
+              background-color: #5a067c;
+            }
+            
+            button:active {
+              transform: scale(0.98);
+            }
+
+            .error-message {
+              color: #dc3545;
+              font-size: 0.875rem;
+              margin-top: 0.5rem;
+              text-align: center;
+              display: none;
+            }
+
+            .back-link {
+              display: block;
+              text-align: center;
+              margin-top: 1.5rem;
+              color: #7209b7;
+              text-decoration: none;
+              font-size: 0.875rem;
+            }
+
+            .back-link:hover {
+              text-decoration: underline;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="login-container">
+            <h1 class="login-title">管理员登录</h1>
+            <form method="post" action="/admin" novalidate>
+              <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="name" required autocomplete="username">
+              </div>
+              <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+              </div>
+              ${hasError ? `<div class="error-message" style="display:block;">${safeMessage}</div>` : `<div class="error-message">用户名或密码错误</div>`}
+              <button type="submit">登 录</button>
+            </form>
+            <a href="/" class="back-link">返回首页</a>
+          </div>
+        </body>
+        </html>`;
+        
+        return new Response(html, {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+      } catch (error) {
+        console.error('渲染登录页面失败:', error);
+        return new Response('Internal Server Error: 渲染登录页面失败', {
+          status: 500,
+          headers: {'Content-Type': 'text/plain; charset=utf-8'}
+        });
+      }
+    }
+  };
+  
+  
+  /**
+   * 优化后的主逻辑：处理请求，返回优化后的 HTML
+   */
+  async function handleRequest(request, env, ctx) {
+    const url = new URL(request.url);
+    const catalog = url.searchParams.get('catalog');
+
+    // --- 新增：判断管理员是否登录 ---
+    const { authenticated: isAdmin } = await validateAdminSession(request, env);
+
+    let sites = [];
+    try {
+      let query = 'SELECT * FROM sites'; // 基础查询
+      let whereConditions = []; // 用于存放 WHERE 子句的条件
+
+      if (!isAdmin) { // 如果不是管理员，只显示公开书签
+        whereConditions.push('is_private = 0');
+      }
+
+      // 如果有 WHERE 条件，则拼接 WHERE 子句
+      if (whereConditions.length > 0) {
+        query += ' WHERE ' + whereConditions.join(' AND '); // 使用 AND 连接多个条件
+      }
+
+      // 无论是否有 WHERE 子句，ORDER BY 总是最后拼接
+      query += ' ORDER BY sort_order ASC, create_time DESC';
+
+      const { results } = await env.NAV_DB.prepare(query).all();
+      sites = results;
+    } catch (e) {
+      // 如果发生 D1_ERROR: no such column: is_private，这里会捕获。
+      // 返回一个更友好的错误页面，或者提示用户更新数据库。
+      if (e.message.includes('no such column: is_private')) {
+        return new Response(`
+          <!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+            <meta charset="UTF-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>错误：数据库需要更新</title>
+            <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+               body { font-family: 'Noto Sans SC', sans-serif; }
+               .container { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+            </style>
+          </head>
+          <body class="bg-red-50 text-red-800">
+            <div class="container p-6 text-center">
+              <h1 class="text-4xl font-bold text-red-600 mb-4">数据库错误：缺少 'is_private' 列</h1>
+              <p class="text-lg text-red-700 mb-6">
+                您的 D1 数据库 'sites' 表缺少 'is_private' 列。
+              </p>
+              <p class="text-md text-red-600">
+                请通过 Cloudflare CLI 执行以下命令来更新数据库：
+              </p>
+              <pre class="bg-gray-100 p-4 rounded-md text-left text-sm mt-4 overflow-x-auto"><code>wrangler d1 execute &lt;您的D1数据库名称&gt; --command="ALTER TABLE sites ADD COLUMN is_private INTEGER DEFAULT 0 NOT NULL;"</code></pre>
+              <p class="text-md text-red-600 mt-4">
+                更新完成后，请重新部署 Workers。
+              </p>
+              <a href="/admin" class="mt-6 inline-block bg-primary-500 text-white px-6 py-2 rounded-md hover:bg-primary-600 transition">前往管理后台</a>
+            </div>
+          </body>
+          </html>
+        `, {
+          headers: { 'content-type': 'text/html; charset=utf-8' },
+          status: 500
+        });
+      }
+      return new Response(`Failed to fetch data: ${e.message}`, { status: 500 });
+    }
+
+    if (!sites || sites.length === 0) {
+      // 当没有数据时，显示一个友好的提示页面，而不是直接 404
+      return new Response(`
+        <!DOCTYPE html>
+        <html lang="zh-CN">
+        <head>
+          <meta charset="UTF-8"/>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>宝哥导航 - 暂无数据</title>
+          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+             body { font-family: 'Noto Sans SC', sans-serif; }
+             .container { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+          </style>
+        </head>
+        <body class="bg-gray-50 text-gray-800">
+          <div class="container p-6 text-center">
+            <h1 class="text-4xl font-bold text-primary-600 mb-4">暂无书签数据</h1>
+            <p class="text-lg text-gray-700 mb-6">
+              看起来这里还没有添加任何书签。
+            </p>
+            <p class="text-md text-gray-600">
+              请前往 <a href="/admin" class="text-primary-500 hover:underline">管理后台</a> 添加您的第一个书签。
+            </p>
+          </div>
+        </body>
+        </html>
+      `, {
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+        status: 200 // 仍然返回 200，表示页面本身正常，只是内容为空
+      });
+    }
+
+    const totalSites = sites.length;
+    // 获取所有分类
+    const categoryMinSort = new Map();
+    const categorySet = new Set();
+    sites.forEach((site) => {
+      const categoryName = (site.catelog || '').trim() || '未分类';
+      categorySet.add(categoryName);
+      const rawSort = Number(site.sort_order);
+      const normalized = Number.isFinite(rawSort) ? rawSort : 9999;
+      if (!categoryMinSort.has(categoryName) || normalized < categoryMinSort.get(categoryName)) {
+        categoryMinSort.set(categoryName, normalized);
+      }
+    });
+
+    const categoryOrderMap = new Map();
+    try {
+      const { results: orderRows } = await env.NAV_DB.prepare('SELECT catelog, sort_order FROM category_orders').all();
+      orderRows.forEach(row => {
+        categoryOrderMap.set(row.catelog, normalizeSortOrder(row.sort_order));
+      });
+    } catch (error) {
+      if (!/no such table/i.test(error.message || '')) {
+        // 如果是其他数据库错误，则抛出
+        return new Response(`Failed to fetch category orders: ${error.message}`, { status: 500 });
+      }
+      // 如果是 "no such table" 错误，则忽略，表示 category_orders 表可能还未创建或为空
+    }
+    
+    // 获取分类隐私设置
+    const categoryPrivacyMap = new Map();
+    try {
+      const { results: privacyResults } = await env.NAV_DB.prepare('SELECT category, is_private FROM category_privacy').all();
+      privacyResults.forEach(row => {
+        categoryPrivacyMap.set(row.category, row.is_private);
+      });
+    } catch (error) {
+      // 如果 category_privacy 表不存在，忽略此错误
+      if (!/no such table/i.test(error.message || '')) {
+        console.warn('获取分类隐私设置时出错:', error.message);
+      }
+    }
+
+    const catalogsWithMeta = Array.from(categorySet).map((name) => {
+      const fallbackSort = categoryMinSort.has(name) ? normalizeSortOrder(categoryMinSort.get(name)) : 9999;
+      const order = categoryOrderMap.has(name) ? categoryOrderMap.get(name) : fallbackSort;
+      const isPrivate = categoryPrivacyMap.has(name) ? categoryPrivacyMap.get(name) : 0; // 默认公开
+      return {
+        name,
+        order,
+        fallback: fallbackSort,
+        isPrivate: isPrivate
+      };
+    });
+    
+    // 如果不是管理员，过滤掉私密分类
+    const filteredCatalogsWithMeta = isAdmin ? catalogsWithMeta : catalogsWithMeta.filter(item => item.isPrivate === 0);
+
+    filteredCatalogsWithMeta.sort((a, b) => {
+      if (a.order !== b.order) {
+        return a.order - b.order;
+      }
+      if (a.fallback !== b.fallback) {
+        return a.fallback - b.fallback;
+      }
+      return a.name.localeCompare(b.name, 'zh-Hans-CN', { sensitivity: 'base' });
+    });
+
+    const catalogs = filteredCatalogsWithMeta.map(item => item.name);
+    
+    // 根据 URL 参数筛选站点
+    const requestedCatalog = (catalog || '').trim();
+    const catalogExists = Boolean(requestedCatalog && catalogs.includes(requestedCatalog));
+    const currentCatalog = catalogExists ? requestedCatalog : catalogs[0];
+    
+    // 只有管理员可以访问私密分类，如果当前分类是私密分类但用户不是管理员，则显示空列表
+    const currentSites = catalogExists
+      ? (categoryPrivacyMap.has(currentCatalog) && categoryPrivacyMap.get(currentCatalog) === 1 && !isAdmin ? [] : 
+          sites.filter((s) => {
+            const catValue = (s.catelog || '').trim() || '未分类';
+            return catValue === currentCatalog;
+          }))
+      : sites;
+    const catalogLinkMarkup = catalogs.map((cat) => {
+      const safeCat = escapeHTML(cat);
+      const encodedCat = encodeURIComponent(cat);
+      const isActive = catalogExists && cat === currentCatalog;
+      const linkClass = isActive ? 'bg-secondary-100 text-primary-700' : 'hover:bg-gray-100';
+      const iconClass = isActive ? 'text-primary-600' : 'text-gray-400';
+      
+      // 获取分类隐私状态
+      const categoryMeta = catalogsWithMeta.find(item => item.name === cat);
+      const isPrivate = categoryMeta ? categoryMeta.isPrivate : 0;
+      
+      return `
+        <a href="?catalog=${encodedCat}" class="flex items-center px-3 py-2 rounded-lg ${linkClass} w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 ${iconClass}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 2.006 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+          ${safeCat}
+          ${isPrivate === 1 && isAdmin ? `<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">私密</span>` : ''}
+        </a>
+      `;
+    }).join('');
+
+    const datalistOptions = catalogs.map((cat) => `<option value="${escapeHTML(cat)}">`).join('');
+    const headingPlainText = catalogExists
+      ? `${currentCatalog} · ${currentSites.length} 个网站`
+      : `全部收藏 · ${sites.length} 个网站`;
+    const headingText = escapeHTML(headingPlainText);
+    const headingDefaultAttr = escapeHTML(headingPlainText);
+    const headingActiveAttr = catalogExists ? escapeHTML(currentCatalog) : '';
+    const submissionEnabled = isSubmissionEnabled(env);
+
+    // 优化后的 HTML
+    const html = `
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>宝哥导航 - 精品网址导航</title>
+      <link rel="icon" href="https://www.google.com/s2/favicons?domain=wangwangit.com" type="image/webp"/>
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+      
+
+      <script src="https://cdn.tailwindcss.com"></script>
+      <script>
+        tailwind.config = {
+          theme: {
+            extend: {
+              colors: {
+                primary: {
+                  50: '#eef2ff',
+                  100: '#e0e7ff',
+                  200: '#c7d2fe',
+                  300: '#a5b4fc',
+                  400: '#818cf8',
+                  500: '#6366f1', // 修改这里为您的主蓝色
+                  600: '#4f46e5',
+                  700: '#4338ca',
+                  800: '#3730a3',
+                  900: '#312e81',
+                  950: '#1e1b4b',
+                },
+                secondary: {
+                  50: '#fdf8f3',
+                  100: '#f6ede1',
+                  200: '#ead6ba',
+                  300: '#dfc19a',
+                  400: '#d2aa79',
+                  500: '#b88d58',
+                  600: '#a17546',
+                  700: '#835b36',
+                  800: '#6b492c',
+                  900: '#5a3e26',
+                  950: '#2f1f13',
+                },
+                accent: {
+                  50: '#f2faf6',
+                  100: '#d9f0e5',
+                  200: '#b4dfcb',
+                  300: '#89caa9',
+                  400: '#61b48a',
+                  500: '#3c976d',
+                  600: '#2e7755',
+                  700: '#265c44',
+                  800: '#204b38',
+                  900: '#1b3e30',
+                  950: '#0e221b',
+                },
+              },
+              fontFamily: {
+                sans: ['Noto Sans SC', 'sans-serif'],
+              },
+            }
+          }
+        }
+      </script>
+      <style>
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #edf1f7;
+          border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #c3d0e3;
+          border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #416d9d;
+        }
+        
+        /* 卡片悬停效果 */
+        .site-card {
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .site-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 复制成功提示动画 */
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateY(10px); }
+          20% { opacity: 1; transform: translateY(0); }
+          80% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-10px); }
+        }
+        .copy-success-animation {
+          animation: fadeInOut 2s ease forwards;
+        }
+        
+        /* 移动端侧边栏 */
+        @media (max-width: 1023px) {
+          .mobile-sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+          }
+          .mobile-sidebar.open {
+            transform: translateX(0);
+          }
+          .mobile-overlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+          }
+          .mobile-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+          }
+        }
+        
+        /* 桌面端侧边栏 */
+        .sidebar-desktop {
+          transform: translateX(0);
+          transition: transform 0.3s ease;
+        }
+        
+        .sidebar-desktop.hidden {
+          transform: translateX(-100%);
+        }
+        
+        @media (min-width: 1024px) {
+          .sidebar-desktop {
+            transform: translateX(0);
+          }
+          
+          #sidebar-toggle:checked ~ .sidebar {
+            transform: translateX(-16rem) !important; /* 确保覆盖移动端样式 */
+          }
+        }
+        
+        /* 多行文本截断 */
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        
+        /* 侧边栏控制 */
+        #sidebar-toggle {
+          display: none;
+        }
+        
+        @media (min-width: 1024px) {
+          #sidebar-toggle:checked ~ .sidebar {
+            transform: translateX(-16rem);
+          }
+          #sidebar-toggle:checked ~ .main-content {
+            margin-left: 0
+          }
+        }
+        
+        /* 侧边栏按钮样式 */
+        #closeSidebar {
+          padding: 0.25rem;
+          transition: all 0.2s ease;
+        }
+        
+        #closeSidebar:hover {
+          background-color: #f3f4f6;
+        }
+        
+        .desktop-close-sidebar {
+          padding: 0.25rem;
+          transition: all 0.2s ease;
+        }
+        
+        .desktop-close-sidebar:hover {
+          background-color: #f3f4f6;
+        }
+        
+        /* 管理员登录按钮样式 */
+        .admin-login-btn {
+          display: flex;
+          align-items: center;
+          padding: 0.6rem 1rem;
+          background-color: #10b981; /* emerald-500 绿色背景 */
+          color: white;
+          border-radius: 0.5rem;
+          transition: all 0.2s ease;
+          text-decoration: none;
+          width: 100%;
+          margin-bottom: 0.5rem; /* 与刷新按钮的间距 */
+        }
+        
+        .admin-login-btn:hover {
+          background-color: #059669; /* emerald-600 加深的悬浮色 */
+          color: white;
+          transform: translateY(-1px);
+        }
+        
+        .admin-login-btn:active {
+          background-color: #047857; /* emerald-700 加深的选定色 */
+          transform: translateY(0);
+        }
+        
+        /* 刷新页面按钮样式 */
+        #refreshBtn {
+          display: flex;
+          align-items: center;
+          padding: 0.6rem 1rem;
+          background-color: #10b981; /* emerald-500 绿色背景 */
+          color: white;
+          border-radius: 0.5rem;
+          transition: all 0.2s ease;
+          width: 100%;
+        }
+        
+        #refreshBtn:hover {
+          background-color: #059669; /* emerald-600 加深的悬浮色 */
+          color: white;
+          transform: translateY(-1px);
+        }
+        
+        #refreshBtn:active {
+          background-color: #047857; /* emerald-700 加深的选定色 */
+          transform: translateY(0);
+        }
+      </style>
+    </head>
+    <body class="bg-white font-sans text-gray-800">
+      <!-- 侧边栏开关 -->
+      <input type="checkbox" id="sidebar-toggle" class="hidden">
+      
+      <!-- 移动端导航按钮 -->
+      <div class="fixed top-4 left-4 z-50 lg:hidden">
+        <button id="sidebarToggle" class="p-2 rounded-lg bg-white shadow-md hover:bg-gray-100">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+      
+      <!-- 移动端遮罩层 - 只在移动端显示 -->
+      <div id="mobileOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 mobile-overlay lg:hidden"></div>
+      
+      <!-- 桌面侧边栏开关按钮 -->
+      <div class="fixed top-4 left-4 z-50 hidden lg:block">
+        <label for="sidebar-toggle" class="p-2 rounded-lg bg-white shadow-md hover:bg-gray-100 inline-block cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </label>
+      </div>
+      
+      <!-- 侧边栏导航 -->
+      <aside id="sidebar" class="sidebar fixed left-0 top-0 h-full w-64 bg-white shadow-md border-r border-primary-100/60 z-50 overflow-y-auto mobile-sidebar lg:transform-none transition-all duration-300">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-8">
+            <h2 class="text-2xl font-bold text-primary-600 tracking-tight">宝哥欢迎您！</h2>
+            <button id="closeSidebar" class="p-1 rounded-full hover:bg-gray-100 lg:hidden">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <label for="sidebar-toggle" class="hidden lg:block cursor-pointer desktop-close-sidebar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </label>
+          </div>
+          
+          <div class="mb-6">
+            <div class="relative">
+              <input id="searchInput" type="text" placeholder="搜索书签..." class="w-full pl-10 pr-4 py-2 border border-primary-100 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          
+          <div>
+            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">分类导航</h3>
+            <div class="space-y-1">
+              <a href="?" class="flex items-center px-3 py-2 rounded-lg ${catalogExists ? 'hover:bg-gray-100' : 'bg-secondary-100 text-primary-700'} w-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 ${catalogExists ? 'text-gray-400' : 'text-primary-600'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                全部
+              </a>
+              ${catalogLinkMarkup}
+            </div>
+          </div>
+          
+          <div class="mt-8 pt-6 border-t border-gray-200">
+            ${submissionEnabled ? `
+            <button id="addSiteBtnSidebar" class="w-full flex items-center justify-center px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition duration-300">
+              
+              访客👤添加书签
+            </button>` : `
+            <div class="w-full px-4 py-3 text-xs text-primary-600 bg-white border border-secondary-100 rounded-lg">
+              访客书签提交功能已关闭
+            </div>`}
+            
+            <!-- 发布页链接（已注释） -->
+<!--
+<a href="https://fby.baoge456.dpdns.org/" target="_blank" class="mt-4 flex items-center px-4 py-2 text-gray-600 hover:text-primary-500 transition duration-300">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+  </svg>
+  发布页
+</a>
+-->
+
+            <a href="/admin" target="_blank" class="mt-4 flex items-center px-4 py-2 text-white transition duration-300" style="background-color: #10b981; border-radius: 0.5rem; padding: 0.6rem 1rem;">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              管理员登录
+              
+            </a>
+            <!-- 新增：刷新按钮 -->
+            <button id="refreshBtn" class="mt-4 w-full flex items-center px-4 py-2 text-white transition duration-300" style="background-color: #10b981; border-radius: 0.5rem; padding: 0.6rem 1rem;">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              刷新页面
+            </button>
+            
+            <!-- 新增：管理员在线状态显示 -->
+            <div id="admin-online-status" class="mt-4 text-sm text-gray-500 flex items-center px-4 py-2">
+              <span class="status-dot w-2.5 h-2.5 rounded-full mr-2 bg-gray-400"></span>
+              <span class="status-text">管理员状态: 检测中...</span>
+            </div>
+            <!-- 新增结束 -->
+          </div>
+        </div>
+      </aside>
+      
+      <!-- 主内容区 -->
+      <main class="main-content lg:ml-64 min-h-screen transition-all duration-300">
+        <!-- 顶部横幅 -->
+        <header class="bg-primary-700 text-white py-10 px-6 md:px-10 border-b border-primary-600 shadow-sm">
+        <div class="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div class="flex-1 text-center md:text-left">
+          <span class="inline-flex items-center gap-2 rounded-full bg-primary-500 px-3 py-1 text-[18px] uppercase tracking-[0.28em] text-secondary-200/80">
+            精选 · 真实 · 有温度
+          </span>
+          <h1 class="mt-4 text-3xl md:text-4xl font-semibold tracking-tight">⤠网址导航⤟</h1>
+          
+        </div>
+            
+
+            <div class="w-full md:w-auto flex justify-center md:justify-end">
+              <div class="rounded-2xl bg-white/10 backdrop-blur-md px-4 py-3 shadow-lg border border-white/10 text-left md:text-right">
+                <p class="text-xs uppercase tracking-[0.28em] text-secondary-100/70">Current Overview</p>
+                <div class="mt-2 flex items-baseline justify-start md:justify-end">
+                  <p class="text-xl font-semibold leading-none">${totalSites}</p>
+                  <p class="ml-2 text-sm text-secondary-100/85">条书签 · ${catalogs.length} 个分类</p>
+                </div>
+                <p class="mt-2 text-xs text-secondary-100/60">每日人工维护，确保链接状态可用、内容可靠。</p>
+              </div>
+            </div>
+          </div>
+        </header>
+        
+        <!-- 网站列表 -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          <!-- 当前分类/搜索提示 -->
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-800" data-role="list-heading" data-default="${headingDefaultAttr}" data-active="${headingActiveAttr}">
+              ${headingText}
+            </h2>
+            <div class="text-sm text-gray-500 hidden md:block">
+              <script>
+                 fetch('https://v1.hitokoto.cn')
+                      .then(response => response.json())
+                      .then(data => {
+                       const hitokoto = document.getElementById('hitokoto_text')
+                      hitokoto.href = 'https://hitokoto.cn/?uuid=' + data.uuid
+                      hitokoto.innerText = data.hitokoto
+                      })
+                      .catch(console.error)
+              </script>
+              <div id="hitokoto"><a href="#" target="_blank" id="hitokoto_text">疏影横斜水清浅，暗香浮动月黄昏。</a></div>
+            </div>
+          </div>
+          
+          <!-- 网站卡片网格 -->
+          <div class="rounded-2xl border border-primary-100/60 bg-primary-400 backdrop-blur-sm p-4 sm:p-6 shadow-sm">
+            <div id="sitesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              ${currentSites.map((site) => {
+              const rawName = site.name || '未命名';
+              const rawCatalog = site.catelog || '未分类';
+              const rawDesc = site.desc || '暂无描述';
+              const normalizedUrl = sanitizeUrl(site.url);
+              const hrefValue = escapeHTML(normalizedUrl || '#');
+              const displayUrlText = normalizedUrl || site.url || '';
+              const safeDisplayUrl = displayUrlText ? escapeHTML(displayUrlText) : '未提供链接';
+              const dataUrlAttr = escapeHTML(normalizedUrl || '');
+              const logoUrl = sanitizeUrl(site.logo);
+              const cardInitial = escapeHTML((rawName.trim().charAt(0) || '站').toUpperCase());
+              const safeName = escapeHTML(rawName);
+              const safeCatalog = escapeHTML(rawCatalog);
+              const safeDesc = escapeHTML(rawDesc);
+              const safeDataName = escapeHTML(site.name || '');
+              const safeDataCatalog = escapeHTML(site.catelog || '');
+              const hasValidUrl = Boolean(normalizedUrl);
+              return `
+                <div class="site-card group bg-secondary-50 border border-primary-100/60 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-[2px] transition-all duration-200 overflow-hidden" data-id="${site.id}" data-name="${safeDataName}" data-url="${dataUrlAttr}" data-catalog="${safeDataCatalog}">
+                  <div class="p-5">
+                    <a href="${hrefValue}" ${hasValidUrl ? 'target="_blank" rel="noopener noreferrer"' : ''} class="block">
+                      <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-4">
+                          ${
+                            logoUrl
+                              ? `<img src="${escapeHTML(logoUrl)}" alt="${safeName}" class="w-10 h-10 rounded-lg object-cover bg-gray-100">`
+                              : `<div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-semibold text-lg shadow-inner">${cardInitial}</div>`
+                          }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <h3 class="text-base font-medium text-gray-900 truncate" title="${safeName}">${safeName}</h3>
+                          <span class="inline-flex items-center px-2 py-0.5 mt-1 rounded-full text-xs font-medium bg-secondary-100 text-primary-700">
+                            ${safeCatalog}
+                          </span>
+                          ${site.is_private === 1 && isAdmin ? `<span class="inline-flex items-center px-2 py-0.5 ml-2 mt-1 rounded-full text-xs font-medium bg-red-100 text-red-700">私有</span>` : ''}
+                          ${(() => {
+                            const categoryMeta = catalogsWithMeta.find(item => item.name === site.catelog);
+                            const isCatPrivate = categoryMeta ? categoryMeta.isPrivate : 0;
+                            return isCatPrivate === 1 && isAdmin ? `<span class="inline-flex items-center px-2 py-0.5 ml-2 mt-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">分类私密</span>` : '';
+                          })()}
+                        </div>
+                      </div>
+                      
+                      <p class="mt-2 text-sm text-gray-600 leading-relaxed line-clamp-2" title="${safeDesc}">${safeDesc}</p>
+                    </a>
+                    
+                    <div class="mt-3 flex items-center justify-between">
+                      <span class="text-xs text-primary-600 truncate max-w-[140px]" title="${safeDisplayUrl}">${safeDisplayUrl}</span>
+                      <button class="copy-btn relative flex items-center px-2 py-1 ${hasValidUrl ? 'bg-accent-100 text-accent-700 hover:bg-accent-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'} rounded-full text-xs font-medium transition-colors" data-url="${dataUrlAttr}" ${hasValidUrl ? '' : 'disabled'}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                        复制
+                        <span class="copy-success hidden absolute -top-8 right-0 bg-accent-500 text-white text-xs px-2 py-1 rounded shadow-md">已复制!</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+            </div>
+          </div>
+        </section>
+        
+        <!-- 页脚 -->
+        <footer class="bg-white py-8 px-6 mt-12 border-t border-primary-100">
+  <div class="max-w-5xl mx-auto text-center">
+    <p class="text-gray-500">
+      <span>© ${new Date().getFullYear()} 宝哥维护 | </span><!--
+      --><a href="https://weblog.baoge.wang/" target="_blank" class="text-gray-400 hover:text-primary-500 transition-colors">【自由博客】</a><!--
+      --><a href="https://fby.baoge456.dpdns.org/" target="_blank" class="text-gray-400 hover:text-primary-500 transition-colors">【发布页】</a>
+    </p>
+  </div>
+</footer>
+      </main>
+      
+      <!-- 返回顶部按钮 -->
+      <button id="backToTop" class="fixed bottom-8 right-8 p-3 rounded-full bg-accent-500 text-white shadow-lg opacity-0 invisible transition-all duration-300 hover:bg-accent-600">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+        </svg>
+      </button>
+      
+      ${submissionEnabled ? `
+      <!-- 添加网站模态框 -->
+      <div id="addSiteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 transform translate-y-8 transition-all duration-300">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold text-gray-900">添加新书签</h2>
+              <button id="closeModal" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <form id="addSiteForm" class="space-y-4">
+              <div>
+                <label for="addSiteName" class="block text-sm font-medium text-gray-700">名称</label>
+                <input type="text" id="addSiteName" required class="mt-1 block w-full px-3 py-2 border border-primary-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400">
+              </div>
+              
+              <div>
+                <label for="addSiteUrl" class="block text-sm font-medium text-gray-700">网址</label>
+                <input type="text" id="addSiteUrl" required class="mt-1 block w-full px-3 py-2 border border-primary-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400">
+              </div>
+              
+              <div>
+                <label for="addSiteLogo" class="block text-sm font-medium text-gray-700">Logo (可选)</label>
+                <input type="text" id="addSiteLogo" class="mt-1 block w-full px-3 py-2 border border-primary-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400">
+              </div>
+              
+              <div>
+                <label for="addSiteDesc" class="block text-sm font-medium text-gray-700">描述 (可选)</label>
+                <textarea id="addSiteDesc" rows="2" class="mt-1 block w-full px-3 py-2 border border-primary-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400"></textarea>
+              </div>
+              
+              <div>
+                <label for="addSiteCatelog" class="block text-sm font-medium text-gray-700">分类</label>
+                <input type="text" id="addSiteCatelog" required class="mt-1 block w-full px-3 py-2 border border-primary-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400" list="catalogList">
+                <datalist id="catalogList">
+                  ${datalistOptions}
+                </datalist>
+              </div>
+              
+              <div class="flex justify-end pt-4">
+                <button type="button" id="cancelAddSite" class="bg-white py-2 px-4 border border-primary-100 rounded-md shadow-sm text-sm font-medium text-primary-600 hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-200 mr-3">
+                  取消
+                </button>
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-accent-500 hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-400">
+                  提交
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+      
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          // 侧边栏控制
+          const sidebar = document.getElementById('sidebar');
+          const mobileOverlay = document.getElementById('mobileOverlay');
+          const sidebarToggle = document.getElementById('sidebarToggle');
+          const closeSidebar = document.getElementById('closeSidebar');
+          
+          function openSidebar() {
+            if (sidebar) {
+              sidebar.classList.add('open');
+            }
+            if (mobileOverlay) {
+              mobileOverlay.classList.add('open');
+            }
+            document.body.style.overflow = 'hidden';
+          }
+          
+          function closeSidebarMenu() {
+            if (sidebar) {
+              sidebar.classList.remove('open');
+            }
+            if (mobileOverlay) {
+              mobileOverlay.classList.remove('open');
+            }
+            document.body.style.overflow = '';
+          }
+          
+          if (sidebarToggle) sidebarToggle.addEventListener('click', openSidebar);
+          if (closeSidebar) closeSidebar.addEventListener('click', closeSidebarMenu);
+          if (mobileOverlay) mobileOverlay.addEventListener('click', closeSidebarMenu);
+          
+          // 复制链接功能
+          document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              const url = this.getAttribute('data-url');
+              if (!url) {
+                return;
+              }
+              navigator.clipboard.writeText(url).then(() => {
+                const successMsg = this.querySelector('.copy-success');
+                if (successMsg) {
+                  successMsg.classList.remove('hidden');
+                  successMsg.classList.add('copy-success-animation');
+                  setTimeout(() => {
+                    successMsg.classList.add('hidden');
+                    successMsg.classList.remove('copy-success-animation');
+                  }, 2000);
+                }
+              }).catch(err => {
+                console.error('复制失败:', err);
+                // 备用复制方法
+                const textarea = document.createElement('textarea');
+                textarea.value = url;
+                textarea.style.position = 'fixed';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                try {
+                  document.execCommand('copy');
+                  const successMsg = this.querySelector('.copy-success');
+                  if (successMsg) {
+                    successMsg.classList.remove('hidden');
+                    successMsg.classList.add('copy-success-animation');
+                    setTimeout(() => {
+                      successMsg.classList.add('hidden');
+                      successMsg.classList.remove('copy-success-animation');
+                    }, 2000);
+                  }
+                } catch (e) {
+                  console.error('备用复制也失败了:', e);
+                  alert('复制失败，请手动复制');
+                } finally {
+                  if (document.body.contains(textarea)) {
+                    document.body.removeChild(textarea);
+                  }
+                }
+              });
+            });
+          });
+          
+          // 返回顶部按钮
+          const backToTop = document.getElementById('backToTop');
+          
+          window.addEventListener('scroll', function() {
+            if (backToTop) {
+              if (window.pageYOffset > 300) {
+                backToTop.classList.remove('opacity-0', 'invisible');
+              } else {
+                backToTop.classList.add('opacity-0', 'invisible');
+              }
+            }
+          });
+          
+          if (backToTop) {
+            backToTop.addEventListener('click', function() {
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+            });
+          }
+          
+          // 添加网站模态框
+          const addSiteModal = document.getElementById('addSiteModal');
+          const addSiteBtnSidebar = document.getElementById('addSiteBtnSidebar');
+          const closeModalBtn = document.getElementById('closeModal');
+          const cancelAddSite = document.getElementById('cancelAddSite');
+          const addSiteForm = document.getElementById('addSiteForm');
+          
+          function openModal() {
+            if (addSiteModal) {
+              addSiteModal.classList.remove('opacity-0', 'invisible');
+              const modalContent = addSiteModal.querySelector('.max-w-md');
+              if (modalContent) modalContent.classList.remove('translate-y-8');
+              document.body.style.overflow = 'hidden';
+            }
+          }
+          
+          function closeModal() {
+            if (addSiteModal) {
+              addSiteModal.classList.add('opacity-0', 'invisible');
+              const modalContent = addSiteModal.querySelector('.max-w-md');
+              if (modalContent) modalContent.classList.add('translate-y-8');
+              document.body.style.overflow = '';
+            }
+          }
+          
+          if (addSiteBtnSidebar) {
+            addSiteBtnSidebar.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              openModal();
+            });
+          }
+          
+          if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', function() {
+              closeModal();
+            });
+          }
+          
+          if (cancelAddSite) {
+            cancelAddSite.addEventListener('click', closeModal);
+          }
+          
+          if (addSiteModal) {
+            addSiteModal.addEventListener('click', function(e) {
+              if (e.target === addSiteModal) {
+                closeModal();
+              }
+            });
+          }
+          
+          // 表单提交处理
+          if (addSiteForm) {
+            addSiteForm.addEventListener('submit', function(e) {
+              e.preventDefault();
+              
+              const name = document.getElementById('addSiteName').value;
+              const url = document.getElementById('addSiteUrl').value;
+              const logo = document.getElementById('addSiteLogo').value;
+              const desc = document.getElementById('addSiteDesc').value;
+              const catelog = document.getElementById('addSiteCatelog').value;
+              
+              fetch('/api/config/submit', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, url, logo, desc, catelog })
+              })
+              .then(res => res.json())
+              .then(data => {
+                if (data.code === 201) {
+                  // 显示成功消息
+                  const successDiv = document.createElement('div');
+                  successDiv.className = 'fixed top-4 right-4 bg-accent-500 text-white px-4 py-2 rounded shadow-lg z-50 animate-fade-in';
+                  successDiv.textContent = '提交成功，等待管理员审核';
+                  document.body.appendChild(successDiv);
+                  
+                  setTimeout(() => {
+                    successDiv.classList.add('opacity-0');
+                    setTimeout(() => {
+                      if (document.body.contains(successDiv)) {
+                        document.body.removeChild(successDiv);
+                      }
+                    }, 300);
+                  }, 2500);
+                  
+                  closeModal();
+                  addSiteForm.reset();
+                } else {
+                  alert(data.message || '提交失败');
+                }
+              })
+              .catch(err => {
+                console.error('网络错误:', err);
+                alert('网络错误，请稍后重试');
+              });
+            });
+          }
+          
+          // 搜索功能
+          const searchInput = document.getElementById('searchInput');
+          const sitesGrid = document.getElementById('sitesGrid');
+          const siteCards = document.querySelectorAll('.site-card');
+          
+          if (searchInput && sitesGrid) {
+            searchInput.addEventListener('input', function() {
+              const keyword = this.value.toLowerCase().trim();
+              
+              siteCards.forEach(card => {
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                const url = (card.getAttribute('data-url') || '').toLowerCase();
+                const catalogValue = (card.getAttribute('data-catalog') || '').toLowerCase();
+                
+                if (name.includes(keyword) || url.includes(keyword) || catalogValue.includes(keyword)) {
+                  card.classList.remove('hidden');
+                } else {
+                  card.classList.add('hidden');
+                }
+              });
+              
+              // 搜索结果提示
+              const countHeading = document.querySelector('[data-role="list-heading"]');
+              if (countHeading) {
+                const visibleCards = sitesGrid.querySelectorAll('.site-card:not(.hidden)');
+                const defaultText = countHeading.dataset.default || '';
+                const activeCatalogText = countHeading.dataset.active || '';
+                if (keyword) {
+                  countHeading.textContent = '搜索结果 · ' + visibleCards.length + ' 个网站';
+                } else if (activeCatalogText) {
+                  countHeading.textContent = activeCatalogText + ' · ' + visibleCards.length + ' 个网站';
+                } else {
+                  const totalText = defaultText.includes('全部收藏') ? defaultText.replace(/\\d+ 个网站/, visibleCards.length + ' 个网站') : '全部收藏 · ' + visibleCards.length + ' 个网站';
+                  countHeading.textContent = totalText;
+                }
+              }
+            });
+          }
+
+          // --- 刷新按钮功能 ---
+          const refreshBtn = document.getElementById('refreshBtn');
+          if (refreshBtn) {
+            refreshBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              // 刷新当前页面
+              location.reload();
+            });
+          }
+          
+          // --- 管理员在线状态检查 ---
+          const adminOnlineStatusDiv = document.getElementById('admin-online-status');
+          const statusDot = adminOnlineStatusDiv ? adminOnlineStatusDiv.querySelector('.status-dot') : null;
+          const statusText = adminOnlineStatusDiv ? adminOnlineStatusDiv.querySelector('.status-text') : null;
+
+          async function checkAdminStatus() {
+              try {
+                  const response = await fetch('/api/status/admin'); // 调用正确的管理员状态API
+                  const data = await response.json();
+                  if (data.code === 200 && data.data) {
+                      const online = data.data.online;
+                      if (statusDot && statusText) {
+                          if (online) {
+                              statusDot.classList.remove('bg-gray-400', 'bg-red-500');
+                              statusDot.classList.add('bg-green-500');
+                              statusText.textContent = '管理员状态: 在线';
+                          } else {
+                              statusDot.classList.remove('bg-green-500', 'bg-red-500');
+                              statusDot.classList.add('bg-gray-400');
+                              statusText.textContent = '管理员状态: 离线';
+                          }
+                      }
+                  } else {
+                      // API 返回非200或数据格式不正确
+                      if (statusDot && statusText) {
+                          statusDot.classList.remove('bg-green-500', 'bg-gray-400');
+                          statusDot.classList.add('bg-red-500'); // Indicate error
+                          statusText.textContent = '管理员状态: 错误';
+                      }
+                  }
+              } catch (error) {
+                  console.error('Failed to fetch admin status:', error);
+                  if (statusDot && statusText) {
+                      statusDot.classList.remove('bg-green-500', 'bg-gray-400');
+                      statusDot.classList.add('bg-red-500'); // Indicate error
+                      statusText.textContent = '管理员状态: 错误';
+                  }
+              }
+          }
+
+          // 页面加载时立即检查一次
+          if (adminOnlineStatusDiv) {
+              checkAdminStatus();
+              // 每 30 秒检查一次
+              setInterval(checkAdminStatus, 30000);
+          }
+          // --- 管理员在线状态检查结束 ---
+        });
+      </script>
+    </body>
+    </html>
+    `;
+
+    return new Response(html, {
+      headers: { 'content-type': 'text/html; charset=utf-8' }
+    });
+}
+
+
+// 导出主模块
+export default {
+async fetch(request, env, ctx) {
+const url = new URL(request.url);
+
+if (url.pathname.startsWith('/api')) {
+return api.handleRequest(request, env, ctx);
+} else if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/static')) {
+return admin.handleRequest(request, env, ctx);
+} else {
+return handleRequest(request, env, ctx);
+}
+},
+};
+
+
+
+
+
+以下是相关设置
+
+NABLE_PUBLIC_SUBMISSION
+true
+
+
+KV 命名空间     NAV_AUTH        NAV_AUTH
+
+D1 数据库         NAV_DB                 nav
+
+
+
+
+
+
+
+
+
+
