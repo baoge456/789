@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>YouTube下载助手 · 完整使用教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0f1e 0%, #0c1222 100%);
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Roboto', sans-serif;
+            color: #eef2ff;
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: rgba(18, 25, 45, 0.75);
+            backdrop-filter: blur(2px);
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(71, 85, 105, 0.3);
+            overflow: hidden;
+            padding: 2rem 1.8rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f0f9ff, #e2e8ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h1::before {
+            content: "📥";
+            font-size: 2rem;
+            background: none;
+            -webkit-background-clip: unset;
+            color: #f97316;
+        }
+
+        .badge {
+            background: #1e293b;
+            color: #94a3b8;
+            border-radius: 40px;
+            padding: 0.2rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 1rem;
+            vertical-align: middle;
+            border: 1px solid #334155;
+        }
+
+        .sub {
+            color: #9ca3af;
+            margin-top: 0.5rem;
+            border-left: 3px solid #f97316;
+            padding-left: 1rem;
+            font-size: 0.95rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin: 1.8rem 0 1rem 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #2d3a5e;
+            padding-bottom: 0.5rem;
+        }
+
+        h2 i {
+            font-style: normal;
+            font-size: 1.6rem;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            margin: 1.2rem 0 0.5rem 0;
+            color: #cbd5e6;
+            font-weight: 600;
+        }
+
+        .step-card {
+            background: #0f172ad9;
+            border-radius: 1.2rem;
+            padding: 1.2rem 1.5rem;
+            margin: 1.2rem 0;
+            border: 1px solid #2d3a5e;
+            transition: all 0.2s;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #f97316;
+            color: #0a0f1e;
+            font-weight: bold;
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            margin-right: 12px;
+            font-size: 0.9rem;
+        }
+
+        code, pre {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: #010409;
+            border-radius: 14px;
+            padding: 0.2rem 0.4rem;
+            font-size: 0.85rem;
+            color: #ffd966;
+        }
+
+        pre {
+            padding: 1rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            background: #030712;
+            border: 1px solid #2d3748;
+            border-radius: 1rem;
+            margin: 1rem 0;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #e2e8f0;
+        }
+
+        .copy-btn {
+            background: #2d3a5e;
+            border: none;
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+            margin-left: 1rem;
+        }
+
+        .copy-btn:hover {
+            background: #f97316;
+            color: #0f172a;
+        }
+
+        .note {
+            background: #1e293bb3;
+            border-left: 4px solid #f97316;
+            padding: 0.8rem 1.2rem;
+            border-radius: 1rem;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+        }
+
+        .warning {
+            background: #2c1f1fcc;
+            border-left: 4px solid #ef4444;
+        }
+
+        .success {
+            background: #0f2a1fcc;
+            border-left: 4px solid #22c55e;
+        }
+
+        .flex-btns {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 0.5rem 0 1rem;
+        }
+
+        button.primary-btn {
+            background: #f97316;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #0a0f1e;
+            transition: 0.2s;
+        }
+
+        button.primary-btn:hover {
+            background: #fd8d3a;
+            transform: scale(0.98);
+        }
+
+        hr {
+            border-color: #2d3a5e;
+            margin: 1.5rem 0;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #5b6e8c;
+            margin-top: 2rem;
+            border-top: 1px solid #1e2a44;
+            padding-top: 1.5rem;
+        }
+        @media (max-width: 650px) {
+            .container {
+                padding: 1.2rem;
+            }
+            pre {
+                font-size: 0.7rem;
+            }
+        }
+        .inline-code {
+            background: #0f172a;
+            padding: 0.2rem 0.4rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<!-- 示例：使用徽章展示仓库信息 -->
+<p>
+    <a href="https://github.com/hc990275/yhjs/tree/main/YouTube" target="_blank">
+        <img src="https://img.shields.io/badge/GitHub-YouTube下载脚本-181717?logo=github" alt="GitHub">
+    </a>
+</p>
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <h1>🎬 YouTube 极简下载助手 <span class="badge">v1.0 · 油猴脚本</span></h1>
+    </div>
+    <div class="sub" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <span>⚡ 安装 yt-dlp 命令 | <code style="background:#0f172a; padding:4px 8px; border-radius:12px;">winget install yt-dlp</code></span>
+    <button id="copyWingetBtn" style="background:#2d3a5e; border:none; color:white; padding:4px 14px; border-radius:40px; font-size:0.75rem; cursor:pointer; font-weight:500; transition:0.2s;">📋 复制命令</button>
+</div>
+
+<script>
+    (function() {
+        const copyBtn = document.getElementById('copyWingetBtn');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', async () => {
+                const command = 'winget install yt-dlp';
+                try {
+                    await navigator.clipboard.writeText(command);
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = '✅ 已复制！';
+                    copyBtn.style.background = '#22c55e';
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                        copyBtn.style.background = '#2d3a5e';
+                    }, 1800);
+                } catch (err) {
+                    alert('无法复制命令，请手动复制。');
+                }
+            });
+        }
+    })();
+</script>
+
+    <!-- ========= 第一部分：脚本安装 ========= -->
+    <h2><i>📦</i> 1. 安装篡改猴 (Tampermonkey)</h2>
+    <div class="step-card">
+        <div><span class="step-number">1</span> 打开浏览器扩展商店安装 <strong>Tampermonkey</strong> (篡改猴)</div>
+        <div class="flex-btns" style="margin-top: 12px;">
+            <a href="https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" style="text-decoration: none;"><button class="primary-btn">Chrome 安装</button></a>
+            <a href="https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd" target="_blank" style="text-decoration: none;"><button class="primary-btn">Edge 安装</button></a>
+            <a href="https://addons.mozilla.org/firefox/addon/tampermonkey/" target="_blank" style="text-decoration: none;"><button class="primary-btn">Firefox 安装</button></a>
+        </div>
+        <div class="note">✅ 安装后浏览器右上角会出现猴子图标，确保图标为彩色（已启用）。</div>
+    </div>
+
+    <h2><i>📜</i> 2. 添加「YouTube极简下载助手」脚本</h2>
+    <div class="step-card">
+        <p><span class="step-number">2</span> 点击篡改猴图标 → <strong>「添加新脚本」</strong> → 删除编辑器内所有默认代码，<strong>完整复制下方脚本</strong> 并粘贴。</p>
+        <div style="display: flex; justify-content: flex-end;">
+            <button class="copy-btn" id="copyScriptBtn">📋 一键复制脚本</button>
+        </div>
+        <pre id="scriptCodeBlock">// ==UserScript==
+// @name         YouTube 极简下载助手
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  一键复制下载命令
+// @match        *://www.youtube.com/*
+// @grant        GM_setClipboard
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    console.log('✅ 极简下载助手已启动');
+
+    // 只在视频页面显示
+    if (!location.href.includes('/watch') && !location.href.includes('?v=')) {
+        return;
+    }
+
+    // 创建按钮
+    const btn = document.createElement('button');
+    btn.textContent = '📥 复制下载命令';
+    btn.style.cssText = `
+        position: fixed;
+        bottom: 100px;
+        right: 20px;
+        z-index: 999999;
+        background: #cc0000;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        font-family: Arial;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+
+    // 鼠标悬停效果
+    btn.onmouseenter = () => btn.style.transform = 'scale(1.05)';
+    btn.onmouseleave = () => btn.style.transform = 'scale(1)';
+
+    // 点击事件
+    btn.onclick = () => {
+        const url = window.location.href.split('&')[0];
+
+        // 下载命令（使用cookies.txt文件方式）
+        const cmd = `yt-dlp --cookies "$env:USERPROFILE\\Desktop\\cookies.txt" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" --extractor-args "youtube:player-client=android,web" -f "bestvideo+bestaudio/best" --merge-output-format mp4 -N 4 -c --sleep-interval 3 --retries infinite -o "D:\\R2存储桶\\R2音乐面板\\youguan\\%(title)s.%(ext)s" "${url}"`;
+
+        GM_setClipboard(cmd);
+        alert('✅ 命令已复制！\n\n请在 PowerShell 中粘贴并回车\n\n📁 保存位置: D:\\R2存储桶\\R2音乐面板\\youguan\\');
+        console.log('命令已复制:', cmd);
+    };
+
+    document.body.appendChild(btn);
+    console.log('✅ 按钮已添加到页面');
+
+})();</pre>
+        <div class="note success">💡 粘贴后按 <kbd>Ctrl+S</kbd> 保存脚本，然后刷新 YouTube 页面即可看到红色下载按钮。</div>
+    </div>
+
+    <!-- ========= 重点：Cookies 导出（最核心） ========= -->
+    <h2><i>🍪</i> 3. 准备 cookies.txt (绕过机器人验证)</h2>
+    <div class="step-card">
+        <p>⚠️ 本脚本使用 <code class="inline-code">--cookies</code> 方式，<strong>必须手动导出有效的 cookies.txt</strong> 到桌面。请严格按官方推荐步骤：</p>
+        <ol style="margin-left: 1.5rem; margin-top: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem;">
+            <li><strong>安装扩展「Get cookies.txt LOCALLY」</strong> <br/>
+                <a href="https://microsoftedge.microsoft.com/addons/detail/get-cookiestxt-locally/ablmkjbdagblhhnhknjpnlomlgomppfg" target="_blank">Edge 商店链接</a>  | 
+                <a href="https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank">Chrome 商店链接</a>
+            </li>
+            <li><strong>打开一个新的「隐私/无痕窗口」</strong> → 访问 <code class="inline-code">https://www.youtube.com/robots.txt</code> (保证只有这一个标签页)</li>
+            <li><strong>在此页面登录你的 YouTube 账号</strong> (必须是刚打开的隐私窗口内登录)</li>
+            <li>点击浏览器右上角的「Get cookies.txt LOCALLY」图标 → 选择 <strong>Export Cookies</strong> → 保存到 <strong>桌面</strong>，文件名 <code class="inline-code">cookies.txt</code></li>
+            <li><strong>立即关闭隐私窗口</strong>，不要刷新其他页面，保证cookie不被轮换</li>
+        </ol>
+        <div class="note warning">
+            🔔 重要：cookies.txt 会过期 (几周到几个月)，如果将来下载时出现「Sign in to confirm」错误，请重新按照本步骤导出一次即可。
+        </div>
+    </div>
+
+    <!-- ========= 目录定制 ========= -->
+    <h2><i>📁</i> 4. 下载目录设置 (已预设)</h2>
+    <div class="step-card">
+        <p>脚本中已配置输出路径：<strong class="inline-code">D:\R2存储桶\R2音乐面板\youguan\</strong> <br>
+        视频会自动保存为 <code class="inline-code">视频标题.mp4</code>。如果需要更改目录：</p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>编辑脚本，找到 <code class="inline-code">-o "D:\\R2存储桶\\R2音乐面板\\youguan\\%(title)s.%(ext)s"</code> 部分，替换成你想要的绝对路径（注意反斜杠需要双写 <code>\\</code>）。</li>
+            <li>确保该目录已存在，脚本不会自动创建文件夹（建议手动创建）。</li>
+        </ul>
+    </div>
+
+    <!-- ========= 实际使用流程 ========= -->
+    <h2><i>▶️</i> 5. 日常使用流程</h2>
+    <div class="step-card">
+        <p><span class="step-number">①</span> 打开任意 YouTube 视频页面（如 <code>/watch?v=xxxx</code>）。</p>
+        <p><span class="step-number">②</span> 右下角出现红色「📥 复制下载命令」按钮 → 点击 → 弹出“命令已复制”。</p>
+        <p><span class="step-number">③</span> 打开 <strong>Windows PowerShell</strong> (管理员或普通均可)。</p>
+        <p><span class="step-number">④</span> 直接 <kbd>Ctrl+V</kbd> 粘贴命令，按 <kbd>Enter</kbd> 执行，等待下载完成。</p>
+        <div class="note success">
+            ✅ 命令包含断点续传(<code>-c</code>)、限速保护、4线程、模拟浏览器标识，成功率极高。
+        </div>
+    </div>
+
+    <!-- ========= 常见问题 & 修复 ========= -->
+    <h2><i>🔧</i> 6. 常见问题与排错</h2>
+    <div class="step-card">
+        <h3>❓ 点击脚本按钮没反应？</h3>
+        <p>• 确保篡改猴脚本状态为“已启用”；刷新YouTube后F12控制台应显示「极简下载助手已启动」。<br>
+        • 检查是否在视频页面（网址含 <code>/watch</code> 或 <code>?v=</code>）。</p>
+        
+        <h3>❓ 运行命令后提示「Sign in to confirm you’re not a bot」</h3>
+        <p>➡️ cookies.txt 失效了。请按照第3部分重新导出 <strong>cookies.txt</strong>（务必在隐私窗口的 <code>robots.txt</code> 页面登录后立即导出）。</p>
+        
+        <h3>❓ 提示 Could not copy Chrome cookie database / Permission denied</h3>
+        <p>➡️ 脚本使用的是 <code>--cookies cookies.txt</code> 文件方式，不会出现此错误。如果你用的是旧版命令，请确保命令里没有 <code>--cookies-from-browser</code>，本脚本已经采用文件方式，完全避免浏览器锁定。</p>
+        
+        <h3>❓ yt-dlp 不是内部或外部命令</h3>
+        <p>需要先安装 yt-dlp：在 PowerShell 中运行 <code>winget install yt-dlp.yt-dlp</code> 或者从官网下载并加入PATH。安装后重启PowerShell。</p>
+
+        <h3>❓ 下载速度慢或者中断</h3>
+        <p>命令中已包含 <code>-c</code> 断点续传，重新执行相同命令会继续下载；可尝试把线程 <code>-N 4</code> 改为 <code>-N 1</code> 更稳定。</p>
+    </div>
+
+    <!-- ========= 手动命令示例（备用） ========= -->
+    <h2><i>📋</i> 7. 手动命令（备用 / 自定义）</h2>
+    <div class="step-card">
+        <p>如果你不想用脚本，也可以直接复制下方通用命令（需保证桌面有 cookies.txt）：</p>
+        <pre id="manualCmd">yt-dlp --cookies "$env:USERPROFILE\Desktop\cookies.txt" --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" --extractor-args "youtube:player-client=android,web" -f "bestvideo+bestaudio/best" --merge-output-format mp4 -N 4 -c --sleep-interval 3 --retries infinite -o "D:\R2存储桶\R2音乐面板\youguan\%(title)s.%(ext)s" "视频URL"</pre>
+        <button class="copy-btn" id="copyManualBtn">📋 复制备用命令</button>
+        <div class="note">将「视频URL」替换为实际链接即可。</div>
+    </div>
+
+    <!-- 安装yt-dlp提示 -->
+    <h2><i>⚙️</i> 8. 安装 yt-dlp 和 ffmpeg (必需)</h2>
+    <div class="step-card">
+        <p>Windows 推荐通过 winget 一键安装：</p>
+        <pre>winget install yt-dlp.yt-dlp
+winget install yt-dlp.FFmpeg</pre>
+        <p>安装完成后重启 PowerShell 生效。测试：<code>yt-dlp --version</code> 。</p>
+        <div class="note">如果没有 winget，可前往 <a href="https://github.com/yt-dlp/yt-dlp/releases" target="_blank" style="color: #f97316;">yt-dlp官方releases</a> 下载exe放到任意目录，并添加到系统PATH。</div>
+    </div>
+
+    <hr />
+    <footer>
+        ⚡ 脚本完全开源，无后门。cookies仅用于YouTube认证，请勿分享给他人。<br>
+        本教程适配 Windows + Edge/Chrome + yt-dlp 环境，下载位置默认为 D:\R2存储桶\R2音乐面板\youguan\
+    </footer>
+</div>
+
+<script>
+    // 复制脚本代码块
+    const scriptBlock = document.getElementById('scriptCodeBlock');
+    const copyScriptBtn = document.getElementById('copyScriptBtn');
+    copyScriptBtn.addEventListener('click', () => {
+        const code = scriptBlock.innerText;
+        navigator.clipboard.writeText(code).then(() => {
+            alert('✅ 脚本代码已复制！\n\n现在打开篡改猴 → 添加新脚本 → 粘贴 → Ctrl+S 保存。');
+        }).catch(() => alert('复制失败，手动复制即可。'));
+    });
+
+    // 复制手动命令
+    const manualCmdPre = document.getElementById('manualCmd');
+    const copyManualBtn = document.getElementById('copyManualBtn');
+    copyManualBtn.addEventListener('click', () => {
+        const cmdText = manualCmdPre.innerText;
+        navigator.clipboard.writeText(cmdText).then(() => {
+            alert('✅ 手动命令已复制！\n粘贴到PowerShell，替换“视频URL”即可使用。');
+        }).catch(() => alert('复制失败，可手动选取。'));
+    });
+</script>
+</body>
+</html>
