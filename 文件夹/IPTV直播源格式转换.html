@@ -1,0 +1,517 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>IPTV直播源格式转换工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0 0 0.25rem 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .sub {
+            color: #475569;
+            margin-bottom: 24px;
+            border-left: 4px solid #3b82f6;
+            padding-left: 16px;
+            font-size: 0.9rem;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .card-header {
+            padding: 16px 24px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .card-body {
+            padding: 20px 24px;
+        }
+        textarea {
+            width: 100%;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 16px;
+            background: #fefefe;
+            resize: vertical;
+            transition: 0.1s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        button {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f9f9fb;
+        }
+        button.primary {
+            background: #1e293b;
+            border-color: #1e293b;
+            color: white;
+        }
+        button.primary:hover {
+            background: #0f172a;
+            transform: translateY(-1px);
+        }
+        button.success {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+        button.warning {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: white;
+        }
+        button:hover {
+            background: #eef2ff;
+            transform: translateY(-1px);
+        }
+        .status {
+            background: #e6f0ff;
+            border-radius: 30px;
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            color: #075985;
+            display: inline-block;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .preview-area {
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow: auto;
+        }
+        hr {
+            margin: 16px 0;
+            border-color: #e2e8f0;
+        }
+        .badge {
+            background: #e2e8f0;
+            padding: 2px 10px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: normal;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 32px;
+        }
+        @media (max-width: 640px) {
+            body { padding: 12px; }
+            .card-body { padding: 16px; }
+            .btn-group button { padding: 6px 14px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="flex-between">
+        <h1>📺 直播源格式转换器 <span class="badge">简单M3U生成</span></h1>
+        <div class="status">⚡ 支持导入/编辑/导出 | 标准EXTINF格式</div>
+    </div>
+    <div class="sub">🔹 支持原始格式 (频道名,URL) 或 #genre# 分组 → 自动转换为 #EXTINF 标准M3U。<br>
+        🔸 编辑框内容可任意修改，点击「转换生成M3U」即可获得带分组(group-title)的直播源，可复制或导出文件。
+    </div>
+
+    <!-- 编辑区卡片 -->
+    <div class="card">
+        <div class="card-header">
+            📝 原始内容 / 编辑区域
+            <div class="btn-group" style="margin-top:0">
+                <button id="loadDemoBtn" title="载入示例格式">📋 载入示例</button>
+                <button id="clearBtn">🗑️ 清空</button>
+                <button id="importFileBtn">📂 导入文件(.txt/.m3u)</button>
+                <input type="file" id="fileInput" accept=".txt,.m3u,.m3u8,text/plain" style="display: none">
+            </div>
+        </div>
+        <div class="card-body">
+            <textarea id="sourceText" rows="12" placeholder="在此粘贴或编辑直播源内容，支持两种格式：
+1. 简单格式：央视卫视,#genre#
+CCTV1,http://xxx.m3u8
+东方卫视,http://xxx.m3u8
+
+2. 已有EXTINF行也可混合识别，转换时会自动解析分组和频道。
+注意：分组标记行必须为“分组名,#genre#”格式。"></textarea>
+            <div class="btn-group">
+                <button id="convertBtn" class="primary">✨ 转换生成M3U (标准格式)</button>
+                <button id="copyResultBtn" class="success">📋 复制结果</button>
+                <button id="exportFileBtn" class="warning">💾 导出为 .m3u 文件</button>
+            </div>
+            <p style="font-size:12px; margin-top:12px; color:#475569">💡 提示: 转换后自动识别分组（如“央视卫视,#genre#”），每个频道会添加 group-title、tvg-name。您可以在下方编辑结果再导出。</p>
+        </div>
+    </div>
+
+    <!-- 结果预览卡片 -->
+    <div class="card">
+        <div class="card-header">
+            🎯 转换结果 (M3U with EXTINF)
+            <span style="font-weight:normal; font-size:12px;" id="statsInfo">等待转换</span>
+        </div>
+        <div class="card-body">
+            <div id="resultArea" class="preview-area" contenteditable="true" style="min-height: 280px; background:#0f172a; cursor:text;">// 点击转换后，这里会显示标准M3U内容，并且可以直接编辑修改</div>
+            <div class="btn-group" style="margin-top: 16px;">
+                <button id="copyFinalBtn" class="success">📋 复制最终内容</button>
+                <button id="exportFinalBtn" class="warning">💾 导出最终M3U文件</button>
+                <button id="resetResultBtn">🔄 重置结果区</button>
+            </div>
+        </div>
+    </div>
+    <footer>工具说明：自动解析频道名、URL以及分组。原始格式支持“频道名,url”行；分组行以“分组名,#genre#”定义。转换后为标准 #EXTINF:-1 格式，保留所有分组。</footer>
+</div>
+
+<script>
+    (function(){
+        // DOM 元素
+        const sourceTextarea = document.getElementById('sourceText');
+        const convertBtn = document.getElementById('convertBtn');
+        const copyResultBtn = document.getElementById('copyResultBtn');
+        const exportFileBtn = document.getElementById('exportFileBtn');
+        const copyFinalBtn = document.getElementById('copyFinalBtn');
+        const exportFinalBtn = document.getElementById('exportFinalBtn');
+        const resetResultBtn = document.getElementById('resetResultBtn');
+        const resultDiv = document.getElementById('resultArea');
+        const statsSpan = document.getElementById('statsInfo');
+        const loadDemoBtn = document.getElementById('loadDemoBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const importFileBtn = document.getElementById('importFileBtn');
+        const fileInput = document.getElementById('fileInput');
+
+        // 辅助: 将原始文本解析为结构化数据 { groups: [{ name, channels: [{ name, url }] }], 未分组频道 }
+        function parseRawToGroups(rawText) {
+            const lines = rawText.split(/\r?\n/);
+            const groups = [];
+            let currentGroup = { name: "默认分组", channels: [] };
+            let hasAnyGroupMarker = false;
+            let pendingChannels = [];
+
+            for (let line of lines) {
+                line = line.trim();
+                if (line === "") continue;
+                // 跳过已有的EXTINF行（当原始内容已经是m3u风格，我们会整体重新构建，但为了干净转换，我们忽略EXTINF行只取后面的URL？实际上我们可以识别#EXTINF开头行将其略过，只用其后的url行更好？）
+                if (line.startsWith('#EXTM3U')) continue;
+                if (line.startsWith('#EXTINF')) {
+                    // 若是完整m3u，下一行通常是url，我们跳过EXTINF行，但下一行保留url, 通过下一轮处理。简单起见跳过且不干扰分组
+                    continue;
+                }
+                // 判断分组标记: "分组名,#genre#"  或  "#genre#"
+                if (line.includes(',#genre#')) {
+                    // 保存上一组
+                    if (currentGroup.channels.length > 0 || (!hasAnyGroupMarker && groups.length===0 && currentGroup.name !== "默认分组")) {
+                        groups.push({ ...currentGroup });
+                    } else if (hasAnyGroupMarker === false && groups.length === 0 && currentGroup.channels.length === 0) {
+                        // 未保存过任何分组，忽略空
+                    } else {
+                        if (currentGroup.channels.length) groups.push({ ...currentGroup });
+                    }
+                    let groupName = line.split(',#genre#')[0].trim();
+                    if (groupName === "") groupName = "未命名分组";
+                    currentGroup = { name: groupName, channels: [] };
+                    hasAnyGroupMarker = true;
+                    continue;
+                }
+                // 处理频道行: 格式 "频道名称,URL"  或者可能包含额外空格
+                const commaIndex = line.indexOf(',');
+                if (commaIndex !== -1) {
+                    let channelName = line.substring(0, commaIndex).trim();
+                    let url = line.substring(commaIndex + 1).trim();
+                    if (url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('rtmp://') || url.startsWith('rtsp://') || url.includes('.m3u8') || url.includes('.m3u'))) {
+                        currentGroup.channels.push({ name: channelName, url: url });
+                        continue;
+                    }
+                }
+                // 如果不满足频道行但可能是裸URL? 尝试兜底：如果行看起来是http开头则作为无频道名处理
+                if (line.startsWith('http://') || line.startsWith('https://') || line.startsWith('rtmp://')) {
+                    currentGroup.channels.push({ name: "未知频道", url: line });
+                    continue;
+                }
+                // 其他情况忽略
+            }
+            // 最后保存当前组
+            if (currentGroup.channels.length > 0) {
+                groups.push({ ...currentGroup });
+            } else if (!hasAnyGroupMarker && groups.length === 0 && currentGroup.channels.length === 0) {
+                // 没有任何分组标记也没有频道，忽略
+            } else if (!hasAnyGroupMarker && groups.length === 0 && currentGroup.channels.length === 0 && pendingChannels.length) {
+                // 特殊情况
+            }
+            // 如果没有任何分组标记但存在频道，把现有频道放到一个默认分组
+            if (!hasAnyGroupMarker && groups.length === 0 && currentGroup.channels.length) {
+                groups.push({ name: "央卫视", channels: currentGroup.channels });
+            } else if (hasAnyGroupMarker === false && groups.length === 0 && currentGroup.channels.length) {
+                groups.push({ name: "默认分组", channels: currentGroup.channels });
+            }
+            // 合并清理空频道组
+            return groups.filter(g => g.channels.length > 0);
+        }
+
+        // 根据分组数据生成标准M3U文本
+        function generateM3UFromGroups(groups) {
+            let output = '#EXTM3U\n';
+            for (const group of groups) {
+                const groupTitle = group.name;
+                for (const ch of group.channels) {
+                    if (!ch.url) continue;
+                    // 安全处理频道名，移除可能导致问题的字符
+                    let safeName = ch.name.replace(/[,\n\r]/g, '').trim();
+                    if (safeName === "") safeName = "频道";
+                    let tvgName = safeName;
+                    // 附加group-title
+                    output += `#EXTINF:-1 group-title="${escapeAttr(groupTitle)}" tvg-name="${escapeAttr(tvgName)}",${safeName}\n`;
+                    output += `${ch.url}\n`;
+                }
+            }
+            return output;
+        }
+
+        function escapeAttr(str) {
+            // 转义双引号和特殊符号
+            return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // 主转换：从源文本 -> 生成m3u 并展示
+        function convertAndDisplay() {
+            const raw = sourceTextarea.value;
+            if (!raw.trim()) {
+                resultDiv.innerText = "// 错误：请在左侧编辑区粘贴或输入直播源内容";
+                statsSpan.innerText = "无内容";
+                return;
+            }
+            try {
+                const groups = parseRawToGroups(raw);
+                if (groups.length === 0 || groups.every(g => g.channels.length === 0)) {
+                    resultDiv.innerText = "// 未识别到有效频道数据，请检查格式示例：\n// 分组名,#genre#\n// CCTV1,http://xxx.m3u8";
+                    statsSpan.innerText = "解析失败: 无有效频道";
+                    return;
+                }
+                const m3uContent = generateM3UFromGroups(groups);
+                resultDiv.innerText = m3uContent;
+                let totalChannels = groups.reduce((sum,g)=> sum + g.channels.length,0);
+                statsSpan.innerText = `✅ 共 ${groups.length} 个分组, ${totalChannels} 个频道`;
+            } catch(e) {
+                console.error(e);
+                resultDiv.innerText = `转换出错: ${e.message}`;
+                statsSpan.innerText = "转换错误";
+            }
+        }
+
+        // 复制结果区内容
+        function copyResultContent() {
+            const content = resultDiv.innerText;
+            if (!content || content.startsWith("// 错误") || content === "等待转换") {
+                alert("没有有效内容可复制，请先点击「转换生成M3U」");
+                return;
+            }
+            navigator.clipboard.writeText(content).then(()=>{
+                alert("已复制M3U内容到剪贴板");
+            }).catch(()=>{
+                alert("复制失败，可手动选择复制");
+            });
+        }
+
+        // 导出结果区内容为.m3u文件
+        function exportAsFile(content, filename = "iptv_channels.m3u") {
+            if (!content || content === "等待转换" || content.includes("// 错误")) {
+                alert("没有有效的M3U数据，请先转换生成内容");
+                return;
+            }
+            const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // 导入文件内容到源编辑框
+        function importFileToSource(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                sourceTextarea.value = e.target.result;
+                // 自动转换一次? 可选，不自动转换让用户手动点
+                alert("文件已导入到编辑区，请点击「转换生成M3U」");
+            };
+            reader.onerror = function() {
+                alert("文件读取失败");
+            };
+            reader.readAsText(file, "UTF-8");
+        }
+
+        // 载入示例数据（丰富样例包含多种分组）
+        function loadDemo() {
+            sourceTextarea.value = `央视卫视,#genre#
+CCTV1,http://156.238.248.80:8880/play/1.219348.m3u8
+CCTV2,http://156.238.248.80:8880/play/3.549234.m3u8
+CCTV3,http://156.238.248.80:8880/play/5.689329.m3u8
+东方卫视,http://156.238.248.80:8880/play/39.342450.m3u8
+湖南卫视,http://156.238.248.80:8880/play/62.358723.m3u8
+
+全网通频,#genre#
+CCTV1,http://156.238.248.80:8880/play/2843.457457.m3u8
+北京卫视,http://156.238.248.80:8880/play/2861.345055.m3u8
+浙江卫视,http://156.238.248.80:8880/play/2863.430908.m3u8
+
+粤港频道,#genre#
+翡翠台,http://156.238.248.80:8880/play/3355.479569.m3u8
+明珠台,http://156.238.248.80:8880/play/3357.229525.m3u8
+
+# 以下是未分组示例但工具也会归入默认分组（建议使用#genre#规范）
+测试频道,http://example.com/live.m3u8`;
+            resultDiv.innerText = "// 示例已加载，点击「转换生成M3U」查看标准格式";
+            statsSpan.innerText = "示例已就绪";
+        }
+
+        // 清空源编辑区
+        function clearSource() {
+            sourceTextarea.value = "";
+            resultDiv.innerText = "// 等待转换...";
+            statsSpan.innerText = "等待输入";
+        }
+
+        // 重置结果区为默认文字
+        function resetResultArea() {
+            if(confirm("重置结果区会丢失当前转换结果，确认吗？")) {
+                resultDiv.innerText = "// 转换后的M3U内容将显示在这里，也可以手动编辑修改。";
+                statsSpan.innerText = "结果已重置";
+            }
+        }
+
+        // 从结果区导出最终内容（支持手动编辑后的导出）
+        function exportFinal() {
+            const finalContent = resultDiv.innerText;
+            if (!finalContent || finalContent === "等待转换" || finalContent.includes("// 错误") || finalContent === "// 转换后的M3U内容将显示在这里，也可以手动编辑修改。") {
+                alert("结果区没有有效的M3U数据，请先转换或手动编辑生成内容");
+                return;
+            }
+            exportAsFile(finalContent, "my_iptv.m3u");
+        }
+
+        function copyFinal() {
+            const finalContent = resultDiv.innerText;
+            if (!finalContent || finalContent === "等待转换" || finalContent.includes("// 错误") || finalContent === "// 转换后的M3U内容将显示在这里，也可以手动编辑修改。") {
+                alert("结果区没有有效内容可复制");
+                return;
+            }
+            navigator.clipboard.writeText(finalContent).then(()=>{
+                alert("最终M3U内容已复制");
+            }).catch(()=> alert("复制失败，可手动选择"));
+        }
+
+        // 监听导入文件按钮
+        importFileBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                importFileToSource(e.target.files[0]);
+            }
+            fileInput.value = ''; // 清空以便再次导入相同文件
+        });
+
+        // 绑定事件
+        convertBtn.addEventListener('click', convertAndDisplay);
+        copyResultBtn.addEventListener('click', copyResultContent);
+        exportFileBtn.addEventListener('click', () => {
+            const m3uContent = resultDiv.innerText;
+            if (!m3uContent || m3uContent === "等待转换" || m3uContent.includes("// 错误")) {
+                alert("请先点击「转换生成M3U」获得内容后再导出");
+                return;
+            }
+            exportAsFile(m3uContent, "converted_channels.m3u");
+        });
+        loadDemoBtn.addEventListener('click', loadDemo);
+        clearBtn.addEventListener('click', clearSource);
+        resetResultBtn.addEventListener('click', resetResultArea);
+        copyFinalBtn.addEventListener('click', copyFinal);
+        exportFinalBtn.addEventListener('click', exportFinal);
+
+        // 初始化提示
+        resultDiv.innerText = "// 点击「转换生成M3U」将根据左侧内容生成标准M3U文件。\n// 您也可以直接在右侧编辑区手动修改M3U内容，再导出。";
+        sourceTextarea.value = `央视卫视,#genre#
+CCTV1,http://156.238.248.80:8880/play/1.219348.m3u8
+CCTV2,http://156.238.248.80:8880/play/3.549234.m3u8
+CCTV3,http://156.238.248.80:8880/play/5.689329.m3u8
+东方卫视,http://156.238.248.80:8880/play/39.342450.m3u8
+湖南卫视,http://156.238.248.80:8880/play/62.358723.m3u8
+
+全网通频,#genre#
+CCTV1,http://156.238.248.80:8880/play/2843.457457.m3u8
+北京卫视,http://156.238.248.80:8880/play/2861.345055.m3u8
+
+# 你可以继续增加分组和频道，支持编辑`;
+        statsSpan.innerText = "就绪，点击转换";
+    })();
+</script>
+</body>
+</html>
