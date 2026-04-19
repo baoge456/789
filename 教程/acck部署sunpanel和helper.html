@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Sun-Panel + Helper 完美部署教程 | 科技lion + 手动Docker 终极方案</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #f0f4f8;
+            font-family: 'Segoe UI', system-ui, -apple-system, 'Roboto', sans-serif;
+            padding: 40px 24px;
+            color: #0f172a;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.15);
+            overflow: hidden;
+            padding: 36px 44px;
+        }
+        @media (max-width: 700px) {
+            .container { padding: 20px; }
+            pre { font-size: 11px; }
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .badge {
+            background: #0f3b5c;
+            color: white;
+            font-size: 14px;
+            padding: 4px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+        }
+        .success-badge {
+            background: #10b981;
+            color: white;
+            font-size: 14px;
+            padding: 4px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+        }
+        .sub {
+            background: #eef2ff;
+            padding: 16px 22px;
+            border-radius: 20px;
+            margin: 20px 0 28px 0;
+            border-left: 5px solid #2563eb;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .info-card {
+            background: #f0f9ff;
+            border-radius: 20px;
+            padding: 18px 24px;
+            margin: 24px 0;
+            border-left: 4px solid #0284c7;
+        }
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 32px 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #e2edf7;
+        }
+        h3 {
+            font-size: 19px;
+            font-weight: 600;
+            margin: 24px 0 12px 0;
+            color: #1e40af;
+        }
+        .step-card {
+            background: #fefefe;
+            border: 1px solid #e2edf2;
+            border-radius: 28px;
+            padding: 22px 28px;
+            margin: 28px 0;
+            transition: all 0.1s;
+        }
+        .step-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .step-num {
+            background: #2563eb;
+            color: white;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 40px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .code-block {
+            background: #0d1117;
+            border-radius: 18px;
+            margin: 18px 0;
+            overflow: hidden;
+        }
+        .code-header {
+            background: #161f2c;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: monospace;
+            font-size: 13px;
+            color: #9ca3af;
+            border-bottom: 1px solid #2d3e5a;
+        }
+        .copy-btn, .copy-cmd {
+            background: #2d3e5a;
+            border: none;
+            color: white;
+            padding: 5px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .copy-btn:hover, .copy-cmd:hover {
+            background: #3b82f6;
+        }
+        pre {
+            margin: 0;
+            padding: 18px 24px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: #eef2ff;
+        }
+        .cmd-window {
+            background: #0f172f;
+            border-radius: 16px;
+            padding: 12px 18px;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-family: monospace;
+            color: #cbd5ff;
+        }
+        .cmd-text {
+            font-family: monospace;
+            word-break: break-all;
+            font-size: 13px;
+        }
+        .tree {
+            background: #f8fafc;
+            padding: 20px 26px;
+            border-radius: 24px;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.9;
+            border: 1px solid #e2edf2;
+        }
+        .note {
+            background: #fefce8;
+            border-left: 5px solid #eab308;
+            padding: 14px 20px;
+            border-radius: 20px;
+            margin: 20px 0;
+        }
+        .success-note {
+            background: #e6f9ed;
+            border-left-color: #10b981;
+        }
+        .danger-note {
+            background: #fff1f0;
+            border-left-color: #ef4444;
+        }
+        .footer {
+            margin-top: 48px;
+            text-align: center;
+            border-top: 1px solid #e4edf2;
+            padding-top: 28px;
+            color: #5a6e7c;
+            font-size: 13px;
+        }
+        .inline-code {
+            background: #eef2fa;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>
+        🧩 Sun-Panel + Helper 完美部署教程
+        <span class="badge">科技lion + 手动Docker 终极方案</span>
+    </h1>
+    <div class="sub">
+        📍 真实环境：重置后的 VPS，科技lion 脚本安装 Sun-Panel，手动部署 Helper。<br>
+        🔑 <strong>核心成功要素</strong>：创建缺失的 <code class="inline-code">custom</code> 目录 + 科技lion 统一管理域名和SSL证书。<br>
+        🌐 最终成果：<code>https://sunpanel.你的域名</code> 和 <code>https://helper.你的域名</code> 都能正常访问，美化组件完美显示！
+    </div>
+
+    <!-- 成功总结 -->
+    <div class="info-card">
+        🎉 <strong>本方案成功的原因</strong><br>
+        ✅ 重置VPS，从零开始，无历史配置冲突<br>
+        ✅ 科技lion 统一管理 Nginx 和 SSL 证书<br>
+        ✅ 手动创建 <code class="highlight">conf/custom</code> 目录（Helper 与 Sun-Panel 通信的桥梁）<br>
+        ✅ Helper 使用独立域名 + HTTPS，解决混合内容问题<br>
+        ✅ 所有操作步骤清晰，无多余手动配置
+    </div>
+
+    <!-- 最终目录结构 -->
+    <h2>📁 部署完成后的目录结构</h2>
+    <div class="tree">
+        <div>📂 <strong>/home/docker/</strong></div>
+        <div>├── 📁 <strong>sun-panel/</strong>          <span style="color:#4b6f8c;"># 科技lion 安装的 Sun-Panel</span></div>
+        <div>│   ├── 📁 conf/</div>
+        <div>│   │   ├── 📁 <span class="highlight">custom/</span>      ← <strong style="color:#c2410c;">手动创建（关键桥梁）</strong></div>
+        <div>│   │   ├── 📁 database/</div>
+        <div>│   │   └── 📁 uploads/</div>
+        <div>│   └── 📄 ...</div>
+        <div>│</div>
+        <div>└── 📁 <strong>helper/</strong>              <span style="color:#1e7e34;">✨ 手动创建的 Helper 数据目录</span></div>
+        <div>    ├── 📁 data/              <span style="color:#4b5563;"># Helper 运行时数据</span></div>
+        <div>    ├── 📁 backups/           <span style="color:#4b5563;"># Helper 备份文件</span></div>
+        <div>    └── 🐳 sun-panel-helper 容器</div>
+    </div>
+
+    <!-- 第一步：重置VPS并安装科技lion -->
+    <h2>⚙️ 第一步：重置 VPS 并安装科技lion</h2>
+    <div class="step-card">
+        <div class="step-title"><span class="step-num">1</span> 干净的环境是成功的一半</div>
+        <div class="cmd-window">
+            <span class="cmd-text"># 在VPS管理后台重装系统（推荐 Ubuntu 22.04）</span>
+        </div>
+        <div class="cmd-window">
+            <span class="cmd-text"># 安装科技lion脚本</span>
+            <button class="copy-cmd" data-cmd='bash <(curl -sL kejilion.sh)'>📋 复制命令</button>
+        </div>
+        <div class="note">
+            💡 科技lion 安装完成后，使用它的应用市场安装 Sun-Panel。安装过程中会自动配置域名和 SSL 证书。
+        </div>
+    </div>
+
+    <!-- 第二步：找到 Sun-Panel 的真实路径并创建 custom 目录 -->
+    <h2>🔍 第二步：找到 Sun-Panel 数据目录并创建 custom 目录</h2>
+    <div class="step-card">
+        <div class="step-title"><span class="step-num">2</span> 这是最关键的一步！</div>
+        <p>科技lion 安装的 Sun-Panel，数据目录通常在 <code>/home/docker/sun-panel/</code>，但需要确认。</p>
+        <div class="cmd-window">
+            <span class="cmd-text"># 查看 Sun-Panel 容器的挂载信息</span>
+            <button class="copy-cmd" data-cmd='docker inspect sun-panel --format='"'"'{{range .Mounts}}{{printf "%s -> %s\n" .Source .Destination}}{{end}}'"'"'>📋 查看挂载</button>
+        </div>
+        <div class="cmd-window">
+            <span class="cmd-text"># 根据输出，找到 conf 目录的宿主机路径，然后创建 custom 目录</span>
+            <button class="copy-cmd" data-cmd='mkdir -p /home/docker/sun-panel/conf/custom'>📋 创建 custom 目录</button>
+        </div>
+        <div class="success-note">
+            ✅ <strong>关键点</strong>：<code>custom</code> 目录默认<strong>不存在</strong>，必须手动创建！这是 Helper 与 Sun-Panel 通信的桥梁。
+        </div>
+    </div>
+
+    <!-- 第三步：部署 Helper 容器 -->
+    <h2>🐳 第三步：手动部署 Helper 容器</h2>
+    <div class="step-card">
+        <div class="step-title"><span class="step-num">3</span> 创建 Helper 数据目录并启动容器</div>
+        <div class="cmd-window">
+            <span class="cmd-text"># 创建 Helper 数据目录</span>
+            <button class="copy-cmd" data-cmd='mkdir -p /home/helper/{data,backups}'>📋 创建目录</button>
+        </div>
+        <div class="cmd-window">
+            <span class="cmd-text"># 部署 Helper 容器（注意替换 custom 路径）</span>
+            <button class="copy-cmd" data-cmd='docker run -d --name sun-panel-helper --restart unless-stopped -p 33002:80 -e BACKEND_PORT=3001 -v /home/docker/sun-panel/conf/custom:/app/backend/custom -v /home/helper/data:/app/backend/data -v /home/helper/backups:/app/backend/backups madrays/sun-panel-helper:latest'>📋 部署 Helper</button>
+        </div>
+        <div class="cmd-window">
+            <span class="cmd-text"># 验证容器运行</span>
+            <button class="copy-cmd" data-cmd='docker ps | grep sun-panel-helper'>🔍 检查状态</button>
+        </div>
+        <div class="note">
+            🌐 此时可以通过 <code>http://你的VPS_IP:33002</code> 访问 Helper，初始账号 <strong>helper / helper123</strong>
+        </div>
+    </div>
+
+    <!-- 第四步：用科技 lion 给 Helper 配置域名 -->
+    <h2>🌐 第四步：用科技 lion 为 Helper 配置域名 + HTTPS</h2>
+    <div class="step-card">
+        <div class="step-title"><span class="step-num">4</span> 科技lion 统一管理，避免手动配置冲突</div>
+        <div class="cmd-window">
+            <span class="cmd-text"># 运行科技lion脚本</span>
+            <button class="copy-cmd" data-cmd='bash <(curl -sL kejilion.sh)'>📋 运行脚本</button>
+        </div>
+        <div class="info-card">
+            📋 <strong>脚本操作步骤</strong><br>
+            1️⃣ 选择 <code>10. LDNMP建站</code><br>
+            2️⃣ 选择 <code>23. 站点反向代理-IP+端口</code><br>
+            3️⃣ 输入域名：<code>helper.你的域名</code><br>
+            4️⃣ 输入端口：<code>33002</code><br>
+            5️⃣ 其他选项直接回车跳过，脚本会自动生成 Nginx 配置并申请 SSL 证书
+        </div>
+        <div class="success-note">
+            ✅ 完成后，<code>https://helper.你的域名</code> 就可以正常访问了！
+        </div>
+    </div>
+
+    <!-- 第五步：在 Helper 中部署组件 -->
+    <h2>🎨 第五步：在 Helper 中部署美化组件</h2>
+    <div class="step-card">
+        <div class="step-title"><span class="step-num">5</span> 让组件出现在 Sun-Panel 页面</div>
+        <ul style="margin-left: 24px; line-height: 1.8; margin-bottom: 20px;">
+            <li>✅ 登录 Helper：<code>https://helper.你的域名</code>（账号 <code>helper</code> / 密码 <code>helper123</code>）</li>
+            <li>✅ 进入「<strong>组件市场</strong>」，选择一个组件（如“时钟”）</li>
+            <li>✅ 编辑组件，<strong class="highlight">“Helper域名前缀”</strong> 填写：<code>https://helper.你的域名</code></li>
+            <li>✅ 点击「<strong>应用到固定组件池</strong>」</li>
+            <li>✅ 进入「<strong>固定组件</strong>」页面，将组件拖拽到右侧布局区域</li>
+            <li>✅ 点击右上角「<strong>部署配置</strong>」</li>
+            <li>✅ 刷新 Sun-Panel 页面（<code>https://sunpanel.你的域名</code>），美化效果出现！</li>
+        </ul>
+        <div class="note">
+            💡 <strong>为什么必须用域名？</strong><br>
+            如果 Helper 用 IP+端口访问，生成的资源链接是 HTTP 的，而 Sun-Panel 是 HTTPS 的，浏览器会阻止混合内容，导致组件不显示。
+        </div>
+    </div>
+
+    <!-- 常见问题与关键点 -->
+    <h2>⚠️ 成功的关键点总结</h2>
+    <div class="tree" style="background:#eafaf1;">
+        ✔️ <strong>本方案成功的5个核心要素</strong><br>
+        <br>
+        1️⃣ <strong>重置VPS</strong>：从零开始，无历史配置冲突<br>
+        <br>
+        2️⃣ <strong>科技lion 统一管理域名和证书</strong>：避免手动配置 Nginx 出错<br>
+        <br>
+        3️⃣ <strong>手动创建 custom 目录</strong>：这是最容易被忽略的一步！<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<code>mkdir -p /home/docker/sun-panel/conf/custom</code><br>
+        <br>
+        4️⃣ <strong>Helper 挂载正确的 custom 目录</strong>：让 Helper 能写入组件文件<br>
+        <br>
+        5️⃣ <strong>Helper 使用独立的 HTTPS 域名</strong>：解决混合内容问题，组件才能正常加载
+    </div>
+
+    <!-- 完整命令速查 -->
+    <h2>📋 完整命令速查表</h2>
+    <div class="code-block">
+        <div class="code-header">
+            <span>🚀 一键复制所有关键命令</span>
+            <button class="copy-btn" data-target="all-commands">复制全部</button>
+        </div>
+        <pre id="all-commands"># 1. 安装科技lion脚本
+bash <(curl -sL kejilion.sh)
+
+# 2. 查看 Sun-Panel 挂载路径
+docker inspect sun-panel --format='{{range .Mounts}}{{printf "%s -> %s\n" .Source .Destination}}{{end}}'
+
+# 3. 创建 custom 目录（关键！）
+mkdir -p /home/docker/sun-panel/conf/custom
+
+# 4. 创建 Helper 数据目录
+mkdir -p /home/helper/{data,backups}
+
+# 5. 部署 Helper 容器
+docker run -d \
+  --name sun-panel-helper \
+  --restart unless-stopped \
+  -p 33002:80 \
+  -e BACKEND_PORT=3001 \
+  -v /home/docker/sun-panel/conf/custom:/app/backend/custom \
+  -v /home/helper/data:/app/backend/data \
+  -v /home/helper/backups:/app/backend/backups \
+  madrays/sun-panel-helper:latest
+
+# 6. 验证 Helper 运行
+docker ps | grep sun-panel-helper
+curl http://127.0.0.1:33002
+
+# 7. 运行科技lion 配置 Helper 域名
+bash <(curl -sL kejilion.sh)
+# 选择：10 LDNMP建站 -> 23 站点反向代理-IP+端口 -> 输入域名和端口33002</pre>
+    </div>
+
+    <div class="footer">
+        🧪 本文档基于真实部署过程编写：重置后的 VPS + 科技lion + 手动 Helper<br>
+        ✅ 核心经验：<strong class="highlight">custom 目录必须手动创建，Helper 必须用 HTTPS 域名</strong><br>
+        点击任意代码块右上角「复制」即可直接使用。祝部署顺利！
+    </div>
+</div>
+
+<script>
+    // 复制功能
+    function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+        } else {
+            fallbackCopy(text);
+        }
+    }
+    function fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+    }
+    function showToastMsg(msg) {
+        let toast = document.querySelector('.dynamic-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.className = 'dynamic-toast';
+            toast.style.position = 'fixed';
+            toast.style.bottom = '25px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.backgroundColor = '#1e293b';
+            toast.style.color = '#f1f5f9';
+            toast.style.padding = '8px 20px';
+            toast.style.borderRadius = '40px';
+            toast.style.fontSize = '13px';
+            toast.style.zIndex = '9999';
+            toast.style.fontFamily = 'monospace';
+            toast.style.boxShadow = '0 6px 14px rgba(0,0,0,0.2)';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        setTimeout(() => { toast.style.opacity = '0'; }, 1800);
+    }
+
+    // 代码块复制
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            if (targetId) {
+                const preElem = document.getElementById(targetId);
+                if (preElem) {
+                    copyToClipboard(preElem.innerText);
+                    showToastMsg('✅ 代码已复制');
+                }
+            }
+        });
+    });
+
+    // 命令行复制
+    document.querySelectorAll('.copy-cmd').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cmd = btn.getAttribute('data-cmd');
+            if (cmd) {
+                copyToClipboard(cmd);
+                showToastMsg('📋 命令已复制');
+            }
+        });
+    });
+</script>
+</body>
+</html>
