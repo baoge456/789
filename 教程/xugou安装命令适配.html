@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>命令转换器 - 极简版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0f172a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .box {
+            max-width: 900px;
+            width: 100%;
+            background: #1e293b;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.4);
+        }
+        h1 {
+            font-size: 24px;
+            color: #f1f5f9;
+            margin-bottom: 8px;
+        }
+        .desc {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 24px;
+            border-left: 3px solid #3b82f6;
+            padding-left: 12px;
+        }
+        label {
+            display: block;
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        textarea {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 14px;
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        button {
+            background: #3b82f6;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+            width: 100%;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin-top: 24px;
+            background: #0f172a;
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid #334155;
+        }
+        .result-label {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-cmd {
+            font-family: monospace;
+            font-size: 13px;
+            color: #e2e8f0;
+            word-break: break-all;
+            white-space: pre-wrap;
+            background: #020617;
+            padding: 12px;
+            border-radius: 12px;
+        }
+        .copy-btn {
+            background: #334155;
+            width: auto;
+            padding: 4px 12px;
+            font-size: 12px;
+            margin-top: 0;
+        }
+        .copy-btn:hover {
+            background: #475569;
+        }
+        .tip {
+            font-size: 12px;
+            color: #5b6e8c;
+            margin-top: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h1>🔄 命令转换器</h1>
+    <div class="desc">
+        将失效的 <code style="background:#0f172a;padding:2px 6px;border-radius:8px;">gh-proxy.com/github.com/zaunist/xugou/blob/main/install-agent.sh</code><br>
+        替换为 <code style="background:#0f172a;padding:2px 6px;border-radius:8px;">raw.githubusercontent.com/baoge6789/xugou/refs/heads/main/install-agent.sh</code>
+    </div>
+
+    <label>📜 粘贴旧命令</label>
+    <textarea id="oldCmd" rows="3" placeholder='示例：curl -sSL https://gh-proxy.com/github.com/zaunist/xugou/blob/main/install-agent.sh | bash -s -- --server https://xxx --token xxx --interval 60'></textarea>
+
+    <button id="convertBtn">⚡ 转换为新命令</button>
+
+    <div class="result" id="resultBox" style="display: none;">
+        <div class="result-label">
+            <span>✅ 新命令（可直接执行）</span>
+            <button id="copyResultBtn" class="copy-btn">📋 复制</button>
+        </div>
+        <div class="result-cmd" id="newCmd"></div>
+    </div>
+    <div class="tip">
+        💡 仅替换脚本源地址，保留 --server / --token / --interval 等所有参数
+    </div>
+</div>
+
+<script>
+    const oldUrl = "https://gh-proxy.com/github.com/zaunist/xugou/blob/main/install-agent.sh";
+    const newUrl = "https://raw.githubusercontent.com/baoge6789/xugou/refs/heads/main/install-agent.sh";
+
+    const textarea = document.getElementById('oldCmd');
+    const convertBtn = document.getElementById('convertBtn');
+    const resultBox = document.getElementById('resultBox');
+    const newCmdSpan = document.getElementById('newCmd');
+    const copyResultBtn = document.getElementById('copyResultBtn');
+
+    function convertCommand(raw) {
+        if (!raw) return '';
+        return raw.replace(oldUrl, newUrl);
+    }
+
+    convertBtn.addEventListener('click', () => {
+        let oldCommand = textarea.value.trim();
+        if (!oldCommand) {
+            alert('请先粘贴旧命令');
+            return;
+        }
+        // 简单检查是否包含旧地址
+        if (!oldCommand.includes(oldUrl)) {
+            if (!confirm('警告：命令中未找到需要替换的旧地址，可能已经替换过或格式不同，是否继续转换？')) {
+                return;
+            }
+        }
+        const newCommand = convertCommand(oldCommand);
+        newCmdSpan.innerText = newCommand;
+        resultBox.style.display = 'block';
+    });
+
+    copyResultBtn.addEventListener('click', () => {
+        const text = newCmdSpan.innerText;
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = copyResultBtn.innerText;
+            copyResultBtn.innerText = '✅ 已复制！';
+            setTimeout(() => {
+                copyResultBtn.innerText = originalText;
+            }, 1500);
+        }).catch(() => {
+            alert('复制失败，请手动复制');
+        });
+    });
+</script>
+</body>
+</html>
