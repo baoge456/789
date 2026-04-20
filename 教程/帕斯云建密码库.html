@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Alpine Linux 纯IPv6 部署 Vaultwarden 密码管理器 | 完整教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0e1a;
+            color: #e2e8f0;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Roboto Mono', monospace;
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #111827;
+            border-radius: 28px;
+            box-shadow: 0 25px 40px -12px rgba(0,0,0,0.6);
+            overflow: hidden;
+            border: 1px solid #1f2a3e;
+        }
+        header {
+            background: #0f172a;
+            padding: 2rem 2rem 1.5rem;
+            border-bottom: 1px solid #1e293b;
+        }
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #a5f3fc, #7c3aed);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+        .badge-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+            margin: 1.2rem 0 0.5rem;
+        }
+        .badge {
+            background: #1e293b;
+            padding: 0.25rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #94a3b8;
+            border: 1px solid #334155;
+        }
+        .badge.accent {
+            background: #2e1065;
+            color: #c4b5fd;
+            border-color: #5b21b6;
+        }
+        .content {
+            padding: 2rem;
+        }
+        .info-card {
+            background: #0f172a;
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #1f2a44;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+            gap: 1rem;
+            margin-top: 0.8rem;
+        }
+        .info-item {
+            background: #02061770;
+            padding: 0.8rem 1rem;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            border-left: 3px solid #3b82f6;
+        }
+        .info-item strong {
+            color: #a5f3fc;
+        }
+        h2 {
+            font-size: 1.5rem;
+            margin: 1.8rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #2d3a5e;
+            display: inline-block;
+            letter-spacing: -0.2px;
+        }
+        h3 {
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.8rem;
+            color: #cbd5e1;
+        }
+        pre {
+            background: #010409;
+            padding: 1.2rem;
+            border-radius: 18px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            margin: 1rem 0 1.2rem;
+            border: 1px solid #2d3748;
+            position: relative;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        code {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: #1e293b;
+            padding: 0.2rem 0.4rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #facc15;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: #2d3748;
+            border: none;
+            color: #e2e8f0;
+            font-size: 0.7rem;
+            padding: 4px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+        }
+        .copy-btn:hover {
+            background: #4b5563;
+        }
+        .cmd-block {
+            position: relative;
+            margin: 1.2rem 0;
+        }
+        .note {
+            background: #1e1b2e;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem 1.2rem;
+            border-radius: 16px;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .success {
+            background: #0b2e1f;
+            border-left-color: #10b981;
+        }
+        footer {
+            background: #0b0f1a;
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.8rem;
+            color: #5b6e8c;
+            border-top: 1px solid #1e2a3a;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: #0f172a;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        th, td {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid #1f2a44;
+        }
+        th {
+            background: #1e293b;
+            color: #cbd5e6;
+        }
+        @media (max-width: 680px) {
+            .content {
+                padding: 1rem;
+            }
+            pre {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🔐 自托管密码管理器 · 极简部署教程</h1>
+        <div class="badge-group">
+            <span class="badge">🖥️ 服务器: Alpine 3.19</span>
+            <span class="badge">🌐 纯IPv6环境</span>
+            <span class="badge">🧠 256MB内存 + 1GB硬盘</span>
+            <span class="badge accent">🚀 Vaultwarden + Caddy (自动HTTPS)</span>
+        </div>
+        <div class="badge-group">
+            <span class="badge">🌍 域名: mima.baoge456.de5.net</span>
+            <span class="badge">📍 IPv6: 2604:abc0:103:413:6::15</span>
+        </div>
+    </header>
+    <div class="content">
+        <div class="info-card">
+            <p>✨ <strong>最终成果</strong> — 通过浏览器访问 <strong><span style="color:#7eccff;">https://mima.baoge456.de5.net</span></strong> 即可使用密码管理器，所有密码加密保存，跨设备同步，完全自托管，数据自己掌控！</p>
+            <div class="info-grid">
+                <div class="info-item"><strong>📦 服务组件</strong><br>Vaultwarden (Rust版Bitwarden) + Caddy 反向代理</div>
+                <div class="info-item"><strong>🔒 HTTPS</strong><br>Let's Encrypt 自动证书，全自动续期</div>
+                <div class="info-item"><strong>📱 客户端</strong><br>Bitwarden 官方App / 浏览器插件，自托管模式接入</div>
+                <div class="info-item"><strong>⚡ 资源占用</strong><br>内存 ~60-90MB，硬盘 &lt;200MB</div>
+            </div>
+        </div>
+
+        <!-- 步骤0：前置条件 -->
+        <h2>📌 0. 前提条件</h2>
+        <ul style="margin-left: 1.8rem; margin-bottom: 1rem;">
+            <li>✅ 服务器已重置为 <code>Alpine Linux 3.19</code> (干净环境)</li>
+            <li>✅ 服务器仅有IPv6地址 <code>2604:abc0:103:413:6::15</code>，且已配置好网络</li>
+            <li>✅ 域名 <code>mima.baoge456.de5.net</code> 已添加 <strong>AAAA记录</strong> 指向上述IPv6地址</li>
+        </ul>
+        <div class="note">
+            💡 <strong>验证域名解析</strong>：在本地或服务器运行 <code>nslookup mima.baoge456.de5.net</code> 或 <code>ping6 mima.baoge456.de5.net</code>，应返回 <code>2604:abc0:103:413:6::15</code>。<br>
+            如果未解析，请先登录DNS管理面板添加 AAAA 记录，等待生效 (通常5~10分钟)。
+        </div>
+
+        <!-- 步骤1 安装docker -->
+        <h2>🐳 1. 安装 Docker + Docker Compose (Alpine)</h2>
+        <div class="cmd-block">
+            <pre id="cmd1"><button class="copy-btn" data-target="cmd1">📋 复制</button># 更新软件源并安装 docker 及相关组件
+apk update
+apk add docker docker-cli-compose
+
+# 设置 docker 开机自启并立即启动
+rc-update add docker default
+service docker start
+
+# 验证 docker 运行正常
+docker ps</pre>
+        </div>
+
+        <h2>📁 2. 创建 Vaultwarden 数据目录</h2>
+        <div class="cmd-block">
+            <pre id="cmd2"><button class="copy-btn" data-target="cmd2">📋 复制</button>mkdir -p /opt/vaultwarden/data
+cd /opt/vaultwarden</pre>
+        </div>
+
+        <!-- 整合caddy + vaultwarden 全新配置，真实域名 mima.baoge456.de5.net -->
+        <h2>⚙️ 3. 部署 Caddy + Vaultwarden (一键 HTTPS)</h2>
+        <div class="note">
+            🧩 使用 Caddy 自动申请 Let's Encrypt 证书，配置极简，内存占用低，完美适配 256MB 机器。
+        </div>
+        <div class="cmd-block">
+            <pre id="cmd3"><button class="copy-btn" data-target="cmd3">📋 复制</button># 创建 Caddy 工作目录
+mkdir -p /opt/caddy
+cd /opt/caddy
+
+# 创建 Caddyfile (域名已替换为真实地址)
+cat > Caddyfile << 'EOF'
+{
+    email admin@baoge456.de5.net
+}
+
+mima.baoge456.de5.net {
+    reverse_proxy vaultwarden:80
+}
+EOF
+
+# 创建 docker-compose.yml (整合 vaultwarden 与 caddy)
+cat > docker-compose.yml << 'EOF'
+version: '3'
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: always
+    volumes:
+      - /opt/vaultwarden/data:/data
+    environment:
+      - WEBSOCKET_ENABLED=true
+      - SIGNUPS_ALLOWED=true
+      - DOMAIN=https://mima.baoge456.de5.net
+    expose:
+      - 80
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
+EOF
+
+# 启动服务 (拉取镜像并后台运行)
+docker-compose up -d</pre>
+        </div>
+
+        <h2>🔍 4. 验证服务状态 & HTTPS 证书</h2>
+        <div class="cmd-block">
+            <pre id="cmd4"><button class="copy-btn" data-target="cmd4">📋 复制</button># 查看容器运行状态
+docker-compose ps
+
+# 实时查看日志 (等待证书获取，看到 "serving https" 即成功)
+docker-compose logs -f --tail 30
+
+# 单独检查 caddy 日志是否成功获取 SSL
+docker logs caddy | grep -i "certificate\|https"</pre>
+        </div>
+        <div class="note success">
+            ✅ 当日志中出现 <code>"certificate obtained successfully"</code> 或 <code>"serving https"</code> 字样，说明 HTTPS 已生效！此时可以关闭日志（Ctrl+C）。
+        </div>
+
+        <h2>🌐 5. 访问密码管理器 & 注册管理员账户</h2>
+        <div class="info-card">
+            <p>🎉 打开浏览器访问：<strong style="font-size:1.2rem; background:#0a0e1a; padding:0.2rem 0.8rem; border-radius:20px;">https://mima.baoge456.de5.net</strong></p>
+            <ul style="margin-top: 12px;">
+                <li>点击「创建账户」—— 第一个注册的用户自动成为管理员。</li>
+                <li>设置名称、邮箱地址、主密码（⚠️ 主密码无法找回，务必牢记）。</li>
+                <li>注册成功后即可登录，创建密码条目，所有数据加密存储在你的服务器上。</li>
+            </ul>
+        </div>
+
+        <h2>📱 6. 多端同步 (手机/电脑/浏览器插件)</h2>
+        <ul>
+            <li>下载官方 <strong>Bitwarden</strong> 应用 (iOS/Android/桌面端) 或安装浏览器插件。</li>
+            <li>点击「登录」→ 选择 <strong>自托管</strong> (Self-hosted)。</li>
+            <li>服务器地址输入：<code>https://mima.baoge456.de5.net</code></li>
+            <li>使用刚才注册的邮箱和主密码登录，所有数据实时同步。</li>
+        </ul>
+        <div class="note">
+            💡 提示：浏览器插件推荐配合生物识别解锁，体验接近官方云服务，但数据完全归你掌控。
+        </div>
+
+        <h2>🧰 7. 常用维护命令</h2>
+        <div class="cmd-block">
+            <pre id="cmd5"><button class="copy-btn" data-target="cmd5">📋 复制</button># 进入部署目录
+cd /opt/caddy
+
+# 重启所有容器
+docker-compose restart
+
+# 停止服务
+docker-compose down
+
+# 启动服务
+docker-compose up -d
+
+# 更新镜像到最新版本
+docker-compose pull
+docker-compose up -d
+
+# 备份 Vaultwarden 数据 (重要！)
+tar -czf /root/vaultwarden-backup-$(date +%Y%m%d).tar.gz /opt/vaultwarden/data
+
+# 查看内存/容器资源占用
+docker stats --no-stream</pre>
+        </div>
+
+        <h2>🚨 8. 排错指南 (纯IPv6重点)</h2>
+        <table>
+            <tr><th>问题现象</th><th>解决方案</th></tr>
+            <tr><td>访问 https 显示 404 或无法连接</td><td>1. 检查域名 AAAA 记录是否指向 <code>2604:abc0:103:413:6::15</code><br>2. 确保服务器 80/443 端口没有被防火墙拦截<br>3. 运行 <code>docker-compose logs caddy</code> 查看详细报错</td></tr>
+            <tr><td>证书申请失败 (acme  error)</td><td>需要确保 Let's Encrypt 能访问你的域名(IPv6)。先测试 <code>curl -6 http://mima.baoge456.de5.net/.well-known/acme-challenge/test</code> 应返回404(表示可访问)，且必须放开 80 端口。</td></tr>
+            <tr><td>docker 命令找不到</td><td>执行 <code>apk add docker docker-cli-compose && service docker start</code></td></tr>
+            <tr><td>IPv6 环境无法拉取镜像?</td><td>Alpine 默认 IPv6 正常，若拉取缓慢可尝试 <code>echo 'nameserver 2001:4860:4860::8888' > /etc/resolv.conf</code> 临时使用 Google DNS。</td></tr>
+            <tr><td>内存不够导致容器被kill</td><td>256MB 完全够用，若同时运行其他程序请释放。可限制 vaultwarden 内存：在 compose 中添加 <code>mem_limit: 128m</code></td></tr>
+        </table>
+
+        <h2>📝 架构总结</h2>
+        <pre style="background:#0b0f17;">用户浏览器 (IPv4/IPv6)
+       │
+       ▼
+https://mima.baoge456.de5.net:443
+       │
+       ▼
+[ Caddy 反向代理 ]  ← 自动申请/续签 Let's Encrypt 证书
+       │   (容器内部通信)
+       ▼
+[ Vaultwarden 容器 ] 监听 80 端口 (数据持久化 /opt/vaultwarden/data)
+       │
+       ▼
+       密码记录加密存储 (SQLite)</pre>
+
+        <div class="note success">
+            🎯 你的密码管理器已经永久部署完成！今后无论身处何地，通过域名即可安全访问，所有密码均保存在自己的服务器，杜绝第三方泄露风险。
+        </div>
+
+        <h2>🔁 9. 备份与恢复 (救命指南)</h2>
+        <div class="cmd-block">
+            <pre id="cmd6"><button class="copy-btn" data-target="cmd6">📋 复制</button># 备份整个数据目录 (包含数据库、附件、配置)
+tar -czf vaultwarden-full-backup.tar.gz /opt/vaultwarden/data
+
+# 恢复步骤:
+# 1. 停止容器: cd /opt/caddy && docker-compose down
+# 2. 清空数据目录: rm -rf /opt/vaultwarden/data/*
+# 3. 解压备份: tar -xzf vaultwarden-full-backup.tar.gz -C /
+# 4. 重启: docker-compose up -d</pre>
+        </div>
+
+        <h2>🎓 教程使用到的真实数据一览</h2>
+        <table>
+            <tr><th>配置项</th><th>真实值</th></tr>
+            <tr><td>服务器IPv6地址</td><td><code>2604:abc0:103:413:6::15</code></td></tr>
+            <tr><td>域名</td><td><code>mima.baoge456.de5.net</code></td></tr>
+            <tr><td>访问地址</td><td><code>https://mima.baoge456.de5.net</code></td></tr>
+            <tr><td>服务端口</td><td>443 (HTTPS) , 80 (HTTP重定向)</td></tr>
+            <tr><td>数据目录</td><td><code>/opt/vaultwarden/data</code></td></tr>
+            <tr><td>Caddy配置目录</td><td><code>/opt/caddy</code></td></tr>
+            <tr><td>容器网络</td><td>内部桥接 (expose 80, 不暴露公网)</td></tr>
+        </table>
+
+        <div class="note">
+            📢 所有命令均已使用你真实的环境数据（域名、IPv6），复制粘贴即可执行，无需任何修改。如果遇到“docker-compose: command not found”，请先安装 <code>docker-cli-compose</code>（已在第一步安装）。
+        </div>
+        <div class="note">
+            🔐 安全建议：注册完成后，建议在管理后台禁用新用户注册（若仅供个人使用），环境变量可修改 <code>SIGNUPS_ALLOWED=false</code> 并重启容器。
+        </div>
+    </div>
+    <footer>
+        🛡️ 完全自托管 · 数据主权在你手中 · 基于 Alpine + Docker + Vaultwarden + Caddy 构建<br>
+        教程生成时间: 2026-04-20 | 适用于 1核256MB 纯IPv6服务器
+    </footer>
+</div>
+
+<script>
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            const targetId = this.getAttribute('data-target');
+            const preElement = document.getElementById(targetId);
+            // 获取代码内容（移除按钮本身干扰，克隆节点后提取文本）
+            const clone = preElement.cloneNode(true);
+            const btnClone = clone.querySelector('.copy-btn');
+            if(btnClone) btnClone.remove();
+            let codeText = clone.innerText || clone.textContent;
+            // 去除开头可能的空白和换行符
+            codeText = codeText.trim();
+            navigator.clipboard.writeText(codeText).then(() => {
+                const originalText = btn.innerText;
+                btn.innerText = '✅ 已复制';
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                }, 1800);
+            }).catch(err => {
+                console.error('复制失败', err);
+                btn.innerText = '❌ 失败';
+                setTimeout(() => {
+                    btn.innerText = '📋 复制';
+                }, 1000);
+            });
+        });
+    });
+</script>
+<!-- ========== 登录验证脚本 开始 ========== -->
+<style>
+#login_overlay {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+
+
+  background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+              url('https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN') center/cover fixed;
+
+  /*background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                url('https://s3.bmp.ovh/imgs/2025/12/06/2eecac904df39972.png') center/cover fixed;*/
+
+   /*background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                url('https://picsum.photos/1920/1080?random=1') center/cover fixed;*/
+
+    /* 快加载渐变背景，启用时注释上面在用的行 */
+    /* background: linear-gradient(135deg, #2c3e50, #4ca1af); */
+
+
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999999;
+}
+#login_box {
+  background: #fff; padding: 30px; border-radius: 16px;
+  width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+#login_box h3 { margin: 0 0 20px; font-size: 18px; }
+#pwd_input {
+  width: 100%; padding: 12px; margin-bottom: 15px;
+  border: 1px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center;
+}
+#login_btn {
+  width: 100%; padding: 12px; background: #3b82f6; color: #fff;
+  border: none; border-radius: 8px; font-size: 16px; cursor:pointer;
+}
+#login_btn:hover { background: #2563eb; }
+</style>
+
+<div id="login_overlay">
+  <div id="login_box">
+    <h3>🔒 请输入访问密码</h3>
+    <input type="password" id="pwd_input" placeholder="输入密码">
+    <button id="login_btn">确认进入</button>
+  </div>
+</div>
+
+<script>
+const REMEMBER_LOGIN = false;  // true=记住登录  false=每次都验证
+const LOGIN_KEY = "is_login_success";
+
+// ✅ 正确的  SHA256
+const CORRECT_HASH = "06a9e94ceb731a81b5ed9119cd359f1883ed808cd20baa6277018b9ca3dc3975";
+
+async function sha256(text) {
+  const enc = new TextEncoder();
+  const hash = await crypto.subtle.digest("SHA-256", enc.encode(text));
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+if (REMEMBER_LOGIN && localStorage.getItem(LOGIN_KEY) === "true") {
+  document.getElementById("login_overlay").remove();
+}
+
+async function check() {
+  const val = document.getElementById("pwd_input").value.trim();
+  const inputHash = await sha256(val);
+  
+  if (inputHash === CORRECT_HASH) {
+    if (REMEMBER_LOGIN) localStorage.setItem(LOGIN_KEY, "true");
+    document.getElementById("login_overlay").remove();
+  } else {
+    alert("密码错误");
+  }
+}
+
+document.getElementById("login_btn").onclick = check;
+document.getElementById("pwd_input").onkeydown = e => { if(e.key==="Enter") check() };
+setTimeout(() => document.getElementById("pwd_input").focus(), 100);
+</script>
+<!-- ========== 登录验证脚本 结束 ========== -->
+</body>
+</html>
