@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVPN 配置优化器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8899aa;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .panels {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .panel {
+            flex: 1;
+            min-width: 400px;
+            background: #0f0f1a;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .panel-header {
+            background: #1e1e2e;
+            padding: 15px 20px;
+            border-bottom: 1px solid #2a2a3a;
+        }
+        .panel-header h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 18px;
+        }
+        .panel-header p {
+            margin: 5px 0 0;
+            color: #8899aa;
+            font-size: 12px;
+        }
+        textarea {
+            width: 100%;
+            height: 500px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            border: none;
+            resize: vertical;
+            outline: none;
+        }
+        .button-area {
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            background: #1e1e2e;
+        }
+        button {
+            background: #2a6f5c;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #3a8f7c;
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .copy-btn {
+            background: #3a5a8a;
+        }
+        .copy-btn:hover {
+            background: #4a7aaa;
+        }
+        .clear-btn {
+            background: #5a3a3a;
+        }
+        .clear-btn:hover {
+            background: #7a4a4a;
+        }
+        .status {
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            background: #1e1e2e;
+            border-top: 1px solid #2a2a3a;
+            color: #6a8a6a;
+        }
+        .status.error {
+            color: #d47a7a;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #667788;
+            font-size: 12px;
+        }
+        @media (max-width: 900px) {
+            .panels {
+                flex-direction: column;
+            }
+            .panel {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔐 OpenVPN 配置优化器</h1>
+    <div class="subtitle">解决断流、适配器假死、DCO 不兼容等问题 | 支持 2.5+ 版本</div>
+
+    <div class="panels">
+        <!-- 左侧：输入 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3>📄 原始配置（粘贴到这里）</h3>
+                <p>粘贴你的 .ovpn 文件内容（支持带注释的完整配置）</p>
+            </div>
+            <textarea id="inputConfig" placeholder='粘贴你的 OpenVPN 配置文件内容...
+例如：
+client
+dev tun
+proto udp
+remote 8.217.131.234 1194
+...'></textarea>
+            <div class="button-area">
+                <button id="optimizeBtn">✨ 生成优化配置</button>
+                <button id="clearInputBtn" class="clear-btn">🗑 清空输入</button>
+            </div>
+        </div>
+
+        <!-- 右侧：输出 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3>✅ 优化后的配置（直接复制）</h3>
+                <p>已添加 disable-dco、data-ciphers、MTU 优化、心跳保活等参数</p>
+            </div>
+            <textarea id="outputConfig" readonly placeholder="点击「生成优化配置」后，优化结果将显示在这里..." style="background: #0a0a15;"></textarea>
+            <div class="button-area">
+                <button id="copyBtn" class="copy-btn">📋 复制到剪贴板</button>
+                <button id="clearOutputBtn" class="clear-btn">🗑 清空输出</button>
+            </div>
+            <div id="status" class="status">⚡ 等待操作</div>
+        </div>
+    </div>
+    <div class="footer">
+        ⚡ 优化说明：删除过时的 persist-key | 添加 disable-dco（解决 DCO 问题）| 添加 data-ciphers 消除警告 |
+        添加 route-method exe / route-delay 3 | 添加 MTU 优化 (tun-mtu 1400, mssfix 1360) |
+        添加心跳保活 (ping 10, ping-restart 60, ping-timer-rem) | 日志精简 (verb 1, mute 10)
+    </div>
+</div>
+
+<script>
+    // 优化函数
+    function optimizeConfig(original) {
+        if (!original.trim()) {
+            return { success: false, error: "请输入原始配置内容" };
+        }
+
+        let lines = original.split(/\r?\n/);
+        let resultLines = [];
+        let insideBlock = false;
+        let currentBlock = null;
+        let blockContent = [];
+        
+        // 需要删除的行关键词（完全匹配或前缀匹配）
+        const removeKeywords = ['persist-key', 'verb 3', 'verb 4', 'verb 2', 'mute', 'reconnect'];
+        
+        // 需要替换或追加的参数
+        let hasDev = false;
+        let hasProto = false;
+        let hasRemote = false;
+        let hasResolvRetry = false;
+        let hasNobind = false;
+        let hasPersistTun = false;
+        let hasRemoteCertTls = false;
+        let hasAuth = false;
+        let hasIgnoreUnknown = false;
+        let hasCert = false;
+        let hasKey = false;
+        let hasCa = false;
+        let hasTlsCrypt = false;
+        
+        // 标记是否已经有某些优化参数
+        let hasDisableDco = false;
+        let hasDataCiphers = false;
+        let hasDataCiphersFallback = false;
+        let hasRouteMethod = false;
+        let hasRouteDelay = false;
+        let hasTunMtu = false;
+        let hasMssfix = false;
+        let hasPing = false;
+        let hasPingRestart = false;
+        let hasPingTimerRem = false;
+        let hasVerb = false;
+        let hasMuteLine = false;
+        
+        // 先提取所有行，处理 block 标签
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            let trimmed = line.trim();
+            
+            // 检测 block 开始
+            if (trimmed === '<cert>' || trimmed === '<key>' || trimmed === '<ca>' || trimmed === '<tls-crypt>') {
+                insideBlock = true;
+                currentBlock = trimmed;
+                blockContent = [line];
+                continue;
+            }
+            
+            // 检测 block 结束
+            if (insideBlock && (trimmed === '</cert>' || trimmed === '</key>' || trimmed === '</ca>' || trimmed === '</tls-crypt>')) {
+                blockContent.push(line);
+                // 输出整个 block
+                resultLines.push(...blockContent);
+                insideBlock = false;
+                currentBlock = null;
+                blockContent = [];
+                continue;
+            }
+            
+            // 如果在 block 内部，收集内容
+            if (insideBlock) {
+                blockContent.push(line);
+                continue;
+            }
+            
+            // 正常行处理
+            let lowerLine = line.toLowerCase();
+            
+            // 跳过空行（保留空行会在后续处理）
+            // 检查是否需要删除
+            let shouldRemove = false;
+            for (let kw of removeKeywords) {
+                if (lowerLine.startsWith(kw)) {
+                    shouldRemove = true;
+                    break;
+                }
+            }
+            
+            // 跳过 persist-key（不管在哪里）
+            if (lowerLine.includes('persist-key')) {
+                shouldRemove = true;
+            }
+            
+            // 检测已有的优化参数
+            if (lowerLine.includes('disable-dco')) hasDisableDco = true;
+            if (lowerLine.includes('data-ciphers') && !lowerLine.includes('fallback')) hasDataCiphers = true;
+            if (lowerLine.includes('data-ciphers-fallback')) hasDataCiphersFallback = true;
+            if (lowerLine.includes('route-method')) hasRouteMethod = true;
+            if (lowerLine.includes('route-delay')) hasRouteDelay = true;
+            if (lowerLine.includes('tun-mtu')) hasTunMtu = true;
+            if (lowerLine.includes('mssfix')) hasMssfix = true;
+            if (lowerLine.startsWith('ping ') && !lowerLine.includes('restart')) hasPing = true;
+            if (lowerLine.includes('ping-restart')) hasPingRestart = true;
+            if (lowerLine.includes('ping-timer-rem')) hasPingTimerRem = true;
+            if (lowerLine.startsWith('verb ')) hasVerb = true;
+            if (lowerLine.startsWith('mute ')) hasMuteLine = true;
+            
+            // 检测基础参数
+            if (lowerLine.startsWith('dev ')) hasDev = true;
+            if (lowerLine.startsWith('proto ')) hasProto = true;
+            if (lowerLine.startsWith('remote ')) hasRemote = true;
+            if (lowerLine.startsWith('resolv-retry')) hasResolvRetry = true;
+            if (lowerLine.startsWith('nobind')) hasNobind = true;
+            if (lowerLine.startsWith('persist-tun')) hasPersistTun = true;
+            if (lowerLine.startsWith('remote-cert-tls')) hasRemoteCertTls = true;
+            if (lowerLine.startsWith('auth ')) hasAuth = true;
+            if (lowerLine.includes('ignore-unknown-option')) hasIgnoreUnknown = true;
+            
+            // 检测证书块
+            if (lowerLine === '<cert>') hasCert = true;
+            if (lowerLine === '<key>') hasKey = true;
+            if (lowerLine === '<ca>') hasCa = true;
+            if (lowerLine === '<tls-crypt>') hasTlsCrypt = true;
+            
+            // 保留不以 removeKeywords 开头的行
+            if (!shouldRemove) {
+                resultLines.push(line);
+            }
+        }
+        
+        // 找到插入优化参数的位置（在 tls-crypt 块之后，或者文件末尾）
+        let insertIndex = resultLines.length;
+        
+        // 查找最后一个 block 结束的位置
+        for (let i = resultLines.length - 1; i >= 0; i--) {
+            let line = resultLines[i].trim();
+            if (line === '</tls-crypt>') {
+                insertIndex = i + 1;
+                break;
+            }
+            if (line === '</ca>') {
+                insertIndex = i + 1;
+                break;
+            }
+            if (line === '</key>') {
+                insertIndex = i + 1;
+                break;
+            }
+            if (line === '</cert>') {
+                insertIndex = i + 1;
+                break;
+            }
+        }
+        
+        // 构建优化参数块
+        let optParams = [];
+        optParams.push('');
+        optParams.push('# ===== 以下为优化参数（解决断流、适配器假死等问题）=====');
+        
+        if (!hasDisableDco) {
+            optParams.push('disable-dco');
+        }
+        
+        if (!hasDataCiphers) {
+            optParams.push('data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305');
+        }
+        if (!hasDataCiphersFallback) {
+            optParams.push('data-ciphers-fallback AES-256-CBC');
+        }
+        
+        if (!hasRouteMethod) {
+            optParams.push('route-method exe');
+        }
+        if (!hasRouteDelay) {
+            optParams.push('route-delay 3');
+        }
+        
+        if (!hasTunMtu) {
+            optParams.push('tun-mtu 1400');
+        }
+        if (!hasMssfix) {
+            optParams.push('mssfix 1360');
+        }
+        
+        if (!hasPing) {
+            optParams.push('ping 10');
+        }
+        if (!hasPingRestart) {
+            optParams.push('ping-restart 60');
+        }
+        if (!hasPingTimerRem) {
+            optParams.push('ping-timer-rem');
+        }
+        
+        // verb 处理：默认 verb 1
+        if (hasVerb) {
+            // 已有 verb，但可能值不是 1，替换掉原来的
+            for (let i = 0; i < resultLines.length; i++) {
+                if (resultLines[i].trim().startsWith('verb ')) {
+                    resultLines[i] = 'verb 1';
+                    break;
+                }
+            }
+        } else {
+            optParams.push('verb 1');
+        }
+        
+        // mute 处理
+        if (!hasMuteLine) {
+            optParams.push('mute 10');
+        } else {
+            for (let i = 0; i < resultLines.length; i++) {
+                if (resultLines[i].trim().startsWith('mute ')) {
+                    resultLines[i] = 'mute 10';
+                    break;
+                }
+            }
+        }
+        
+        // 插入优化参数
+        resultLines.splice(insertIndex, 0, ...optParams);
+        
+        // 确保末尾有换行
+        let result = resultLines.join('\n');
+        
+        // 清理多余的空行（连续多个空行变成一个）
+        result = result.replace(/\n\s*\n\s*\n/g, '\n\n');
+        
+        return { success: true, config: result };
+    }
+    
+    // DOM 元素
+    const inputTextarea = document.getElementById('inputConfig');
+    const outputTextarea = document.getElementById('outputConfig');
+    const optimizeBtn = document.getElementById('optimizeBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const clearInputBtn = document.getElementById('clearInputBtn');
+    const clearOutputBtn = document.getElementById('clearOutputBtn');
+    const statusDiv = document.getElementById('status');
+    
+    // 显示状态
+    function setStatus(message, isError = false) {
+        statusDiv.textContent = message;
+        statusDiv.className = isError ? 'status error' : 'status';
+        setTimeout(() => {
+            if (statusDiv.textContent === message) {
+                // 保留状态但不清除
+            }
+        }, 3000);
+    }
+    
+    // 优化按钮
+    optimizeBtn.addEventListener('click', () => {
+        const original = inputTextarea.value;
+        if (!original.trim()) {
+            setStatus('❌ 请在左侧粘贴原始配置文件内容', true);
+            return;
+        }
+        
+        const result = optimizeConfig(original);
+        if (result.success) {
+            outputTextarea.value = result.config;
+            setStatus('✅ 优化完成！右侧配置可直接复制使用');
+        } else {
+            setStatus(`❌ 优化失败：${result.error}`, true);
+        }
+    });
+    
+    // 复制按钮
+    copyBtn.addEventListener('click', async () => {
+        const config = outputTextarea.value;
+        if (!config.trim()) {
+            setStatus('❌ 没有可复制的内容，请先生成优化配置', true);
+            return;
+        }
+        
+        try {
+            await navigator.clipboard.writeText(config);
+            setStatus('📋 已复制到剪贴板！');
+        } catch (err) {
+            // 降级方案
+            outputTextarea.select();
+            document.execCommand('copy');
+            setStatus('📋 已复制到剪贴板！');
+        }
+    });
+    
+    // 清空输入
+    clearInputBtn.addEventListener('click', () => {
+        inputTextarea.value = '';
+        setStatus('🗑 输入已清空');
+    });
+    
+    // 清空输出
+    clearOutputBtn.addEventListener('click', () => {
+        outputTextarea.value = '';
+        setStatus('🗑 输出已清空');
+    });
+    
+    // 预置示例（你刚才的配置作为示例）
+    const exampleConfig = `client
+dev tun
+proto udp
+remote 8.217.131.234 1194
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+auth SHA512
+ignore-unknown-option block-outside-dns
+verb 3
+
+<cert>
+-----BEGIN CERTIFICATE-----
+MIIDVjCCAj6gAwIBAgIQPO63yyCuMWy34NNrWMtMoTANBgkqhkiG9w0BAQsFADAW
+MRQwEgYDVQQDDAtFYXN5LVJTQSBDQTAeFw0yNjA0MjAxMjI5NDVaFw0zNjA0MTcx
+MjI5NDVaMBMxETAPBgNVBAMMCDIwMjYwNDIwMIIBIjANBgkqhkiG9w0BAQEFAAOC
+AQ8AMIIBCgKCAQEA1QoI2rB+JgKlJlavIMAMefjyfmbkmJv8wFcG10yy4LbdcHXQ
+kuFQagRP275KdWzaNjC7f6BUZ3cfZXFat9JJ736k8k+ujBsE2OjOn78WEes0n2Wx
+GGvLWjHsRXKarnX3a1A5taa2+zuvchbGTpceXY61OTxFCIywqMevtgQyNizbMATf
+JDRBrptsak76rEkrGYcBJBu0viHK+7l9u9mIJ9BcqDIzqtNidrILix2XfBiiXwhO
+R/5ACDfCphI0qFOCWM7seLxRdW7CbATFPF2Y4mZQrqPfyK16HYNxEqrzIspyDz9i
+62UfQZ8X6RxlHNxoGetmL7iQ4WbFg+T0svgOUQIDAQABo4GiMIGfMAkGA1UdEwQC
+MAAwHQYDVR0OBBYEFMmgg00NLPLaJ1m0r16eoVY2PvmmMFEGA1UdIwRKMEiAFL9M
+sMiQKY9NAwv0dV2hAHsD2WHNoRqkGDAWMRQwEgYDVQQDDAtFYXN5LVJTQSBDQYIU
+fxxZMUq4m68X+o0QEHcJ5d/7CUMwEwYDVR0lBAwwCgYIKwYBBQUHAwIwCwYDVR0P
+BAQDAgeAMA0GCSqGSIb3DQEBCwUAA4IBAQBN+2zWZqqvh3WN5ov1kKcUZgD/8TkJ
+h08waa/hJs7NfN5xp0aOWrIjeKg+6YTuo6PDhSTBkNzmOVqaQhPEbd0fIrjNY7rm
+tVtGFau7MZWvNQMiZ21wPKV0drbmmkFXz/Qe6BlRF1mcTx81YcY+WNnYXtr/2Dz/
+BykTTLoGtJuSAic9dPD58NbaA+FAFxtmZdY3ZC/iKJ3YtSSnotUpwVcsCj6OOchZ
+FyjXmgLLKrryVnaOCz55rOPPNHDSo8/w5PFV8qj7PYhlCjJxHHpsFUtK5nCVaniv
+FL3bkophiH+BvFL/r7Yl/4GWSaMdG4DTnZwVkd6sIsrzcUEmCdaSjWQZ
+-----END CERTIFICATE-----
+</cert>
+
+<key>
+-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDVCgjasH4mAqUm
+Vq8gwAx5+PJ+ZuSYm/zAVwbXTLLgtt1wddCS4VBqBE/bvkp1bNo2MLt/oFRndx9l
+cVq30knvfqTyT66MGwTY6M6fvxYR6zSfZbEYa8taMexFcpqudfdrUDm1prb7O69y
+FsZOlx5djrU5PEUIjLCox6+2BDI2LNswBN8kNEGum2xqTvqsSSsZhwEkG7S+Icr7
+uX272Ygn0FyoMjOq02J2sguLHZd8GKJfCE5H/kAIN8KmEjSoU4JYzux4vFF1bsJs
+BMU8XZjiZlCuo9/IrXodg3ESqvMiynIPP2LrZR9BnxfpHGUc3GgZ62YvuJDhZsWD
+5PSy+A5RAgMBAAECggEAAvt2lnEi19DEXAqk9WbM76ada/t7R6iADcU9lolg+6u5
+O65b7SgEe4NHgVilx1KbVw6aSExFBP6kTMl2AnldiRPsN0m6LuPUjBs7bcYwjIMO
+92V80m9vhc1oU0gI3Svr76zGvo+Xo44EYoPp+PBIXmiRaM0kRppoM2NFGo+sCrUg
+HXOb2XNyfzQg6x2jwhLEOO8dftgggi54O6kaWnZUx+dNJjrw+vnvolIbE7DnfyA6
+BHvMZYuS7fOZ4iF6ga0NbjN13NzxU+iQ2won+vtuqLzlCDW3epVhrknvgj61qWaA
+4rSPrm+LeHpHMJTdGGRrD7LsnqEFPMWB5cX37lR/TQKBgQDrPjNejfkfC60LEiYk
+6B9w5IIskrfCLdQifnX6OxfIikNuf65m5nXgqa9igsUNrRwQr6XRNqUwjx9z0jaz
+BCoE0wv3HSSpWUr2FNYS8sqBRbUNiKbRsPKtQuHKIsHGGt+WgEW6Zch0vRCv8M6Z
+R0aGCrjTsD3rzCxYStKAzUuUHwKBgQDn1khfsS24NrtwlkDz1kNp2suLPZPtvv5t
+y00FeXTV9T4qefgKJ4IPh4qo3vTO9AfJpYMSjIJiKh/dIJbXvHoBfFdRCPEmkXaC
+EY2HFSuC3HMvjNRwSpDbxX7BhExxVyq57j7WQskoDgXRgpVFl/4zsz1zaBqVZLp9
+GS1+KZ2PjwKBgCudmbqjShg2evv9fnMDUqkExRnsjgODqbxHhCpEAJHfCMeZBsXv
+XtWrwGfcZRq3COgTGQRkRFZvgt5fkGK6l+vTEXncvmpjsuFTVamnuGIlgX8j4gIo
+86WqK+DldtX7L49g8wyvSG5Ui56DYFrM+0do/4HIQILSlTo9jS/yYFvzAoGBAJWC
+Qzoy8OETqt14iHq3etIRH6K0G2n++eWkbg9RvF8ewPBzp9okkGOjbXBqGEY+aadI
+7bZQluTndZUNJzoJekTrAwRnV90fgeVvnG244U6LDF1l3Lpt2+1e99ekkgelxxAQ
+7MUQXNlP8cCjDdDLrEt7E+4Q/NPLGdkDG6t4+vtRAoGAALiAUkclCbFDp1eWtt3z
+sIaVyQ2M6xt00gUq+SYR8SH6j8bi8+kKJqCeF3k9w025o1h/IjtgpAxwpBaU2Q/k
+GlW0vTrpkLG12eeRnJdrQ/7O7w1pHIg6WXKNAoOhzseyGcFLb0J741/kH4svRkqJ
+2yJCp2LLl/jW06abZIZfeJI=
+-----END PRIVATE KEY-----
+</key>
+
+<ca>
+-----BEGIN CERTIFICATE-----
+MIIDSzCCAjOgAwIBAgIUfxxZMUq4m68X+o0QEHcJ5d/7CUMwDQYJKoZIhvcNAQEL
+BQAwFjEUMBIGA1UEAwwLRWFzeS1SU0EgQ0EwHhcNMjUwODA5MTYzMjIxWhcNMzUw
+ODA3MTYzMjIxWjAWMRQwEgYDVQQDDAtFYXN5LVJTQSBDQTCCASIwDQYJKoZIhvcN
+AQEBBQADggEPADCCAQoCggEBAKBX09P4sodftCsoadf8syU6OcKjrNi8S19nYo/V
+cjhXHDMjQKPnOU5PocAB95AAdvRoOHvT+AOtZJrLT6gjcAVw4zIGukY2o7ISleMi
+HB+JAGhqW80squUM1XXfCViDKgW3GcacIQ6z5PQgcGXaqan2RBNm7+Rs75TISdmk
+bXajEXqb5rzPLmoGRc+suMWcHfRzIJxlJBkaWv6h0q0qF4crdoJNpv3PnyVxI1JE
+ElxdxXubWv6tZ9go40kNtaONQB3o+w9yd0thkVVW4Tu/zQg6jQQTGUKScg49wimz
+S2+fzwf3oRtbM0IhGiKM9bznvJMg0GpoIb4PRh3OqeidptMCAwEAAaOBkDCBjTAM
+BgNVHRMEBTADAQH/MB0GA1UdDgQWBBS/TLDIkCmPTQML9HVdoQB7A9lhzTBRBgNV
+HSMESjBIgBS/TLDIkCmPTQML9HVdoQB7A9lhzaEapBgwFjEUMBIGA1UEAwwLRWFz
+eS1SU0EgQ0GCFH8cWTFKuJuvF/qNEBB3CeXf+wlDMAsGA1UdDwQEAwIBBjANBgkq
+hkiG9w0BAQsFAAOCAQEAHDuClq7TVp9/sD3HzUe49x9lCICXxClQvmBAwP6LvFzK
+BBjIk/E1s2lAI8pIFiSrIkYGLr4XaHQrk9EupMgP2CCfgv18FokCFQOaGR/4v0tM
+s0C8UiCOXrLNLoLkGO+mwYrWxvLvNpXlxOKjwb21n2GUv+fdA8x6B38q2/0HjOjk
+cEaWfGmz8mTtqNq3YxM+zMWd6qnCPyPWqLfWgk5VMEQDHmMSmBkL0cPnNPGvGRAW
+aK5chZE/qUa92NG29mBeSUlSWe7WcWDApqyuM5vUYIBbb9nYet26IZtHYe04ymH3
+mfkY67zxI1IVbVUNl6+qMI0U9G1G+nBudFneIrWxjQ==
+-----END CERTIFICATE-----
+</ca>
+
+<tls-crypt>
+-----BEGIN OpenVPN Static key V1-----
+ac7c38d8b1167de1ef195b16c4e3b8c1
+24b8bda5b17da3d37b7c86003942bd78
+f2f65989516f3cd712988c18779939bf
+e76866546607e6e3ed446b441b48dd39
+fb9cabddca1a04db681e39e7f2deee8c
+086893cfa6e3d66c8540307e8ffbb1ca
+b2538702f9bffbc98d2a0b107b4e18a5
+ea1488fb189894f4101c82b8a3ddb0fc
+7eee60dff30b35e52a8a0da7b1052f6e
+626c8255a078ea9a1da56fe66c3e8b04
+c17cd5cfcc84a02e17da33b5061607e7
+2339115797a201cc4cc974eb113587dd
+441c0c5bf9efc2600ec847fdb35cb035
+41b33849434575497747c358a8e2ba79
+f71b032ae29c8dfb86ce1fe897314e5b
+2dd0f3287c8ea5c554dc755524a27391
+-----END OpenVPN Static key V1-----
+</tls-crypt>`;
+    
+    // 可选：预置示例（注释掉，让用户自己粘贴）
+    // inputTextarea.value = exampleConfig;
+</script>
+</body>
+</html>
