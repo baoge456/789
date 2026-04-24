@@ -192,22 +192,6 @@
             color: #1e3a8a;
         }
         
-        .global-copy {
-            background: #1e293b;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 40px;
-            color: white;
-            font-weight: 500;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-        }
-        .global-copy:hover {
-            background: #f97316;
-        }
-
         .toast-msg {
             position: fixed;
             bottom: 22px;
@@ -299,8 +283,28 @@
                     <span class="badge-owner">⭐ 裤佬推荐</span>
                     <span style="font-size: 0.7rem; color:#b45309;">GitHub 私人书签 · 精品聚合</span>
                 </div>
-                <div style="margin-top: 20px;">
-                    <button id="copyAllBtn" class="global-copy">📑 一键复制全部链接</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：Stymei全网综合分享面板 -->
+    <div class="grid-panels" style="margin-top: -0.8rem;">
+        <div class="card">
+            <div class="card-header">
+                <i>🌐</i>
+                <h2>Stymei全网综合分享</h2>
+            </div>
+            <div class="card-content">
+                <div class="source-item">
+                    <span class="link-url">https://raw.githubusercontent.com/Jsnzkpg/Jsnzkpg/refs/heads/Jsnzkpg/Jsnzkpg1.m3u</span>
+                    <div class="button-group">
+                        <button class="btn-copy" data-url="https://raw.githubusercontent.com/Jsnzkpg/Jsnzkpg/refs/heads/Jsnzkpg/Jsnzkpg1.m3u">📋 复制</button>
+                        <button class="btn-open" data-url="https://raw.githubusercontent.com/Jsnzkpg/Jsnzkpg/refs/heads/Jsnzkpg/Jsnzkpg1.m3u">🔗 打开</button>
+                    </div>
+                </div>
+                <div class="tip-note">
+                    <span>📺 聚合全网直播源 · 持续更新</span>
+                    <span>✨ 包含央视/卫视/体育/国际频道</span>
                 </div>
             </div>
         </div>
@@ -335,7 +339,10 @@
         async function copyToClipboard(text, btnElement) {
             try {
                 await navigator.clipboard.writeText(text);
-                showToast('✅ 已复制: ' + (text.length > 40 ? text.substring(0,40)+'…' : text));
+                let displayText = text.length > 40 ? text.substring(0,40)+'…' : text;
+                // 针对长链接（GitHub raw）做简化显示
+                if (text.includes('raw.githubusercontent.com')) displayText = 'GitHub M3U 链接';
+                showToast(`✅ 已复制: ${displayText}`);
                 if (btnElement) {
                     const original = btnElement.innerHTML;
                     btnElement.innerHTML = '✓ 已复制';
@@ -397,37 +404,6 @@
                 });
             }
         });
-
-        // 一键复制全部: 两个直播源 + 书签
-        const copyAllBtn = document.getElementById('copyAllBtn');
-        if (copyAllBtn) {
-            copyAllBtn.addEventListener('click', async () => {
-                const allLinks = [
-                    'http://43.251.226.110:9991/ayuy53',
-                    'http://43.251.226.110:9991/oy2m9j',
-                    'https://jsnzkpg.github.io/'
-                ];
-                const result = allLinks.join('\n');
-                try {
-                    await navigator.clipboard.writeText(result);
-                    showToast(`🎉 已复制 ${allLinks.length} 个链接`, false);
-                    const originalText = copyAllBtn.innerHTML;
-                    copyAllBtn.innerHTML = '✅ 已复制全部';
-                    setTimeout(() => { copyAllBtn.innerHTML = originalText; }, 1500);
-                } catch (err) {
-                    const textarea = document.createElement('textarea');
-                    textarea.value = result;
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
-                    showToast(`📦 已复制 ${allLinks.length} 条链接`, false);
-                    const originalText = copyAllBtn.innerHTML;
-                    copyAllBtn.innerHTML = '✅ 已复制全部';
-                    setTimeout(() => { copyAllBtn.innerHTML = originalText; }, 1500);
-                }
-            });
-        }
     })();
 </script>
 </body>
