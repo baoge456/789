@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>IPTV直播源工具 - 支持两种格式 | 分类管理</title>
+    <title>直播源分类管理 · 极简M3U工具</title>
     <style>
         * {
             box-sizing: border-box;
@@ -222,30 +222,26 @@
 <body>
 <div class="container">
     <div class="flex-between">
-        <h1>📺 直播源分类管理工具 <span class="badge">支持原始格式 + M3U格式</span></h1>
-        <div class="status">⚡ 自动识别格式 | 分类勾选删除 | 导出M3U</div>
+        <h1>📺 直播源分类管理 <span class="badge">原始/M3U · 分类删除 · 极简导出</span></h1>
+        <div class="status">⚡ 自动识别 | 一键导出IPTV-日期.m3u</div>
     </div>
-    <div class="sub">🔹 支持两种输入格式：<br>
-        &nbsp;&nbsp;① 原始格式：<code>分组名,#genre#</code> + <code>频道名,URL</code><br>
-        &nbsp;&nbsp;② 标准M3U格式：<code>#EXTINF:-1 group-title="分组名" tvg-name="频道名",频道名</code> + <code>URL</code><br>
-        🔸 导入后自动识别所有分类，可勾选删除整类，再导出标准M3U文件。
+    <div class="sub">🔹 支持原始格式 <code>分组名,#genre#</code> + <code>频道名,URL</code> 或标准M3U。<br>
+        🔸 解析分类 → 勾选删除 → 导出简洁M3U（文件名：IPTV-YYYYMMDD.m3u）
     </div>
 
     <div class="card">
         <div class="card-header">
             📝 原始内容 / 编辑区域
             <div class="btn-group" style="margin-top:0">
-                <button id="loadDemoBtn">📋 载入示例(原始格式)</button>
-                <button id="loadM3uDemoBtn">📋 载入示例(M3U格式)</button>
+                <button id="loadDemoBtn">📋 载入示例(原始)</button>
+                <button id="loadM3uDemoBtn">📋 载入示例(M3U)</button>
                 <button id="clearBtn">🗑️ 清空</button>
                 <button id="importFileBtn">📂 导入文件</button>
                 <input type="file" id="fileInput" accept=".txt,.m3u,.m3u8" style="display: none">
             </div>
         </div>
         <div class="card-body">
-            <textarea id="sourceText" rows="8" placeholder="支持两种格式：
-
-【原始格式】
+            <textarea id="sourceText" rows="8" placeholder="【原始格式】
 央视卫视,#genre#
 CCTV1,http://xxx.m3u8
 
@@ -281,7 +277,7 @@ http://xxx.m3u8"></textarea>
             <span style="font-weight:normal; font-size:12px;" id="statsInfo">等待解析</span>
         </div>
         <div class="card-body">
-            <div id="resultArea" class="preview-area" contenteditable="true" style="min-height: 260px;">// 点击「解析并提取分类」→ 勾选删除分类 → 点击「转换生成M3U」</div>
+            <div id="resultArea" class="preview-area" contenteditable="true" style="min-height: 260px;">// 点击「解析并提取分类」→ 勾选删除 → 「转换生成M3U」→ 导出极简文件</div>
             <div class="btn-group" style="margin-top: 16px;">
                 <button id="copyFinalBtn" class="success">📋 复制最终内容</button>
                 <button id="exportFinalBtn" class="warning">💾 导出 .m3u 文件</button>
@@ -289,7 +285,7 @@ http://xxx.m3u8"></textarea>
             </div>
         </div>
     </div>
-    <footer>使用说明：① 粘贴/导入直播源 → ② 点击「解析并提取分类」→ ③ 勾选要删除的分类 → ④ 点击「删除选中分类」→ ⑤ 点击「转换生成M3U」→ ⑥ 导出文件</footer>
+    <footer>📌 导出文件名自动生成：IPTV-年月日.m3u （例如 IPTV-20260426.m3u）</footer>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -320,13 +316,21 @@ http://xxx.m3u8"></textarea>
 
         let currentGroups = [];
         let currentFormat = "";
-        let originalRawText = ""; // 保存原始文本，用于格式保持
 
         function showToast(msg, isError = false) {
             toastEl.textContent = msg;
             toastEl.style.background = isError ? '#ef4444' : '#1e293b';
             toastEl.classList.add('show');
             setTimeout(() => toastEl.classList.remove('show'), 2000);
+        }
+
+        // 获取当前日期 YYYYMMDD 用于导出文件名
+        function getTodayFileName() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `IPTV-${year}${month}${day}.m3u`;
         }
 
         function detectFormat(rawText) {
@@ -356,8 +360,7 @@ http://xxx.m3u8"></textarea>
                     currentChannel = { name: channelName, group: groupTitle };
                     continue;
                 }
-                // 更宽松的URL检测
-                if (currentChannel && (line.startsWith('http://') || line.startsWith('https://') || line.startsWith('rtmp://') || line.match(/^[a-zA-Z0-9\:\/\.\-_]+\.m3u8?/))) {
+                if (currentChannel && (line.startsWith('http://') || line.startsWith('https://') || line.startsWith('rtmp://') || line.match(/\.m3u8?/i))) {
                     if (!groupsMap.has(currentChannel.group)) groupsMap.set(currentChannel.group, []);
                     groupsMap.get(currentChannel.group).push({ name: currentChannel.name, url: line });
                     currentChannel = null;
@@ -405,7 +408,6 @@ http://xxx.m3u8"></textarea>
         function parseToGroups(rawText) {
             const format = detectFormat(rawText);
             currentFormat = format;
-            originalRawText = rawText;
             return format === "m3u" ? parseM3UFormat(rawText) : parseRawFormat(rawText);
         }
 
@@ -422,7 +424,6 @@ http://xxx.m3u8"></textarea>
             return output;
         }
 
-        // 修复：确保生成正确的原始格式（频道名,URL 顺序正确）
         function groupsToRawFormat(groups) {
             let output = "";
             for (let i = 0; i < groups.length; i++) {
@@ -510,7 +511,7 @@ http://xxx.m3u8"></textarea>
                     newGroups.push({ 
                         name: currentGroups[i].name, 
                         channels: [...currentGroups[i].channels],
-                        selected: false  // 重置选中状态
+                        selected: false
                     });
                 }
             }
@@ -532,8 +533,6 @@ http://xxx.m3u8"></textarea>
             renderCategoryList();
             const m3uContent = generateM3UFromGroups(currentGroups);
             resultDiv.innerText = m3uContent;
-            
-            // 修复：正确同步回源文本区域（保持原始格式）
             const rawContent = groupsToRawFormat(currentGroups);
             sourceTextarea.value = rawContent;
             
@@ -589,16 +588,18 @@ http://xxx.m3u8"></textarea>
                 showToast("无有效M3U数据，请先转换", true);
                 return;
             }
+            // 导出文件名：IPTV-YYYYMMDD.m3u   (只保留日期，干净整洁)
+            const fileName = getTodayFileName();
             const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.href = url;
-            link.download = `iptv_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.m3u`;
+            link.download = fileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            showToast("文件已导出");
+            showToast(`已导出 ${fileName}`);
         }
 
         function resetResult() {
@@ -619,7 +620,6 @@ http://xxx.m3u8"></textarea>
             sourceTextarea.value = `央视卫视,#genre#
 CCTV1,http://156.238.248.80:8880/play/1.219348.m3u8
 CCTV2,http://156.238.248.80:8880/play/3.549234.m3u8
-CCTV3,http://156.238.248.80:8880/play/5.689329.m3u8
 东方卫视,http://156.238.248.80:8880/play/39.342450.m3u8
 
 全网通频,#genre#
@@ -639,14 +639,10 @@ CCTV1,http://156.238.248.80:8880/play/2843.457457.m3u8
             sourceTextarea.value = `#EXTM3U
 #EXTINF:-1 group-title="央视卫视" tvg-name="CCTV14",CCTV14
 http://156.238.248.80:8880/play/24.666040.m3u8
-#EXTINF:-1 group-title="央视卫视" tvg-name="CCTV14",CCTV14
-http://156.238.248.80:8880/play/25.373961.m3u8
 #EXTINF:-1 group-title="央视卫视" tvg-name="CCTV15",CCTV15
 http://156.238.248.80:8880/play/26.636810.m3u8
 #EXTINF:-1 group-title="全网通频" tvg-name="CCTV1",CCTV1
 http://156.238.248.80:8880/play/2843.457457.m3u8
-#EXTINF:-1 group-title="全网通频" tvg-name="北京卫视",北京卫视
-http://156.238.248.80:8880/play/2861.345055.m3u8
 #EXTINF:-1 group-title="粤港频道" tvg-name="翡翠台",翡翠台
 http://156.238.248.80:8880/play/3355.479569.m3u8`;
             resultDiv.innerText = "// M3U格式示例已加载，点击「解析并提取分类」";
@@ -696,7 +692,7 @@ http://156.238.248.80:8880/play/3355.479569.m3u8`;
         deselectAllBtn.addEventListener('click', deselectAll);
         deleteSelectedBtn.addEventListener('click', deleteSelectedCategories);
 
-        resultDiv.innerText = "// 点击「解析并提取分类」→ 勾选删除分类 → 点击「转换生成M3U」→ 导出文件";
+        resultDiv.innerText = "// 点击「解析并提取分类」→ 勾选删除 → 「转换生成M3U」→ 导出文件 IPTV-日期.m3u";
         statsSpan.innerText = "就绪";
     })();
 </script>
