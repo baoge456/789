@@ -1,3 +1,7 @@
+明白了！您希望 **TXT格式和M3U格式导出的内容完全一致**（都是标准M3U格式），只是**文件扩展名不同**。
+
+以下是修改后的代码，导出时内容完全相同，仅文件名后缀不同：
+```html
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -256,7 +260,7 @@
         </div>
     </div>
     <div class="sub">🔹 支持原始格式 <code>分组名,#genre#</code> + <code>频道名,URL</code> 或标准M3U。<br>
-        🔸 解析分类 → 勾选删除 → 导出M3U或TXT格式（TXT保留原始分组结构）
+        🔸 解析分类 → 勾选删除 → 导出M3U或TXT格式（内容完全相同，仅扩展名不同）
     </div>
 
     <div class="card">
@@ -312,8 +316,8 @@ http://xxx.m3u8"></textarea>
                 <button id="copyFinalBtn" class="success">📋 复制最终内容</button>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <select id="exportFormatSelect" class="export-select">
-                        <option value="txt" selected>📄 TXT格式(原始分组)</option>
-                        <option value="m3u">📺 M3U格式</option>
+                        <option value="txt" selected>📄 TXT格式(.txt)</option>
+                        <option value="m3u">📺 M3U格式(.m3u)</option>
                     </select>
                     <button id="exportFinalBtn" class="warning">💾 导出文件</button>
                 </div>
@@ -322,7 +326,7 @@ http://xxx.m3u8"></textarea>
         </div>
     </div>
     <footer>📌 导出文件名格式：iptv年月日.m3u 或 iptv年月日.txt（如 iptv20260424.txt）<br>
-    💡 TXT格式保留原始分组结构（分组名,#genre# + 频道名,URL），适合直接编辑查看</footer>
+    💡 M3U和TXT格式导出的内容完全相同（标准M3U格式），仅文件扩展名不同</footer>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -363,7 +367,6 @@ http://xxx.m3u8"></textarea>
             setTimeout(() => toastEl.classList.remove('show'), 2000);
         }
 
-        // 最强直播源按钮
         if (strongSourceBtn) {
             strongSourceBtn.addEventListener('click', () => {
                 window.open('https://dfile.baoge.wang/tvbox%20%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/%E6%9C%80%E5%BC%BA%E7%9B%B4%E6%92%AD%E6%BA%90.html', '_blank');
@@ -371,7 +374,6 @@ http://xxx.m3u8"></textarea>
             });
         }
 
-        // 获取当前日期，格式 YYYYMMDD（如 20260424）
         function getTodayDateStr() {
             const today = new Date();
             const year = today.getFullYear();
@@ -380,7 +382,6 @@ http://xxx.m3u8"></textarea>
             return `${year}${month}${day}`;
         }
 
-        // 生成导出文件名：iptv20260424.txt 或 iptv20260424.m3u
         function getExportFileName(extension) {
             return `iptv${getTodayDateStr()}.${extension}`;
         }
@@ -463,6 +464,7 @@ http://xxx.m3u8"></textarea>
             return format === "m3u" ? parseM3UFormat(rawText) : parseRawFormat(rawText);
         }
 
+        // 生成标准M3U内容（M3U和TXT导出都使用此内容）
         function generateM3UFromGroups(groups) {
             let output = '#EXTM3U\n';
             for (const group of groups) {
@@ -472,19 +474,6 @@ http://xxx.m3u8"></textarea>
                     output += `#EXTINF:-1 group-title="${escapeAttr(group.name)}" tvg-name="${escapeAttr(safeName)}",${safeName}\n`;
                     output += `${ch.url}\n`;
                 }
-            }
-            return output;
-        }
-
-        function generateTXTFromGroups(groups) {
-            let output = "";
-            for (let i = 0; i < groups.length; i++) {
-                const group = groups[i];
-                output += `${group.name},#genre#\n`;
-                for (const ch of group.channels) {
-                    output += `${ch.name},${ch.url}\n`;
-                }
-                if (i < groups.length - 1) output += "\n";
             }
             return output;
         }
@@ -647,6 +636,7 @@ http://xxx.m3u8"></textarea>
             navigator.clipboard.writeText(content).then(() => showToast("已复制M3U内容")).catch(() => showToast("复制失败", true));
         }
 
+        // 导出文件：M3U和TXT内容完全相同，仅扩展名不同
         function exportFile() {
             if (!currentGroups.length) {
                 const raw = sourceTextarea.value;
@@ -661,16 +651,10 @@ http://xxx.m3u8"></textarea>
                 return;
             }
             
+            // 内容统一使用标准M3U格式
+            const content = generateM3UFromGroups(currentGroups);
             const format = exportFormatSelect.value;
-            let content, fileName;
-            
-            if (format === 'm3u') {
-                content = generateM3UFromGroups(currentGroups);
-                fileName = getExportFileName('m3u');
-            } else {
-                content = generateTXTFromGroups(currentGroups);
-                fileName = getExportFileName('txt');
-            }
+            const fileName = getExportFileName(format);
             
             if (!content || content.trim() === '') {
                 showToast("生成内容为空", true);
@@ -787,3 +771,4 @@ http://156.238.248.80:8880/play/3355.479569.m3u8`;
 </script>
 </body>
 </html>
+```
