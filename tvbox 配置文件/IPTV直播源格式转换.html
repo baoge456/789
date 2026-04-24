@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>IPTV直播源工具 - 支持两种格式 | 分类管理</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0 0 0.25rem 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .sub {
+            color: #475569;
+            margin-bottom: 24px;
+            border-left: 4px solid #3b82f6;
+            padding-left: 16px;
+            font-size: 0.9rem;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 24px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .card-body {
+            padding: 20px 24px;
+        }
+        textarea {
+            width: 100%;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 16px;
+            background: #fefefe;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        button {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        button.primary {
+            background: #1e293b;
+            border-color: #1e293b;
+            color: white;
+        }
+        button.primary:hover { background: #0f172a; }
+        button.success {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+        button.warning {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: white;
+        }
+        button.danger {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+        }
+        button.secondary {
+            background: #e2e8f0;
+        }
+        .status {
+            background: #e6f0ff;
+            border-radius: 30px;
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            color: #075985;
+            display: inline-block;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .preview-area {
+            background: #0f172a;
+            color: #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 350px;
+            overflow: auto;
+        }
+        .category-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+        .category-item {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 30px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .category-item:hover {
+            background: #eef2ff;
+            border-color: #3b82f6;
+        }
+        .category-item input {
+            margin: 0;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+        .category-count {
+            background: #e2e8f0;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: normal;
+        }
+        .badge {
+            background: #e2e8f0;
+            padding: 2px 10px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 32px;
+        }
+        @media (max-width: 640px) {
+            body { padding: 12px; }
+            .card-body { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="flex-between">
+        <h1>📺 直播源分类管理工具 <span class="badge">支持原始格式 + M3U格式</span></h1>
+        <div class="status">⚡ 自动识别格式 | 分类勾选删除 | 导出M3U</div>
+    </div>
+    <div class="sub">🔹 支持两种输入格式：<br>
+        &nbsp;&nbsp;① 原始格式：<code>分组名,#genre#</code> + <code>频道名,URL</code><br>
+        &nbsp;&nbsp;② 标准M3U格式：<code>#EXTINF:-1 group-title="分组名" tvg-name="频道名",频道名</code> + <code>URL</code><br>
+        🔸 导入后自动识别所有分类，可勾选删除整类，再导出标准M3U文件。
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            📝 原始内容 / 编辑区域
+            <div class="btn-group" style="margin-top:0">
+                <button id="loadDemoBtn">📋 载入示例(原始格式)</button>
+                <button id="loadM3uDemoBtn">📋 载入示例(M3U格式)</button>
+                <button id="clearBtn">🗑️ 清空</button>
+                <button id="importFileBtn">📂 导入文件</button>
+                <input type="file" id="fileInput" accept=".txt,.m3u,.m3u8" style="display: none">
+            </div>
+        </div>
+        <div class="card-body">
+            <textarea id="sourceText" rows="8" placeholder="支持两种格式：
+
+【原始格式】
+央视卫视,#genre#
+CCTV1,http://xxx.m3u8
+
+【M3U格式】
+#EXTINF:-1 group-title=&quot;央视卫视&quot; tvg-name=&quot;CCTV1&quot;,CCTV1
+http://xxx.m3u8"></textarea>
+            <div class="btn-group">
+                <button id="parseBtn" class="primary">📊 解析并提取分类</button>
+                <button id="convertBtn" class="success">✨ 转换生成M3U</button>
+                <button id="copySourceBtn" class="secondary">📋 复制源文本</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="categoryCard" class="card" style="display: none;">
+        <div class="card-header">
+            🏷️ 分类管理 (勾选要删除的分类)
+            <div class="btn-group" style="margin-top:0">
+                <button id="selectAllBtn" class="secondary">✅ 全选</button>
+                <button id="deselectAllBtn" class="secondary">❌ 取消全选</button>
+                <button id="deleteSelectedBtn" class="danger">🗑️ 删除选中分类</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="categoryList" class="category-list"></div>
+            <div style="margin-top: 12px; font-size: 13px; color: #475569;" id="categoryStats"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            🎯 转换结果 (标准M3U格式)
+            <span style="font-weight:normal; font-size:12px;" id="statsInfo">等待解析</span>
+        </div>
+        <div class="card-body">
+            <div id="resultArea" class="preview-area" contenteditable="true" style="min-height: 260px;">// 点击「解析并提取分类」→ 勾选删除分类 → 点击「转换生成M3U」</div>
+            <div class="btn-group" style="margin-top: 16px;">
+                <button id="copyFinalBtn" class="success">📋 复制最终内容</button>
+                <button id="exportFinalBtn" class="warning">💾 导出 .m3u 文件</button>
+                <button id="resetResultBtn" class="secondary">🔄 重置结果区</button>
+            </div>
+        </div>
+    </div>
+    <footer>使用说明：① 粘贴/导入直播源 → ② 点击「解析并提取分类」→ ③ 勾选要删除的分类 → ④ 点击「删除选中分类」→ ⑤ 点击「转换生成M3U」→ ⑥ 导出文件</footer>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    (function(){
+        const sourceTextarea = document.getElementById('sourceText');
+        const parseBtn = document.getElementById('parseBtn');
+        const convertBtn = document.getElementById('convertBtn');
+        const copySourceBtn = document.getElementById('copySourceBtn');
+        const copyFinalBtn = document.getElementById('copyFinalBtn');
+        const exportFinalBtn = document.getElementById('exportFinalBtn');
+        const resetResultBtn = document.getElementById('resetResultBtn');
+        const resultDiv = document.getElementById('resultArea');
+        const statsSpan = document.getElementById('statsInfo');
+        const loadDemoBtn = document.getElementById('loadDemoBtn');
+        const loadM3uDemoBtn = document.getElementById('loadM3uDemoBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const importFileBtn = document.getElementById('importFileBtn');
+        const fileInput = document.getElementById('fileInput');
+        const categoryCard = document.getElementById('categoryCard');
+        const categoryListDiv = document.getElementById('categoryList');
+        const categoryStats = document.getElementById('categoryStats');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deselectAllBtn = document.getElementById('deselectAllBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const toastEl = document.getElementById('toast');
+
+        let currentGroups = [];
+        let currentFormat = "";
+        let originalRawText = ""; // 保存原始文本，用于格式保持
+
+        function showToast(msg, isError = false) {
+            toastEl.textContent = msg;
+            toastEl.style.background = isError ? '#ef4444' : '#1e293b';
+            toastEl.classList.add('show');
+            setTimeout(() => toastEl.classList.remove('show'), 2000);
+        }
+
+        function detectFormat(rawText) {
+            const lines = rawText.split(/\r?\n/);
+            for (let line of lines) {
+                if (line.trim().startsWith('#EXTINF')) return "m3u";
+            }
+            return "raw";
+        }
+
+        function parseM3UFormat(rawText) {
+            const lines = rawText.split(/\r?\n/);
+            const groupsMap = new Map();
+            let currentChannel = null;
+            for (let line of lines) {
+                line = line.trim();
+                if (line === "") continue;
+                if (line.startsWith('#EXTM3U')) continue;
+                if (line.startsWith('#EXTINF')) {
+                    let groupTitle = "默认分组";
+                    let channelName = "";
+                    const groupMatch = line.match(/group-title="([^"]*)"/);
+                    if (groupMatch) groupTitle = groupMatch[1];
+                    const lastComma = line.lastIndexOf(',');
+                    if (lastComma !== -1) channelName = line.substring(lastComma + 1).trim();
+                    if (!channelName) channelName = "未知频道";
+                    currentChannel = { name: channelName, group: groupTitle };
+                    continue;
+                }
+                // 更宽松的URL检测
+                if (currentChannel && (line.startsWith('http://') || line.startsWith('https://') || line.startsWith('rtmp://') || line.match(/^[a-zA-Z0-9\:\/\.\-_]+\.m3u8?/))) {
+                    if (!groupsMap.has(currentChannel.group)) groupsMap.set(currentChannel.group, []);
+                    groupsMap.get(currentChannel.group).push({ name: currentChannel.name, url: line });
+                    currentChannel = null;
+                }
+            }
+            const groups = [];
+            for (let [groupName, channels] of groupsMap) groups.push({ name: groupName, channels });
+            return groups;
+        }
+
+        function parseRawFormat(rawText) {
+            const lines = rawText.split(/\r?\n/);
+            const groups = [];
+            let currentGroup = null;
+            for (let line of lines) {
+                line = line.trim();
+                if (line === "") continue;
+                if (line.startsWith('#EXTM3U') || line.startsWith('#EXTINF')) continue;
+                if (line.includes(',#genre#')) {
+                    if (currentGroup && currentGroup.channels.length > 0) groups.push({ ...currentGroup });
+                    let groupName = line.split(',#genre#')[0].trim();
+                    if (groupName === "") groupName = "未命名分组";
+                    currentGroup = { name: groupName, channels: [] };
+                    continue;
+                }
+                const commaIndex = line.indexOf(',');
+                if (commaIndex !== -1) {
+                    let channelName = line.substring(0, commaIndex).trim();
+                    let url = line.substring(commaIndex + 1).trim();
+                    if (url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('rtmp://') || url.includes('.m3u8') || url.includes('.m3u'))) {
+                        if (!currentGroup) currentGroup = { name: "默认分组", channels: [] };
+                        currentGroup.channels.push({ name: channelName, url: url });
+                        continue;
+                    }
+                }
+                if (line.startsWith('http://') || line.startsWith('https://') || line.startsWith('rtmp://')) {
+                    if (!currentGroup) currentGroup = { name: "默认分组", channels: [] };
+                    currentGroup.channels.push({ name: "未知频道", url: line });
+                }
+            }
+            if (currentGroup && currentGroup.channels.length > 0) groups.push({ ...currentGroup });
+            return groups;
+        }
+
+        function parseToGroups(rawText) {
+            const format = detectFormat(rawText);
+            currentFormat = format;
+            originalRawText = rawText;
+            return format === "m3u" ? parseM3UFormat(rawText) : parseRawFormat(rawText);
+        }
+
+        function generateM3UFromGroups(groups) {
+            let output = '#EXTM3U\n';
+            for (const group of groups) {
+                for (const ch of group.channels) {
+                    if (!ch.url) continue;
+                    let safeName = ch.name.replace(/[,\n\r]/g, '').trim() || "频道";
+                    output += `#EXTINF:-1 group-title="${escapeAttr(group.name)}" tvg-name="${escapeAttr(safeName)}",${safeName}\n`;
+                    output += `${ch.url}\n`;
+                }
+            }
+            return output;
+        }
+
+        // 修复：确保生成正确的原始格式（频道名,URL 顺序正确）
+        function groupsToRawFormat(groups) {
+            let output = "";
+            for (let i = 0; i < groups.length; i++) {
+                const group = groups[i];
+                output += `${group.name},#genre#\n`;
+                for (const ch of group.channels) {
+                    output += `${ch.name},${ch.url}\n`;
+                }
+                if (i < groups.length - 1) output += "\n";
+            }
+            return output;
+        }
+
+        function escapeAttr(str) {
+            return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function renderCategoryList() {
+            categoryListDiv.innerHTML = "";
+            let totalChannels = 0;
+            for (let i = 0; i < currentGroups.length; i++) {
+                const group = currentGroups[i];
+                totalChannels += group.channels.length;
+                const div = document.createElement('div');
+                div.className = 'category-item';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = group.selected || false;
+                checkbox.addEventListener('change', (e) => { 
+                    currentGroups[i].selected = e.target.checked; 
+                });
+                const label = document.createElement('span');
+                label.textContent = group.name;
+                const countSpan = document.createElement('span');
+                countSpan.className = 'category-count';
+                countSpan.textContent = `${group.channels.length}个频道`;
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                div.appendChild(countSpan);
+                categoryListDiv.appendChild(div);
+            }
+            categoryStats.innerHTML = `共 ${currentGroups.length} 个分类，总计 ${totalChannels} 个频道。勾选分类后点击「删除选中分类」即可移除。`;
+        }
+
+        function parseAndShowCategories() {
+            const raw = sourceTextarea.value;
+            if (!raw.trim()) {
+                showToast("请先粘贴或导入直播源内容", true);
+                return;
+            }
+            try {
+                currentGroups = parseToGroups(raw);
+            } catch(e) {
+                showToast("解析失败: " + e.message, true);
+                return;
+            }
+            if (currentGroups.length === 0) {
+                showToast("未识别到任何分组和频道", true);
+                categoryCard.style.display = "none";
+                return;
+            }
+            renderCategoryList();
+            categoryCard.style.display = "block";
+            const m3uContent = generateM3UFromGroups(currentGroups);
+            resultDiv.innerText = m3uContent;
+            let totalChannels = currentGroups.reduce((sum,g)=> sum + g.channels.length, 0);
+            let formatLabel = currentFormat === "m3u" ? "M3U格式" : "原始格式";
+            statsSpan.innerText = `✅ ${currentGroups.length} 个分类, ${totalChannels} 个频道 (${formatLabel})`;
+            showToast(`已解析 ${currentGroups.length} 个分类，共 ${totalChannels} 个频道`);
+        }
+
+        function deleteSelectedCategories() {
+            if (!currentGroups.length) {
+                showToast("没有可删除的分类，请先解析", true);
+                return;
+            }
+            const newGroups = [];
+            let deletedCount = 0;
+            let deletedNames = [];
+            for (let i = 0; i < currentGroups.length; i++) {
+                if (currentGroups[i].selected) {
+                    deletedCount++;
+                    deletedNames.push(currentGroups[i].name);
+                } else {
+                    newGroups.push({ 
+                        name: currentGroups[i].name, 
+                        channels: [...currentGroups[i].channels],
+                        selected: false  // 重置选中状态
+                    });
+                }
+            }
+            if (deletedCount === 0) {
+                showToast("请先勾选要删除的分类", true);
+                return;
+            }
+            currentGroups = newGroups;
+            
+            if (currentGroups.length === 0) {
+                categoryCard.style.display = "none";
+                resultDiv.innerText = "// 所有分类已被删除，没有剩余频道";
+                statsSpan.innerText = "无数据";
+                sourceTextarea.value = "";
+                showToast(`已删除 ${deletedCount} 个分类，无剩余数据`);
+                return;
+            }
+            
+            renderCategoryList();
+            const m3uContent = generateM3UFromGroups(currentGroups);
+            resultDiv.innerText = m3uContent;
+            
+            // 修复：正确同步回源文本区域（保持原始格式）
+            const rawContent = groupsToRawFormat(currentGroups);
+            sourceTextarea.value = rawContent;
+            
+            let totalChannels = currentGroups.reduce((sum,g)=> sum + g.channels.length, 0);
+            statsSpan.innerText = `✅ 已删除 ${deletedCount} 个分类，剩余 ${currentGroups.length} 个分类, ${totalChannels} 个频道`;
+            showToast(`已删除 ${deletedCount} 个分类：${deletedNames.join(', ')}`);
+        }
+
+        function selectAll() {
+            for (let i = 0; i < currentGroups.length; i++) currentGroups[i].selected = true;
+            renderCategoryList();
+        }
+
+        function deselectAll() {
+            for (let i = 0; i < currentGroups.length; i++) currentGroups[i].selected = false;
+            renderCategoryList();
+        }
+
+        function convertAndDisplay() {
+            if (!currentGroups.length) {
+                const raw = sourceTextarea.value;
+                if (raw.trim()) {
+                    currentGroups = parseToGroups(raw);
+                    renderCategoryList();
+                    if (currentGroups.length) categoryCard.style.display = "block";
+                }
+            }
+            if (!currentGroups.length) {
+                resultDiv.innerText = "// 没有有效的频道数据，请先解析";
+                statsSpan.innerText = "无数据";
+                showToast("没有有效数据，请先解析", true);
+                return;
+            }
+            const m3uContent = generateM3UFromGroups(currentGroups);
+            resultDiv.innerText = m3uContent;
+            let totalChannels = currentGroups.reduce((sum,g)=> sum + g.channels.length, 0);
+            statsSpan.innerText = `✅ ${currentGroups.length} 个分类, ${totalChannels} 个频道`;
+            showToast("已生成M3U格式");
+        }
+
+        function copyResult() {
+            const content = resultDiv.innerText;
+            if (!content || content.includes("没有有效")) {
+                showToast("没有有效内容可复制", true);
+                return;
+            }
+            navigator.clipboard.writeText(content).then(() => showToast("已复制M3U内容")).catch(() => showToast("复制失败", true));
+        }
+
+        function exportM3U() {
+            let content = resultDiv.innerText;
+            if (!content || content.includes("没有有效")) {
+                showToast("无有效M3U数据，请先转换", true);
+                return;
+            }
+            const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = `iptv_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.m3u`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast("文件已导出");
+        }
+
+        function resetResult() {
+            resultDiv.innerText = "// 等待生成M3U内容...";
+            statsSpan.innerText = "已清空";
+            showToast("结果区已重置");
+        }
+
+        function copySource() {
+            if (!sourceTextarea.value.trim()) {
+                showToast("源文本为空", true);
+                return;
+            }
+            navigator.clipboard.writeText(sourceTextarea.value).then(() => showToast("源文本已复制"));
+        }
+
+        function loadDemo() {
+            sourceTextarea.value = `央视卫视,#genre#
+CCTV1,http://156.238.248.80:8880/play/1.219348.m3u8
+CCTV2,http://156.238.248.80:8880/play/3.549234.m3u8
+CCTV3,http://156.238.248.80:8880/play/5.689329.m3u8
+东方卫视,http://156.238.248.80:8880/play/39.342450.m3u8
+
+全网通频,#genre#
+CCTV1,http://156.238.248.80:8880/play/2843.457457.m3u8
+北京卫视,http://156.238.248.80:8880/play/2861.345055.m3u8
+
+粤港频道,#genre#
+翡翠台,http://156.238.248.80:8880/play/3355.479569.m3u8`;
+            resultDiv.innerText = "// 原始格式示例已加载，点击「解析并提取分类」";
+            statsSpan.innerText = "原始格式示例";
+            currentGroups = [];
+            categoryCard.style.display = "none";
+            showToast("已加载原始格式示例");
+        }
+
+        function loadM3uDemo() {
+            sourceTextarea.value = `#EXTM3U
+#EXTINF:-1 group-title="央视卫视" tvg-name="CCTV14",CCTV14
+http://156.238.248.80:8880/play/24.666040.m3u8
+#EXTINF:-1 group-title="央视卫视" tvg-name="CCTV14",CCTV14
+http://156.238.248.80:8880/play/25.373961.m3u8
+#EXTINF:-1 group-title="央视卫视" tvg-name="CCTV15",CCTV15
+http://156.238.248.80:8880/play/26.636810.m3u8
+#EXTINF:-1 group-title="全网通频" tvg-name="CCTV1",CCTV1
+http://156.238.248.80:8880/play/2843.457457.m3u8
+#EXTINF:-1 group-title="全网通频" tvg-name="北京卫视",北京卫视
+http://156.238.248.80:8880/play/2861.345055.m3u8
+#EXTINF:-1 group-title="粤港频道" tvg-name="翡翠台",翡翠台
+http://156.238.248.80:8880/play/3355.479569.m3u8`;
+            resultDiv.innerText = "// M3U格式示例已加载，点击「解析并提取分类」";
+            statsSpan.innerText = "M3U格式示例";
+            currentGroups = [];
+            categoryCard.style.display = "none";
+            showToast("已加载M3U格式示例");
+        }
+
+        function clearSource() {
+            sourceTextarea.value = "";
+            resultDiv.innerText = "// 等待解析...";
+            statsSpan.innerText = "已清空";
+            currentGroups = [];
+            categoryCard.style.display = "none";
+            showToast("已清空");
+        }
+
+        function importFile() {
+            fileInput.click();
+        }
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    sourceTextarea.value = ev.target.result;
+                    currentGroups = [];
+                    categoryCard.style.display = "none";
+                    showToast("文件已导入，请点击「解析并提取分类」");
+                };
+                reader.readAsText(e.target.files[0], "UTF-8");
+                fileInput.value = '';
+            }
+        });
+
+        parseBtn.addEventListener('click', parseAndShowCategories);
+        convertBtn.addEventListener('click', convertAndDisplay);
+        copySourceBtn.addEventListener('click', copySource);
+        copyFinalBtn.addEventListener('click', copyResult);
+        exportFinalBtn.addEventListener('click', exportM3U);
+        resetResultBtn.addEventListener('click', resetResult);
+        loadDemoBtn.addEventListener('click', loadDemo);
+        loadM3uDemoBtn.addEventListener('click', loadM3uDemo);
+        clearBtn.addEventListener('click', clearSource);
+        importFileBtn.addEventListener('click', importFile);
+        selectAllBtn.addEventListener('click', selectAll);
+        deselectAllBtn.addEventListener('click', deselectAll);
+        deleteSelectedBtn.addEventListener('click', deleteSelectedCategories);
+
+        resultDiv.innerText = "// 点击「解析并提取分类」→ 勾选删除分类 → 点击「转换生成M3U」→ 导出文件";
+        statsSpan.innerText = "就绪";
+    })();
+</script>
+</body>
+</html>
