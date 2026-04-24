@@ -118,13 +118,26 @@
         button.secondary {
             background: #e2e8f0;
         }
+        button.link-btn {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border: none;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(249,115,22,0.3);
+        }
+        button.link-btn:hover {
+            background: linear-gradient(135deg, #ea580c, #c2410c);
+            transform: translateY(-1px);
+        }
         .status {
             background: #e6f0ff;
             border-radius: 30px;
             padding: 8px 16px;
             font-size: 0.8rem;
             color: #075985;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
         }
         .flex-between {
             display: flex;
@@ -223,7 +236,10 @@
 <div class="container">
     <div class="flex-between">
         <h1>📺 直播源分类管理 <span class="badge">原始/M3U · 分类删除 · 极简导出</span></h1>
-        <div class="status">⚡ 自动识别 | 一键导出IPTV-日期.m3u</div>
+        <div class="status">
+            ⚡ 自动识别 | 一键导出IPTV-日期.m3u
+            <button id="strongSourceBtn" class="link-btn" style="margin-left: 8px;">🔥 最强直播源</button>
+        </div>
     </div>
     <div class="sub">🔹 支持原始格式 <code>分组名,#genre#</code> + <code>频道名,URL</code> 或标准M3U。<br>
         🔸 解析分类 → 勾选删除 → 导出简洁M3U（文件名：IPTV-YYYYMMDD.m3u）
@@ -312,6 +328,7 @@ http://xxx.m3u8"></textarea>
         const selectAllBtn = document.getElementById('selectAllBtn');
         const deselectAllBtn = document.getElementById('deselectAllBtn');
         const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const strongSourceBtn = document.getElementById('strongSourceBtn');
         const toastEl = document.getElementById('toast');
 
         let currentGroups = [];
@@ -324,7 +341,14 @@ http://xxx.m3u8"></textarea>
             setTimeout(() => toastEl.classList.remove('show'), 2000);
         }
 
-        // 获取当前日期 YYYYMMDD 用于导出文件名
+        // 最强直播源按钮：打开指定链接
+        if (strongSourceBtn) {
+            strongSourceBtn.addEventListener('click', () => {
+                window.open('https://dfile.baoge.wang/tvbox%20%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/%E6%9C%80%E5%BC%BA%E7%9B%B4%E6%92%AD%E6%BA%90.html', '_blank');
+                showToast('正在打开「最强直播源」页面');
+            });
+        }
+
         function getTodayFileName() {
             const today = new Date();
             const year = today.getFullYear();
@@ -588,7 +612,6 @@ http://xxx.m3u8"></textarea>
                 showToast("无有效M3U数据，请先转换", true);
                 return;
             }
-            // 导出文件名：IPTV-YYYYMMDD.m3u   (只保留日期，干净整洁)
             const fileName = getTodayFileName();
             const blob = new Blob([content], {type: "text/plain;charset=utf-8"});
             const link = document.createElement('a');
