@@ -220,7 +220,6 @@
         .toast.show {
             opacity: 1;
         }
-        /* 导出格式选择下拉框样式 */
         .export-select {
             background: white;
             border: 1px solid #cbd5e1;
@@ -252,7 +251,7 @@
     <div class="flex-between">
         <h1>📺 直播源分类管理 <span class="badge">原始/M3U · 分类删除 · M3U/TXT导出</span></h1>
         <div class="status">
-            ⚡ 自动识别 | 导出IPTV-日期
+            ⚡ 自动识别 | 导出iptv日期
             <button id="strongSourceBtn" class="link-btn" style="margin-left: 8px;">🔥 最强直播源</button>
         </div>
     </div>
@@ -313,8 +312,8 @@ http://xxx.m3u8"></textarea>
                 <button id="copyFinalBtn" class="success">📋 复制最终内容</button>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <select id="exportFormatSelect" class="export-select">
+                        <option value="txt" selected>📄 TXT格式(原始分组)</option>
                         <option value="m3u">📺 M3U格式</option>
-                        <option value="txt">📄 TXT格式(原始分组)</option>
                     </select>
                     <button id="exportFinalBtn" class="warning">💾 导出文件</button>
                 </div>
@@ -322,7 +321,7 @@ http://xxx.m3u8"></textarea>
             </div>
         </div>
     </div>
-    <footer>📌 导出文件名自动生成：IPTV-年月日.m3u 或 IPTV-年月日.txt<br>
+    <footer>📌 导出文件名格式：iptv年月日.m3u 或 iptv年月日.txt（如 iptv20260424.txt）<br>
     💡 TXT格式保留原始分组结构（分组名,#genre# + 频道名,URL），适合直接编辑查看</footer>
 </div>
 
@@ -372,12 +371,18 @@ http://xxx.m3u8"></textarea>
             });
         }
 
-        function getTodayFileName(extension) {
+        // 获取当前日期，格式 YYYYMMDD（如 20260424）
+        function getTodayDateStr() {
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
-            return `IPTV-${year}${month}${day}.${extension}`;
+            return `${year}${month}${day}`;
+        }
+
+        // 生成导出文件名：iptv20260424.txt 或 iptv20260424.m3u
+        function getExportFileName(extension) {
+            return `iptv${getTodayDateStr()}.${extension}`;
         }
 
         function detectFormat(rawText) {
@@ -458,7 +463,6 @@ http://xxx.m3u8"></textarea>
             return format === "m3u" ? parseM3UFormat(rawText) : parseRawFormat(rawText);
         }
 
-        // 生成M3U格式内容
         function generateM3UFromGroups(groups) {
             let output = '#EXTM3U\n';
             for (const group of groups) {
@@ -472,7 +476,6 @@ http://xxx.m3u8"></textarea>
             return output;
         }
 
-        // 生成TXT格式内容（保留原始分组结构）
         function generateTXTFromGroups(groups) {
             let output = "";
             for (let i = 0; i < groups.length; i++) {
@@ -644,7 +647,6 @@ http://xxx.m3u8"></textarea>
             navigator.clipboard.writeText(content).then(() => showToast("已复制M3U内容")).catch(() => showToast("复制失败", true));
         }
 
-        // 导出文件（支持M3U和TXT两种格式）
         function exportFile() {
             if (!currentGroups.length) {
                 const raw = sourceTextarea.value;
@@ -664,10 +666,10 @@ http://xxx.m3u8"></textarea>
             
             if (format === 'm3u') {
                 content = generateM3UFromGroups(currentGroups);
-                fileName = getTodayFileName('m3u');
+                fileName = getExportFileName('m3u');
             } else {
                 content = generateTXTFromGroups(currentGroups);
-                fileName = getTodayFileName('txt');
+                fileName = getExportFileName('txt');
             }
             
             if (!content || content.trim() === '') {
