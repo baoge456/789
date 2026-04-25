@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>直播源·轻享面板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #f4f7fc;  /* 柔和基底色，明快淡雅 */
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 24px 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 主面板——干净卡片风格 */
+        .panel {
+            max-width: 800px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.02);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        /* 头部：明亮且有层次 */
+        .panel-header {
+            padding: 1.8rem 2rem 1rem 2rem;
+            background: #ffffff;
+            border-bottom: 1px solid #eef2f6;
+        }
+
+        .panel-header h1 {
+            font-size: 1.8rem;
+            font-weight: 650;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #1E2F5E 0%, #2C3E66 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-header h1::before {
+            content: "📡";
+            font-size: 1.8rem;
+            background: none;
+            -webkit-background-clip: unset;
+            color: #2c5f8a;
+        }
+
+        .sub {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .badge {
+            background: #eff3f8;
+            padding: 5px 12px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #2c5f8a;
+            border: 0.5px solid #dce5ec;
+        }
+
+        /* 列表容器 */
+        .source-list {
+            padding: 1.2rem 1.8rem 1.8rem 1.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* 每一个源卡片 —— 白底轻盈感 */
+        .source-card {
+            background: #ffffff;
+            border-radius: 22px;
+            border: 1px solid #e9edf2;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .source-card:hover {
+            border-color: #cbdde9;
+            box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+            background: #fefefe;
+        }
+
+        .card-row {
+            padding: 1rem 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .info {
+            flex: 3;
+            min-width: 180px;
+        }
+
+        .source-name {
+            font-weight: 640;
+            font-size: 1.12rem;
+            color: #1a2c3e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .source-tag {
+            background: #eef3fc;
+            padding: 3px 10px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #1f6392;
+            letter-spacing: 0.3px;
+            border: 0.5px solid #d3e2f0;
+        }
+
+        .url-preview {
+            font-size: 0.7rem;
+            color: #5f7f9e;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            word-break: break-all;
+            font-family: 'SF Mono', 'Menlo', 'Cascadia Code', monospace;
+            background: #f8fafd;
+            padding: 4px 8px;
+            border-radius: 12px;
+            width: fit-content;
+            max-width: 100%;
+        }
+
+        .copy-icon, .open-icon {
+            background: #ffffff;
+            border: 1px solid #dfe6ed;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 8px;
+            border-radius: 48px;
+            transition: all 0.18s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: #fefefe;
+            color: #2c5f8a;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .copy-icon:hover, .open-icon:hover {
+            background: #eef3fc;
+            border-color: #bdd4e4;
+            color: #0f4c6f;
+            transform: scale(0.97);
+        }
+
+        .copy-icon:active, .open-icon:active {
+            transform: scale(0.94);
+            background: #e2eaf2;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* 轻盈提示toast */
+        .toast-msg {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.92);
+            background: #1e2f3cee;
+            backdrop-filter: blur(12px);
+            background: #2c3e50e6;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 56px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.18s;
+            pointer-events: none;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+            border: 0.5px solid rgba(255,255,210,0.2);
+            font-family: monospace;
+            white-space: nowrap;
+        }
+
+        .toast-msg.show {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+
+        .panel-footer {
+            padding: 0.9rem 2rem 1.4rem 2rem;
+            border-top: 1px solid #eef2f6;
+            font-size: 0.7rem;
+            color: #6d8aac;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #ffffff;
+        }
+
+        .footer-note {
+            display: flex;
+            gap: 16px;
+        }
+
+        button {
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+
+        @media (max-width: 560px) {
+            body {
+                padding: 16px;
+            }
+            .panel-header {
+                padding: 1.2rem 1.2rem 0.8rem 1.2rem;
+            }
+            .source-list {
+                padding: 0.8rem 1rem 1.4rem 1rem;
+            }
+            .card-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .action-group {
+                justify-content: flex-end;
+                margin-top: 4px;
+            }
+            .url-preview {
+                width: 100%;
+            }
+            .toast-msg {
+                white-space: normal;
+                max-width: 80%;
+                text-align: center;
+                font-size: 0.75rem;
+            }
+            .copy-icon, .open-icon {
+                width: 44px;
+                height: 44px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <div class="panel-header">
+        <h1>📺 直播源 · 轻享面板</h1>
+        <div class="sub">
+            <span class="badge">⚡ 一键复制链接</span>
+            <span class="badge">🔗 点击右侧按钮打开</span>
+            <span class="badge">✨ 自建/山东稳定源/stymei</span>
+        </div>
+    </div>
+
+    <div class="source-list" id="sourceListContainer">
+        <!-- 动态渲染直播源卡片，清晰直观 -->
+    </div>
+
+    <div class="panel-footer">
+        <div>📋 点击 <span style="display:inline-block; background:#eef3fc; padding:3px 6px; border-radius:20px;">📋</span> 复制地址 · 新窗口查看</div>
+        <div class="footer-note">
+            <span>🔐 外部链接，请自行校验安全性</span>
+        </div>
+    </div>
+</div>
+
+<div id="toastMsg" class="toast-msg">✅ 链接已复制</div>
+
+<script>
+    // 直播源数据 (源自您的描述, 干净整洁)
+    const SOURCES = [
+        {
+            id: "source_self",
+            name: "自建直播源",
+            displayName: "🎬 自建直播源 · 主站入口",
+            url: "https://zby.baoge123.de5.net",
+            note: "自建核心服务",
+            tag: "自建"
+        },
+        {
+            id: "source_sd",
+            name: "山东稳定源",
+            displayName: "📡 山东稳定源 · M3U",
+            url: "https://dfile.baoge.wang/sd.m3u",
+            note: "稳定高清线路",
+            tag: "山东"
+        },
+        {
+            id: "source_stymei",
+            name: "stymei",
+            displayName: "📺 stymei · iptv列表",
+            url: "https://ddile.baoge.wang/iptv.txt",
+            note: "纯文本源",
+            tag: "styme"
+        }
+    ];
+
+    let toastTimer = null;
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toastMsg');
+        if (!toast) return;
+        if (toastTimer) clearTimeout(toastTimer);
+        toast.textContent = message || (isError ? '❌ 操作失败' : '✅ 链接已复制');
+        if (isError) {
+            toast.style.background = "#c0392be6";
+            toast.style.backdropFilter = "blur(12px)";
+        } else {
+            toast.style.background = "#2c3e50e6";
+            toast.style.backdropFilter = "blur(12px)";
+        }
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => {
+            toast.classList.remove('show');
+            toast.style.background = "#2c3e50e6";
+        }, 2000);
+    }
+
+    // 复制功能 (兼容)
+    async function copyToClipboard(text, sourceDisplayName) {
+        if (!text) return false;
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast(`✅ 已复制 ${sourceDisplayName} 链接`, false);
+            return true;
+        } catch (err) {
+            // fallback
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.top = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(`📋 ${sourceDisplayName} 链接已复制`, false);
+            return true;
+        }
+    }
+
+    function openLink(url, sourceDisplayName) {
+        if (!url) {
+            showToast(`❌ ${sourceDisplayName} 地址无效`, true);
+            return;
+        }
+        let finalUrl = url.trim();
+        if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+            showToast(`⚠️ 仅支持http/https链接`, true);
+            return;
+        }
+        window.open(finalUrl, '_blank', 'noopener,noreferrer');
+        showToast(`🔗 正在打开 ${sourceDisplayName}`, false);
+    }
+
+    // 生成简短的预览内容
+    function getShortPreview(url) {
+        if (!url) return '';
+        try {
+            let urlObj = new URL(url);
+            let host = urlObj.hostname;
+            let path = urlObj.pathname;
+            if (path.length > 28) path = path.substring(0, 24) + '…';
+            return host + path;
+        } catch(e) {
+            return url.length > 48 ? url.substring(0, 45) + '…' : url;
+        }
+    }
+
+    function renderCards() {
+        const container = document.getElementById('sourceListContainer');
+        if (!container) return;
+        container.innerHTML = '';
+
+        SOURCES.forEach(source => {
+            const card = document.createElement('div');
+            card.className = 'source-card';
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'card-row';
+
+            // 左侧信息区
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'info';
+
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'source-name';
+
+            const tagSpan = document.createElement('span');
+            tagSpan.className = 'source-tag';
+            tagSpan.textContent = source.tag || (source.name === '自建直播源' ? '自建' : (source.name === '山东稳定源' ? '山东' : 'IPTV'));
+
+            const nameSpan = document.createElement('span');
+            nameSpan.style.fontWeight = '600';
+            nameSpan.style.color = '#1e2f3e';
+            nameSpan.textContent = source.displayName || source.name;
+
+            nameDiv.appendChild(tagSpan);
+            nameDiv.appendChild(nameSpan);
+
+            // url预览区域
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'url-preview';
+            const linkIconSpan = document.createElement('span');
+            linkIconSpan.textContent = '🔗 ';
+            linkIconSpan.style.opacity = '0.7';
+            const urlTextSpan = document.createElement('span');
+            urlTextSpan.textContent = getShortPreview(source.url);
+            urlTextSpan.style.fontFamily = "monospace";
+            previewDiv.appendChild(linkIconSpan);
+            previewDiv.appendChild(urlTextSpan);
+            if (source.note) {
+                const noteSpan = document.createElement('span');
+                noteSpan.textContent = ` · ${source.note}`;
+                noteSpan.style.opacity = '0.65';
+                noteSpan.style.fontSize = '0.65rem';
+                previewDiv.appendChild(noteSpan);
+            }
+
+            infoDiv.appendChild(nameDiv);
+            infoDiv.appendChild(previewDiv);
+
+            // 右侧按钮组
+            const actionGroup = document.createElement('div');
+            actionGroup.className = 'action-group';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-icon';
+            copyBtn.innerHTML = '📋';
+            copyBtn.title = '复制直播源链接';
+
+            const openBtn = document.createElement('button');
+            openBtn.className = 'open-icon';
+            openBtn.innerHTML = '🔗';
+            openBtn.title = '在新窗口打开链接';
+
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                copyToClipboard(source.url, source.displayName || source.name);
+            });
+
+            openBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openLink(source.url, source.displayName || source.name);
+            });
+
+            actionGroup.appendChild(copyBtn);
+            actionGroup.appendChild(openBtn);
+
+            rowDiv.appendChild(infoDiv);
+            rowDiv.appendChild(actionGroup);
+            card.appendChild(rowDiv);
+            container.appendChild(card);
+        });
+    }
+
+    // 页面加载完成初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCards();
+    });
+</script>
+</body>
+</html>
