@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MoonTV Plus Docker 部署教程 | 双配置方案 · 一键复制命令</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0e1a;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #eef2ff;
+            padding: 2rem 1rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #0f1322;
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            border: 1px solid #232742;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0b0f1c 0%, #11172b 100%);
+            padding: 2rem 2rem 1.5rem;
+            border-bottom: 1px solid #2a2f4e;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(120deg, #c084fc, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin: 1rem 0 0.5rem;
+        }
+
+        .badge {
+            background: #1e243f;
+            padding: 0.2rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #a5b4fc;
+            border: 1px solid #2e3a5e;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        /* 双配置卡片样式 */
+        .config-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #2a2f4e;
+            padding-bottom: 0.5rem;
+        }
+        .config-tab {
+            background: transparent;
+            border: none;
+            color: #8b9bcf;
+            padding: 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 30px;
+            transition: 0.2s;
+        }
+        .config-tab.active {
+            background: #2d3a6e;
+            color: white;
+        }
+        .config-tab:hover:not(.active) {
+            background: #1e2a47;
+            color: #e2e8f0;
+        }
+        .config-panel {
+            display: none;
+        }
+        .config-panel.active {
+            display: block;
+        }
+
+        .info-card {
+            background: #0b0f1a;
+            border-radius: 1.5rem;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 5px solid #3b82f6;
+            border-right: 1px solid #232742;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .info-card p {
+            margin: 0.5rem 0;
+            color: #cbd5e6;
+        }
+
+        .step {
+            background: #0c1020;
+            border-radius: 1.25rem;
+            margin-bottom: 1.8rem;
+            border: 1px solid #232742;
+            transition: all 0.1s ease;
+            overflow: hidden;
+        }
+
+        .step-header {
+            background: #11172b;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #232742;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .step-number {
+            background: #2d3a6e;
+            width: 30px;
+            height: 30px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .code-block {
+            position: relative;
+            background: #010409;
+            margin: 1rem 1.5rem 1.5rem 1.5rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid #2a2f4e;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0a0e17;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            color: #8b9bcf;
+            border-bottom: 1px solid #20273f;
+        }
+
+        .copy-btn {
+            background: #1e293b;
+            border: none;
+            color: #cbd5f0;
+            padding: 0.3rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            background: #2d3a6e;
+            color: white;
+        }
+
+        pre {
+            margin: 0;
+            padding: 1.2rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'JetBrains Mono', 'SF Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            color: #e2e8f0;
+            background: #010409;
+        }
+
+        .note {
+            background: #1a1f33;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border: 1px solid #334155;
+            font-size: 0.9rem;
+        }
+
+        .credentials {
+            background: #101624;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin-top: 1rem;
+            border: 1px solid #2d3a6e;
+        }
+
+        .credentials span {
+            font-family: monospace;
+            background: #0000004d;
+            padding: 0.2rem 0.6rem;
+            border-radius: 8px;
+        }
+
+        hr {
+            border-color: #232742;
+            margin: 1.2rem 0;
+        }
+
+        .footer {
+            background: #0b0f1a;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #6f7c9e;
+            border-top: 1px solid #1e243f;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: #bbf0ff;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 6px 14px black;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            border-left: 3px solid #3b82f6;
+            pointer-events: none;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #2a2f4e;
+        }
+        .comparison-table th {
+            background: #11172b;
+            color: #a5b4fc;
+        }
+
+        @media (max-width: 680px) {
+            .content {
+                padding: 1.2rem;
+            }
+            .code-block {
+                margin: 0.8rem 1rem 1.2rem 1rem;
+            }
+            pre {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📺 MoonTV Plus · Docker 部署手册</h1>
+        <div class="badge-group">
+            <span class="badge">🐳 Docker + Compose</span>
+            <span class="badge">🗄️ 双存储方案</span>
+            <span class="badge">📡 TVBox 订阅已启用</span>
+            <span class="badge">🔐 自定义用户/密码</span>
+        </div>
+        <p style="margin-top: 12px; color: #9aa9d4;">提供两种存储方案：① 1Panel 本地 Redis（主力） ② Upstash 云端 Redis（备用）</p>
+    </div>
+
+    <div class="content">
+        <!-- 环境信息卡片 -->
+        <div class="info-card">
+            <p>✅ <strong>部署信息总览</strong></p>
+            <p>🔹 镜像: <code>ghcr.io/mtvpls/moontvplus:latest</code><br>
+            🔹 TVBox 订阅: <strong>已开启</strong> | Token: <code>baoge888</code><br>
+            🔹 认证账号: <strong>baoge</strong> / <strong>wsb123456</strong><br>
+            🔹 默认访问端口: <strong>3000</strong></p>
+        </div>
+
+        <!-- 方案对比表 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">📊</span>
+                <span class="step-title">两种存储方案对比</span>
+            </div>
+            <div style="padding: 0 1.5rem 1rem 1.5rem;">
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>特性</th><th>方案一：1Panel 本地 Redis（🔥 推荐）</th><th>方案二：Upstash 云端 Redis（📦 备用）</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>存储位置</td><td>本地 VPS（1Panel Redis）</td><td>Upstash 云服务</td></tr>
+                        <tr><td>网络依赖</td><td>无外部依赖</td><td>需要访问 upstash.io</td></tr>
+                        <tr><td>免费额度</td><td>无限制</td><td>每天 10,000 次请求</td></tr>
+                        <tr><td>数据延迟</td><td>极低（本地）</td><td>较低（取决于网络）</td></tr>
+                        <tr><td>适用场景</td><td>生产环境、长期使用</td><td>备选、跨设备同步</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ========== 方案选择标签 ========== -->
+        <div class="config-tabs">
+            <button class="config-tab active" data-config="config1">🔥 方案一：1Panel 本地 Redis（推荐）</button>
+            <button class="config-tab" data-config="config2">📦 方案二：Upstash 云端 Redis（备用）</button>
+        </div>
+
+        <!-- ========== 方案一：1Panel Redis ========== -->
+        <div id="config1" class="config-panel active">
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-number">1</span>
+                    <span class="step-title">📁 创建项目目录 & 缓存文件夹</span>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>bash · 在 VPS 中执行</span>
+                        <button class="copy-btn" data-code="mkdir -p ~/moontvplus && cd ~/moontvplus\nmkdir -p cache">📋 复制命令</button>
+                    </div>
+                    <pre><code>mkdir -p ~/moontvplus && cd ~/moontvplus
+mkdir -p cache</code></pre>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-number">2</span>
+                    <span class="step-title">✍️ 创建 docker-compose.yml（1Panel Redis 配置）</span>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>YAML · 使用 1Panel 本地 Redis 存储</span>
+                        <button class="copy-btn" data-code="version: '3.8'
+
+services:
+  moontvplus:
+    image: ghcr.io/mtvpls/moontvplus:latest
+    container_name: moontvplus
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - USERNAME=baoge
+      - PASSWORD=wsb123456
+      - ENABLE_TVBOX_SUBSCRIBE=true
+      - TVBOX_SUBSCRIBE_TOKEN=baoge888
+      - NEXT_PUBLIC_STORAGE_TYPE=redis
+      - REDIS_URL=redis://:redis_zppwFr@172.245.88.184:6379
+    volumes:
+      - ./cache:/app/.cache">📋 复制配置</button>
+                    </div>
+                    <pre><code>version: '3.8'
+
+services:
+  moontvplus:
+    image: ghcr.io/mtvpls/moontvplus:latest
+    container_name: moontvplus
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - USERNAME=baoge
+      - PASSWORD=wsb123456
+      - ENABLE_TVBOX_SUBSCRIBE=true
+      - TVBOX_SUBSCRIBE_TOKEN=baoge888
+      - NEXT_PUBLIC_STORAGE_TYPE=redis
+      - REDIS_URL=redis://:redis_zppwFr@172.245.88.184:6379
+    volumes:
+      - ./cache:/app/.cache</code></pre>
+                </div>
+                <div style="margin: 0 1.5rem 1rem 1.5rem;">
+                    <p>💡 <code>REDIS_URL</code> 中的密码请替换为 1Panel Redis 实际密码，可通过 <code>docker exec 1Panel-redis-yiBC env | grep REDIS_PASSWORD</code> 查看。</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-number">3</span>
+                    <span class="step-title">⚡ 一键写入配置文件</span>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>🚀 cat 命令快速写入</span>
+                        <button class="copy-btn" data-code="cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  moontvplus:
+    image: ghcr.io/mtvpls/moontvplus:latest
+    container_name: moontvplus
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - USERNAME=baoge
+      - PASSWORD=wsb123456
+      - ENABLE_TVBOX_SUBSCRIBE=true
+      - TVBOX_SUBSCRIBE_TOKEN=baoge888
+      - NEXT_PUBLIC_STORAGE_TYPE=redis
+      - REDIS_URL=redis://:redis_zppwFr@172.245.88.184:6379
+    volumes:
+      - ./cache:/app/.cache
+EOF">📋 复制命令</button>
+                    </div>
+                    <pre><code>cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  moontvplus:
+    image: ghcr.io/mtvpls/moontvplus:latest
+    container_name: moontvplus
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - USERNAME=baoge
+      - PASSWORD=wsb123456
+      - ENABLE_TVBOX_SUBSCRIBE=true
+      - TVBOX_SUBSCRIBE_TOKEN=baoge888
+      - NEXT_PUBLIC_STORAGE_TYPE=redis
+      - REDIS_URL=redis://:redis_zppwFr@172.245.88.184:6379
+    volumes:
+      - ./cache:/app/.cache
+EOF</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 方案二：Upstash Redis（原配置备用） ========== -->
+        <div id="config2" class="config-panel">
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-number">1</span>
+                    <span class="step-title">📁 创建项目目录 & 缓存文件夹</span>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>bash · 在 VPS 中执行</span>
+                        <button class="copy-btn" data-code="mkdir -p ~/moontvplus && cd ~/moontvplus\nmkdir -p cache">📋 复制命令</button>
+                    </div>
+                    <pre><code>mkdir -p ~/moontvplus && cd ~/moontvplus
+mkdir -p cache</code></pre>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-number">2</span>
+                    <span class="step-title">✍️ 创建 docker-compose.yml（Upstash 云端配置）</span>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>YAML · 使用 Upstash 云端 Redis 存储</span>
+                        <button class="copy-btn" data-code="version: '3.8'
+
+services:
+  moontvplus:
+    image: ghcr.io/mtvpls/moontvplus:latest
+    container_name: moontvplus
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - USERNAME=baoge
+      - PASSWORD=wsb123456
+      - ENABLE_TVBOX_SUBSCRIBE=true
+      - TVBOX_SUBSCRIBE_TOKEN=baoge888
+      - NEXT_PUBLIC_STORAGE_TYPE=upstash
+      - UPSTASH_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./cache:/app/.cache">📋 复制配置</button>
+                    </div>
+                    <pre><code>version: '3.8'
+
+services:
+  moontvplus:
+    image: ghcr.io/mtvpls/moontvplus:latest
+    container_name: moontvplus
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - USERNAME=baoge
+      - PASSWORD=wsb123456
+      - ENABLE_TVBOX_SUBSCRIBE=true
+      - TVBOX_SUBSCRIBE_TOKEN=baoge888
+      - NEXT_PUBLIC_STORAGE_TYPE=upstash
+      - UPSTASH_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./cache:/app/.cache</code></pre>
+                </div>
+                <div style="margin: 0 1.5rem 1rem 1.5rem;">
+                    <p>💡 Upstash 配置为原版备用方案，适合需要跨设备数据同步的场景。</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-header">
+                    <span class="step-number">3</span>
+                    <span class="step-title">⚡ 一键写入配置文件</span>
+                </div>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>🚀 cat 命令快速写入</span>
+                        <button class="copy-btn" data-code="cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  moontvplus:
+    image: ghcr.io/mtvpls/moontvplus:latest
+    container_name: moontvplus
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - USERNAME=baoge
+      - PASSWORD=wsb123456
+      - ENABLE_TVBOX_SUBSCRIBE=true
+      - TVBOX_SUBSCRIBE_TOKEN=baoge888
+      - NEXT_PUBLIC_STORAGE_TYPE=upstash
+      - UPSTASH_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./cache:/app/.cache
+EOF">📋 复制命令</button>
+                    </div>
+                    <pre><code>cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  moontvplus:
+    image: ghcr.io/mtvpls/moontvplus:latest
+    container_name: moontvplus
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - USERNAME=baoge
+      - PASSWORD=wsb123456
+      - ENABLE_TVBOX_SUBSCRIBE=true
+      - TVBOX_SUBSCRIBE_TOKEN=baoge888
+      - NEXT_PUBLIC_STORAGE_TYPE=upstash
+      - UPSTASH_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./cache:/app/.cache
+EOF</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 公共步骤：启动容器 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">🚀</span>
+                <span class="step-title">启动容器（两种方案通用）</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>docker compose up -d</span>
+                    <button class="copy-btn" data-code="docker compose up -d">📋 复制启动命令</button>
+                </div>
+                <pre><code>docker compose up -d</code></pre>
+            </div>
+            <div class="code-block" style="margin-top: 0;">
+                <div class="code-header">
+                    <span>📋 查看实时日志</span>
+                    <button class="copy-btn" data-code="docker logs -f moontvplus">📋 复制日志命令</button>
+                </div>
+                <pre><code>docker logs -f moontvplus</code></pre>
+            </div>
+        </div>
+
+        <!-- 访问信息 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">🌐</span>
+                <span class="step-title">访问服务 + TVBox 订阅地址</span>
+            </div>
+            <div class="credentials">
+                <p>🔑 <strong>登录面板</strong></p>
+                <p>URL: <code>http://你的VPS公网IP:3000</code><br>
+                用户名: <span>baoge</span><br>
+                密码: <span>wsb123456</span></p>
+                <hr>
+                <p>📡 <strong>TVBox 订阅接口</strong><br>
+                <code>http://你的VPS_IP:3000/api/tvbox/sub?token=baoge888</code></p>
+            </div>
+        </div>
+
+        <!-- 管理命令 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">⚙️</span>
+                <span class="step-title">常用运维命令</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>重启 / 停止 / 更新镜像</span>
+                    <button class="copy-btn" data-code="docker compose restart\ndocker compose down\ndocker compose pull && docker compose up -d">📋 复制组合命令</button>
+                </div>
+                <pre><code># 重启容器
+docker compose restart
+
+# 停止并移除容器
+docker compose down
+
+# 更新镜像
+docker compose pull && docker compose up -d
+
+# 进入容器内部
+docker exec -it moontvplus sh</code></pre>
+            </div>
+        </div>
+
+        <!-- 故障排查 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">🐞</span>
+                <span class="step-title">故障排查指南</span>
+            </div>
+            <div style="padding: 0 1.5rem 1.2rem 1.5rem;">
+                <p>❌ <strong>容器无法启动</strong> → <code>docker logs moontvplus</code></p>
+                <p>🔌 <strong>端口冲突</strong> → 修改左侧端口如 <code>8080:3000</code></p>
+                <p>🗄️ <strong>Redis 连接失败（方案一）</strong> → 确认 1Panel Redis 运行状态及密码</p>
+                <p>☁️ <strong>Upstash 连接失败（方案二）</strong> → 检查网络能否访问 upstash.io</p>
+            </div>
+        </div>
+
+        <!-- 一键部署脚本 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">🚀</span>
+                <span class="step-title">一键部署脚本</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>bash 全自动部署（需先选择配置）</span>
+                    <button class="copy-btn" data-code="cd ~ && mkdir -p moontvplus && cd moontvplus && mkdir -p cache && echo '# 请根据上方方案选择对应的 docker-compose.yml 内容写入'">📋 提示</button>
+                </div>
+                <pre><code># 1. 创建目录
+mkdir -p ~/moontvplus && cd ~/moontvplus && mkdir -p cache
+
+# 2. 根据选择的方案，复制对应的 docker-compose.yml 内容
+
+# 3. 启动
+docker compose up -d
+
+# 4. 查看状态
+docker ps | grep moontvplus</code></pre>
+            </div>
+        </div>
+
+        <div class="footer">
+            🌟 MoonTV Plus 部署教程 · 双配置方案（1Panel Redis / Upstash）<br>
+            📌 所有命令均可一键复制，在 VPS 终端粘贴执行。
+        </div>
+    </div>
+</div>
+<div id="toast" class="toast" style="opacity:0;">✅ 已复制到剪贴板</div>
+
+<script>
+    // 配置切换功能
+    const tabs = document.querySelectorAll('.config-tab');
+    const panels = document.querySelectorAll('.config-panel');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const configId = tab.getAttribute('data-config');
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            panels.forEach(panel => {
+                panel.classList.remove('active');
+                if (panel.id === configId) {
+                    panel.classList.add('active');
+                }
+            });
+        });
+    });
+
+    // 复制功能
+    const toastEl = document.getElementById('toast');
+    function showToast(msg) {
+        toastEl.textContent = msg || '✅ 已复制到剪贴板';
+        toastEl.style.opacity = '1';
+        setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
+    }
+
+    const copyBtns = document.querySelectorAll('.copy-btn');
+    copyBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const rawCode = btn.getAttribute('data-code');
+            if (!rawCode) return;
+            try {
+                await navigator.clipboard.writeText(rawCode);
+                showToast('📋 命令已复制');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ 已复制';
+                setTimeout(() => { btn.innerHTML = originalText; }, 1500);
+            } catch (err) {
+                const textarea = document.createElement('textarea');
+                textarea.value = rawCode;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('📋 已复制');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ 已复制';
+                setTimeout(() => { btn.innerHTML = originalText; }, 1500);
+            }
+        });
+    });
+</script>
+</body>
+</html>
