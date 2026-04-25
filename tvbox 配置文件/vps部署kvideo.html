@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>KVideo 宝哥影院 - VPS 一键部署教程 | Docker + Upstash 持久化存储</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0e1a;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            padding: 2rem 1.2rem;
+            color: #eef2ff;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #0f1322;
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.6);
+            border: 1px solid #232742;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0b0f1c 0%, #11172b 100%);
+            padding: 2rem 2rem 1.5rem;
+            border-bottom: 1px solid #2a2f4e;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(120deg, #c084fc, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin: 1rem 0 0.5rem;
+        }
+
+        .badge {
+            background: #1e243f;
+            padding: 0.2rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #a5b4fc;
+            border: 1px solid #2e3a5e;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .info-card {
+            background: #0b0f1a;
+            border-radius: 1.5rem;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.8rem;
+            border-left: 5px solid #3b82f6;
+        }
+
+        .step {
+            background: #0c1020;
+            border-radius: 1.25rem;
+            margin-bottom: 1.8rem;
+            border: 1px solid #232742;
+            overflow: hidden;
+        }
+
+        .step-header {
+            background: #11172b;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #232742;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .step-number {
+            background: #2d3a6e;
+            width: 28px;
+            height: 28px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .code-block {
+            position: relative;
+            background: #010409;
+            margin: 1rem 1.5rem 1.5rem 1.5rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid #2a2f4e;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0a0e17;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            color: #8b9bcf;
+            border-bottom: 1px solid #20273f;
+        }
+
+        .copy-btn {
+            background: #1e293b;
+            border: none;
+            color: #cbd5f0;
+            padding: 0.3rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            background: #2d3a6e;
+            color: white;
+        }
+
+        pre {
+            margin: 0;
+            padding: 1.2rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            color: #e2e8f0;
+            background: #010409;
+        }
+
+        .note {
+            background: #1a1f33;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin: 1.2rem 0;
+            border: 1px solid #334155;
+            font-size: 0.85rem;
+        }
+
+        .credentials {
+            background: #101624;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin-top: 1rem;
+        }
+
+        hr {
+            border-color: #232742;
+            margin: 1rem 0;
+        }
+
+        .footer {
+            background: #0b0f1a;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6f7c9e;
+            border-top: 1px solid #1e243f;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px black;
+            z-index: 1000;
+            border-left: 3px solid #3b82f6;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        @media (max-width: 680px) {
+            .content {
+                padding: 1.2rem;
+            }
+            pre {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎬 KVideo · 宝哥影院部署教程</h1>
+        <div class="badge-group">
+            <span class="badge">🐳 Docker + Compose</span>
+            <span class="badge">☁️ Upstash Redis 云端存储</span>
+            <span class="badge">🔐 密码访问 baoge666</span>
+            <span class="badge">📡 与moontvplus.653827.xyz(baoge6789)共用 Redis</span>
+        </div>
+        <p style="margin-top: 12px; color: #9aa9d4;">本教程基于 VPS + Docker 部署 KVideo（Next.js 影视聚合平台）<br>
+        使用 Upstash Redis 实现数据持久化，所有命令均提供一键复制。</p>
+    </div>
+
+    <div class="content">
+        <div class="info-card">
+            <p>✅ <strong>部署信息总览（使用您确认的真实数据）</strong></p>
+            <p>🔹 镜像: <code>kuekhaoyang/kvideo:latest</code><br>
+            🔹 访问端口: <strong>3100</strong> (容器内 3000)<br>
+            🔹 站点名称: <strong>宝哥影院</strong><br>
+            🔹 登录密码: <strong>baoge666</strong> (仅密码模式)<br>
+            🔹 数据存储: <strong>Upstash Redis</strong>（与moontvplus.653827.xyz(baoge6789)共用，键名前缀隔离）<br>
+            🔹 Redis URL: <code>https://worthy-donkey-58808.upstash.io</code><br>
+            🔹 反向代理: 科技 lion 或 Nginx（可选 HTTPS）</p>
+        </div>
+
+        <!-- 步骤 1: 创建目录 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">1</span>
+                <span class="step-title">📁 创建项目目录</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>bash · 在 VPS 中执行</span>
+                    <button class="copy-btn" data-code="mkdir -p ~/kvideo/data && cd ~/kvideo">📋 复制命令</button>
+                </div>
+                <pre><code>mkdir -p ~/kvideo/data
+cd ~/kvideo</code></pre>
+            </div>
+        </div>
+
+        <!-- 步骤 2: docker-compose.yml 完整配置 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">2</span>
+                <span class="step-title">✍️ 创建 docker-compose.yml（Upstash Redis 持久化）</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>YAML · 包含 Upstash 云端存储</span>
+                    <button class="copy-btn" data-code="version: '3.8'
+
+services:
+  kvideo:
+    image: kuekhaoyang/kvideo:latest
+    container_name: kvideo
+    restart: unless-stopped
+    ports:
+      - '3100:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_SITE_NAME=宝哥影院
+      - NEXT_PUBLIC_SITE_TITLE=宝哥影院 - 全网影视聚合
+      - NEXT_PUBLIC_SITE_DESCRIPTION=高清影视聚合搜索平台
+      - ADMIN_PASSWORD=baoge666
+      - PERSIST_SESSION=true
+      - MERGE_SOURCES=true
+      - UPSTASH_REDIS_REST_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_REDIS_REST_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./data:/app/data">📋 复制完整配置</button>
+                </div>
+                <pre><code>version: '3.8'
+
+services:
+  kvideo:
+    image: kuekhaoyang/kvideo:latest
+    container_name: kvideo
+    restart: unless-stopped
+    ports:
+      - '3100:3000'               # 宿主机端口:容器端口
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_SITE_NAME=宝哥影院
+      - NEXT_PUBLIC_SITE_TITLE=宝哥影院 - 全网影视聚合
+      - NEXT_PUBLIC_SITE_DESCRIPTION=高清影视聚合搜索平台
+      - ADMIN_PASSWORD=baoge666   # 管理员密码（仅密码登录）
+      - PERSIST_SESSION=true
+      - MERGE_SOURCES=true
+      # Upstash Redis 配置（与moontvplus.653827.xyz(baoge6789)共用，数据隔离）
+      - UPSTASH_REDIS_REST_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_REDIS_REST_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./data:/app/data           # 可选：本地日志/缓存目录</code></pre>
+            </div>
+            <div style="margin: 0 1.5rem 1rem 1.5rem;">
+                <p>💡 使用 Upstash Redis 后，所有订阅源、收藏、历史记录会存储在云端，刷新页面/更换设备都不会丢失。</p>
+            </div>
+        </div>
+
+        <!-- 步骤 3: 一键写入配置 (cat 方法) -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">3</span>
+                <span class="step-title">⚡ 直接写入配置文件（快速方式）</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>🚀 一键生成 docker-compose.yml</span>
+                    <button class="copy-btn" data-code="cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  kvideo:
+    image: kuekhaoyang/kvideo:latest
+    container_name: kvideo
+    restart: unless-stopped
+    ports:
+      - '3100:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_SITE_NAME=宝哥影院
+      - NEXT_PUBLIC_SITE_TITLE=宝哥影院 - 全网影视聚合
+      - NEXT_PUBLIC_SITE_DESCRIPTION=高清影视聚合搜索平台
+      - ADMIN_PASSWORD=baoge666
+      - PERSIST_SESSION=true
+      - MERGE_SOURCES=true
+      - UPSTASH_REDIS_REST_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_REDIS_REST_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./data:/app/data
+EOF">📋 复制cat命令</button>
+                </div>
+                <pre><code>cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  kvideo:
+    image: kuekhaoyang/kvideo:latest
+    container_name: kvideo
+    restart: unless-stopped
+    ports:
+      - '3100:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_SITE_NAME=宝哥影院
+      - NEXT_PUBLIC_SITE_TITLE=宝哥影院 - 全网影视聚合
+      - NEXT_PUBLIC_SITE_DESCRIPTION=高清影视聚合搜索平台
+      - ADMIN_PASSWORD=baoge666
+      - PERSIST_SESSION=true
+      - MERGE_SOURCES=true
+      - UPSTASH_REDIS_REST_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_REDIS_REST_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./data:/app/data
+EOF</code></pre>
+            </div>
+        </div>
+
+        <!-- 步骤 4: 启动容器 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">4</span>
+                <span class="step-title">🐳 拉取镜像 & 后台启动 KVideo</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>docker compose up -d</span>
+                    <button class="copy-btn" data-code="docker compose up -d">📋 复制启动命令</button>
+                </div>
+                <pre><code>docker compose up -d</code></pre>
+            </div>
+            <div class="code-block" style="margin-top: 0.5rem;">
+                <div class="code-header">
+                    <span>📋 查看实时日志</span>
+                    <button class="copy-btn" data-code="docker logs -f kvideo">📋 复制日志命令</button>
+                </div>
+                <pre><code>docker logs -f kvideo</code></pre>
+            </div>
+        </div>
+
+        <!-- 步骤 5: 配置 Nginx 反向代理（科技 lion） -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">5</span>
+                <span class="step-title">🌐 配置域名 & HTTPS（科技 lion 一键反代）</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>科技 lion 反向代理命令</span>
+                    <button class="copy-btn" data-code="k">📋 复制命令</button>
+                </div>
+                <pre><code># 运行科技 lion
+k
+
+# 选择菜单:
+# 10. LDNMP建站 → 23. 站点反向代理-IP+端口
+# 域名: kvideo.baoge123.de5.net
+# 反代IP: 127.0.0.1 (回车)
+# 反代端口: 3100
+# SSL证书: 是 (自动申请)</code></pre>
+            </div>
+            <div class="note" style="margin: 0.5rem 1.5rem 1rem 1.5rem;">
+                <p>📌 如果没有域名，可以直接通过 IP + 端口访问：<code>http://你的VPS_IP:3100</code></p>
+            </div>
+        </div>
+
+        <!-- 访问信息 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">🔑</span>
+                <span class="step-title">登录与使用</span>
+            </div>
+            <div class="credentials">
+                <p>🔐 <strong>访问地址</strong></p>
+                <p>▪ 直接访问: <code>http://你的VPS公网IP:3100</code><br>
+                ▪ 域名访问: <code>https://kvideo.baoge123.de5.net</code>（需配置反代）</p>
+                <hr>
+                <p>🔑 <strong>登录方式（仅密码模式）</strong><br>
+                ▪ 页面会显示「请输入访问密码」<br>
+                ▪ 密码: <code>baoge666</code><br>
+                ▪ 无需输入用户名</p>
+                <hr>
+                <p>📡 <strong>首次使用建议</strong><br>
+                ▪ 进入设置 → 订阅管理 → 添加订阅源（JSON 格式链接）<br>
+                ▪ 或直接导入视频源 JSON 配置文件<br>
+                ▪ 所有数据会自动同步到 Upstash Redis，刷新/换设备不丢失</p>
+            </div>
+        </div>
+
+        <!-- 管理命令 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">⚙️</span>
+                <span class="step-title">常用运维命令</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>重启 / 停止 / 更新镜像</span>
+                    <button class="copy-btn" data-code="cd ~/kvideo
+docker compose restart
+docker compose down
+docker compose pull && docker compose up -d">📋 复制组合命令</button>
+                </div>
+                <pre><code># 进入目录
+cd ~/kvideo
+
+# 重启容器
+docker compose restart
+
+# 停止容器
+docker compose down
+
+# 更新镜像
+docker compose pull && docker compose up -d
+
+# 查看日志
+docker logs kvideo --tail 50</code></pre>
+            </div>
+        </div>
+
+        <!-- 数据持久化说明 -->
+        <div class="note">
+            <p>💾 <strong>数据持久化说明</strong></p>
+            <ul style="margin-left: 1.5rem; margin-top: 0.4rem;">
+                <li>✅ 本部署使用 <strong>Upstash Redis</strong> 云端存储，所有订阅源、收藏、历史记录、设置均保存在云端。</li>
+                <li>✅ 与 <strong>MoonTV Plus</strong> 共用同一个 Upstash 实例，但键名前缀不同（<code>kvideo:*</code> 和 <code>moontv:*</code>），数据完全隔离，互不影响。</li>
+                <li>✅ 即使删除容器、更换浏览器，重新登录后数据自动同步，无需重新配置。</li>
+                <li>✅ 免费额度：每天 10,000 次请求，个人使用完全足够。</li>
+            </ul>
+        </div>
+
+        <!-- 故障排查 -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">🐞</span>
+                <span class="step-title">故障排查指南</span>
+            </div>
+            <div style="padding: 0 1.5rem 1.2rem 1.5rem;">
+                <p>❌ <strong>容器无法启动</strong> → <code>docker logs kvideo</code> 查看错误，检查端口 3100 是否被占用。</p>
+                <p>🔄 <strong>添加订阅源后刷新丢失</strong> → 确认 Upstash Redis 环境变量正确，查看日志是否有 <code>Upstash Redis connected</code>。</p>
+                <p>🌐 <strong>域名无法访问</strong> → 检查 Nginx 反代配置是否正确，执行 <code>nginx -t && systemctl reload nginx</code>。</p>
+                <p>🔑 <strong>登录密码错误</strong> → 确认环境变量 <code>ADMIN_PASSWORD=baoge666</code>，清除浏览器缓存后重试。</p>
+                <p>📦 <strong>Upstash 连接失败</strong> → 检查网络是否能访问 <code>worthy-donkey-58808.upstash.io</code>，必要时更换区域。</p>
+            </div>
+        </div>
+
+        <!-- 一键部署脚本 (懒人包) -->
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">🚀</span>
+                <span class="step-title">一键部署脚本（复制整段执行）</span>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span>bash 全自动部署（创建目录、写配置、启动）</span>
+                    <button class="copy-btn" data-code="mkdir -p ~/kvideo/data && cd ~/kvideo && cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  kvideo:
+    image: kuekhaoyang/kvideo:latest
+    container_name: kvideo
+    restart: unless-stopped
+    ports:
+      - '3100:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_SITE_NAME=宝哥影院
+      - NEXT_PUBLIC_SITE_TITLE=宝哥影院 - 全网影视聚合
+      - NEXT_PUBLIC_SITE_DESCRIPTION=高清影视聚合搜索平台
+      - ADMIN_PASSWORD=baoge666
+      - PERSIST_SESSION=true
+      - MERGE_SOURCES=true
+      - UPSTASH_REDIS_REST_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_REDIS_REST_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./data:/app/data
+EOF
+docker compose up -d
+echo '✅ KVideo 部署完成！访问 http://你的IP:3100 ，密码 baoge666'">📋 复制一键部署脚本</button>
+                </div>
+                <pre><code># 一键完成所有部署步骤
+mkdir -p ~/kvideo/data && cd ~/kvideo && cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  kvideo:
+    image: kuekhaoyang/kvideo:latest
+    container_name: kvideo
+    restart: unless-stopped
+    ports:
+      - '3100:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_SITE_NAME=宝哥影院
+      - NEXT_PUBLIC_SITE_TITLE=宝哥影院 - 全网影视聚合
+      - NEXT_PUBLIC_SITE_DESCRIPTION=高清影视聚合搜索平台
+      - ADMIN_PASSWORD=baoge666
+      - PERSIST_SESSION=true
+      - MERGE_SOURCES=true
+      - UPSTASH_REDIS_REST_URL=https://worthy-donkey-58808.upstash.io
+      - UPSTASH_REDIS_REST_TOKEN=AeW4AAIncDE1MjY3ZTZmMWQyYTY0NTc0OTQzMGJmZWJkMzVmYzE0OHAxNTg4MDg
+    volumes:
+      - ./data:/app/data
+EOF
+docker compose up -d
+echo "✅ KVideo 已启动 → 访问密码 baoge666"</code></pre>
+            </div>
+            <div style="margin: 0 1.5rem 1rem 1.5rem; font-size:0.8rem;">
+                ⚠️ 执行前请确保已安装 Docker 及 Compose 插件，端口 3100 未被占用。
+            </div>
+        </div>
+
+        <div class="footer">
+            🎬 KVideo 宝哥影院 · 官方镜像 kuekhaoyang/kvideo | Upstash Redis 云端存储 | 密码 baoge666<br>
+            📌 所有命令均可一键复制，在 VPS 终端粘贴执行。
+        </div>
+    </div>
+</div>
+<div id="toast" class="toast" style="opacity:0;">✅ 已复制到剪贴板</div>
+
+<script>
+    const toastEl = document.getElementById('toast');
+    function showToast(msg) {
+        toastEl.textContent = msg || '✅ 已复制到剪贴板';
+        toastEl.style.opacity = '1';
+        setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
+    }
+
+    const copyBtns = document.querySelectorAll('.copy-btn');
+    copyBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const rawCode = btn.getAttribute('data-code');
+            if (!rawCode) return;
+            try {
+                await navigator.clipboard.writeText(rawCode);
+                showToast('📋 命令已复制');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ 已复制';
+                setTimeout(() => { btn.innerHTML = originalText; }, 1500);
+            } catch (err) {
+                const textarea = document.createElement('textarea');
+                textarea.value = rawCode;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('📋 已复制 (传统方式)');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ 已复制';
+                setTimeout(() => { btn.innerHTML = originalText; }, 1500);
+            }
+        });
+    });
+</script>
+</body>
+</html>
