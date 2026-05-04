@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智谱 AI 平台使用教程</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 40px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        .section h3 {
+            color: #764ba2;
+            font-size: 1.4em;
+            margin: 25px 0 15px 0;
+        }
+        .step {
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .command-box {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            position: relative;
+            font-family: 'Consolas', 'Monaco', monospace;
+            overflow-x: auto;
+        }
+        .command {
+            color: #4ec9b0;
+            margin: 8px 0;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .copy-btn:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+        .copy-btn.copied {
+            background: #4ec9b0;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        .info-box strong {
+            color: #1976D2;
+        }
+        .price-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .price-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+        .price-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .price-table tr:hover {
+            background: #f5f5f5;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            color: #155724;
+        }
+        .highlight {
+            background: linear-gradient(120deg, #ffeaa7 0%, #ffeaa7 100%);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 智谱 AI 平台使用教程</h1>
+            <p>文心雕龙项目 AI 引擎操作指南</p>
+        </div>
+
+        <div class="content">
+            <!-- 当前配置 -->
+            <div class="section">
+                <h2>📋 你的当前配置</h2>
+                <div class="info-box">
+                    <strong>项目使用的模型：</strong><span class="highlight">GLM-4-Flash</span><br>
+                    <strong>API 端点：</strong><code>https://open.bigmodel.cn/api/paas/v4/chat/completions</code><br>
+                    <strong>计费方式：</strong>按 Token 用量扣费（后付费）
+                </div>
+            </div>
+
+            <!-- 查看用量 -->
+            <div class="section">
+                <h2>📊 查看 Token 用量</h2>
+                
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>访问智谱开放平台</strong>
+                    <div class="command-box">
+                        <button class="copy-btn" onclick="copyToClipboard('https://open.bigmodel.cn/', this)">📋 复制</button>
+                        <div class="command">https://open.bigmodel.cn/</div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>登录账号</strong>
+                    <p style="margin-top: 10px;">使用手机号或邮箱登录（注册时的账号）</p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>进入控制台</strong>
+                    <p style="margin-top: 10px;">点击右上角 <strong>"控制台"</strong> 按钮</p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <strong>查看用量统计</strong>
+                    <p style="margin-top: 10px;">
+                        左侧导航栏 → <strong>"资源管理"</strong> → <strong>"Token 统计"</strong><br><br>
+                        可以看到：
+                    </p>
+                    <ul style="margin-left: 30px; margin-top: 10px;">
+                        <li>📈 今日/本月 Token 消耗量</li>
+                        <li>💰 账户余额</li>
+                        <li>📉 每日用量趋势图</li>
+                    </ul>
+                </div>
+
+                <div class="success">
+                    ✅ <strong>提示：</strong>GLM-4-Flash 模型非常便宜，100 万字约 1-2 元
+                </div>
+            </div>
+
+            <!-- 充值指南 -->
+            <div class="section">
+                <h2>💳 充值指南</h2>
+
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>进入充值页面</strong>
+                    <p style="margin-top: 10px;">
+                        控制台左侧导航栏 → <strong>"资源管理"</strong> → <strong>"充值"</strong>
+                    </p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>选择充值金额</strong>
+                    <p style="margin-top: 10px;">
+                        系统提供多个档位（如 50 元、100 元、200 元等），也可自定义金额
+                    </p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>选择支付方式</strong>
+                    <p style="margin-top: 10px;">
+                        支持：<span class="highlight">支付宝</span> / <span class="highlight">微信支付</span>
+                    </p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <strong>完成支付</strong>
+                    <p style="margin-top: 10px;">
+                        扫码或跳转支付，成功后余额即时到账
+                    </p>
+                </div>
+
+                <div class="warning">
+                    ⚠️ <strong>注意：</strong>账户余额不足时，API 调用会失败，项目会返回错误提示
+                </div>
+            </div>
+
+            <!-- 费用参考 -->
+            <div class="section">
+                <h2>💰 费用参考</h2>
+                <table class="price-table">
+                    <thead>
+                        <tr>
+                            <th>模型</th>
+                            <th>价格（每百万 Token）</th>
+                            <th>适用场景</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: #e8f5e9;">
+                            <td><strong>GLM-4-Flash（当前使用）</strong></td>
+                            <td><strong>约 1-2 元</strong></td>
+                            <td>文章生成、日常创作</td>
+                        </tr>
+                        <tr>
+                            <td>GLM-4</td>
+                            <td>约 50 元</td>
+                            <td>高质量长文</td>
+                        </tr>
+                        <tr>
+                            <td>GLM-4V</td>
+                            <td>约 60 元</td>
+                            <td>图像理解</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="info-box">
+                    <strong>你的项目：</strong>每次生成 1000-2000 字文章，约消耗 2000-4000 Token<br>
+                    <strong>单次成本：</strong>约 <span class="highlight">0.002-0.004 元</span>（几乎免费）<br>
+                    <strong>10 元可用：</strong>约 <span class="highlight">2500-5000 次</span>
+                </div>
+            </div>
+
+            <!-- API 密钥管理 -->
+            <div class="section">
+                <h2>🔑 API 密钥管理</h2>
+
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>查看当前密钥</strong>
+                    <p style="margin-top: 10px;">
+                        控制台左侧导航栏 → <strong>"API 密钥"</strong>
+                    </p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>创建新密钥</strong>
+                    <p style="margin-top: 10px;">
+                        点击 <strong>"创建密钥"</strong> → 设置名称 → 复制保存
+                    </p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>配置到项目</strong>
+                    <div class="command-box">
+                        <button class="copy-btn" onclick="copyToClipboard('ZHIPU_API_KEY=你的密钥', this)">📋 复制</button>
+                        <div class="command"># Vercel 环境变量</div>
+                        <div class="command">ZHIPU_API_KEY=你的密钥</div>
+                    </div>
+                </div>
+
+                <div class="warning">
+                    ⚠️ <strong>重要：</strong>密钥只显示一次，创建后立即复制保存！
+                </div>
+            </div>
+
+            <!-- 常见问题 -->
+            <div class="section">
+                <h2>❓ 常见问题</h2>
+
+                <h3>Q1：如何知道余额是否充足？</h3>
+                <div class="info-box">
+                    控制台 → 资源管理 → Token 统计 → 查看"账户余额"<br>
+                    余额低于 10 元建议充值
+                </div>
+
+                <h3>Q2：Token 是怎么计算的？</h3>
+                <div class="info-box">
+                    中文字符 ≈ 1 个 Token<br>
+                    1000 字文章 ≈ 2000 Token（含 Prompt 和回复）
+                </div>
+
+                <h3>Q3：余额用完了会怎样？</h3>
+                <div class="warning">
+                    API 调用失败，页面会提示错误。充值后立即恢复使用。
+                </div>
+
+                <h3>Q4：能设置每月消费上限吗？</h3>
+                <div class="info-box">
+                    智谱平台暂不支持设置上限，需自行关注余额。<br>
+                    建议：定期查看 Token 统计页面
+                </div>
+            </div>
+
+            <!-- 文章插图指南 -->
+            <div class="section">
+                <h2>🖼️ 文章插图使用指南</h2>
+                
+                <div class="info-box">
+                    <strong>当前状态：</strong>文心雕龙生成的文章为纯文本格式，<strong>不包含图片</strong>。<br>
+                    如需插图，可手动在 Markdown 中添加图片链接。
+                </div>
+
+                <h3>方法一：使用网络图片</h3>
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>找到图片链接</strong>
+                    <p style="margin-top: 10px;">
+                        从图片网站（如 Unsplash、Pexels）复制图片地址：<br>
+                        <code>https://images.unsplash.com/photo-xxx.jpg</code>
+                    </p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>在 Markdown 中插入图片</strong>
+                    <div class="command-box">
+                        <button class="copy-btn" onclick="copyToClipboard('![月光下的故乡](https://images.unsplash.com/photo-xxx.jpg)', this)">📋 复制</button>
+                        <div class="command">![图片描述](图片链接)</div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>示例</strong>
+                    <div class="command-box">
+                        <button class="copy-btn" onclick="copyToClipboard('# 月光下的故乡\n\n![月光洒在青石板上](https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800)\n\n夜深了，月光如水...', this)">📋 复制</button>
+                        <div class="command"># 月光下的故乡</div>
+                        <div class="command"></div>
+                        <div class="command">![月光洒在青石板上](https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800)</div>
+                        <div class="command"></div>
+                        <div class="command">夜深了，月光如水...</div>
+                    </div>
+                </div>
+
+                <h3>方法二：使用本地图片</h3>
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>将图片保存到项目目录</strong>
+                    <p style="margin-top: 10px;">
+                        例如：<code>./images/moonlight.jpg</code>
+                    </p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>使用相对路径插入</strong>
+                    <div class="command-box">
+                        <button class="copy-btn" onclick="copyToClipboard('![故乡的月亮](./images/moonlight.jpg)', this)">📋 复制</button>
+                        <div class="command">![故乡的月亮](./images/moonlight.jpg)</div>
+                    </div>
+                </div>
+
+                <h3>方法三：导出 HTML 后嵌入图片</h3>
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>从文心雕龙导出 HTML 格式</strong>
+                    <p style="margin-top: 10px;">
+                        点击"下载"按钮 → 选择"HTML"格式
+                    </p>
+                </div>
+
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>用文本编辑器打开 HTML 文件</strong>
+                    <p style="margin-top: 10px;">
+                        在适当位置添加图片标签：
+                    </p>
+                    <div class="command-box">
+                        <button class="copy-btn" onclick="copyToClipboard('&lt;img src=&quot;https://images.unsplash.com/photo-xxx.jpg&quot; alt=&quot;月光下的故乡&quot; style=&quot;max-width: 100%;&quot;&gt;', this)">📋 复制</button>
+                        <div class="command">&lt;img src="https://images.unsplash.com/photo-xxx.jpg"</div>
+                        <div class="command">     alt="月光下的故乡"</div>
+                        <div class="command">     style="max-width: 100%;"&gt;</div>
+                    </div>
+                </div>
+
+                <div class="success">
+                    ✅ <strong>提示：</strong>推荐使用 Markdown 格式添加图片，后续可自由转换为其他格式
+                </div>
+
+                <h3>免费图片资源网站推荐</h3>
+                <table class="price-table">
+                    <thead>
+                        <tr>
+                            <th>网站</th>
+                            <th>特点</th>
+                            <th>链接</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Unsplash</strong></td>
+                            <td>高质量、免费可商用</td>
+                            <td><a href="https://unsplash.com" target="_blank">unsplash.com</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pexels</strong></td>
+                            <td>分类清晰、支持中文搜索</td>
+                            <td><a href="https://www.pexels.com/zh-cn/" target="_blank">pexels.com</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pixabay</strong></td>
+                            <td>图库丰富、支持视频</td>
+                            <td><a href="https://pixabay.com/zh/" target="_blank">pixabay.com</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 快捷操作 -->
+            <div class="section">
+                <h2>🚀 快捷操作入口</h2>
+                <div class="command-box">
+                    <button class="copy-btn" onclick="copyToClipboard('https://open.bigmodel.cn/usercenter/apikeys', this)">📋 复制</button>
+                    <div class="command"># API 密钥管理</div>
+                    <div class="command">https://open.bigmodel.cn/usercenter/apikeys</div>
+                </div>
+
+                <div class="command-box">
+                    <button class="copy-btn" onclick="copyToClipboard('https://open.bigmodel.cn/usercenter/resource/token-stats', this)">📋 复制</button>
+                    <div class="command"># Token 用量统计</div>
+                    <div class="command">https://open.bigmodel.cn/usercenter/resource/token-stats</div>
+                </div>
+
+                <div class="command-box">
+                    <button class="copy-btn" onclick="copyToClipboard('https://open.bigmodel.cn/usercenter/recharge', this)">📋 复制</button>
+                    <div class="command"># 充值页面</div>
+                    <div class="command">https://open.bigmodel.cn/usercenter/recharge</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.innerHTML;
+                button.innerHTML = '✅ 已复制';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                // 降级方案
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                
+                const originalText = button.innerHTML;
+                button.innerHTML = '✅ 已复制';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
