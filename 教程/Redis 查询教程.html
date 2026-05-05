@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Redis 查询教程 | 1Panel Docker Redis 完整命令</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0e1a;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: #eef2ff;
+            padding: 2rem 1rem;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #0f1322;
+            border-radius: 2rem;
+            overflow: hidden;
+            border: 1px solid #232742;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.6);
+        }
+        .header {
+            background: linear-gradient(135deg, #0b0f1c 0%, #11172b 100%);
+            padding: 2rem 2rem 1.5rem;
+            border-bottom: 1px solid #2a2f4e;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(120deg, #c084fc, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .badge-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin: 0.8rem 0 0;
+        }
+        .badge {
+            background: #1e243f;
+            padding: 0.2rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #a5b4fc;
+            border: 1px solid #2e3a5e;
+        }
+        .content {
+            padding: 2rem;
+        }
+        .info-card {
+            background: #0b0f1a;
+            border-radius: 1.5rem;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 5px solid #3b82f6;
+        }
+        .info-card p {
+            margin: 0.3rem 0;
+            font-size: 0.85rem;
+        }
+        .info-card code {
+            background: #1a1f33;
+            padding: 0.1rem 0.3rem;
+            border-radius: 6px;
+        }
+        .exec-location {
+            background: #1a1f33;
+            padding: 0.5rem 1rem;
+            border-radius: 0.8rem;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+        .two-columns {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .col {
+            flex: 1;
+            min-width: 300px;
+        }
+        .col-title {
+            background: #11172b;
+            padding: 0.6rem 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .step {
+            background: #0c1020;
+            border-radius: 1.25rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #232742;
+            overflow: hidden;
+        }
+        .step-header {
+            background: #11172b;
+            padding: 0.8rem 1.2rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #232742;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .step-number {
+            background: #2d3a6e;
+            width: 26px;
+            height: 26px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+        .command-list {
+            padding: 0.5rem 0;
+        }
+        .command-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #1a1f33;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+        }
+        .command-item:last-child {
+            border-bottom: none;
+        }
+        .command-text {
+            color: #e2e8f0;
+            word-break: break-all;
+            flex: 1;
+            font-size: 0.7rem;
+        }
+        .copy-btn {
+            background: #1e293b;
+            border: none;
+            color: #cbd5f0;
+            padding: 0.2rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-left: 0.5rem;
+            white-space: nowrap;
+        }
+        .copy-btn:hover {
+            background: #2d3a6e;
+            color: white;
+        }
+        .note {
+            background: #1a1f33;
+            border-radius: 1rem;
+            padding: 0.8rem 1rem;
+            margin: 1.5rem 0 0 0;
+            font-size: 0.75rem;
+            border-left: 3px solid #facc15;
+        }
+        .warning {
+            background: #2d1f1f;
+            border-left: 3px solid #f97316;
+        }
+        .success {
+            background: #0f2a1f;
+            border-left: 3px solid #4ade80;
+        }
+        .footer {
+            background: #0b0f1a;
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.7rem;
+            color: #6f7c9e;
+            border-top: 1px solid #1e243f;
+        }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            backdrop-filter: blur(8px);
+            border-left: 3px solid #3b82f6;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        @media (max-width: 780px) {
+            .content { padding: 1rem; }
+            .command-item { flex-wrap: wrap; gap: 0.5rem; }
+            .copy-btn { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔍 Redis 查询教程</h1>
+        <div class="badge-group">
+            <span class="badge">🐳 Docker Redis</span>
+            <span class="badge">📋 命令已填好</span>
+            <span class="badge">⚡ 点击复制即用</span>
+        </div>
+        <p style="margin-top: 8px; color: #9aa9d4;">当前环境：容器名 <code>1Panel-redis-yiBC</code> | 密码 <code>redis_zppwFr</code> | 端口 <code>6379</code></p>
+    </div>
+
+    <div class="content">
+        <div class="exec-location">
+            📍 执行位置：<strong>VPS 终端（FinalShell / SSH 客户端）</strong>
+        </div>
+
+        <div class="info-card">
+            <p>✅ <strong>当前 Redis 环境状态</strong></p>
+            <p>🔹 容器名: <code>1Panel-redis-yiBC</code></p>
+            <p>🔹 密码: <code>redis_zppwFr</code></p>
+            <p>🔹 端口: <code>6379</code></p>
+            <p>🔹 数据库总数: <code>16</code> (0 ~ 15)</p>
+        </div>
+
+        <!-- 快速入门 -->
+        <div class="step">
+            <div class="step-header"><span class="step-number">⚡</span> 最常用的三个命令</div>
+            <div class="command-list">
+                <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 KEYS "*"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 KEYS "*"'>复制</button></div>
+                <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 DBSIZE</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 DBSIZE'>复制</button></div>
+                <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr INFO keyspace</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr INFO keyspace'>复制</button></div>
+            </div>
+        </div>
+
+        <div class="two-columns">
+            <!-- 左侧 -->
+            <div class="col">
+                <div class="col-title">📊 基础查询</div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">1</span> 查看 Redis 进程</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">ps aux | grep redis-server | grep -v grep</span><button class="copy-btn" data-code='ps aux | grep redis-server | grep -v grep'>复制</button></div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">2</span> 查看 Redis 容器状态</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker ps | grep redis</span><button class="copy-btn" data-code='docker ps | grep redis'>复制</button></div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">3</span> 查看数据库总数</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr CONFIG GET databases</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr CONFIG GET databases'>复制</button></div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">4</span> 查看所有数据库键数量</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">for db in {0..15}; do echo -n "db$db: "; docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n $db DBSIZE 2>/dev/null; done</span><button class="copy-btn" data-code='for db in {0..15}; do echo -n "db$db: "; docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n $db DBSIZE 2>/dev/null; done'>复制</button></div>
+                    </div>
+                    <div class="note" style="margin:0.5rem 1rem; padding:0.4rem 0.6rem;">
+                        ✅ 这是一行完整命令，点击复制后直接粘贴回车即可
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">5</span> 查看 db0 所有键</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 KEYS "*"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 KEYS "*"'>复制</button></div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">6</span> 查看 db0 键数量</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 DBSIZE</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 DBSIZE'>复制</button></div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">7</span> 查看所有数据库分布</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr INFO keyspace</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr INFO keyspace'>复制</button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧 -->
+            <div class="col">
+                <div class="col-title">🔎 数据查询</div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">1</span> 查看字符串类型键的值</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 GET "admin:config"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 GET "admin:config"'>复制</button></div>
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 GET "user:list"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 GET "user:list"'>复制</button></div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">2</span> 查看哈希类型键的值</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 HGETALL "user:baoge:info"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 HGETALL "user:baoge:info"'>复制</button></div>
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 HGETALL "user:123:info"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 HGETALL "user:123:info"'>复制</button></div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">3</span> 查看键的类型</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 TYPE "user:baoge:info"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 TYPE "user:baoge:info"'>复制</button></div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">4</span> 查看键的剩余存活时间</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 TTL "user:baoge:info"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 0 TTL "user:baoge:info"'>复制</button></div>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-header"><span class="step-number">5</span> 查看 db1 数据</div>
+                    <div class="command-list">
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 1 KEYS "*"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 1 KEYS "*"'>复制</button></div>
+                        <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 1 DBSIZE</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr -n 1 DBSIZE'>复制</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 排查命令 -->
+        <div class="step">
+            <div class="step-header"><span class="step-number">🔧</span> 实用排查命令</div>
+            <div class="command-list">
+                <div class="command-item"><span class="command-text">ss -tnp | grep 6379</span><button class="copy-btn" data-code='ss -tnp | grep 6379'>复制</button></div>
+                <div class="command-item"><span class="command-text">docker logs 1Panel-redis-yiBC --tail 50</span><button class="copy-btn" data-code='docker logs 1Panel-redis-yiBC --tail 50'>复制</button></div>
+                <div class="command-item"><span class="command-text">docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr INFO memory | grep -E "used_memory_human|maxmemory_human"</span><button class="copy-btn" data-code='docker exec 1Panel-redis-yiBC redis-cli -a redis_zppwFr INFO memory | grep -E "used_memory_human|maxmemory_human"'>复制</button></div>
+            </div>
+        </div>
+
+        <!-- 注意事项 -->
+        <div class="note">
+            <p>📌 <strong>注意事项</strong></p>
+            <p>• 所有命令在 <strong>VPS 终端</strong> 中直接执行，不需要先进入容器</p>
+            <p>• 点击复制按钮后，直接粘贴到终端按回车即可</p>
+            <p>• 如果提示 <code>No such container</code>，先用 <code>docker ps | grep redis</code> 确认容器名</p>
+            <p>• 如果提示符是 <code>127.0.0.1:6379&gt;</code>，输入 <code>exit</code> 退出后再执行命令</p>
+        </div>
+
+        <div class="footer">
+            📌 容器: 1Panel-redis-yiBC | 密码: redis_zppwFr | 点击复制按钮即可复制完整命令
+        </div>
+    </div>
+</div>
+<div id="toast" class="toast" style="opacity:0;">✅ 命令已复制</div>
+
+<script>
+    const toastEl = document.getElementById('toast');
+    function showToast(msg) {
+        toastEl.textContent = msg || '✅ 命令已复制';
+        toastEl.style.opacity = '1';
+        setTimeout(() => { toastEl.style.opacity = '0'; }, 2000);
+    }
+
+    const copyBtns = document.querySelectorAll('.copy-btn');
+    copyBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const rawCode = btn.getAttribute('data-code');
+            if (!rawCode) return;
+            try {
+                await navigator.clipboard.writeText(rawCode);
+                showToast('✅ 命令已复制');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ 已复制';
+                setTimeout(() => { btn.innerHTML = originalText; }, 1500);
+            } catch (err) {
+                const textarea = document.createElement('textarea');
+                textarea.value = rawCode;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('✅ 命令已复制');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ 已复制';
+                setTimeout(() => { btn.innerHTML = originalText; }, 1500);
+            }
+        });
+    });
+</script>
+<!-- ========== 登录验证脚本 开始 ========== -->
+<style>
+#login_overlay {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+
+
+  background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+              url('https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN') center/cover fixed;
+
+  /*background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                url('https://s3.bmp.ovh/imgs/2025/12/06/2eecac904df39972.png') center/cover fixed;*/
+
+   /*background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                url('https://picsum.photos/1920/1080?random=1') center/cover fixed;*/
+
+    /* 快加载渐变背景，启用时注释上面在用的行 */
+    /* background: linear-gradient(135deg, #2c3e50, #4ca1af); */
+
+
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999999;
+}
+#login_box {
+  background: #fff; padding: 30px; border-radius: 16px;
+  width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+#login_box h3 { margin: 0 0 20px; font-size: 18px; }
+#pwd_input {
+  width: 100%; padding: 12px; margin-bottom: 15px;
+  border: 1px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center;
+}
+#login_btn {
+  width: 100%; padding: 12px; background: #3b82f6; color: #fff;
+  border: none; border-radius: 8px; font-size: 16px; cursor:pointer;
+}
+#login_btn:hover { background: #2563eb; }
+</style>
+
+<div id="login_overlay">
+  <div id="login_box">
+    <h3>🔒 请输入访问密码</h3>
+    <input type="password" id="pwd_input" placeholder="输入密码">
+    <button id="login_btn">确认进入</button>
+  </div>
+</div>
+
+<script>
+const REMEMBER_LOGIN = false;  // true=记住登录  false=每次都验证
+const LOGIN_KEY = "is_login_success";
+
+// ✅ 正确的  SHA256
+const CORRECT_HASH = "06a9e94ceb731a81b5ed9119cd359f1883ed808cd20baa6277018b9ca3dc3975";
+
+async function sha256(text) {
+  const enc = new TextEncoder();
+  const hash = await crypto.subtle.digest("SHA-256", enc.encode(text));
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+if (REMEMBER_LOGIN && localStorage.getItem(LOGIN_KEY) === "true") {
+  document.getElementById("login_overlay").remove();
+}
+
+async function check() {
+  const val = document.getElementById("pwd_input").value.trim();
+  const inputHash = await sha256(val);
+  
+  if (inputHash === CORRECT_HASH) {
+    if (REMEMBER_LOGIN) localStorage.setItem(LOGIN_KEY, "true");
+    document.getElementById("login_overlay").remove();
+  } else {
+    alert("密码错误");
+  }
+}
+
+document.getElementById("login_btn").onclick = check;
+document.getElementById("pwd_input").onkeydown = e => { if(e.key==="Enter") check() };
+setTimeout(() => document.getElementById("pwd_input").focus(), 100);
+</script>
+<!-- ========== 登录验证脚本 结束 ========== -->
+</body>
+</html>
