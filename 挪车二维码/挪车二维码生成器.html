@@ -27,11 +27,12 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
+      padding-top: 40px;
     }
     .panda-box {
       position: relative;
       width: 340px;
-      margin-bottom: -40px;
+      margin-bottom: 0;
       z-index: 2;
     }
     .login-container {
@@ -41,8 +42,8 @@
       box-shadow: 0 2px 12px #0002;
       padding: 40px 28px 28px 28px;
       width: 340px;
-      z-index: 1;
-      margin-top: -40px;
+      z-index: 10;
+      margin-top: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -59,6 +60,9 @@
     .form-group {
       margin-bottom: 18px;
       width: 100%;
+      position: relative;
+      z-index: 100;
+      pointer-events: auto;
     }
     .username-label {
       width: 100%;
@@ -97,6 +101,10 @@
       background: #f5f6fa;
       transition: border 0.2s;
       color: #22223b;
+      position: relative;
+      z-index: 100;
+      -webkit-user-select: text;
+      user-select: text;
     }
     input[type="password"]:focus, input[type="tel"]:focus {
       border-color: #6366f1;
@@ -165,7 +173,7 @@
     #cardContent {
       margin: 0 auto;
       border-radius: 14px;
-      box-shadow: 0 2px 12px #6366f11a;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
       background: #fff;
       border: 2px solid #e0e7ff;
       padding: 0;
@@ -175,6 +183,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.3s;
     }
     .card-body {
       display: flex;
@@ -193,6 +202,7 @@
       font-size: 1.05em;
       color: #6366f1;
       margin-bottom: 1.2em;
+      transition: color 0.3s;
     }
     #qrcode {
       margin: 0 auto 1.2em auto;
@@ -203,9 +213,30 @@
       height: 160px;
       background: #fff;
       border-radius: 8px;
-      border: 2px solid #6366f1;
-      box-shadow: 0 2px 8px #6366f11a;
+      border: 3px solid #000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       padding: 10px;
+      transition: all 0.3s;
+    }
+    .qr-placeholder {
+      margin: 0 auto 1.2em auto;
+      width: 160px;
+      height: 160px;
+      background: linear-gradient(135deg, #f5f6fa 0%, #e0e7ff 100%);
+      border-radius: 8px;
+      border: 3px dashed #6366f1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .qr-placeholder p {
+      color: #6366f1;
+      font-size: 0.85em;
+      font-weight: 500;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0 8px;
     }
     .info-row {
       margin-top: 0.7em;
@@ -246,6 +277,91 @@
     .btn-success:hover { background: #059669 !important; }
     .btn-info { background: #0ea5e9 !important; color: #fff !important; }
     .btn-info:hover { background: #0369a1 !important; }
+    .btn-warning { background: #f59e0b !important; color: #fff !important; }
+    .btn-warning:hover { background: #d97706 !important; }
+    .btn-secondary { background: #6b7280 !important; color: #fff !important; }
+    .btn-secondary:hover { background: #4b5563 !important; }
+    .copy-toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 24px 32px;
+      border-radius: 12px;
+      font-size: 1em;
+      font-weight: 500;
+      line-height: 1.8;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.4s;
+      max-width: 90%;
+      text-align: center;
+      display: none;
+    }
+    .copy-toast.show {
+      opacity: 1;
+      display: block;
+    }
+    .copy-toast .icon {
+      font-size: 2em;
+      margin-bottom: 12px;
+    }
+    .copy-toast .main-text {
+      font-size: 1.1em;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .copy-toast .detail-text {
+      font-size: 0.9em;
+      opacity: 0.95;
+    }
+    .copy-toast .action-btn {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 24px;
+      background: #fff;
+      color: #667eea;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+      pointer-events: auto;
+    }
+    .copy-toast .action-btn:hover {
+      transform: scale(1.05);
+    }
+    .style-option {
+      cursor: pointer;
+      position: relative;
+      z-index: 10;
+      pointer-events: auto;
+    }
+    .style-option input[type="radio"] {
+      display: none;
+    }
+    .style-preview {
+      display: block;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 2px solid #e0e7ff;
+      font-size: 0.9em;
+      transition: all 0.2s;
+      text-align: center;
+      pointer-events: none;
+    }
+    .style-option input:checked + .style-preview {
+      border-color: #6366f1;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.2);
+      transform: scale(1.05);
+    }
+    .style-preview.classic { background: #000000; color: #fff; }
+    .style-preview.blue { background: #1e3a8a; color: #fff; }
+    .style-preview.green { background: #166534; color: #fff; }
+    .style-preview.purple { background: #581c87; color: #fff; }
+    .style-preview.red { background: #991b1b; color: #fff; }
     @media (max-width: 900px) {
       .main-content { flex-direction: column; align-items: center; gap: 1.5rem; }
       .form-container, .card-preview-container { max-width: 98vw; width: 100%; }
@@ -289,7 +405,7 @@
         </svg>
       </div>
       <div class="login-container">
-        <div class="login-title">登录</div>
+        <div class="login-title"></div>
         <form id="loginForm" style="width:100%;">
           <div class="form-group">
             <label for="username" class="username-label">   </label>
@@ -329,10 +445,41 @@
               <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" required placeholder="13888888888">
               <div id="phoneNumberError" class="error"></div>
             </div>
+            <div class="mb-3">
+              <label class="form-label">二维码样式:</label>
+              <div class="d-flex gap-2 flex-wrap">
+                <label class="style-option">
+                  <input type="radio" name="qrStyle" value="classic" checked>
+                  <span class="style-preview classic">经典黑</span>
+                </label>
+                <label class="style-option">
+                  <input type="radio" name="qrStyle" value="blue">
+                  <span class="style-preview blue">商务蓝</span>
+                </label>
+                <label class="style-option">
+                  <input type="radio" name="qrStyle" value="green">
+                  <span class="style-preview green">清新绿</span>
+                </label>
+                <label class="style-option">
+                  <input type="radio" name="qrStyle" value="purple">
+                  <span class="style-preview purple">优雅紫</span>
+                </label>
+                <label class="style-option">
+                  <input type="radio" name="qrStyle" value="red">
+                  <span class="style-preview red">中国红</span>
+                </label>
+              </div>
+            </div>
             <button type="submit" class="btn btn-primary">生成二维码</button>
+            <div class="d-flex gap-2 mt-3 w-100">
+              <button type="button" class="btn btn-warning flex-fill" onclick="resetForm()">重置</button>
+              <button type="button" class="btn btn-secondary flex-fill" onclick="logout()">退出</button>
+            </div>
             <div class="action-group" id="actionGroup" style="display:none;">
-              <button id="downloadButton" class="btn btn-success" type="button">下载图片</button>
-              <a id="previewLink" class="btn btn-info" href="" target="_blank">车辆信息预览</a>
+              <div class="d-flex gap-2 w-100">
+                <button id="downloadButton" class="btn btn-success flex-fill" type="button">下载图片</button>
+                <a id="previewLink" class="btn btn-info flex-fill" href="" target="_blank">车辆信息预览</a>
+              </div>
             </div>
           </form>
         </div>
@@ -342,29 +489,171 @@
             <div class="card-body" id="cardBody">
               <div class="card-title">临时停靠，请多关照</div>
               <div class="card-subtitle">手机扫码，呼叫挪车</div>
-              <div id="qrcode"></div>
+              <div id="qrcode-placeholder" class="qr-placeholder">
+                <p>请填写车牌号和手机号，生成二维码</p>
+              </div>
+              <div id="qrcode" style="display:none;"></div>
               <div id="infoPlate" class="info-row" style="display:none;"></div>
             </div>
           </div>
+          <button id="designQrcodeMobile" class="btn btn-warning mt-3" type="button" onclick="openDesigner()" style="display:none;">🎨 自主设计二维码</button>
         </div>
       </div>
     </div>
   </div>
 
+  <div id="copyToast" class="copy-toast">
+    <div class="icon">✓</div>
+    <div class="main-text">链接已复制到剪贴板</div>
+    <div class="detail-text">请前往草料二维码粘贴链接<br>即可自主美化您的挪车二维码</div>
+    <div class="action-btn" id="goCliBtn">前往草料二维码 →</div>
+  </div>
+
   <script>
-    // 登录逻辑
-    document.getElementById('loginForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-      var password = document.getElementById('password').value.trim();
-      var loginError = document.getElementById('loginError');
-      if (password !== 'wsb123456') {
-        loginError.textContent = '密码错误！';
-        return;
-      }
-      loginError.textContent = '';
+    // 登录状态管理
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    
+    if (isLoggedIn) {
       document.getElementById('loginPage').style.display = 'none';
       document.getElementById('mainPage').style.display = 'block';
-    });
+      initMainPage();
+    } else {
+      // 自动聚焦密码框
+      setTimeout(() => {
+        document.getElementById('password').focus();
+      }, 100);
+      
+      // 未登录才绑定登录事件
+      document.getElementById('loginForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var password = document.getElementById('password').value.trim();
+        var loginError = document.getElementById('loginError');
+        if (password !== 'wsb123456') {
+          loginError.textContent = '密码错误！';
+          return;
+        }
+        loginError.textContent = '';
+        localStorage.setItem('isLoggedIn', 'true');
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('mainPage').style.display = 'block';
+        initMainPage();
+      });
+    }
+
+    // 初始化主页面
+    function initMainPage() {
+      // 监听样式选择,实时预览
+      const radios = document.querySelectorAll('input[name="qrStyle"]');
+      radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+          const colors = qrStyles[this.value];
+          const qrDiv = document.getElementById('qrcode');
+          const placeholder = document.getElementById('qrcode-placeholder');
+          const subtitle = document.querySelector('.card-subtitle');
+          const cardContent = document.getElementById('cardContent');
+          
+          if (!document.querySelector('#cardContent img')) {
+            if (qrDiv.innerHTML !== '') {
+              qrDiv.style.borderColor = colors.border;
+              qrDiv.style.backgroundColor = colors.bg;
+            }
+            subtitle.style.color = colors.accent;
+            cardContent.style.borderColor = colors.cardBorder;
+            placeholder.style.borderColor = colors.border;
+            placeholder.style.background = `linear-gradient(135deg, ${colors.bg} 0%, ${colors.light} 100%)`;
+            placeholder.querySelector('p').style.color = colors.accent;
+          } else {
+            changeQRStyle(this.value);
+          }
+        });
+      });
+    }
+
+    // 页面加载完成后初始化
+    if (isLoggedIn) {
+      initMainPage();
+    }
+
+    // 二维码样式配置(边框+背景+二维码颜色)
+    const qrStyles = {
+      classic: { 
+        dark: '#000000', light: '#ffffff',  // 二维码颜色
+        border: '#000000', bg: '#ffffff',    // 边框和背景
+        accent: '#22223b', cardBorder: '#000000'  // 强调色和卡片边框
+      },
+      blue: { 
+        dark: '#1e3a8a', light: '#ffffff', 
+        border: '#1e3a8a', bg: '#f0f4ff',
+        accent: '#4b5cc4', cardBorder: '#1e3a8a'
+      },
+      green: { 
+        dark: '#166534', light: '#ffffff', 
+        border: '#166534', bg: '#f0fdf4',
+        accent: '#10b981', cardBorder: '#166534'
+      },
+      purple: { 
+        dark: '#581c87', light: '#ffffff', 
+        border: '#581c87', bg: '#faf5ff',
+        accent: '#8b5cf6', cardBorder: '#581c87'
+      },
+      red: { 
+        dark: '#991b1b', light: '#ffffff', 
+        border: '#991b1b', bg: '#fef2f2',
+        accent: '#ef4444', cardBorder: '#991b1b'
+      }
+    };
+
+    // 切换已生成二维码的样式
+    function changeQRStyle(styleName) {
+      const qrImg = document.querySelector('#cardContent img');
+      if (!qrImg) return; // 未生成不处理
+      
+      const plateNumber = document.getElementById('plateNumber').value.trim();
+      const phoneNumber = document.getElementById('phoneNumber').value.trim();
+      if (!plateNumber || !phoneNumber) return;
+      
+      const url = 'https://dfile.baoge.wang/movecarinfo.html/?plateNumber=' + encodeURIComponent(plateNumber) + '&phoneNumber=' + encodeURIComponent(phoneNumber);
+      generateQRCode(url, styleName);
+    }
+
+    // 生成二维码(点击按钮时调用)
+    function generateQRCode(url, styleName) {
+      const colors = qrStyles[styleName];
+      const plateNumber = document.getElementById('plateNumber').value.trim();
+      let cardContent = document.getElementById('cardContent');
+
+      // 隐藏占位符,显示二维码容器
+      const placeholder = document.getElementById('qrcode-placeholder');
+      if (placeholder) placeholder.style.display = 'none';
+      
+      // 重建二维码DOM
+      cardContent.innerHTML = `
+        <div class="card-body" id="cardBody">
+          <div class="card-title">临时停靠，请多关照</div>
+          <div class="card-subtitle" style="color: ${colors.accent}">手机扫码，呼叫挪车</div>
+          <div id="qrcode" style="border-color: ${colors.border}; background-color: ${colors.bg};"></div>
+          <div id="infoPlate" class="info-row" style="display: inline-block;">车牌号：${plateNumber}</div>
+        </div>
+      `;
+
+      // 生成二维码
+      const qrDiv = document.getElementById('qrcode');
+      new QRCode(qrDiv, {
+        text: url,
+        width: 160,
+        height: 160,
+        colorDark: colors.dark,
+        colorLight: colors.light,
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      // 转换为图片
+      setTimeout(() => {
+        convertCardToImage();
+        // 显示自主设计按钮
+        document.getElementById('designQrcodeMobile').style.display = 'block';
+      }, 500);
+    }
 
     // 绑定二维码生成逻辑
     document.getElementById('inputForm').addEventListener('submit', function(event) {
@@ -395,20 +684,13 @@
       document.getElementById('infoPlate').textContent = '车牌号：' + plateNumber;
       document.getElementById('infoPlate').style.display = 'inline-block';
 
-      var qrCodeDiv = document.getElementById('qrcode');
-      qrCodeDiv.innerHTML = "";
-      new QRCode(qrCodeDiv, {
-          text: url,
-          width: 160,
-          height: 160,
-          colorDark: "#22223b",
-          colorLight: "#fff",
-          correctLevel: QRCode.CorrectLevel.H
-      });
+      // 隐藏占位符,显示二维码
+      document.getElementById('qrcode-placeholder').style.display = 'none';
+      document.getElementById('qrcode').style.display = 'flex';
 
-      setTimeout(function() {
-        convertCardToImage();
-      }, 300);
+      // 获取选中的样式并生成二维码
+      const selectedStyle = document.querySelector('input[name="qrStyle"]:checked').value;
+      generateQRCode(url, selectedStyle);
     });
 
     document.getElementById('downloadButton').onclick = function() {
@@ -425,17 +707,116 @@
 
     function convertCardToImage() {
       var cardContent = document.getElementById('cardContent');
-      html2canvas(cardContent, {backgroundColor: "#fff"}).then(function(canvas) {
+      html2canvas(cardContent, {backgroundColor: null}).then(function(canvas) {
         var imgData = canvas.toDataURL('image/png');
         var img = new Image();
         img.src = imgData;
         img.style.borderRadius = '14px';
         img.style.width = '100%';
-        img.style.border = '2px solid #e0e7ff';
+        img.style.border = cardContent.style.borderColor || '2px solid #e0e7ff';
         cardContent.innerHTML = '';
         cardContent.appendChild(img);
         document.getElementById('downloadButton').style.display = 'block';
       });
+    }
+
+    // 重置表单
+    function resetForm() {
+      document.getElementById('plateNumber').value = '';
+      document.getElementById('phoneNumber').value = '';
+      document.getElementById('plateNumberError').textContent = '';
+      document.getElementById('phoneNumberError').textContent = '';
+      document.getElementById('infoPlate').style.display = 'none';
+      document.getElementById('actionGroup').style.display = 'none';
+      
+      // 恢复卡片默认样式
+      const cardContent = document.getElementById('cardContent');
+      cardContent.style.borderColor = '#e0e7ff';
+      const subtitle = document.querySelector('.card-subtitle');
+      if (subtitle) subtitle.style.color = '#6366f1';
+      
+      // 隐藏自主设计按钮
+      const designBtn = document.getElementById('designQrcodeMobile');
+      if (designBtn) designBtn.style.display = 'none';
+      
+      // 重新渲染初始状态
+      cardContent.innerHTML = `
+        <div class="card-body" id="cardBody">
+          <div class="card-title">临时停靠，请多关照</div>
+          <div class="card-subtitle">手机扫码，呼叫挪车</div>
+          <div id="qrcode-placeholder" class="qr-placeholder">
+            <p>请填写车牌号和手机号，生成二维码</p>
+          </div>
+          <div id="qrcode" style="display:none;"></div>
+          <div id="infoPlate" class="info-row" style="display:none;"></div>
+        </div>
+      `;
+    }
+
+    // 退出登录
+    function logout() {
+      if (confirm('确认退出登录吗？')) {
+        localStorage.removeItem('isLoggedIn');
+        location.reload();
+      }
+    }
+
+    // 复制链接并打开草料二维码设计器
+    function openDesigner() {
+      const link = document.getElementById('previewLink').href;
+      if (!link) {
+        alert('请先生成二维码');
+        return;
+      }
+
+      // 复制到剪贴板
+      const copyPromise = navigator.clipboard && navigator.clipboard.writeText 
+        ? navigator.clipboard.writeText(link)
+        : fallbackCopyLink(link);
+
+      copyPromise.then(() => {
+        showToast();
+      }).catch(() => {
+        // 复制失败也尝试打开
+        fallbackCopyLink(link);
+        showToast();
+      });
+    }
+
+    // 备用复制方法
+    function fallbackCopyLink(text) {
+      return new Promise((resolve, reject) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+        document.body.removeChild(textarea);
+      });
+    }
+
+    // 显示提示
+    function showToast() {
+      const toast = document.getElementById('copyToast');
+      toast.classList.add('show');
+      
+      // 绑定按钮点击事件
+      const goBtn = document.getElementById('goCliBtn');
+      goBtn.onclick = function(e) {
+        e.stopPropagation();
+        window.open('https://cli.im/url', '_blank');
+      };
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 5000);
     }
   </script>
 </body>
