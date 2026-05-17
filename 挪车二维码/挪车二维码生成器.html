@@ -704,8 +704,18 @@
     document.getElementById('downloadButton').onclick = function() {
       var img = document.querySelector('#cardContent img');
       if (img) {
+        // 创建canvas重新绘制为65%宽度
+        var tempCanvas = document.createElement('canvas');
+        var tempCtx = tempCanvas.getContext('2d');
+        var targetWidth = Math.min(Math.floor(img.naturalWidth * 0.65), 300);
+        var targetHeight = Math.floor(img.naturalHeight * (targetWidth / img.naturalWidth));
+        
+        tempCanvas.width = targetWidth;
+        tempCanvas.height = targetHeight;
+        tempCtx.drawImage(img, 0, 0, targetWidth, targetHeight);
+        
         var a = document.createElement('a');
-        a.href = img.src;
+        a.href = tempCanvas.toDataURL('image/png');
         a.download = 'qr_code_card.png';
         document.body.appendChild(a);
         a.click();
