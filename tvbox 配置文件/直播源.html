@@ -78,7 +78,6 @@
             border: 0.5px solid #d9e4ee;
         }
 
-        /* 部署按钮 */
         .deploy-btn {
             background: #1f6390;
             color: white;
@@ -280,19 +279,18 @@
             flex-shrink: 0;
             margin-top: 2px;
         }
-        .article-link {
-            background: #eef3fc;
-            border-radius: 32px;
-            padding: 5px 12px;
+        .inline-wx {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            background: #eef3fc;
+            padding: 2px 8px;
+            border-radius: 20px;
             font-size: 0.7rem;
-            color: #1f6392;
+            color: #1a6392;
             cursor: pointer;
-            margin-top: 10px;
+            margin-left: 6px;
+            font-weight: 500;
         }
-
         .toast-msg {
             position: fixed;
             bottom: 28px;
@@ -319,17 +317,17 @@
             font-size: 0.68rem;
             color: #6d8aac;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
             flex-wrap: wrap;
-            gap: 8px;
         }
-        .wx-link {
+        .footer-note {
             background: #f0f6fe;
-            padding: 3px 12px;
+            padding: 4px 12px;
             border-radius: 24px;
             color: #1a6392;
-            font-weight: 500;
-            cursor: pointer;
+            font-size: 0.7rem;
         }
 
         @media (max-width: 620px) {
@@ -350,30 +348,34 @@
             <div class="sub">
                 <span class="badge">⚡ 一键复制链接</span>
                 <span class="badge">🔗 右侧打开</span>
-                <span class="badge">🔄 Workers 版本</span>
+                <span class="badge">🔄 自动刷新接口</span>
             </div>
         </div>
-        <button class="deploy-btn" id="showDeployModalBtn">📌 重新部署指引</button>
+        <button class="deploy-btn" id="showDeployModalBtn">📌 部署与变量说明</button>
     </div>
 
-    <!-- 弹窗：完整部署说明但紧凑 -->
+    <!-- 弹窗：升级说明 -->
     <div id="deployModal" class="modal">
         <div class="modal-card">
             <span class="close-modal" id="closeModalBtn">&times;</span>
-            <h3>📌 重新部署 JS 脚本（必须）</h3>
-            <p>1️⃣ 打开 GitHub 仓库：<br><code>https://github.com/5d5d5f5f5f/abc/blob/main/m3u/m3u.js</code> 复制最新 <strong>m3u.js</strong> 全部代码。</p>
-            <p>2️⃣ 登录 Cloudflare Workers → 新建/替换 Worker → 粘贴代码 → <strong>保存并部署</strong>。</p>
-            <p>3️⃣ 在公众号《IPTV Workers 调整说明》<strong>留言区获取最新变量值</strong>（例如 /new2026）。</p>
-            <p>4️⃣ 访问地址格式：<code>https://你的workers域名/变量值</code> （末尾无 /sm2.txt） ，然后替换下方「自建主源」后缀。</p>
-            <p>⚠️ <strong>旧后缀 /abc123 已失效，必须重新部署</strong></p>
+            <h3>📌 原代码库升级说明</h3>
+            <p><strong>✅ Mitv 原代码库升级（无需重新部署）</strong></p>
+            <p>• 本次为接口层优化，<strong>不需要重新部署 Workers 脚本</strong>。<br>
+            • 仅需关注公众号留言区的变量值更新，然后替换下方「自建主源」链接后缀即可。<br>
+            • 推荐使用 <strong>DIYP、KU9、OK影视</strong> 等能自动刷新接口的软件，体验更佳。</p>
+            <p>⚠️ 旧后缀 /abc123 已失效，请从留言区获取最新变量值。</p>
             <button class="modal-btn" id="closeModalBtn2">知道了</button>
         </div>
     </div>
 
     <div class="source-list" id="sourceListContainer"></div>
 
+    <!-- 获取变量值区域，公众号已内嵌到此卡片中 -->
     <div class="var-guide-card">
-        <div style="font-weight:700; font-size:0.8rem;">🔁 获取最新变量值（替换主源后缀）</div>
+        <div style="font-weight:700; font-size:0.8rem; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <span>🔁 获取最新变量值（替换主源后缀）</span>
+            <span id="wxInlineBtn" class="inline-wx">📘 公众号: 潇雨萌萌</span>
+        </div>
         <div class="step-list">
             <div class="step-item"><span class="step-num">1</span> 打开公众号文章《IPTV Workers 调整说明》→ 留言区</div>
             <div class="step-item"><span class="step-num">2</span> 找到最新变量值（例如 /2026abc）</div>
@@ -383,39 +385,29 @@
             <button id="updateSuffixMainBtn" style="background:#eef3fc; padding: 6px 16px; border-radius: 40px; font-size:0.7rem; font-weight:600; cursor:pointer;">✏️ 更新主源后缀</button>
             <button id="openArticleBtn" style="background:#fff0db; padding: 6px 16px; border-radius: 40px; font-size:0.7rem; font-weight:600; cursor:pointer;">📖 直达文章留言区</button>
         </div>
-        <div style="font-size:0.65rem; margin-top: 10px; color:#5f7f9e;">💬 示例：https://你的workers域名/最新变量值</div>
-    </div>
+        
 
-    <div class="panel-footer">
-        <div>🔁 点击📋复制链接 · 必须重新部署 Workers 脚本</div>
-        <div><span id="wxCopyBtn" class="wx-link">📘 公众号: 潇雨萌萌</span></div>
-    </div>
-</div>
+    
 
 <div id="toastMsg" class="toast-msg">✅ 操作成功</div>
 
 <script>
     // ---------- 直播源数据 ----------
-    // 主源域名 (请自行替换为实际 workers 域名)
     const BASE_SELF_URL = "https://zby.baoge123.de5.net";
-    // 变量后缀，初始提醒（旧格式已废弃）
-    let currentSuffix = localStorage.getItem('dynamic_iptv_suffix') || "/请重新部署后从留言区获取";
+    const BASE_OK_URL = "https://ok.baoge123.de5.net";
+    
+    // 变量后缀（共用同一个后缀规则）
+    let currentSuffix = localStorage.getItem('dynamic_iptv_suffix') || "/请从留言区获取最新值";
 
-    // 核心改动：去掉 /sm2.txt，仅保留 域名/变量值
     function getMainSourceUrl() {
         return `${BASE_SELF_URL}${currentSuffix}`;
     }
+    function getOkSourceUrl() {
+        return `${BASE_OK_URL}${currentSuffix}`;
+    }
 
-    // 其他固定源 (不受影响)
+    // 其他固定源 (已移除 CF 边缘部署节点)
     const STATIC_SOURCES = [
-        {
-            id: "cf",
-            name: "CF部署节点",
-            displayName: "☁️ CF边缘部署 · 直播M3U",
-            url: "https://xzby.baoge123.de5.net/m3u",
-            note: "CloudFlare加速",
-            tag: "CF"
-        },
         {
             id: "vps",
             name: "VPS部署节点",
@@ -444,12 +436,24 @@
 
     let mainSource = {
         id: "main",
-        name: "自建主源 (Workers)",
-        displayName: "✨ 自建主源 · 需重新部署+动态后缀",
+        name: "自建主源",
+        displayName: "✨ 自建主源 · 接口已升级 (通用)",
         url: getMainSourceUrl(),
         note: `后缀 ${currentSuffix}`,
         tag: "主源",
-        showSuffixWarning: true
+        showSuffixWarning: true,
+        isDynamic: true
+    };
+    
+    let okSource = {
+        id: "ok_main",
+        name: "OK影视专用源",
+        displayName: "🎬 OK影视专用源 · 自动刷新优化",
+        url: getOkSourceUrl(),
+        note: `后缀 ${currentSuffix} · 针对OK影视调优`,
+        tag: "OK影视",
+        showSuffixWarning: false,
+        isDynamic: true
     };
 
     let toastTimer = null;
@@ -499,9 +503,11 @@
         }
     }
 
-    function refreshMainSource() {
+    function refreshAllDynamicSources() {
         mainSource.url = getMainSourceUrl();
-        mainSource.note = `后缀 ${currentSuffix} (必须重新部署脚本)`;
+        mainSource.note = `后缀 ${currentSuffix} (接口已升级，无需重新部署)`;
+        okSource.url = getOkSourceUrl();
+        okSource.note = `后缀 ${currentSuffix} · 针对OK影视调优 (自动刷新)`;
         renderCards();
         localStorage.setItem('dynamic_iptv_suffix', currentSuffix);
     }
@@ -513,8 +519,8 @@
             if (!raw.startsWith('/')) raw = '/' + raw;
             if (raw === currentSuffix) { showToast("后缀未变动", false); return; }
             currentSuffix = raw;
-            refreshMainSource();
-            showToast(`✅ 主源后缀已更新为 ${currentSuffix}，必须已重新部署 Workers 脚本`, false);
+            refreshAllDynamicSources();
+            showToast(`✅ 主源后缀已更新为 ${currentSuffix}，OK影视源同步生效`, false);
         }
     }
 
@@ -524,12 +530,19 @@
         setTimeout(() => navigator.clipboard.writeText("潇雨萌萌").catch(()=>{}), 200);
     }
 
+    // 复制公众号名称
+    function copyWxName() {
+        navigator.clipboard.writeText("潇雨萌萌");
+        showToast("📘 公众号名称「潇雨萌萌」已复制，微信内搜索关注", false);
+    }
+
     function renderCards() {
         const container = document.getElementById('sourceListContainer');
         if (!container) return;
         container.innerHTML = '';
         mainSource.url = getMainSourceUrl();
-        const all = [mainSource, ...STATIC_SOURCES];
+        okSource.url = getOkSourceUrl();
+        const all = [mainSource, okSource, ...STATIC_SOURCES];
 
         all.forEach(src => {
             const card = document.createElement('div');
@@ -557,8 +570,15 @@
             if (src.showSuffixWarning && src.id === 'main') {
                 const warn = document.createElement('div');
                 warn.className = 'extra-note';
-                warn.innerHTML = `⚠️ 当前后缀 <strong>${currentSuffix}</strong> · 必须重新部署 Workers 脚本，再从留言区获取最新值后「更新主源后缀」<br>📌 正确地址格式示例: <strong>${BASE_SELF_URL}${currentSuffix}</strong> `;
+                warn.innerHTML = `⚠️ 当前共用后缀 <strong>${currentSuffix}</strong> · 原代码库已升级，<strong>无需重新部署 Workers</strong>，仅需从留言区获取最新后缀替换。<br>📌 推荐使用 DIYP / KU9 / OK影视 等支持自动刷新接口的软件。更新后缀后两个主源同时生效。`;
                 info.appendChild(warn);
+            } else if (src.id === 'ok_main') {
+                const smallNote = document.createElement('div');
+                smallNote.style.fontSize = '0.6rem';
+                smallNote.style.color = '#8faa7c';
+                smallNote.style.marginTop = '4px';
+                smallNote.innerHTML = `💡 后缀与自建主源同步更新，一键复制即可用于OK影视`;
+                info.appendChild(smallNote);
             }
 
             const actions = document.createElement('div');
@@ -594,7 +614,7 @@
         const stored = localStorage.getItem('dynamic_iptv_suffix');
         if (stored && stored !== currentSuffix) {
             currentSuffix = stored;
-            refreshMainSource();
+            refreshAllDynamicSources();
         } else {
             renderCards();
         }
@@ -602,13 +622,10 @@
         if (updateBtn) updateBtn.addEventListener('click', promptUpdateSuffix);
         const articleBtn = document.getElementById('openArticleBtn');
         if (articleBtn) articleBtn.addEventListener('click', openArticle);
-        const wxCopy = document.getElementById('wxCopyBtn');
-        if (wxCopy) {
-            wxCopy.addEventListener('click', () => {
-                navigator.clipboard.writeText("潇雨萌萌");
-                showToast("📘 公众号名称已复制，微信搜索关注获取最新变量值", false);
-            });
-        }
+        
+        // 内嵌公众号按钮
+        const wxInline = document.getElementById('wxInlineBtn');
+        if (wxInline) wxInline.addEventListener('click', copyWxName);
     });
 </script>
 </body>
