@@ -11,6 +11,7 @@
   <link rel="dns-prefetch" href="//icon.horse">
   <link rel="dns-prefetch" href="//unavatar.io">
   <link rel="dns-prefetch" href="//icons.duckduckgo.com">
+  <link rel="dns-prefetch" href="//www.faviconextractor.com">
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
     body {
@@ -232,7 +233,7 @@
       transform: translateX(-50%) scale(0.8);
       z-index: 12; /* 低于按钮/输入框，不影响操作 */
       background: linear-gradient(90deg, #00B42A 0%, #00FF38 100%);
-      color: ＃8A2BE2;
+      color: #8A2BE2;
       padding: 10px 24px; /* 缩小内边距，适应面板内部空间 */
       border-radius: 8px;
       border: 2px solid #FFFFFF;
@@ -303,21 +304,7 @@
   </style>
 </head>
 
-<!-- Matomo -->
-<script>
-  var _paq = window._paq = window._paq || [];
-  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
-  _paq.push(['trackPageView']);
-  _paq.push(['enableLinkTracking']);
-  (function() {
-    var u="http://127.0.0.1:8888/";
-    _paq.push(['setTrackerUrl', u+'matomo.php']);
-    _paq.push(['setSiteId', '2']);
-    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
-    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
-  })();
-</script>
-<!-- End Matomo Code -->
+
 
 <body>
   <div class="panel centered" id="mainPanel">
@@ -388,7 +375,7 @@
       }
     };
 
-    let totalTasks = 8;
+    let totalTasks = 9;
     let completedTasks = 0;
     let startTime = 0;
     let timeTimer = null;
@@ -432,7 +419,7 @@
     }
 
     function resetPanel() {
-      const urlInput = document.getElementById('urlInput');
+      const urlInput = getEl('urlInput');
       const currentUrl = urlInput.value.trim();
       if (currentUrl) {
         try {
@@ -443,15 +430,15 @@
       }
 
       urlInput.value = '';
-      document.getElementById('result').innerHTML = '';
-      const fetchBtn = document.getElementById('fetchBtn');
+      getEl('result').innerHTML = '';
+      const fetchBtn = getEl('fetchBtn');
       fetchBtn.textContent = '抓取';
       fetchBtn.disabled = false;
 
-      const progressWrapper = document.getElementById('progressWrapper');
-      const progressBar = document.getElementById('progressBar');
-      const elapsedTime = document.getElementById('elapsedTime');
-      const progressPercent = document.getElementById('progressPercent');
+      const progressWrapper = getEl('progressWrapper');
+      const progressBar = getEl('progressBar');
+      const elapsedTime = getEl('elapsedTime');
+      const progressPercent = getEl('progressPercent');
       progressWrapper.style.display = 'none';
       progressBar.style.width = '0%';
       progressBar.classList.remove('complete');
@@ -461,24 +448,34 @@
       isFetching = false;
       if (timeTimer) clearInterval(timeTimer);
 
-      document.getElementById('mainPanel').classList.add('centered');
+      getEl('mainPanel').classList.add('centered');
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      document.getElementById('completeToast').classList.remove('show');
+      getEl('completeToast').classList.remove('show');
+      
+      // 清空内存缓存，强制重新抓取
+      window._faviconMemoryCache = {};
     }
 
     function showCompleteToast() {
-      const toast = document.getElementById('completeToast');
+      const toast = getEl('completeToast');
       toast.classList.add('show');
-      document.getElementById('progressBar').classList.add('complete');
+      getEl('progressBar').classList.add('complete');
       setTimeout(() => {
         toast.classList.remove('show');
       }, 3000);
     }
 
+    // 缓存DOM引用
+    const domCache = {};
+    function getEl(id) {
+      if (!domCache[id]) domCache[id] = document.getElementById(id);
+      return domCache[id];
+    }
+
     function updateProgress() {
-      const progressBar = document.getElementById('progressBar');
-      const elapsedTime = document.getElementById('elapsedTime');
-      const progressPercent = document.getElementById('progressPercent');
+      const progressBar = getEl('progressBar');
+      const elapsedTime = getEl('elapsedTime');
+      const progressPercent = getEl('progressPercent');
 
       const percent = Math.round((completedTasks / totalTasks) * 100);
       progressBar.style.width = `${percent}%`;
@@ -506,7 +503,6 @@
       let retryCount = 0;
 
       const tryLoad = () => {
-        img.src = '';
         const timeoutTimer = setTimeout(() => {
           if (retryCount < maxRetry) {
             retryCount++;
@@ -549,33 +545,59 @@
       const resultDiv = document.getElementById('result');
       const item = document.createElement('div');
       item.className = 'result-item';
-      item.innerHTML = `
-        <div class="item-left">
-          <img src="${api.url}" alt="${api.name} 图标" class="item-icon">
-          <div class="item-info">
-            <h4>${api.name}</h4>
-            <a href="${api.url}" target="_blank" rel="noopener noreferrer" class="item-link">${api.url}</a>
-          </div>
-        </div>
-        <div class="item-right">
-          <button class="copy-btn" onclick="copyToClipboard('${api.url}', this)">复制</button>
-        </div>
-      `;
+      
+      const img = document.createElement('img');
+      img.src = api.url;
+      img.alt = api.name + ' 图标';
+      img.className = 'item-icon';
+      
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'item-info';
+      
+      const h4 = document.createElement('h4');
+      h4.textContent = api.name;
+      
+      const link = document.createElement('a');
+      link.href = api.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.className = 'item-link';
+      link.textContent = api.url;
+      
+      infoDiv.appendChild(h4);
+      infoDiv.appendChild(link);
+      
+      const leftDiv = document.createElement('div');
+      leftDiv.className = 'item-left';
+      leftDiv.appendChild(img);
+      leftDiv.appendChild(infoDiv);
+      
+      const rightDiv = document.createElement('div');
+      rightDiv.className = 'item-right';
+      
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = '复制';
+      copyBtn.onclick = function() { copyToClipboard(api.url, copyBtn); };
+      rightDiv.appendChild(copyBtn);
+      
+      item.appendChild(leftDiv);
+      item.appendChild(rightDiv);
       resultDiv.appendChild(item);
     }
 
     async function fetch缩略图() {
-      const url = document.getElementById('urlInput').value.trim();
-      const resultDiv = document.getElementById('result');
-      const fetchBtn = document.getElementById('fetchBtn');
-      const progressWrapper = document.getElementById('progressWrapper');
+      const url = getEl('urlInput').value.trim();
+      const resultDiv = getEl('result');
+      const fetchBtn = getEl('fetchBtn');
+      const progressWrapper = getEl('progressWrapper');
       
       if (isFetching) return;
       isFetching = true;
 
       resultDiv.innerHTML = '';
       if (!url) {
-        alert('请输入网址');
+        resultDiv.innerHTML = '<div class="empty-state">请输入网址</div>';
         isFetching = false;
         return;
       }
@@ -599,7 +621,7 @@
         cache.data.forEach(api => api.valid && renderSuccessItem(api));
         showCompleteToast();
         isFetching = false;
-        document.getElementById('mainPanel').classList.remove('centered');
+        getEl('mainPanel').classList.remove('centered');
         return;
       }
 
@@ -611,7 +633,7 @@
 
       fetchBtn.textContent = '正在抓取中....';
       fetchBtn.disabled = true;
-      document.getElementById('mainPanel').classList.remove('centered');
+      getEl('mainPanel').classList.remove('centered');
 
       const fastApis = [
         { name: '网站自身 (无代理)', url: `https://${parsedUrl.hostname}/favicon.ico`, priority: 'fast' },
@@ -623,7 +645,8 @@
         { name: 'Favicon.im', url: `https://favicon.im/${domain}`, priority: 'slow' },
         { name: 'Yandex Favicon', url: `https://favicon.yandex.net/favicon/${domain}`, priority: 'slow' },
         { name: 'Icon Horse', url: `https://icon.horse/icon/${domain}`, priority: 'slow' },
-        { name: 'Unavatar', url: `https://unavatar.io/${domain}`, priority: 'slow' }
+        { name: 'Unavatar', url: `https://unavatar.io/${domain}`, priority: 'slow' },
+        { name: 'FaviconExtractor', url: `https://www.faviconextractor.com/favicon/${domain}`, priority: 'slow' }
       ];
 
       const allResults = [];
@@ -662,15 +685,17 @@
     }
 
     function copyToClipboard(text, btn) {
+      const doCopy = () => {
+        btn.classList.add('copied');
+        btn.textContent = '已复制';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.textContent = '复制';
+        }, 1200);
+      };
+      
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(text).then(() => {
-          btn.classList.add('copied');
-          btn.textContent = '已复制';
-          setTimeout(() => {
-            btn.classList.remove('copied');
-            btn.textContent = '复制';
-          }, 1200);
-        });
+        navigator.clipboard.writeText(text).then(doCopy);
       } else {
         const textarea = document.createElement('textarea');
         textarea.value = text;
@@ -678,12 +703,7 @@
         textarea.select();
         try {
           document.execCommand('copy');
-          btn.classList.add('copied');
-          btn.textContent = '已复制';
-          setTimeout(() => {
-            btn.classList.remove('copied');
-            btn.textContent = '复制';
-          }, 1200);
+          doCopy();
         } catch {}
         document.body.removeChild(textarea);
       }
