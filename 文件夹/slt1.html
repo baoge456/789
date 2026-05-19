@@ -375,7 +375,7 @@
       }
     };
 
-    let totalTasks = 9;
+    let totalTasks = 0;
     let completedTasks = 0;
     let startTime = 0;
     let timeTimer = null;
@@ -397,8 +397,12 @@
     };
 
     function bindClearOnClick(input) {
-      input.addEventListener('click', () => { input.value = ''; });
-      input.addEventListener('contextmenu', () => { input.value = ''; });
+      input.addEventListener('click', () => {
+        if (input.value.length > 0) input.value = '';
+      });
+      input.addEventListener('contextmenu', () => {
+        if (input.value.length > 0) input.value = '';
+      });
     }
 
     function bindPasteOverride(input) {
@@ -527,15 +531,14 @@
             tryLoad();
           } else {
             taskComplete();
-            resolve({ ...api, valid: false });
+            resolve({ ...api, valid: false, url: api.url });
           }
         };
 
-        const cacheBuster = api.url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
-        const finalUrl = api.url.startsWith('https') 
-          ? api.url + cacheBuster 
-          : `https://${api.url.slice(api.url.indexOf('//') + 2)}` + cacheBuster;
-        img.src = finalUrl;
+        const cacheBuster = `t=${Date.now()}`;
+        const separator = api.url.includes('?') ? '&' : '?';
+        img.crossOrigin = 'anonymous';
+        img.src = `${api.url}${separator}${cacheBuster}`;
       };
 
       tryLoad();
@@ -648,6 +651,8 @@
         { name: 'Unavatar', url: `https://unavatar.io/${domain}`, priority: 'slow' },
         { name: 'FaviconExtractor', url: `https://www.faviconextractor.com/favicon/${domain}`, priority: 'slow' }
       ];
+
+      totalTasks = fastApis.length + slowApis.length;
 
       const allResults = [];
       try {
