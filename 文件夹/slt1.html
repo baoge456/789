@@ -513,7 +513,7 @@
             tryLoad();
           } else {
             taskComplete();
-            resolve({ ...api, valid: false });
+            resolve({ ...api, valid: false, url: api.url });
           }
         }, timeout);
 
@@ -531,14 +531,36 @@
             tryLoad();
           } else {
             taskComplete();
-            resolve({ ...api, valid: true, url: api.url });
+            // 仅对已知跨域严格API放宽判断
+            const isStrictCors = api.url.includes('unavatar.io') || 
+                                api.url.includes('icon.horse');
+            resolve({ ...api, valid: !isStrictCors, url: api.url });
           }
         };
 
         const cacheBuster = `t=${Date.now()}`;
         const separator = api.url.includes('?') ? '&' : '?';
         img.crossOrigin = 'anonymous';
-        img.src = `${api.url}${separator}${cacheBuster}`;
+        
+        // 先用fetch检测Content-Type，非图片直接跳过
+        if (api.url.includes('favicon.ico')) {
+          fetch(`${api.url}${separator}${cacheBuster}`, { method: 'HEAD' })
+            .then(res => {
+              const contentType = res.headers.get('content-type') || '';
+              if (!contentType.startsWith('image/')) {
+                clearTimeout(timeoutTimer);
+                taskComplete();
+                resolve({ ...api, valid: false, url: api.url });
+                return;
+              }
+              img.src = `${api.url}${separator}${cacheBuster}`;
+            })
+            .catch(() => {
+              img.src = `${api.url}${separator}${cacheBuster}`;
+            });
+        } else {
+          img.src = `${api.url}${separator}${cacheBuster}`;
+        }
       };
 
       tryLoad();
