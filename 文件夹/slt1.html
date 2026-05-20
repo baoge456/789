@@ -531,10 +531,7 @@
             tryLoad();
           } else {
             taskComplete();
-            // 仅对已知跨域严格API放宽判断
-            const isStrictCors = api.url.includes('unavatar.io') || 
-                                api.url.includes('icon.horse');
-            resolve({ ...api, valid: !isStrictCors, url: api.url });
+            resolve({ ...api, valid: false, url: api.url });
           }
         };
 
@@ -542,8 +539,8 @@
         const separator = api.url.includes('?') ? '&' : '?';
         img.crossOrigin = 'anonymous';
         
-        // 先用fetch检测Content-Type，非图片直接跳过
-        if (api.url.includes('favicon.ico') || api.url.includes('unavatar.io')) {
+        // 仅对unavatar检测Content-Type
+        if (api.url.includes('unavatar.io')) {
           fetch(`${api.url}${separator}${cacheBuster}`, { method: 'HEAD' })
             .then(res => {
               const contentType = res.headers.get('content-type') || '';
