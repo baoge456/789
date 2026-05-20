@@ -531,7 +531,9 @@
             tryLoad();
           } else {
             taskComplete();
-            resolve({ ...api, valid: false, url: api.url });
+            // 仅unavatar和icon.horse严格判断（经常返回JSON/超时）
+            const strictFail = api.url.includes('unavatar.io') || api.url.includes('icon.horse');
+            resolve({ ...api, valid: !strictFail, url: api.url });
           }
         };
 
