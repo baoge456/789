@@ -547,7 +547,7 @@
           fetch(`${api.url}${separator}${cacheBuster}`, { method: 'HEAD' })
             .then(res => {
               const contentType = res.headers.get('content-type') || '';
-              if (!contentType.startsWith('image/')) {
+              if (!contentType.startsWith('image/') || !res.ok) {
                 clearTimeout(timeoutTimer);
                 taskComplete();
                 resolve({ ...api, valid: false, url: api.url });
@@ -556,7 +556,9 @@
               img.src = `${api.url}${separator}${cacheBuster}`;
             })
             .catch(() => {
-              img.src = `${api.url}${separator}${cacheBuster}`;
+              clearTimeout(timeoutTimer);
+              taskComplete();
+              resolve({ ...api, valid: false, url: api.url });
             });
         } else {
           img.src = `${api.url}${separator}${cacheBuster}`;
