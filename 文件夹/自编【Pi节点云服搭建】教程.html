@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>自编Pi节点云服搭建与双方案切换教程</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background: #f4f7fa;
+      font-family: "微软雅黑", Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(44,62,80,0.10);
+      padding: 24px 28px;
+    }
+    h1 {
+      color: #2d3a4b;
+      text-align: center;
+      border-bottom: 3px solid #1abc9c;
+      padding-bottom: 16px;
+      margin-bottom: 30px;
+    }
+    h2 {
+      color: #1abc9c;
+      border-left: 6px solid #1abc9c;
+      padding-left: 14px;
+      margin-top: 36px;
+      margin-bottom: 18px;
+      background: #e8f8f5;
+      border-radius: 4px;
+      font-size: 1.3em;
+      line-height: 1.8;
+      padding: 6px 14px;
+    }
+    h3 {
+      color: #2d3a4b;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      font-size: 1.1em;
+    }
+    ul, ol { margin-left: 1.2em; padding-left: 0.5em; }
+    li { margin-bottom: 0.6em; line-height: 1.7; }
+    a { color: #2980b9; text-decoration: underline; word-break: break-all; }
+    .panel {
+      background: #f9fafb;
+      border: 1px solid #e1e4e8;
+      border-radius: 8px;
+      padding: 16px 20px 12px 20px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.04);
+    }
+    .cmd-block {
+      position: relative;
+      background: #23272e;
+      color: #e4e9f0;
+      border-radius: 6px;
+      margin: 12px 0 16px 0;
+      padding: 14px 16px 14px 48px;
+      font-family: "Consolas", "Fira Mono", monospace;
+      font-size: 0.95em;
+      overflow-x: auto;
+      box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      z-index: 2;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+    .copy-btn:hover { opacity: 1; }
+    .copy-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: #1abc9c;
+      vertical-align: middle;
+    }
+    .copy-btn.copied svg { fill: #27ae60; }
+    .note {
+      background: #fef9e7;
+      border-left: 4px solid #f1c40f;
+      padding: 8px 16px;
+      margin: 12px 0;
+      border-radius: 4px;
+      font-size: 0.95em;
+    }
+    .warning {
+      background: #fdedec;
+      border-left: 4px solid #e74c3c;
+      padding: 8px 16px;
+      margin: 12px 0;
+      border-radius: 4px;
+      font-size: 0.95em;
+    }
+    .success {
+      background: #e8f8f5;
+      border-left: 4px solid #1abc9c;
+      padding: 8px 16px;
+      margin: 12px 0;
+      border-radius: 4px;
+      font-size: 0.95em;
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.9em;
+    }
+    .comparison-table th, .comparison-table td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .comparison-table th {
+      background-color: #e8f8f5;
+      color: #1abc9c;
+    }
+    .comparison-table tr:nth-child(even) { background-color: #f9fafb; }
+
+    #password-mask {
+      position: fixed;
+      z-index: 9999;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(44,62,80,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #password-box {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(44,62,80,0.18);
+      padding: 32px 28px;
+      text-align: center;
+      min-width: 240px;
+    }
+    #password-box h2 {
+      color: #1abc9c;
+      margin-bottom: 16px;
+      font-size: 1.2em;
+      border: none;
+      background: none;
+    }
+    #password-input {
+      width: 80%;
+      padding: 8px 10px;
+      font-size: 1em;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 16px;
+      outline: none;
+    }
+    #password-input:focus { border-color: #1abc9c; }
+    #password-submit {
+      background: #1abc9c;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 8px 28px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    #password-submit:hover { background: #16a085; }
+    #password-error {
+      color: #e74c3c;
+      margin-top: 10px;
+      font-size: 0.95em;
+      min-height: 1.5em;
+    }
+    @media (max-width: 600px) {
+      body { padding: 8px; }
+      .container { padding: 12px; }
+      .panel { padding: 10px; }
+      .cmd-block { padding: 12px 10px 12px 38px; font-size: 0.85em; }
+      h1 { font-size: 1.2em; }
+      h2 { font-size: 1.0em; }
+      .comparison-table { font-size: 0.8em; }
+      .comparison-table th, .comparison-table td { padding: 4px 6px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>自编【Pi节点云服搭建】教程 <span style="font-size:0.6rem;color:#888;">(2026年·双方案完整版)</span></h1>
+
+  <!-- 总体说明 -->
+  <div class="panel" style="background:#eafaf1;border-color:#1abc9c;">
+    <h2 style="border:none;background:none;margin-top:0;padding-left:0;">📌 写在前面</h2>
+    <p>本教程面向希望在 <strong>Windows 电脑</strong>上运行 Pi Node，并通过 <strong>云服务器 (VPS)</strong> 进行端口转发以提升网络连通性的用户。</p>
+    <p><strong>重要变化（2026年）：</strong> Pi Network 已于2025年2月20日启动<strong>开放主网</strong>。当前节点运行奖励与网络稳定性直接挂钩，对节点在线率和端口开放要求更高。</p>
+    <p>本教程提供两种经过验证的方案，您可以根据需要选择：</p>
+    <ul>
+      <li><strong>方案一（经典）：OpenVPN + Gost</strong> — 稳定成熟，适合追求传统VPN方案的用户。</li>
+      <li><strong>方案二（现代）：Xray (karing) + FRP</strong> — 更轻量，性能更好，无VPN依赖，是目前推荐的方案。</li>
+    </ul>
+    <div class="warning">
+      <strong>⚠️ 风险提示：</strong> 运行节点需要一定的技术基础，涉及服务器配置、网络安全等。请自行评估风险，并保管好你的 Pi 账户与节点私钥。本教程仅供参考，不构成投资建议。
+    </div>
+  </div>
+
+  <!-- 方案对比总览 -->
+  <div class="panel">
+    <h2>📊 方案对比与选择</h2>
+    <table class="comparison-table">
+      <thead>
+        <tr><th>对比项</th><th>OpenVPN + Gost 方案</th><th>Xray (karing) + FRP 方案</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>组网/隧道工具</strong></td><td>OpenVPN</td><td>Xray（通过 karing 客户端）</td></tr>
+        <tr><td><strong>端口转发工具</strong></td><td>Gost</td><td>FRP</td></tr>
+        <tr><td><strong>转发目标地址</strong></td><td><code>10.8.0.2</code>（VPN 虚拟 IP）</td><td><code>127.0.0.1</code>（在 frpc 中配置）</td></tr>
+        <tr><td><strong>本地客户端</strong></td><td>OpenVPN GUI</td><td>karing + frpc</td></tr>
+        <tr><td><strong>云服务器组件</strong></td><td>Gost + OpenVPN Server</td><td>frps</td></tr>
+        <tr><td><strong>主要特点</strong></td><td>传统稳定，配置相对直接</td><td>更轻量，性能更好，无 VPN 依赖</td></tr>
+      </tbody>
+    </table>
+    <div class="note">💡 <strong>选择建议：</strong> 如果您追求稳定和成熟，可选 OpenVPN 方案；如果您希望减少 VPN 依赖、降低资源占用，Xray + FRP 是更现代的选择。两种方案可共存于同一台服务器，通过启用/停止对应服务即可切换。</div>
+  </div>
+
+  <!-- 第一部分：本地环境准备 -->
+  <div class="panel">
+    <h2>一、节点电脑配置检查</h2>
+    <p>Pi Node 基于 Docker 运行，需要 Windows 系统支持虚拟化及 WSL2 / Hyper-V。</p>
+    <ol>
+      <li><strong>检查系统版本：</strong> 按 <kbd>Win</kbd>+<kbd>R</kbd>，输入 <code>winver</code>，确保系统为 <strong>Windows 10 22H2</strong> 或 <strong>Windows 11</strong> 以上版本。</li>
+      <li><strong>启用虚拟化：</strong>
+        <ul>
+          <li>打开任务管理器 → 性能 → 确认"虚拟化"已启用。</li>
+          <li>进入"控制面板" → "程序" → "启用或关闭 Windows 功能"。</li>
+          <li>勾选以下三项：<br>
+            ✅ <strong>适用于 Linux 的 Windows 子系统 (WSL)</strong><br>
+            ✅ <strong>虚拟机平台 (Virtual Machine Platform)</strong><br>
+            ✅ <strong>Hyper-V</strong> (如系统支持)
+          </li>
+          <li>点击"确定"，按提示重启电脑。</li>
+        </ul>
+      </li>
+      <li><strong>安装 WSL2 内核更新包：</strong> 下载并安装 <a href="https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.Msi" target="_blank">wsl_update_x64.Msi</a>。</li>
+      <li><strong>设置 WSL2 为默认：</strong> 以管理员身份打开 PowerShell 或 CMD，执行：
+        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>wsl --set-default-version 2</div>
+      </li>
+      <li><strong>检查虚拟化支持：</strong> 以管理员身份运行 PowerShell，执行：
+        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>dism.exe /online /get-features /format:table | findstr /c:"VirtualMachinePlatform"</div>
+      </li>
+      <li><strong>在 Windows 功能中启用 Hyper-V：</strong> 控制面板 → 程序 → 启用或关闭 Windows 功能 → 勾选 Hyper-V。</li>
+      <li><strong>（可选）安装 Linux 发行版：</strong> 在 Microsoft Store 中搜索并安装 Ubuntu 22.04 LTS，用于后续调试。</li>
+    </ol>
+
+    <h3>🖥️ 终端管理员命令（选用慎用）</h3>
+    <p>以下命令用于查看系统信息和排查网络问题，以管理员身份运行 CMD 或 PowerShell 执行：</p>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button># 查看电脑系统信息
+systeminfo
+
+# 查看电脑详细系统信息和硬件配置
+msinfo32
+
+# 查看网络配置信息
+ipconfig /all
+
+# 清除DNS缓存
+ipconfig /flushdns
+
+# 释放当前IP地址
+ipconfig /release
+
+# 重置TCP/IP协议
+netsh int ip reset</div>
+  </div>
+
+  <!-- 第二部分：软件下载 -->
+  <div class="panel">
+    <h2>二、必需软件下载</h2>
+    <ul>
+      <li><strong>Pi Node (桌面版)：</strong> 当前最新稳定版为 <strong>0.5.2</strong>。
+        <ul>
+          <li>官方下载：<a href="https://node.minepi.com/" target="_blank">https://node.minepi.com/</a></li>
+          <li>GitHub 发布页：<a href="https://github.com/pi-node/pi-node/releases" target="_blank">https://github.com/pi-node/pi-node/releases</a></li>
+        </ul>
+      </li>
+      <li><strong>Docker Desktop：</strong> 当前最新版为 <strong>v4.43</strong> (或更新版本)。
+        <ul>
+          <li>官方下载 (Windows)：<a href="https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe" target="_blank">直接下载</a></li>
+          <li>官网首页：<a href="https://www.docker.com/products/docker-desktop/" target="_blank">https://www.docker.com/</a></li>
+        </ul>
+      </li>
+      <li><strong>方案一：OpenVPN 客户端</strong>（使用 OpenVPN 方案时必需）
+        <ul>
+          <li>下载链接：<a href="https://swupdate.openvpn.org/community/releases/OpenVPN-2.6.6-I001-amd64.msi" target="_blank">OpenVPN 2.6.6</a></li>
+        </ul>
+      </li>
+      <li><strong>方案二：karing (Xray 客户端)</strong>（使用 Xray 方案时必需）
+        <ul>
+          <li>官方下载：<a href="https://github.com/KaringX/karing/releases" target="_blank">https://github.com/KaringX/karing/releases</a></li>
+          <li>建议下载 Windows 便携版 (Portable)，无需安装</li>
+        </ul>
+      </li>
+      <li><strong>FRP 客户端 (frpc)</strong>（Xray 方案必需）
+        <ul>
+          <li>GitHub 发布页：<a href="https://github.com/fatedier/frp/releases" target="_blank">https://github.com/fatedier/frp/releases</a></li>
+          <li>下载 Windows amd64 版本：<code>frp_0.69.1_windows_amd64.zip</code></li>
+        </ul>
+      </li>
+      <li><strong>FinalShell 或 Xshell：</strong> SSH 客户端，用于连接云服务器。
+        <ul>
+          <li>FinalShell 下载：<a href="http://www.hostbuf.com/downloads/finalshell_install.exe" target="_blank">http://www.hostbuf.com/</a></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <!-- 第三部分：云服务器配置 -->
+  <div class="panel">
+    <h2>三、云服务器 (VPS) 购买与配置</h2>
+    <p>云服务器用于获取稳定的公网IP，并通过端口转发改善节点网络质量。推荐使用 <strong>Ubuntu 22.04 / 24.04 LTS</strong> 系统。</p>
+    <ol>
+      <li><strong>购买服务器：</strong> 阿里云、腾讯云、华为云等均可。选择 <strong>轻量应用服务器</strong> 或 <strong>ECS</strong>，配置建议：<strong>2核CPU、2GB内存、40GB硬盘</strong> 以上，带宽按需选择。</li>
+      <li><strong>阿里云购买教程：</strong> <a href="https://www.bilibili.com/video/BV1aK41127oJ/" target="_blank">B站视频</a></li>
+      <li><strong>进入阿里云官网：</strong> <a href="https://www.aliyun.com" target="_blank">https://www.aliyun.com</a></li>
+      <li><strong>选择套餐、重置密码、放行端口：</strong> 设置防火墙入站规则（TCP+UDP 31400-31409），关闭防火墙和系统更新，关闭安全中心相关保护。</li>
+      <li><strong>IPv6：</strong> 如果不支持，打 ×。</li>
+    </ol>
+
+    <h3>🔧 服务器初始化脚本</h3>
+    <p>登录服务器后（使用 FinalShell 或 SSH），依次执行以下命令来优化环境并安装必要工具。</p>
+    <div class="note">💡 以下命令中的 <code>#</code> 为注释，无需输入。请逐条复制执行。</div>
+    <ol>
+      <li><strong>更新系统并安装基础工具：</strong>
+        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>apt update -y && apt upgrade -y
+apt install curl wget vim net-tools ufw -y</div>
+      </li>
+      <li><strong>安装 BBR 加速（提升网络性能）：</strong>
+        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>wget --no-check-certificate https://github.com/teddysun/across/raw/master/bbr.sh && chmod +x bbr.sh && ./bbr.sh
+# 重启后检查
+uname -r
+sysctl net.ipv4.tcp_congestion_control
+lsmod | grep bbr</div>
+      </li>
+    </ol>
+  </div>
+
+  <!-- ======================== 通用关键配置 ======================== -->
+  <div class="panel">
+    <h2>🛡️ 通用关键配置：本地防火墙 &amp; 方案切换原则 &amp; 可用性率</h2>
+    <p>以下配置和原则适用于两种方案，请务必在部署前完成。</p>
+
+    <h3>1. 本地电脑防火墙：添加入站规则（必须）</h3>
+    <p>即使云服务器和路由器端口都已开放，<strong>Windows 防火墙也可能阻止外部流量到达您的 Pi Node</strong>。您需要手动添加一条允许 <code>31401-31403</code> 端口入站的规则。</p>
+
+    <p><strong>方法一：使用命令快速添加（推荐）</strong></p>
+    <p>以管理员身份打开 PowerShell，执行以下命令：</p>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>netsh advfirewall firewall add rule name="Pi-Node-Inbound" dir=in action=allow protocol=TCP localport=31401-31403</div>
+
+    <p><strong>验证规则是否生效：</strong></p>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>netsh advfirewall firewall show rule name="Pi-Node-Inbound"</div>
+    <p>如果有规则详细信息输出，说明已添加成功。</p>
+
+    <p><strong>方法二：通过图形界面添加</strong></p>
+    <ol>
+      <li>按 <kbd>Win</kbd>+<kbd>R</kbd>，输入 <code>wf.msc</code>，回车打开高级安全防火墙。</li>
+      <li>点击左侧 <strong>"入站规则"</strong> → 右侧 <strong>"新建规则…"</strong>。</li>
+      <li>规则类型：选择 <strong>"端口"</strong> → 下一步。</li>
+      <li>协议和端口：选择 <strong>"TCP"</strong>，选择 <strong>"特定本地端口"</strong>，输入 <code>31401-31403</code> → 下一步。</li>
+      <li>操作：选择 <strong>"允许连接"</strong> → 下一步。</li>
+      <li>配置文件：全选（域、专用、公用）→ 下一步。</li>
+      <li>名称：输入 <code>Pi-Node-Inbound</code> → 完成。</li>
+    </ol>
+
+    <div class="note">💡 如果您使用第三方防火墙（如 360、火绒等），请在对应软件的"联网控制"或"端口设置"中放行 <code>31401-31403</code> 端口。</div>
+
+    <h3>2. 方案切换核心原则</h3>
+    <p>两种方案共享同一个云服务器和本地 Pi Node，它们的区别仅在于"网络隧道"和"端口转发工具"。</p>
+    <table class="comparison-table">
+      <thead><tr><th>您使用的方案</th><th>网络隧道工具</th><th>端口转发工具</th></tr></thead>
+      <tbody>
+        <tr><td><strong>OpenVPN + Gost</strong></td><td>OpenVPN（服务端+客户端）</td><td>Gost</td></tr>
+        <tr><td><strong>Xray + FRP</strong></td><td>Xray（服务端 + karing客户端）</td><td>FRP</td></tr>
+      </tbody>
+    </table>
+    <p><strong>切换的本质：</strong> 停止当前方案的工具，启动另一方案的工具，<strong>不需要修改 Pi Node 的任何配置</strong>。Gost 的配置文件（指向 <code>10.8.0.2</code>）在切换时无需修改，只需在 OpenVPN 方案下启动它，在 FRP 方案下停止它。</p>
+
+    <h3>3. 关于"可用性率"（在线率）的恢复</h3>
+    <p>切换方案或修复节点后，您可能会发现 PiCheck 等工具显示的"今天可用性"在几小时内仍是 <strong>0%</strong>。这是正常现象，因为：</p>
+    <ul>
+      <li><strong>统计有延迟：</strong> 可用性率是滚动统计过去 1小时、24小时的在线数据。</li>
+      <li><strong>入站连接需"重新发现"：</strong> 网络需要时间（通常 24-48 小时）来重新将您的节点标记为稳定在线。</li>
+    </ul>
+    <p><strong>在修复后的 24 小时内，请重点关注这三个指标：</strong></p>
+    <ul>
+      <li>✅ 核心端口 (31401-31403) 是否 <strong>OPEN</strong>（是 → 链路通）</li>
+      <li>✅ <code>Incoming connections</code> 是否 <strong>&gt; 0</strong>（是 → 正在被连接）</li>
+      <li>✅ 本地健康检查：访问 <code>http://127.0.0.1:31401/health</code> 返回 <code>{"database_connected":true,"core_up":true,"core_synced":true}</code>（是 → 节点自身正常）</li>
+    </ul>
+    <div class="success">只要以上三个指标正常，<strong>可用性率会在 1-3 天内自然回升</strong>，无需反复重启或调整。</div>
+  </div>
+
+  <!-- 第四部分：方案一 OpenVPN + Gost -->
+  <div class="panel">
+    <h2>🔹 方案一：OpenVPN + Gost（经典稳定）</h2>
+    <p>本方案通过 OpenVPN 在云服务器和本地电脑间建立虚拟局域网，由 Gost 完成端口转发。</p>
+
+    <h3>4.1 安装 OpenVPN 服务端</h3>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>wget https://git.io/vpn -O openvpn-install.sh && bash openvpn-install.sh</div>
+    <p>安装过程中按提示操作：</p>
+    <ul>
+      <li>协议选择 <code>1 (UDP)</code></li>
+      <li>端口默认 <code>1194</code> 或自定义</li>
+      <li>DNS 建议选 <code>2 (Google)</code></li>
+      <li>客户端名称回车默认即可</li>
+    </ul>
+    <p>安装完成后，会在 <code>/root/</code> 目录生成 <strong>client.ovpn</strong> 配置文件，下载到本地电脑备用。</p>
+
+    <h3>4.2 安装并配置 Gost</h3>
+    <p>使用一键脚本安装 Gost：</p>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>wget --no-check-certificate -O gost.sh https://raw.githubusercontent.com/KANIKIG/Multi-EasyGost/master/gost.sh && chmod +x gost.sh && ./gost.sh</div>
+    <p>在菜单中：</p>
+    <ul>
+      <li>选择 <code>1</code> 安装 Gost</li>
+      <li>选择 <code>7</code> 新增转发配置</li>
+      <li>类型选 <strong>不加密中转</strong></li>
+      <li>本地端口填 <code>31401</code></li>
+      <li>目的地地址填 <code>10.8.0.2:31401</code>（假设 OpenVPN 分配给本地电脑的 IP 是 10.8.0.2）</li>
+      <li>重复以上步骤，添加 31402、31403 端口</li>
+    </ul>
+    <div class="note">💡 如果无法确定 OpenVPN 分配给本地电脑的虚拟 IP，可以在本地电脑连接 OpenVPN 后，通过 <code>ipconfig</code> 查看 <code>Ethernet adapter OpenVPN TAP-Windows6</code> 下的 IPv4 地址。</div>
+    <div class="warning">⚠️ Gost 配置中的目标地址必须与本地电脑在 OpenVPN 隧道中获得的虚拟 IP 一致。通常为 <code>10.8.0.2</code>。</div>
+
+    <h3>4.3 本地电脑连接 OpenVPN</h3>
+    <ol>
+      <li>将云服务器生成的 <code>client.ovpn</code> 文件复制到本地电脑的 <code>C:\Program Files\OpenVPN\config\</code> 目录。</li>
+      <li>以管理员身份运行 OpenVPN GUI，在系统托盘处右键选择"连接"。</li>
+      <li>连接成功后，记下虚拟 IP（通常为 10.8.0.2）。</li>
+    </ol>
+
+    <h3>4.4 在 Pi Node 中验证</h3>
+    <ul>
+      <li>打开 Pi Node 软件，点击 <strong>"Check Now"</strong> 检测端口，31401-31403 应显示为 <strong>OPEN</strong>。</li>
+      <li>点击 <strong>"Start Node"</strong> 启动节点，观察区块同步状态。</li>
+    </ul>
+    <div class="note">💡 <strong>如果端口检测仍显示 CLOSED，请检查本地防火墙规则：</strong> 在 PowerShell 中执行 <code>netsh advfirewall firewall show rule name="Pi-Node-Inbound"</code> 确认入站规则已添加并生效。</div>
+  </div>
+
+  <!-- 第五部分：方案二 Xray + FRP -->
+  <div class="panel">
+    <h2>🔸 方案二：Xray (karing) + FRP（轻量现代）</h2>
+    <p>本方案通过 Xray 代理（karing 客户端）打通网络隧道，由 FRP 完成端口转发，无 VPN 依赖，是当前推荐的方案。</p>
+
+    <h3>5.1 云服务器：安装并配置 FRP 服务端 (frps)</h3>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>cd ~
+wget https://github.com/fatedier/frp/releases/download/v0.69.1/frp_0.69.1_linux_amd64.tar.gz
+tar -zxvf frp_0.69.1_linux_amd64.tar.gz
+cd frp_0.69.1_linux_amd64</div>
+    <p>编辑配置文件 <code>frps.toml</code>：</p>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>nano frps.toml</div>
+    <p>写入以下内容（端口和 token 可自定义）：</p>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>bindPort = 7000
+auth.token = "your_secure_token_here"</div>
+    <p><strong>将 frps 配置为 systemd 服务（开机自启）：</strong></p>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>cat > /etc/systemd/system/frps.service << 'EOF'
+[Unit]
+Description=FRP Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/frp_0.69.1_linux_amd64
+ExecStart=/root/frp_0.69.1_linux_amd64/frps -c /root/frp_0.69.1_linux_amd64/frps.toml
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl start frps
+systemctl enable frps
+
+# 检查 frps 是否运行
+ps aux | grep frps | grep -v grep
+
+# 检查端口是否监听
+ss -tlnp | grep -E "7000|31401"</div>
+
+    <h3>5.2 云服务器：安装并配置 Xray (s-ui 面板)</h3>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/master/install.sh)</div>
+    <p>安装后：</p>
+    <ul>
+      <li>访问 <code>http://你的服务器IP:2095/app/</code> 进入面板</li>
+      <li>在"入站列表"中，添加一个 <strong>VLESS + Reality</strong> 协议的节点</li>
+      <li>记下该节点的连接信息（地址、端口、UUID、流控等），供本地 karing 客户端使用</li>
+    </ul>
+
+    <h3>5.3 本地电脑：配置 karing (Xray 客户端)</h3>
+    <ol>
+      <li>打开 karing，在"订阅"或"节点"管理中，添加从 s-ui 面板获取的 VLESS 节点。</li>
+      <li>确保节点状态为"已连接"。</li>
+      <li>记下 karing 的本地 SOCKS5 代理端口（默认 <code>3067</code>，可在设置中查看）。</li>
+    </ol>
+
+    <h3>5.4 本地电脑：配置并运行 FRP 客户端 (frpc)</h3>
+    <p>下载 Windows 版 FRP，解压到本地目录，如 <code>D:\Edge浏览器\frp_0.69.1_windows_amd64</code>。</p>
+    <p>创建 <code>frpc.toml</code> 配置文件，内容如下（替换 IP 和 token）：</p>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>serverAddr = "你的云服务器公网IP"
+serverPort = 7000
+auth.token = "your_secure_token_here"
+[[proxies]]
+name = "pi_31401"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31401
+remotePort = 31401
+[[proxies]]
+name = "pi_31402"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31402
+remotePort = 31402
+[[proxies]]
+name = "pi_31403"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 31403
+remotePort = 31403</div>
+    <p><strong>启动 frpc：</strong> 在 PowerShell 中进入 FRP 目录，执行 <code>frpc -c frpc.toml</code>，看到 <code>start proxy success</code> 即成功。</p>
+    <p><strong>（可选）设置 frpc 开机自启：</strong></p>
+    <ul>
+      <li>在 FRP 目录下创建 <code>start_frpc.bat</code>，写入：<br>
+        <code>@echo off<br>cd /d D:\Edge浏览器\frp_0.69.1_windows_amd64<br>frpc -c frpc.toml</code></li>
+      <li>按 <code>Win + R</code>，输入 <code>shell:startup</code>，将 <code>start_frpc.bat</code> 复制到打开的文件夹中。</li>
+    </ul>
+
+    <h3>5.5 在 Pi Node 中验证</h3>
+    <ul>
+      <li>打开 Pi Node 软件，点击 <strong>"Check Now"</strong> 检测端口，31401-31403 应显示为 <strong>OPEN</strong>。</li>
+      <li>观察 <strong>Incoming connections</strong> 数量，应逐渐从 0 开始增加。</li>
+      <li>在云服务器上执行 <code>curl http://127.0.0.1:31401/health</code>，应返回 <code>{"database_connected":true,"core_up":true,"core_synced":true}</code>。</li>
+    </ul>
+    <div class="note">💡 <strong>如果端口检测仍显示 CLOSED，请检查本地防火墙规则：</strong> 在 PowerShell 中执行 <code>netsh advfirewall firewall show rule name="Pi-Node-Inbound"</code> 确认入站规则已添加并生效。</div>
+  </div>
+
+  <!-- 第六部分：方案切换 -->
+  <div class="panel">
+    <h2>🔄 方案切换指南</h2>
+    <p>两种方案可以共存于同一台云服务器和本地电脑，通过简单的服务启停即可切换。</p>
+
+    <h3>切换前准备</h3>
+    <ul>
+      <li>备份当前 Gost 配置文件（如果使用 OpenVPN 方案）：<code>cp /etc/gost/config.json /etc/gost/config.json.openvpn.bak</code></li>
+      <li>确保本地电脑已安装对应的客户端软件（OpenVPN GUI 或 karing）</li>
+      <li>确认云服务器安全组已放行两种方案所需的所有端口</li>
+    </ul>
+
+    <h3>从 OpenVPN 切换到 Xray + FRP</h3>
+    <ol>
+      <li><strong>本地电脑：</strong> 断开 OpenVPN，打开 karing 并连接 Xray 节点。</li>
+      <li><strong>云服务器：</strong> 停止 Gost，启动 frps。
+        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button># 停止 Gost
+cd ~ && ./gost.sh  # 选择 5 停止
+# 启动 frps
+systemctl start frps</div>
+      </li>
+      <li><strong>本地电脑：</strong> 启动 frpc（双击 <code>start_frpc.bat</code>）。</li>
+      <li><strong>验证：</strong> 在 Pi Node 中 Check Now，或在云服务器执行 <code>curl http://127.0.0.1:31401/health</code>。</li>
+    </ol>
+
+    <h3>从 Xray + FRP 切换回 OpenVPN</h3>
+    <ol>
+      <li><strong>本地电脑：</strong> 断开 karing 的 Xray 连接，启动 OpenVPN GUI 连接。</li>
+      <li><strong>本地电脑：</strong> 停止 frpc（按 Ctrl+C）。</li>
+      <li><strong>云服务器：</strong> 停止 frps，启动 Gost。
+        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button># 停止 frps
+systemctl stop frps
+# 启动 Gost
+cd ~ && ./gost.sh  # 选择 4 启动</div>
+      </li>
+      <li><strong>验证：</strong> 在 Pi Node 中 Check Now，或在云服务器执行 <code>curl http://127.0.0.1:31401/health</code>。</li>
+    </ol>
+    <div class="success">✅ 切换完成后，端口检测应显示 31401-31403 为 OPEN，Pi Node 状态为 Synced!。</div>
+  </div>
+
+  <!-- 第七部分：服务器端服务管理 -->
+  <div class="panel">
+    <h2>🖥️ 服务器端服务管理（Gost / FRP）</h2>
+    <p>以下命令在云服务器（VPS）上执行，用于管理 Gost 和 FRP 服务的启动、停止和开机自启。</p>
+
+    <h3>1. Gost 服务管理</h3>
+    <table class="comparison-table">
+      <thead><tr><th>操作</th><th>命令</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>启动 Gost</td><td><code>cd ~ && ./gost.sh</code> → 选择 4</td><td>手动启动 Gost 转发</td></tr>
+        <tr><td>停止 Gost</td><td><code>cd ~ && ./gost.sh</code> → 选择 5</td><td>手动停止 Gost 转发</td></tr>
+        <tr><td>设置开机自启</td><td><code>systemctl enable gost</code></td><td>VPS 重启后 Gost 自动运行</td></tr>
+        <tr><td>取消开机自启</td><td><code>systemctl disable gost</code></td><td>VPS 重启后 Gost 不自动运行</td></tr>
+        <tr><td>查看运行状态</td><td><code>systemctl status gost</code></td><td>查看 Gost 是否在运行</td></tr>
+        <tr><td>手动启动（systemd）</td><td><code>systemctl start gost</code></td><td>用 systemd 启动 Gost</td></tr>
+        <tr><td>手动停止（systemd）</td><td><code>systemctl stop gost</code></td><td>用 systemd 停止 Gost</td></tr>
+      </tbody>
+    </table>
+    <div class="note">💡 <strong>注意：</strong> Gost 和 FRP 使用相同的端口（31401-31403），<strong>不要同时运行</strong>。用 FRP 方案时 Gost 必须停止，用 OpenVPN 方案时 Gost 必须启动。</div>
+
+    <h3>2. FRP 服务端（frps）管理</h3>
+    <table class="comparison-table">
+      <thead><tr><th>操作</th><th>命令</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>启动 frps</td><td><code>systemctl start frps</code></td><td>启动 FRP 服务端</td></tr>
+        <tr><td>停止 frps</td><td><code>systemctl stop frps</code></td><td>停止 FRP 服务端</td></tr>
+        <tr><td>重启 frps</td><td><code>systemctl restart frps</code></td><td>重启 FRP 服务端</td></tr>
+        <tr><td>查看进程</td><td><code>ps aux | grep frps | grep -v grep</code></td><td>查看 frps 是否在运行</td></tr>
+        <tr><td>查看端口</td><td><code>ss -tlnp | grep -E "7000|31401"</code></td><td>查看 frps 监听端口</td></tr>
+        <tr><td>查看日志</td><td><code>journalctl -u frps --no-pager | tail -20</code></td><td>查看 frps 最近日志</td></tr>
+        <tr><td>设置开机自启</td><td><code>systemctl enable frps</code></td><td>VPS 重启后 frps 自动运行</td></tr>
+        <tr><td>取消开机自启</td><td><code>systemctl disable frps</code></td><td>VPS 重启后 frps 不自动运行</td></tr>
+      </tbody>
+    </table>
+    <div class="note">💡 <strong>提示：</strong> frps 推荐设置为开机自启（<code>systemctl enable frps</code>），这样 VPS 重启后无需手动干预。</div>
+
+    <h3>3. 快速切换命令（方案切换时使用）</h3>
+    <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button># ===== 切换到 Xray + FRP 方案 =====
+systemctl stop gost
+systemctl disable gost
+systemctl start frps
+
+# ===== 切换到 OpenVPN + Gost 方案 =====
+systemctl stop frps
+systemctl enable gost
+systemctl start gost</div>
+  </div>
+
+  <!-- 第八部分：常见问题 -->
+  <div class="panel">
+    <h2>❓ 常见问题</h2>
+
+    <h3>Q0：端口检测显示 CLOSED，但云服务器和路由器设置都正确？</h3>
+    <ul>
+      <li><strong>很可能是本地电脑防火墙拦截了入站连接。</strong> 请按"通用关键配置"章节中的步骤，在 Windows 高级安全防火墙中为 <code>31401-31403</code> 端口添加一条"允许连接"的入站规则。</li>
+      <li>如果您使用第三方防火墙软件，请同样放行这些端口。</li>
+    </ul>
+
+    <h3>Q1：切换方案后，Pi Node 的 Incoming connections 为 0？</h3>
+    <ul>
+      <li>检查云服务器上对应服务是否正常运行（Gost 或 frps）。</li>
+      <li>检查本地客户端是否连接成功（OpenVPN 或 karing）。</li>
+      <li>在云服务器上执行 <code>curl http://127.0.0.1:31401/health</code>，确认本地节点可访问。</li>
+      <li>入站连接需要时间积累，等待 10-30 分钟观察。</li>
+    </ul>
+
+    <h3>Q2：frpc 报错 <code>port unavailable</code>？</h3>
+    <ul>
+      <li><strong>原因：</strong> 云服务器上 Gost 还在运行，占用了 31401-31403 端口。</li>
+      <li><strong>解决：</strong> 用 <code>./gost.sh</code> 停止 Gost，再启动 frpc。</li>
+    </ul>
+
+    <h3>Q3：frpc 报错 <code>connection refused</code>？</h3>
+    <ul>
+      <li><strong>检查 1：</strong> 本地 karing 是否已开启并连接？SOCKS5 代理端口是否正确（默认 3067）？</li>
+      <li><strong>检查 2：</strong> 云服务器安全组是否放行了 <code>7000</code> 和 <code>31400-31409</code> 端口？</li>
+      <li><strong>检查 3：</strong> 云服务器上 frps 是否正在运行（<code>ps aux | grep frps | grep -v grep</code>）？</li>
+    </ul>
+
+    <h3>Q4：端口检测显示 31401-31403 OPEN，但 Incoming connections 依然为 0？</h3>
+    <ul>
+      <li>端口开放只代表外部可以访问，入站连接需要其他节点主动连接你，需要时间积累。</li>
+      <li>可用性率（在线率）需要 24-48 小时稳定运行才能恢复正常水平。</li>
+    </ul>
+  </div>
+
+  <!-- 第九部分：其他相关教程 -->
+  <div class="panel">
+    <h2>📚 九、其他相关教程</h2>
+
+    <h3>📦 s-ui 面板管理</h3>
+    <p>s-ui 是一个轻量级 Xray 管理面板，可以方便地查看流量、管理节点。</p>
+    <ul>
+      <li>一键安装命令：
+        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/master/install.sh)</div>
+      </li>
+      <li>指定版本安装：
+        <div class="cmd-block"><button class="copy-btn" onclick="copyCmd(this)" title="复制"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>VERSION=1.1.0 && bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/$VERSION/install.sh) $VERSION</div>
+      </li>
+      <li>安装成功后运行面板命令：<code>s-ui</code></li>
+      <li>默认访问地址：<code>http://你的服务器IP:2095/app/</code></li>
+    </ul>
+
+    <h3>📱 安卓手机 Pi App 白屏问题</h3>
+    <p>部分老旧安卓手机打开 Pi App 或 Pi Browser 时出现白屏，可尝试安装 <strong>Android System WebView</strong> 插件。</p>
+    <ul>
+      <li>下载地址：<a href="https://www.apkmirror.com/uploads/page/6/?appcategory=android-system-webview" target="_blank">APKMirror WebView 页面</a></li>
+      <li>建议选择版本 90~100 之间的稳定版本进行安装。</li>
+    </ul>
+
+    <h3>🌐 本地分流脚本 (Win平台)</h3>
+    <p>如果你希望只让 Pi Node 走 VPN 通道，而其他国内网站直连，可以使用分流脚本。</p>
+    <ul>
+      <li>开源项目地址：<a href="https://github.com/lmc999/auto-add-routes" target="_blank">https://github.com/lmc999/auto-add-routes</a></li>
+      <li>下载打包文件：<a href="https://cftg.653827.xyz/1751932815470.7z" target="_blank">分流脚本包</a> (请自行核对安全性)</li>
+      <li>将脚本解压至 OpenVPN 的 config 目录，并确保与 <code>client.ovpn</code> 同目录，重命名批处理文件以匹配配置文件名称。</li>
+    </ul>
+    <div class="warning">
+      <strong>⚠️ 注意：</strong> 一条宽带下运行多个节点时，<strong>不建议</strong>使用分流，以免造成网络冲突。
+    </div>
+  </div>
+
+  <!-- 底部 -->
+  <div style="text-align:center;color:#aaa;font-size:0.9rem;border-top:1px solid #eee;padding-top:20px;margin-top:20px;">
+    教程更新于 2026年6月 · 双方案完整版 · 请以官方最新文档为准
+  </div>
+</div>
+
+<!-- 密码保护 -->
+<div id="password-mask">
+  <div id="password-box">
+    <h2>🔐 请输入访问密码</h2>
+    <input type="password" id="password-input" placeholder="密码" autofocus>
+    <br>
+    <button id="password-submit">进入</button>
+    <div id="password-error"></div>
+  </div>
+</div>
+
+<script>
+  const CORRECT_PASSWORD = "baoge";
+  const STORAGE_KEY = "baoge_page_authed";
+  function checkAuth() {
+    if (localStorage.getItem(STORAGE_KEY) === "1") {
+      document.getElementById("password-mask").style.display = "none";
+      document.body.style.overflow = "";
+    } else {
+      document.getElementById("password-mask").style.display = "flex";
+      document.body.style.overflow = "hidden";
+    }
+  }
+  function tryLogin() {
+    const input = document.getElementById("password-input").value;
+    if (input === CORRECT_PASSWORD) {
+      localStorage.setItem(STORAGE_KEY, "1");
+      document.getElementById("password-error").innerText = "";
+      location.reload();
+    } else {
+      document.getElementById("password-error").innerText = "❌ 密码错误，请重试";
+      document.getElementById("password-input").value = "";
+      document.getElementById("password-input").focus();
+    }
+  }
+  document.getElementById("password-submit").onclick = tryLogin;
+  document.getElementById("password-input").onkeydown = function(e) {
+    if (e.key === "Enter") tryLogin();
+  };
+  window.onload = checkAuth;
+
+  function copyCmd(btn) {
+    const block = btn.parentElement;
+    const clone = block.cloneNode(true);
+    const btnClone = clone.querySelector('.copy-btn');
+    if (btnClone) btnClone.remove();
+    let code = clone.innerText.trim();
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(code).then(() => {
+        btn.classList.add("copied");
+        setTimeout(() => btn.classList.remove("copied"), 1500);
+      }).catch(() => fallbackCopy(code, btn));
+    } else {
+      fallbackCopy(code, btn);
+    }
+  }
+  function fallbackCopy(text, btn) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand("copy");
+      btn.classList.add("copied");
+      setTimeout(() => btn.classList.remove("copied"), 1500);
+    } catch (e) {
+      alert("复制失败，请手动复制。");
+    }
+    document.body.removeChild(textarea);
+  }
+</script>
+</body>
+</html>
